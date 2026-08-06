@@ -60,11 +60,40 @@ above was run with those two test files excluded.
    against the shipped tile's canonical geometry, so a row/column swap that
    preserves the payload length is refused rather than silently returning a
    5.16 m error.
-5. **Pin every accepted finding with the reviewer's own counterexample** as a
+5. **Defects the WP5 test subagent found in my file layer.** Its suite
+   (`tests/test_fileio.py`, 117 tests, green in both modes, independently
+   re-run by the lead) pins these as CURRENT behaviour — so fixing them will
+   turn those pins red, which is exactly what should happen:
+   - **NaN reaches a coordinate file through the ELEVATION column.** Confirmed:
+     `101,780000.000,13123359.580,nan,IRON PIPE` writes
+     `101,117978.426,19685039.370,nan,IRON PIPE`. `write_all`'s finiteness loop
+     checks only northing and easting; `float("nan")` parses; `value == 0.0` is
+     False for NaN; `verify_round_trip` re-parses `"nan"` happily. Its docstring
+     claims teeth it does not have. `inf`/`-inf` behave the same. **Fix the
+     reader** (reject non-finite at parse) rather than only the writer.
+   - **Unquoted thousands separators produce a wrong coordinate and a written
+     file.** `101,780,000.000,13,123,359.580,800.00,IRON PIPE` is accepted as
+     northing 780.0, easting 0.0, elevation 13.0. `_parse_number`'s
+     `.replace(",", "")` is dead code — `csv.reader` already consumed those
+     commas as delimiters. Warnings fire but nothing refuses.
+   - `formatting.angle_dms`'s two carry guards are **unreachable** (rounding
+     happens before the divmod). Probed over 2,000,000 angles: fired zero times.
+     Dead code offering false assurance — delete them and say why.
+   - `report.build_report` iterates `_WARNING_HEADINGS`, not the warnings, so a
+     future `WarningCode` without a heading would be counted in the total and
+     never printed. Latent today; all three codes are covered.
+   - `pnezd.read`'s cp1252 fallback catches only `OSError`, so an undecodable
+     byte raises a raw `UnicodeDecodeError` instead of a `PnezdError`.
+6. **Correction to carry forward:** the US survey foot is the LONGER foot
+   (1200/3937 m vs 0.3048 m exactly), so a fixed length is a SMALLER number of
+   them. 800 international feet = 243.84 m exactly = **799.9984** US survey
+   feet. (The lead's WP6 brief stated this backwards; `test_fileio.py` has both
+   directions derived correctly.)
+7. **Pin every accepted finding with the reviewer's own counterexample** as a
    regression test, then **falsify each pin** (revert the fix, watch it fail,
    restore). None of the fixes landed so far have been falsified yet — that is
    outstanding work, not a completed step.
-6. WP6 GUI review, WP7 release, then the closing Codex gate.
+8. WP6 GUI review, WP7 release, then the closing Codex gate.
 
 ## Repo layout
 

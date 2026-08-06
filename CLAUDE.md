@@ -96,8 +96,10 @@ above was run with those two test files excluded.
    `window._existing_outputs` both need updating, and `report.py`'s "FILES
    WRITTEN" section describes three loose files and will also be wrong.
 
-   **Ask the owner:** should the clean PNEZD file ALSO be written loose beside
-   the archive? Importing into CAD now means unzipping first. Do not assume.
+   **Decided (DESIGN.md #17): the ZIP is the ONLY deliverable.** No loose PNEZD
+   beside it. A job writes exactly one artefact. The three files travel together
+   or not at all, so a PNEZD export can never be filed or emailed without the
+   record explaining how it was derived.
 
 2b. **App icon** (DESIGN.md #15 note 1). Master artwork is committed at
    `assets/icon/coord-convert-1024.png` (1024×1024 RGBA). Generate a
@@ -117,10 +119,11 @@ above was run with those two test files excluded.
      label must stop calling it PNEZD. A file fed under the wrong reading yields
      a coordinate rather than an error, and the easting guard only covers the
      zone case, so this is a correctness aid.
-   - **Remove the "as used by …" tail** from the longitude sign selector. Note
-     those strings are the `LongitudeConvention` enum *values* and `report.py`
-     prints the same value, so shortening the enum shortens the job record too.
-     **Ask the owner** whether the record should keep the fuller wording.
+   - **Remove the "as used by …" tail** from the longitude sign selector.
+     **Decided (DESIGN.md #17): short in BOTH surfaces** — change the
+     `LongitudeConvention` enum values themselves to `"negative west (-84.37)"`
+     and `"positive west (84.37)"`. No separate GUI label, and the job record's
+     "Longitude" line gets the shorter text too.
    - **Default the output folder to Downloads**, via
      `QStandardPaths.writableLocation(...DownloadLocation)` — not a hand-built
      `~/Downloads`, since Windows allows it to be relocated. Fall back to the

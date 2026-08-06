@@ -222,6 +222,31 @@ and 0.18 mm easting, so it is a sound supplemental reference. Its defects:
 Defects 1, 4 and 5 belong to the two-point azimuth/distance feature, which is
 deferred (§10). They are recorded here so the fixes travel with the feature.
 
+### #17 — 2026-08-05 — Owner resolves the two open questions from #15 and #16
+
+**No loose PNEZD file.** The ZIP is the only deliverable. A job writes exactly
+one artefact, `<stem>.zip`, containing the clean PNEZD export, the full audit
+CSV and the job record. Nothing is written beside it.
+
+This settles the CAD-import friction raised in #15 note 2 in favour of a single
+handover artefact: the three files travel together or not at all, so a PNEZD
+file can never be filed or emailed without the record explaining how it was
+derived. That is the stronger property for a document that ends up supporting a
+sealed survey, and it is worth the unzip.
+
+**Short longitude wording in both surfaces.** `LongitudeConvention`'s enum values
+lose the "as used by …" attribution outright — no separate GUI label, no longer
+text preserved for the job record. The sign and the worked example carry the
+meaning:
+
+    NEGATIVE_WEST -> "negative west (-84.37)"
+    POSITIVE_WEST -> "positive west (84.37)"
+
+The job record's "Longitude" line therefore reads shorter too. Acceptable
+because the record already states the conversion direction and both zones' full
+defining constants immediately around it, so the convention is not left without
+context.
+
 ### #16 — 2026-08-05 — Three GUI notes
 
 **1. The input-file format hint must follow the selected From zone.** The input

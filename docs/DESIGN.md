@@ -222,6 +222,40 @@ and 0.18 mm easting, so it is a sound supplemental reference. Its defects:
 Defects 1, 4 and 5 belong to the two-point azimuth/distance feature, which is
 deferred (§10). They are recorded here so the fixes travel with the feature.
 
+### #14 — 2026-08-05 — SUPERSEDES #12: delete the polynomial method entirely
+
+> "delete all traces of the polynomial method so that we dont have an
+> unverified/unreviewed code pathway"
+
+Amendment #12 demoted the §3.4 polynomial engine from runtime gate to build-time
+check. **That is superseded: it is removed from the program altogether.**
+
+The reasoning is sound and worth stating, because it reverses a decision made in
+the original plan. A second engine is only a safeguard if it is itself held to
+the same standard as the first. This one was not: it carries NGS's own stated
+0.5 mm fitting error, it degrades to **metres** outside each zone's fitted band
+(amendment #5), and it forced an in-band/out-of-band policy that the interim
+review gate then found two defects in (findings #3 and #4, amendment #11). A
+code path that needs its own special-case policy to stay quiet is not a check —
+it is a second thing to verify.
+
+The verification that actually carries weight is the **frozen NGS NCAT anchors**:
+27 lattice points computed by NGS's own service, agreeing with the rigorous
+equations to 0.497 mm, which is the limit of what NCAT publishes. Plus the
+published Appendix C derived constants, reproduced from the defining constants
+alone. Both are external authorities. Neither is code we wrote.
+
+**Honest statement of what is given up.** There will be no independent
+recomputation *at conversion time*. A regression in the rigorous engine would be
+caught by the test suite and the release gates, not by the running program. That
+is the normal state of affairs for engineering software and it is the owner's
+call; it is recorded here so nobody later mistakes the absence for an oversight.
+
+**What stays.** Amendment #5 remains in this log as history — the measurement
+that the polynomial method is wrong by up to 3355 mm across zones is the
+evidence that made the rigorous equations primary, and deleting the code does
+not delete the reason. Section 5 of this document is superseded by this entry.
+
 ### #13 — 2026-08-05 — Release via GitHub Releases; no user manual
 
 Two owner directives, both affecting WP7.

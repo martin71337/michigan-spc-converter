@@ -48,11 +48,36 @@ above was run with those two test files excluded.
    `tests/test_fileio.py` and `tests/test_gui.py`. Re-derive any load-bearing
    expected value before accepting. Discard anything that cannot be verified —
    partial agent work is not automatically coherent.
-2. **DESIGN.md #12 — demote the polynomial engine from runtime gate to
-   build-time check**, per the owner's directive. This deletes `_check_engines`,
-   the in-band/out-of-band branch, and `ENGINE_DISAGREEMENT_OUT_OF_BAND`, and
-   dissolves gate findings #3 and #4. Do this BEFORE fixing those two findings —
-   fixing code that is about to be deleted is waste.
+2. **DESIGN.md #14 — DELETE the polynomial method entirely.** Owner directive,
+   superseding #12: no unverified/unreviewed code pathway is to remain. Do this
+   FIRST — before fixing gate findings #3 and #4, which exist only because of it,
+   and before auditing anything downstream. Fixing or reviewing code that is
+   about to be deleted is waste.
+
+   Remove, and grep for stragglers afterwards:
+   - `michspc/spc/polynomial.py` and `michspc/spc/agreement.py` (the latter
+     exists only to compare the two engines)
+   - `tests/test_polynomial.py` and `tests/test_polynomial_band.py`
+   - `convert.py`: `_check_engines`, the in-band/out-of-band branch,
+     `WarningCode.ENGINE_DISAGREEMENT_OUT_OF_BAND`, and the
+     `inverse_agreement` / `forward_agreement` fields on `PointConversion`
+   - `zones.py`: `band_lat_min` / `band_lat_max` and their docstrings
+   - `job.py`: `JobResult.worst_engine_discrepancy`
+   - `exports.py`: the two "Engine check … (mm)" audit columns
+   - `report.py`: the METHOD section's two-engine wording and the worst-
+     discrepancy line — rewrite it to cite the frozen NGS NCAT anchors as the
+     verification instead
+   - `CLAUDE.md`'s own "two engines … must agree within 0.5 mm" non-negotiable
+   - references in `test_convert.py`, `test_fileio.py`, `test_gui.py`
+
+   Keep `michspc/spc/lambert.py`'s `_require_valid_geodetic` and
+   `_require_finite_grid` — they currently live in lambert.py and are imported
+   BY polynomial.py, not the other way round, so they survive the deletion.
+   Verify that after removal.
+
+   The suite must be green in both modes afterwards, and the NCAT and Appendix C
+   anchor tests must still be present and passing — they are now the *only*
+   verification of the projection mathematics.
 3. **Gate finding #1 (CRITICAL)** — tag geodetic input with its reference frame.
    `project_point` must take a source frame and call `require_same_frame`.
 4. **Gate finding #6 (HIGH)** — authenticate the geoid grid in the production

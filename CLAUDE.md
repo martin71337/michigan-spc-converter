@@ -109,6 +109,24 @@ above was run with those two test files excluded.
    **Ask the owner:** at 16 and 32 px the "COORD CONVERT" lettering will be an
    illegible smear. The usual fix is a cropped, text-free compass variant for the
    small sizes inside the same `.ico`. It is his artwork — ask, do not assume.
+
+2c. **Three GUI notes** (DESIGN.md #16):
+   - The input row's format hint must **follow the selected From zone**. When
+     From is `Geodetic (latitude / longitude)` the file is not PNEZD — columns
+     two and three are latitude and longitude — so the hint must say so and the
+     label must stop calling it PNEZD. A file fed under the wrong reading yields
+     a coordinate rather than an error, and the easting guard only covers the
+     zone case, so this is a correctness aid.
+   - **Remove the "as used by …" tail** from the longitude sign selector. Note
+     those strings are the `LongitudeConvention` enum *values* and `report.py`
+     prints the same value, so shortening the enum shortens the job record too.
+     **Ask the owner** whether the record should keep the fuller wording.
+   - **Default the output folder to Downloads**, via
+     `QStandardPaths.writableLocation(...DownloadLocation)` — not a hand-built
+     `~/Downloads`, since Windows allows it to be relocated. Fall back to the
+     home directory if Qt returns empty. The overwrite refusal, atomic write and
+     round-trip check all still apply, so a default destination cannot silently
+     clobber a previous job.
 3. **Gate finding #1 (CRITICAL)** — tag geodetic input with its reference frame.
    `project_point` must take a source frame and call `require_same_frame`.
 4. **Gate finding #6 (HIGH)** — authenticate the geoid grid in the production

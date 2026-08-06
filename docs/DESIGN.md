@@ -222,6 +222,48 @@ and 0.18 mm easting, so it is a sound supplemental reference. Its defects:
 Defects 1, 4 and 5 belong to the two-point azimuth/distance feature, which is
 deferred (§10). They are recorded here so the fixes travel with the feature.
 
+### #16 — 2026-08-05 — Three GUI notes
+
+**1. The input-file format hint must follow the selected From zone.** The input
+row currently always reads as PNEZD — *point, northing, easting, elevation,
+description*. When From is set to `Geodetic (latitude / longitude)` the file is
+not PNEZD at all: columns two and three hold latitude and longitude. The hint
+must switch to say so, e.g. *point, latitude, longitude, elevation, description*,
+and the row's label should stop calling the file "PNEZD" in that state.
+
+This is a correctness aid, not cosmetics. The two layouts are indistinguishable
+from the numbers alone in the sense that matters — a file fed under the wrong
+reading produces a coordinate rather than an error, and the program's own
+easting guard only fires for the zone case.
+
+**2. Drop the "as used by …" tail from the longitude sign selector.** The two
+options read *"negative west (-84.37), as used by OPUS, NCAT, GPS and GIS"* and
+*"positive west (84.37), as used by NOAA Manual NOS NGS 5"*. The owner wants the
+attribution removed; the sign and the worked example are the parts that
+disambiguate.
+
+**Note for whoever implements it:** those strings are the
+`LongitudeConvention` enum *values*, and `report.py` prints the same value on
+its "Longitude" line. Shortening the enum shortens the job record too. Either
+give the enum a separate short GUI label and keep the fuller text for the record,
+or accept the shorter text in both — **ask the owner which**, since the job
+record is the document that has to stand on its own six months later.
+
+**3. The output folder defaults to Downloads.** The field currently starts
+empty, and Convert stays disabled until it is filled. It should pre-fill with
+the user's Downloads folder.
+
+Resolve it with
+`QStandardPaths.writableLocation(QStandardPaths.StandardLocation.DownloadLocation)`
+rather than assembling `~/Downloads` by hand — Windows lets Downloads be
+relocated, and Qt reads the real shell path. If Qt returns an empty string (it
+can, on an unusual profile), fall back to the home directory rather than to a
+path that does not exist, and leave the field editable either way.
+
+The pre-filled default does **not** relax anything: the overwrite refusal, the
+atomic write and the round-trip verification all still apply, so a default
+destination cannot silently clobber a previous job's export.
+
 ### #15 — 2026-08-05 — App icon, ZIP export, and a standing report-validity rule
 
 Three owner notes.

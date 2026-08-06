@@ -1,0 +1,353 @@
+"""Lambert conformal conic mapping equations - the rigorous form.
+
+NOAA Manual NOS NGS 5, section 3.1 (PDF pp. 36-39):
+
+  * 3.12 computation of zone constants   (PDF p. 37)
+  * 3.13 direct conversion, phi/lambda -> N/E   (PDF p. 38)
+  * 3.14 inverse conversion, N/E -> phi/lambda  (PDF pp. 38-39)
+
+The manual warns (section 3, PDF p. 35) that these general equations need more
+than 10 significant digits to hold millimeter accuracy in the larger Lambert
+zones, which is why NGS also published the polynomial method of section 3.4 for
+the calculators of the day. Python's floats carry about 15-17 significant
+decimal digits, so that constraint does not bind here and the rigorous form is
+used as the primary engine. It has one decisive advantage for this program: it
+is exact everywhere, whereas the polynomial coefficients were least-squares fit
+inside each zone's own latitude band. Converting a point from one Michigan zone
+into a neighbouring zone's coordinates - the whole purpose of this tool - is
+extrapolation for the polynomials and ordinary work for these equations.
+
+Conventions in this module:
+  * Latitudes and longitudes at the API boundary are decimal degrees.
+  * Longitude is signed, NEGATIVE WEST. The manual uses positive-west; the two
+    places that conversion matters are marked below.
+  * Linear units are meters, matching the ellipsoid and the zone constants.
+  * Convergence angle is returned in decimal degrees, positive east of the
+    central meridian.
+"""
+
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass
+from functools import cached_property
+
+from michspc.spc.ellipsoid import GRS80, Ellipsoid
+from michspc.spc.zones import LambertTwoParallelDef, Zone
+
+# The inverse conversion solves for sin(phi) by Newton's method. The manual
+# (PDF p. 39) says to apply the correction and "iterate two times"; we instead
+# iterate to convergence with a hard ceiling, which is strictly tighter and
+# fails loudly rather than silently returning a half-converged latitude.
+# Documented as a deviation in docs/DESIGN.md.
+_SIN_LAT_TOLERANCE = 1e-15
+_MAX_ITERATIONS = 12
+
+
+class ConvergenceError(Exception):
+    """The inverse latitude iteration did not converge.
+
+    Fails closed. In Michigan this cannot happen for any real coordinate; if it
+    ever does, the input is far outside the projection's usable domain and no
+    plausible latitude should be invented for it.
+    """
+
+
+@dataclass(frozen=True)
+class LambertConstants:
+    """Zone constants derived once per zone, manual section 3.12 (PDF p. 37).
+
+    These are the quantities the mapping equations actually consume. The manual
+    publishes their values for every zone in Appendix C, which is what
+    tests/test_zone_constants.py checks this derivation against.
+
+    Constructed by ``from_two_parallels`` for the SPCS 83 form. A second
+    constructor taking a central parallel and scale factor directly - the
+    SPCS2022 one-standard-parallel form - drops in here without touching
+    anything downstream, because the mapping equations depend only on the
+    fields below.
+    """
+
+    ellipsoid: Ellipsoid
+
+    sin_lat_origin: float
+    """sin(phi_0) - the cone constant. Manual's ``SinBo``."""
+
+    K: float
+    """Mapping radius at the equator. Manual's ``K``."""
+
+    R_grid_origin: float
+    """R_b - mapping radius at the grid origin latitude phi_b."""
+
+    R_origin: float
+    """R_0 - mapping radius at the central parallel phi_0."""
+
+    northing_grid_origin: float
+    """N_b - northing assigned to the grid origin."""
+
+    easting_origin: float
+    """E_0 - easting assigned to the central meridian."""
+
+    lon_origin: float
+    """lambda_0 - central meridian, decimal degrees, NEGATIVE WEST."""
+
+    @cached_property
+    def lat_origin(self) -> float:
+        """phi_0 - the central parallel, decimal degrees. Manual's ``Bo``."""
+        return math.degrees(math.asin(self.sin_lat_origin))
+
+    @cached_property
+    def northing_origin(self) -> float:
+        """N_0 - northing at the true projection origin. Manual's ``No``.
+
+        From the direct equation N = R_b + N_b - R cos(gamma) evaluated on the
+        central meridian at the central parallel, where gamma = 0 and R = R_0.
+        """
+        return self.R_grid_origin + self.northing_grid_origin - self.R_origin
+
+    @cached_property
+    def k_origin(self) -> float:
+        """k_0 - grid scale factor at the central parallel. Manual's ``ko``.
+
+        The section 3.14 scale factor equation (PDF p. 39) evaluated at phi_0.
+        """
+        return self._scale_factor(self.sin_lat_origin, self.R_origin)
+
+    @cached_property
+    def M_origin(self) -> float:
+        """M_0 - radius of curvature in the meridian at phi_0, scaled to the grid.
+
+        Manual section 3.15 (PDF p. 40): "M0 is the scaled radius of curvature
+        in the meridian at phi_0 scaled to the grid."
+        """
+        return self.k_origin * self.ellipsoid.radius_meridian(self.sin_lat_origin)
+
+    @cached_property
+    def r_origin(self) -> float:
+        """r_0 - geometric mean radius of curvature at phi_0, scaled to the grid.
+
+        Manual section 3.15 (PDF p. 40).
+        """
+        return self.k_origin * self.ellipsoid.radius_geometric_mean(
+            self.sin_lat_origin
+        )
+
+    def _scale_factor(self, sin_lat: float, R: float) -> float:
+        """k = W (R sin phi_0) / (a cos phi), manual section 3.14 (PDF p. 39)."""
+        cos_lat = math.sqrt(1.0 - sin_lat * sin_lat)
+        return (
+            self.ellipsoid.W(sin_lat)
+            * R
+            * self.sin_lat_origin
+            / (self.ellipsoid.a * cos_lat)
+        )
+
+    @classmethod
+    def from_two_parallels(
+        cls,
+        definition: LambertTwoParallelDef,
+        ellipsoid: Ellipsoid = GRS80,
+    ) -> LambertConstants:
+        """Derive the zone constants from two standard parallels.
+
+        Manual section 3.12 (PDF p. 37):
+
+            sin(phi_0) = ln[(W_n cos phi_s) / (W_s cos phi_n)] / (Q_n - Q_s)
+            K = a cos(phi_s) exp(Q_s sin phi_0) / (W_s sin phi_0)
+            R_0 = K / exp(Q_0 sin phi_0)
+
+        The equation for K is given twice in the manual, once in terms of the
+        southern standard parallel and once the northern; they are equal by
+        construction. We use the southern form and the test suite checks the
+        northern form agrees, which is a free consistency check on this whole
+        derivation.
+        """
+        sin_s = math.sin(math.radians(definition.lat_south))
+        sin_n = math.sin(math.radians(definition.lat_north))
+        cos_s = math.cos(math.radians(definition.lat_south))
+        cos_n = math.cos(math.radians(definition.lat_north))
+
+        W_s = ellipsoid.W(sin_s)
+        W_n = ellipsoid.W(sin_n)
+        Q_s = ellipsoid.isometric_latitude(sin_s)
+        Q_n = ellipsoid.isometric_latitude(sin_n)
+
+        sin_lat_origin = math.log((W_n * cos_s) / (W_s * cos_n)) / (Q_n - Q_s)
+
+        K = ellipsoid.a * cos_s * math.exp(Q_s * sin_lat_origin) / (W_s * sin_lat_origin)
+
+        sin_b = math.sin(math.radians(definition.lat_grid_origin))
+        Q_b = ellipsoid.isometric_latitude(sin_b)
+        Q_0 = ellipsoid.isometric_latitude(sin_lat_origin)
+
+        return cls(
+            ellipsoid=ellipsoid,
+            sin_lat_origin=sin_lat_origin,
+            K=K,
+            R_grid_origin=K / math.exp(Q_b * sin_lat_origin),
+            R_origin=K / math.exp(Q_0 * sin_lat_origin),
+            northing_grid_origin=definition.northing_grid_origin,
+            easting_origin=definition.easting_origin,
+            lon_origin=definition.lon_origin,
+        )
+
+
+@dataclass(frozen=True)
+class GridPoint:
+    """A point on the grid, with the two quantities that describe the grid there."""
+
+    northing: float
+    """Meters."""
+
+    easting: float
+    """Meters."""
+
+    convergence: float
+    """Decimal degrees, positive east of the central meridian."""
+
+    scale_factor: float
+    """Grid scale factor at the point (dimensionless)."""
+
+
+@dataclass(frozen=True)
+class GeodeticPoint:
+    """A geodetic position, with the grid quantities that apply at it."""
+
+    latitude: float
+    """Decimal degrees north."""
+
+    longitude: float
+    """Decimal degrees, NEGATIVE WEST."""
+
+    convergence: float
+    """Decimal degrees, positive east of the central meridian."""
+
+    scale_factor: float
+    """Grid scale factor at the point (dimensionless)."""
+
+
+def forward(
+    latitude: float, longitude: float, constants: LambertConstants
+) -> GridPoint:
+    """Geodetic to grid. Manual section 3.13 (PDF p. 38).
+
+        Q     = isometric latitude
+        R     = K / exp(Q sin phi_0)
+        gamma = (lambda_0 - lambda) sin phi_0
+        N     = R_b + N_b - R cos gamma
+        E     = E_0 + R sin gamma
+
+    ``latitude`` and ``longitude`` are decimal degrees, longitude negative west.
+    """
+    if not -90.0 < latitude < 90.0:
+        raise ValueError(
+            f"Latitude {latitude} is not a valid geodetic latitude; it must lie "
+            f"strictly between -90 and 90 degrees."
+        )
+
+    sin_lat = math.sin(math.radians(latitude))
+    Q = constants.ellipsoid.isometric_latitude(sin_lat)
+    R = constants.K / math.exp(Q * constants.sin_lat_origin)
+
+    # The manual writes gamma = (lambda_0 - lambda) sin(phi_0) with longitude
+    # POSITIVE WEST. Our longitudes are negative west, so both terms change
+    # sign and the subtraction reverses. This is the only place in the program
+    # where the manual's longitude convention appears.
+    convergence = (longitude - constants.lon_origin) * constants.sin_lat_origin
+    gamma = math.radians(convergence)
+
+    return GridPoint(
+        northing=constants.R_grid_origin
+        + constants.northing_grid_origin
+        - R * math.cos(gamma),
+        easting=constants.easting_origin + R * math.sin(gamma),
+        convergence=convergence,
+        scale_factor=constants._scale_factor(sin_lat, R),
+    )
+
+
+def inverse(
+    northing: float, easting: float, constants: LambertConstants
+) -> GeodeticPoint:
+    """Grid to geodetic. Manual section 3.14 (PDF pp. 38-39).
+
+        R'    = R_b - N + N_b
+        E'    = E - E_0
+        gamma = atan(E' / R')
+        lambda = lambda_0 - gamma / sin phi_0
+        R     = (R'^2 + E'^2)^(1/2)
+        Q     = ln(K / R) / sin phi_0
+
+    then solve Q for latitude by Newton's method on sin(phi).
+
+    ``northing`` and ``easting`` are meters.
+    """
+    R_prime = constants.R_grid_origin - northing + constants.northing_grid_origin
+    E_prime = easting - constants.easting_origin
+
+    if R_prime <= 0.0:
+        raise ValueError(
+            f"Northing {northing} m is at or beyond the apex of the projection "
+            f"cone for this zone (the mapping radius would be {R_prime:.3f} m). "
+            f"No geodetic position corresponds to it. Check that the northing "
+            f"and easting are not transposed and that the correct zone and unit "
+            f"were selected."
+        )
+
+    gamma = math.atan(E_prime / R_prime)
+    convergence = math.degrees(gamma)
+
+    # Inverse of the sign handling in forward(): with negative-west longitudes,
+    # lambda = lambda_0 + gamma / sin(phi_0).
+    longitude = constants.lon_origin + convergence / constants.sin_lat_origin
+
+    R = math.hypot(R_prime, E_prime)
+    Q = math.log(constants.K / R) / constants.sin_lat_origin
+
+    sin_lat = _solve_sin_latitude(Q, constants.ellipsoid)
+
+    return GeodeticPoint(
+        latitude=math.degrees(math.asin(sin_lat)),
+        longitude=longitude,
+        convergence=convergence,
+        scale_factor=constants._scale_factor(sin_lat, R),
+    )
+
+
+def _solve_sin_latitude(Q: float, ellipsoid: Ellipsoid) -> float:
+    """Solve isometric_latitude(sin phi) = Q for sin(phi).
+
+    Manual section 3.14 (PDF pp. 38-39) gives the starting approximation
+
+        sin phi = (exp(2Q) - 1) / (exp(2Q) + 1)
+
+    which is the spherical solution, then Newton's method with
+
+        f1 = isometric_latitude(sin phi) - Q
+        f2 = d(isometric_latitude)/d(sin phi)
+
+    applying a correction of -f1/f2. The manual says to iterate twice; we
+    iterate to machine precision and raise if that does not happen, rather than
+    returning a value that merely looks converged.
+    """
+    exp_2q = math.exp(2.0 * Q)
+    sin_lat = (exp_2q - 1.0) / (exp_2q + 1.0)
+
+    for _ in range(_MAX_ITERATIONS):
+        f1 = ellipsoid.isometric_latitude(sin_lat) - Q
+        f2 = ellipsoid.d_isometric_latitude_d_sin(sin_lat)
+        correction = -f1 / f2
+        sin_lat += correction
+        if abs(correction) < _SIN_LAT_TOLERANCE:
+            return sin_lat
+
+    raise ConvergenceError(
+        f"Latitude iteration failed to converge for isometric latitude Q={Q!r} "
+        f"after {_MAX_ITERATIONS} iterations (last correction {correction:.3e}). "
+        f"The coordinate is outside the usable domain of this projection."
+    )
+
+
+def constants_for(zone: Zone, ellipsoid: Ellipsoid = GRS80) -> LambertConstants:
+    """Derive the working constants for a registry zone."""
+    return LambertConstants.from_two_parallels(zone.definition, ellipsoid)

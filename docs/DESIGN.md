@@ -222,6 +222,42 @@ and 0.18 mm easting, so it is a sound supplemental reference. Its defects:
 Defects 1, 4 and 5 belong to the two-point azimuth/distance feature, which is
 deferred (§10). They are recorded here so the fixes travel with the feature.
 
+### #4 — 2026-08-05 — The manual's printed 1/f and e² are mutually inconsistent at the last place
+
+Manual p. 23 prints both to 14 significant digits, each correctly rounded from
+the exact GRS 80 values:
+
+    1/f = 298.25722210088      (exact: 298.257222100882711...)
+    e²  = 0.0066943800229034   (exact: 0.006694380022903416...)
+
+Deriving e² from the *printed* 1/f gives 0.006694380022903476 — about 1.5 units
+in e²'s last printed place, 6.0e-17 absolute. The two published figures cannot
+both be reproduced from one another at full printed precision. This is
+independent rounding, not an error in the manual.
+
+**Decision: keep fidelity to the committed source.** `ellipsoid.py` stores the
+printed 1/f, because that is the number a reader checking our work against the
+manual would use, and derives everything else from it. The consequence is
+measured rather than assumed: `test_the_ellipsoid_rounding_choice_cannot_move_a_coordinate`
+recomputes Michigan coordinates on an ellipsoid built from the unrounded
+flattening and bounds the difference at **9.3e-10 m** worst case across all
+three zones — six orders of magnitude below the 0.5 mm the two engines are held
+to.
+
+### #3 — 2026-08-05 — Inverse latitude iterates to convergence, not a fixed count
+
+Manual §3.14 (p. 39) says to apply the Newton correction and "iterate two
+times". We iterate to machine precision (correction < 1e-15 on sin φ) with a
+ceiling of 12 iterations, and raise `ConvergenceError` if that ceiling is hit.
+
+Reason: a fixed iteration count silently returns a half-converged latitude if
+the starting approximation is ever poor. The manual's count was chosen for hand
+calculators working inside a zone; this program converts points *between* zones
+and must behave correctly further from the central parallel. Iterating to
+convergence is strictly tighter and fails closed. Verified: round-trip error
+across a 9×9 lattice over each zone's full extent is below 1e-11 degrees, about
+one micrometre.
+
 ### #2 — 2026-08-05 — Package layout deviates from the plan's flat directories
 
 The approved plan named three top-level directories `spc/`, `fileio/`, `gui/`.

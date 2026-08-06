@@ -25,10 +25,15 @@ It deliberately does **not** do UTM, SPCS2022, NAD 83 ↔ NATRF2022
 transformation, other states, NAD 27, or two-point azimuth/distance. See
 DESIGN.md §10 for why each was deferred.
 
-## Status (2026-08-06, interim gate CLOSED)
+## Status (2026-08-06, interim gate CLOSED — session closed cleanly here)
 
 **WP0–WP6 complete, committed, pushed.** Suite **546 passing in both `pytest`
-and `-O`**, exit codes asserted directly, run unpiped.
+and `-O`**, exit codes asserted directly, run unpiped. Working tree clean,
+`main` level with `origin/main`. Nothing is half-finished: this is a clean
+boundary, not a pause mid-package.
+
+Owner stopped the session before WP7 deliberately — the release work had not
+started, so nothing is in flight.
 
 **Every interim-gate finding is resolved.** Codex returned 3 critical, 3 high,
 1 medium. Findings #1, #2, #3, #5, #6 fixed and pinned; #4 dissolved with the

@@ -15,6 +15,7 @@ Two rules, both from docs/method/METHOD.md section 5:
 
 from __future__ import annotations
 
+import contextlib
 import os
 import tempfile
 from pathlib import Path
@@ -22,6 +23,51 @@ from pathlib import Path
 
 class WriteError(Exception):
     """A file could not be written, or would have been unsafe to write."""
+
+
+@contextlib.contextmanager
+def staged_write(path: Path, overwrite: bool = False):
+    """Yield a temporary path to write into; rename it onto ``path`` on success.
+
+    The staging file is created in the destination's own directory, because
+    ``os.replace`` is only atomic within a filesystem - staging in the system
+    temp directory and moving across a drive boundary would silently degrade to
+    a copy, and a copy can be interrupted half-written.
+
+    If the body raises, the staged file is removed and the destination is left
+    exactly as it was. That is what lets a failed export leave the previous
+    job's output intact rather than a truncated replacement.
+    """
+    path = Path(path)
+
+    if path.exists() and not overwrite:
+        raise WriteError(
+            f"{path} already exists. Nothing was written. Choose a different "
+            f"output folder, or confirm the overwrite."
+        )
+
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        raise WriteError(f"Could not create {path.parent}: {error}") from error
+
+    descriptor, staged_name = tempfile.mkstemp(
+        dir=str(path.parent), prefix=f".{path.name}.", suffix=".partial"
+    )
+    os.close(descriptor)
+    staged = Path(staged_name)
+
+    try:
+        yield staged
+        os.replace(staged, path)
+    except OSError as error:
+        with contextlib.suppress(OSError):
+            staged.unlink()
+        raise WriteError(f"Could not write {path}: {error}") from error
+    except BaseException:
+        with contextlib.suppress(OSError):
+            staged.unlink()
+        raise
 
 
 def atomic_write_text(

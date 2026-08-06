@@ -495,20 +495,14 @@ class MainWindow(QMainWindow):
 
     @staticmethod
     def _existing_outputs(result: JobResult) -> list[Path]:
-        """Which of this job's three destinations already hold a file.
+        """Which of this job's destinations already hold a file.
 
-        The three names mirror ``michspc.fileio.exports.write_all``. They are
-        listed to the user by name, so the prompt says exactly what is at risk
-        rather than "some files exist".
+        Asks ``exports`` rather than rebuilding the naming rule here, so this
+        cannot drift out of step with what write_all actually produces. The
+        paths are listed to the user by name, so the overwrite prompt says
+        exactly what is at risk rather than "some files exist".
         """
-        directory = result.settings.output_directory
-        stem = exports.output_stem(result)
-        candidates = [
-            directory / f"{stem}.csv",
-            directory / f"{stem}_full.csv",
-            directory / f"{stem}_README.txt",
-        ]
-        return [path for path in candidates if path.exists()]
+        return [path for path in exports.destination_paths(result) if path.exists()]
 
     # ------------------------------------------------------------------
     # Reporting

@@ -16,11 +16,14 @@ from __future__ import annotations
 
 import csv
 import dataclasses
+import io
 import hashlib
 import math
 from pathlib import Path
 
 import pytest
+
+from tests.conftest import archive_members, extract_member, member_text
 
 from michspc import job as jobmod
 from michspc.fileio import exports, pnezd, report
@@ -832,23 +835,31 @@ def test_output_stem_is_input_stem_plus_zone_abbreviation(tmp_path):
     assert exports.output_stem(result) == "job_MI-C"
 
 
-def test_write_all_writes_exactly_three_files_with_the_expected_names(tmp_path):
+def test_write_all_writes_one_archive_holding_exactly_three_members(tmp_path):
+    """A job writes ONE file (docs/DESIGN.md amendment #17), not three.
+
+    Nothing is written loose beside the archive, so the output folder holds
+    exactly one entry.
+    """
     result = _south_to_central(tmp_path)
     out = result.settings.output_directory
 
     written = exports.write_all(result)
 
-    # Hand-derived from the module docstring's three-file contract, with the
-    # stem "job_MI-C" derived above.
-    assert sorted(p.name for p in out.iterdir()) == [
+    # Hand-derived: the stem "job_MI-C" derived above, plus ".zip".
+    assert [p.name for p in out.iterdir()] == ["job_MI-C.zip"]
+    assert written["archive"].name == "job_MI-C.zip"
+
+    # Every role points at the same archive; the roles name members inside it.
+    assert set(written) == {"archive", "pnezd", "audit", "report"}
+    assert {p for p in written.values()} == {written["archive"]}
+
+    members = archive_members(written["archive"])
+    assert sorted(members) == [
         "job_MI-C.csv",
         "job_MI-C_README.txt",
         "job_MI-C_full.csv",
     ]
-    assert set(written) == {"pnezd", "audit", "report"}
-    assert written["pnezd"].name == "job_MI-C.csv"
-    assert written["audit"].name == "job_MI-C_full.csv"
-    assert written["report"].name == "job_MI-C_README.txt"
 
 
 def test_the_clean_export_has_no_header_row_and_exactly_five_fields(tmp_path):
@@ -857,8 +868,8 @@ def test_the_clean_export_has_no_header_row_and_exactly_five_fields(tmp_path):
     result = _south_to_central(tmp_path)
     written = exports.write_all(result)
 
-    with open(written["pnezd"], newline="", encoding="utf-8") as stream:
-        rows = list(csv.reader(stream))
+    text = member_text(written["archive"], "MI-C.csv")
+    rows = list(csv.reader(io.StringIO(text)))
 
     # Hand-derived from SAMPLE_PNEZD: four coordinate rows, no header.
     assert len(rows) == 4
@@ -873,8 +884,8 @@ def test_the_audit_export_has_a_header_row_matching_audit_columns(tmp_path):
     result = _south_to_central(tmp_path)
     written = exports.write_all(result)
 
-    with open(written["audit"], newline="", encoding="utf-8") as stream:
-        rows = list(csv.reader(stream))
+    text = member_text(written["archive"], "_full.csv")
+    rows = list(csv.reader(io.StringIO(text)))
 
     # Hand-derived: audit_rows() seeds the list with list(AUDIT_COLUMNS).
     assert rows[0] == exports.AUDIT_COLUMNS
@@ -1499,8 +1510,9 @@ def test_identifiers_and_descriptions_survive_a_full_export_and_re_read(tmp_path
     """
     result = _south_to_central(tmp_path)
     written = exports.write_all(result)
+    extracted = extract_member(written["archive"], "MI-C.csv", tmp_path / "unzipped")
 
-    reread = pnezd.read(written["pnezd"])
+    reread = pnezd.read(extracted)
 
     # Hand-derived from SAMPLE_PNEZD, in file order.
     assert [row.point_id for row in reread.rows] == ["101", "CP-4", "007", "TBM1"]
@@ -1527,8 +1539,9 @@ def test_the_re_read_export_preserves_the_absence_of_an_elevation(tmp_path):
     """
     result = _south_to_central(tmp_path)
     written = exports.write_all(result)
+    extracted = extract_member(written["archive"], "MI-C.csv", tmp_path / "unzipped")
 
-    reread = pnezd.read(written["pnezd"])
+    reread = pnezd.read(extracted)
     by_id = {row.point_id: row for row in reread.rows}
 
     # Hand-derived: CP-4 was blank, 007 was 0.00; both export as "N/A", which
@@ -1577,9 +1590,10 @@ def test_south_to_central_and_back_returns_the_original_coordinates(tmp_path):
 
     forward = _south_to_central(tmp_path)
     written = exports.write_all(forward)
+    extracted = extract_member(written["archive"], "MI-C.csv", tmp_path / "unzipped3")
 
     back_settings = JobSettings(
-        input_path=written["pnezd"],
+        input_path=extracted,
         output_directory=tmp_path / "back",
         direction=Direction.ZONE_TO_ZONE,
         source_zone=MI_CENTRAL,

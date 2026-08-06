@@ -1,10 +1,15 @@
-"""The three output files.
-
-The owner asked for exactly three per run:
+"""The job's output: one ZIP archive containing three files.
 
 1. ``<name>_<zone>.csv``       - clean PNEZD, for import straight into CAD
 2. ``<name>_<zone>_full.csv``  - every computed quantity, for the record
 3. ``<name>_<zone>_README.txt``- the job record explaining both (report.py)
+
+**The archive is the only deliverable.** Nothing is written loose beside it
+(docs/DESIGN.md amendment #17). The three files travel together or not at all,
+so a PNEZD export cannot be filed or emailed without the record explaining how
+it was derived - which matters for a file that ends up supporting a sealed
+survey. The cost is that importing into CAD means unzipping first; that was the
+owner's explicit trade.
 
 The clean export carries nothing but the five PNEZD fields. Warning flags
 and scale factors live in the other two, because a CAD import
@@ -17,7 +22,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from michspc.fileio import formatting as fmt
-from michspc.fileio.writers import WriteError, atomic_write_text, write_csv_rows
+from michspc.fileio.writers import WriteError, staged_write
 from michspc.job import Direction, JobResult
 
 _PNEZD_HEADERLESS = True
@@ -182,13 +187,62 @@ def verify_round_trip(rows: list[list[str]], result: JobResult) -> None:
             )
 
 
-def write_all(result: JobResult, overwrite: bool = False) -> dict[str, Path]:
-    """Write all three files, or none of them.
+def member_names(result: JobResult) -> dict[str, str]:
+    """The three file names inside the archive, keyed by role."""
+    stem = output_stem(result)
+    return {
+        "pnezd": f"{stem}.csv",
+        "audit": f"{stem}_full.csv",
+        "report": f"{stem}_README.txt",
+    }
 
-    Every value is checked finite and the PNEZD export is round-tripped before
-    anything is committed, so a job either produces a complete, readable set or
-    leaves the output folder untouched.
+
+def destination_paths(result: JobResult) -> tuple[Path, ...]:
+    """Every path this job would write. Exactly one: the archive.
+
+    Exists so callers - the GUI's overwrite check in particular - do not have to
+    reconstruct the naming rule and drift out of step with it.
     """
+    return (archive_path(result),)
+
+
+def archive_path(result: JobResult) -> Path:
+    """``<output folder>/<stem>.zip`` - the job's single deliverable."""
+    return result.settings.output_directory / f"{output_stem(result)}.zip"
+
+
+def _render_csv(rows: list[list[str]]) -> str:
+    """Format rows as CSV text, quoting exactly as write_csv_rows does."""
+    lines = []
+    for row in rows:
+        cells = []
+        for cell in row:
+            text = "" if cell is None else str(cell)
+            if "," in text or '"' in text or "\n" in text:
+                text = '"' + text.replace('"', '""') + '"'
+            cells.append(text)
+        lines.append(",".join(cells))
+    return "\r\n".join(lines) + "\r\n"
+
+
+def write_all(result: JobResult, overwrite: bool = False) -> dict[str, Path]:
+    """Write the job's single ZIP deliverable, or nothing at all.
+
+    The three files travel together or not at all (docs/DESIGN.md amendment
+    #17), so a PNEZD export can never be filed or emailed without the record
+    explaining how it was derived.
+
+    Order matters here. Every coordinate is checked finite and the PNEZD export
+    is round-tripped through this program's own reader BEFORE the archive is
+    staged, and the archive is only renamed onto its final name once it has been
+    written in full. A job therefore either produces a complete, readable
+    deliverable or leaves the output folder exactly as it found it.
+
+    Returns a mapping of role to path. Both entries point at the same archive;
+    the roles are kept so callers can say which member they mean.
+    """
+    import zipfile
+
     from michspc.fileio.report import build_report
 
     for point in result.points:
@@ -203,20 +257,25 @@ def write_all(result: JobResult, overwrite: bool = False) -> dict[str, Path]:
                     f"not a number must never reach a file."
                 )
 
-    directory = result.settings.output_directory
-    stem = output_stem(result)
-
     clean = clean_pnezd_rows(result)
     verify_round_trip(clean, result)
 
-    written: dict[str, Path] = {}
-    written["pnezd"] = write_csv_rows(
-        directory / f"{stem}.csv", clean, overwrite=overwrite
-    )
-    written["audit"] = write_csv_rows(
-        directory / f"{stem}_full.csv", audit_rows(result), overwrite=overwrite
-    )
-    written["report"] = atomic_write_text(
-        directory / f"{stem}_README.txt", build_report(result), overwrite=overwrite
-    )
-    return written
+    names = member_names(result)
+    contents = {
+        names["pnezd"]: _render_csv(clean),
+        names["audit"]: _render_csv(audit_rows(result)),
+        names["report"]: build_report(result),
+    }
+
+    destination = archive_path(result)
+    with staged_write(destination, overwrite=overwrite) as staged:
+        with zipfile.ZipFile(
+            staged, "w", compression=zipfile.ZIP_DEFLATED
+        ) as archive:
+            for name, text in contents.items():
+                # Written as UTF-8 with CRLF already embedded by _render_csv and
+                # by the report builder, so the extracted files open correctly
+                # in Notepad and import correctly into CAD on Windows.
+                archive.writestr(name, text.encode("utf-8"))
+
+    return {"archive": destination, **{role: destination for role in names}}

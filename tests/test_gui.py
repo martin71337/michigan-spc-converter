@@ -34,6 +34,8 @@ import pytest  # noqa: E402
 from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
+from tests.conftest import archive_members, member_text
+
 from michspc.fileio import exports, formatting as fmt, pnezd  # noqa: E402
 from michspc.gui import results_model  # noqa: E402
 from michspc.gui.app import build_application  # noqa: E402
@@ -384,12 +386,28 @@ def test_a_successful_run_offers_the_output_folder(converted, out_dir):
     assert Path(converted.output_folder_url().toLocalFile()) == out_dir
 
 
-def test_the_three_output_files_were_written(converted, out_dir):
-    """The clean PNEZD export, the audit CSV and the job record."""
-    assert set(converted.written_files) == {"pnezd", "audit", "report"}
-    for path in converted.written_files.values():
-        assert path.exists()
-        assert path.parent == out_dir
+def test_one_archive_was_written_holding_the_three_files(converted, out_dir):
+    """A job writes ONE file (docs/DESIGN.md amendment #17).
+
+    The clean PNEZD export, the audit CSV and the job record all live inside it;
+    nothing is written loose beside it, so the output folder holds exactly one
+    entry.
+    """
+    assert set(converted.written_files) == {"archive", "pnezd", "audit", "report"}
+
+    archive = converted.written_files["archive"]
+    assert archive.exists()
+    assert archive.parent == out_dir
+    assert archive.suffix == ".zip"
+    assert [p.name for p in out_dir.iterdir()] == [archive.name]
+
+    # Every role points at that same archive; the roles name members inside it.
+    assert set(converted.written_files.values()) == {archive}
+
+    members = archive_members(archive)
+    assert len(members) == 3
+    assert sum(name.endswith("_full.csv") for name in members) == 1
+    assert sum(name.endswith("_README.txt") for name in members) == 1
 
 
 # --------------------------------------------------------------------------
@@ -426,7 +444,8 @@ def test_the_screen_matches_the_file_that_was_written(converted):
     exports.clean_pnezd_rows is what lands in CAD. If the table and that file
     ever disagreed about a coordinate, one of them would be lying to a surveyor.
     """
-    written = converted.written_files["pnezd"].read_text(encoding="utf-8")
+    clean_name = exports.member_names(converted.result)["pnezd"]
+    written = archive_members(converted.written_files["archive"])[clean_name]
     lines = [line for line in written.splitlines() if line.strip()]
     assert len(lines) == CENTRAL_POINT_COUNT
 
@@ -662,8 +681,8 @@ def test_a_second_run_asks_before_replacing_and_keeps_the_files_when_declined(
     converted, out_dir
 ):
     """exports.write_all refuses to clobber; the answer is to ask, not to force."""
-    pnezd_path = converted.written_files["pnezd"]
-    original = pnezd_path.read_text(encoding="utf-8")
+    archive = converted.written_files["archive"]
+    original = archive.read_bytes()
     stem = exports.output_stem(converted.result)
 
     converted.overwrite_answer = False
@@ -671,33 +690,33 @@ def test_a_second_run_asks_before_replacing_and_keeps_the_files_when_declined(
 
     assert converted.convert() is False
 
-    # The user was asked, by name, about the three files at risk.
+    # A job writes ONE file (docs/DESIGN.md amendment #17), so the user is asked
+    # by name about exactly that one.
     assert len(converted.overwrite_prompts) == 1
     prompted = {path.name for path in converted.overwrite_prompts[0]}
-    assert prompted == {
-        f"{stem}.csv",
-        f"{stem}_full.csv",
-        f"{stem}_README.txt",
-    }
+    assert prompted == {f"{stem}.zip"}
 
-    # Declining left the previous run's file exactly as it was.
-    assert pnezd_path.read_text(encoding="utf-8") == original
+    # Declining left the previous run's archive byte-for-byte as it was.
+    assert archive.read_bytes() == original
     # And no refusal dialog was raised: declining is a choice, not a failure.
     assert converted.shown_failures == []
 
 
 def test_confirming_the_overwrite_replaces_the_files(converted):
-    pnezd_path = converted.written_files["pnezd"]
-    original = pnezd_path.read_text(encoding="utf-8")
-    # Vandalise the previous output so a genuine rewrite is visible.
-    pnezd_path.write_text("stale\n", encoding="utf-8")
+    archive = converted.written_files["archive"]
+    clean_name = exports.member_names(converted.result)["pnezd"]
+    original = archive_members(archive)[clean_name]
+    # Vandalise the previous output so a genuine rewrite is visible. A file that
+    # is not a valid archive at all makes the replacement unambiguous.
+    archive.write_bytes(b"stale, not a zip at all")
 
     converted.overwrite_answer = True
     converted.overwrite_prompts.clear()
 
     assert converted.convert() is True
     assert len(converted.overwrite_prompts) == 1
-    assert pnezd_path.read_text(encoding="utf-8") == original
+    # It is a real archive again, carrying the same coordinates.
+    assert archive_members(archive)[clean_name] == original
     assert converted.shown_failures == []
 
 

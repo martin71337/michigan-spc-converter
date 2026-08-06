@@ -1,0 +1,29 @@
+# Build outputs
+build/
+dist/
+*.spec.bak
+Output/
+*.exe
+!tools/**/*.exe
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Test / tooling
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Review artifacts (Codex gate output runs to hundreds of KB)
+review/*.txt
+review/*.log
+
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

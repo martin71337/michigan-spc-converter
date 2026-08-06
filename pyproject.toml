@@ -1,0 +1,16 @@
+[project]
+name = "michspc"
+description = "Michigan State Plane Coordinate System zone converter"
+requires-python = ">=3.14"
+dynamic = ["version"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# -r fE surfaces failures and errors in the short summary even when the run is
+# long. Never pipe the runner: `pytest | tail` reports the pipe's exit status
+# and has hidden a real failure before (docs/method/TOOLING.md).
+addopts = "-ra --strict-markers"
+markers = [
+    "anchor: verified against an external authority (NGS NCAT, NGS geoid API, or a published table)",
+    "slow: lattice sweeps and other long-running checks",
+]

@@ -19,7 +19,6 @@ from michspc import APP_NAME, __version__
 from michspc.fileio import formatting as fmt
 from michspc.fileio.geoid18 import GEOID18_TILE_SHA256, GEOID_MODEL_NAME
 from michspc.job import Direction, JobResult
-from michspc.spc.agreement import AGREEMENT_TOLERANCE_M
 from michspc.spc.convert import WarningCode
 from michspc.spc.factors import MEAN_EARTH_RADIUS_M
 from michspc.spc.lambert import constants_for
@@ -32,9 +31,6 @@ _WARNING_HEADINGS = {
         "COORDINATES MAY NOT BE IN THE SELECTED SOURCE ZONE"
     ),
     WarningCode.OUTSIDE_ZONE_EXTENT: "POINTS OUTSIDE THE TARGET ZONE'S AREA",
-    WarningCode.ENGINE_DISAGREEMENT_OUT_OF_BAND: (
-        "CROSS-CHECK LIMITED OUTSIDE THE POLYNOMIAL BAND"
-    ),
 }
 
 
@@ -140,23 +136,34 @@ def build_report(result: JobResult) -> str:
     add("                   of 1983 (Stem, January 1989; reprinted with minor")
     add("                   corrections March 1990)")
     add("")
-    add("Every coordinate below was computed TWICE, by two independent methods")
-    add("from that manual, and the two results compared:")
+    add("Equations          The rigorous Lambert conformal conic mapping")
+    add("                   equations of section 3.1 - zone constants (3.12),")
+    add("                   direct conversion (3.13), inverse conversion (3.14).")
+    add("                   Exact at any latitude, with no approximation term.")
     add("")
-    add("  1. The rigorous Lambert conformal conic mapping equations, section 3.1.")
-    add("     Used for every value reported. Exact at any latitude.")
-    add("  2. The polynomial coefficient method, section 3.4, with the Appendix C")
-    add("     coefficients for each zone. Used only as an independent check.")
+    add("Ellipsoid          GRS 80, the ellipsoid of NAD 83 (manual section 1.7).")
+    add("                   Only the semimajor axis and the flattening are stored;")
+    add("                   every other constant is derived from those two.")
     add("")
-    add(f"The two must agree to {AGREEMENT_TOLERANCE_M * 1000:.1f} mm, which is the accuracy NGS states it")
-    add("fitted the Appendix C coefficients to. Where they do not agree and the")
-    add("point lies inside the zone's fitted latitude band, no coordinate is")
-    add("produced at all. Where the point lies outside that band the polynomial")
-    add("method is known to degrade and the rigorous result is used, with the")
-    add("discrepancy reported per point in the _full.csv export.")
+    add("HOW THIS SOFTWARE IS VERIFIED")
     add("")
-    add(f"Worst engine discrepancy across this job: "
-        f"{fmt.millimetres(result.worst_engine_discrepancy)} mm")
+    add("The zone constants used above are not taken on trust. The manual")
+    add("publishes, in Appendix C, the constants NGS computed for every Lambert")
+    add("zone. This software stores only the DEFINING constants - the standard")
+    add("parallels, the grid origin, the central meridian - and derives the rest.")
+    add("Its test suite recomputes all of them and requires a match with NGS's")
+    add("published figures to the last decimal place NGS printed, for all three")
+    add("Michigan zones.")
+    add("")
+    add("The conversion itself is checked against the National Geodetic Survey's")
+    add("own Coordinate Conversion and Transformation Tool (NCAT). Twenty-seven")
+    add("positions spanning the three zones were converted by NCAT, and those")
+    add("results are held in the test suite as fixed reference values. This")
+    add("software reproduces them to within 0.5 mm - which is the precision NCAT")
+    add("publishes, so the agreement is as close as the reference permits.")
+    add("")
+    add("Both checks compare this software against NGS. Neither compares it")
+    add("against itself.")
     add("")
 
     if result.geoid_model:
@@ -224,8 +231,7 @@ def build_report(result: JobResult) -> str:
     add(_THIN)
     all_warnings = result.warnings
     if not all_warnings:
-        add("None. Every point converted cleanly, inside its zone, with both")
-        add("computation methods in agreement.")
+        add("None. Every point converted cleanly, inside its zone.")
     else:
         add(f"{len(all_warnings)} warning(s) across {len(result.points)} points.")
         add("")
@@ -261,8 +267,7 @@ def build_report(result: JobResult) -> str:
     add("    Every computed quantity for every point, with a header row: both")
     add("    zones' coordinates, the geodetic position the conversion pivoted")
     add("    through, geoid and ellipsoid height, both convergence angles, the")
-    add("    grid, elevation and combined factors, the agreement between the two")
-    add("    computation methods in millimetres, and any warnings. This is the")
+    add("    grid, elevation and combined factors, and any warnings. This is the")
     add("    file that answers 'how was this number derived' without re-running")
     add("    anything.")
     add("")

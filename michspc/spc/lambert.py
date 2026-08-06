@@ -6,16 +6,19 @@ NOAA Manual NOS NGS 5, section 3.1 (PDF pp. 36-39):
   * 3.13 direct conversion, phi/lambda -> N/E   (PDF p. 38)
   * 3.14 inverse conversion, N/E -> phi/lambda  (PDF pp. 38-39)
 
-The manual warns (section 3, PDF p. 35) that these general equations need more
+These are the only conversion equations this program uses.
+
+The manual warns (section 3, PDF p. 35) that the general equations need more
 than 10 significant digits to hold millimeter accuracy in the larger Lambert
-zones, which is why NGS also published the polynomial method of section 3.4 for
-the calculators of the day. Python's floats carry about 15-17 significant
-decimal digits, so that constraint does not bind here and the rigorous form is
-used as the primary engine. It has one decisive advantage for this program: it
-is exact everywhere, whereas the polynomial coefficients were least-squares fit
-inside each zone's own latitude band. Converting a point from one Michigan zone
-into a neighbouring zone's coordinates - the whole purpose of this tool - is
-extrapolation for the polynomials and ordinary work for these equations.
+zones. Python's floats carry about 15-17 significant decimal digits, so that
+constraint does not bind here. The equations are exact at any latitude, with no
+fitted term and no restricted band - which matters for this program, whose whole
+purpose is converting a point from one Michigan zone into a neighbouring zone's
+coordinates.
+
+What verifies this module is external and lives in the test suite: the published
+Appendix C derived constants, recomputed here from the defining constants alone,
+and 27 frozen NGS NCAT positions. See docs/DESIGN.md amendment #14.
 
 Conventions in this module:
   * Latitudes and longitudes at the API boundary are decimal degrees.

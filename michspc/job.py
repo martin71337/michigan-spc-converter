@@ -144,16 +144,6 @@ class JobResult:
     def grid_scale_factors(self) -> tuple[float, ...]:
         return tuple(p.factors.grid_scale_factor for p in self.points)
 
-    @property
-    def worst_engine_discrepancy(self) -> float:
-        """Largest separation between the two engines over every point, metres."""
-        worst = 0.0
-        for point in self.points:
-            worst = max(worst, point.conversion.forward_agreement.distance)
-            if point.conversion.inverse_agreement is not None:
-                worst = max(worst, point.conversion.inverse_agreement.distance)
-        return worst
-
 
 def file_sha256(path: Path) -> str:
     """Hash the input file so the job record identifies exactly what was read.

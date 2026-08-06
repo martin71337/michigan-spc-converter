@@ -365,12 +365,11 @@ def test_the_status_line_reads_the_owners_wording(converted):
     n = 3, the three data lines in the fixture file.
 
     m = 0, hand-derived: the only warnings this pipeline raises are
-    outside-zone-extent, engine-disagreement-out-of-band and
-    easting-unlike-selected-zone (michspc.spc.convert.WarningCode). At latitude
-    43.800 the points sit inside Michigan South's extent (41.6-44.3) and inside
-    its fitted band (41.45-44.25), and their eastings are within 12 m of
-    Michigan Central's false easting - far inside the 400 km window - so none of
-    the three can fire.
+    outside-zone-extent and easting-unlike-selected-zone
+    (michspc.spc.convert.WarningCode). At latitude 43.800 the points sit inside
+    Michigan South's extent (41.6-44.3), and their eastings are within 12 m of
+    Michigan Central's false easting - far inside the 400 km window - so
+    neither can fire.
     """
     assert converted.status_label.text() == "3 points converted. 0 warnings."
     # A clean run is not coloured. Colour means something in this program.
@@ -480,20 +479,19 @@ def test_metres_are_shown_to_four_places(window, job_file, out_dir):
 
 
 def test_warnings_are_counted_and_shown_in_amber(window, job_file, out_dir):
-    """Michigan Central to Michigan North on this file: exactly 6 warnings.
+    """Michigan Central to Michigan North on this file: exactly 3 warnings.
 
-    Hand-derived, two per point over three points:
+    Hand-derived, one per point over three points:
 
-    1. outside-zone-extent - latitude 43.800 is south of Michigan North's
-       extent, which starts at 45.0 (michspc/spc/zones.py MI_NORTH.lat_min).
-    2. engine-disagreement-out-of-band - 43.800 is also below Michigan North's
-       fitted band, which starts at 44.25, and docs/DESIGN.md amendment #5
-       measures the Michigan Central to Michigan North polynomial error at
-       latitude 43.50 as 4 mm, eight times the 0.5 mm the engines are held to.
-       So the cross-check fails and, being out of band, becomes a warning
-       rather than a refusal.
+    outside-zone-extent - latitude 43.800 is south of Michigan North's extent,
+    which starts at 45.0 (michspc/spc/zones.py MI_NORTH.lat_min).
 
-    Neither easting warning can fire: the eastings are within 12 m of Michigan
+    That is now the only warning these points can raise. Two per point was
+    correct while the polynomial cross-check existed, which also fired here
+    because 43.800 fell below Michigan North's fitted band; that engine and its
+    warning were removed in docs/DESIGN.md amendment #14.
+
+    The easting warning cannot fire: the eastings are within 12 m of Michigan
     Central's false easting, and Michigan Central is the source zone here.
     """
     fill_in(
@@ -506,7 +504,7 @@ def test_warnings_are_counted_and_shown_in_amber(window, job_file, out_dir):
     if not window.convert():
         raise AssertionError(f"the run failed: {window.shown_failures}")
 
-    assert window.status_label.text() == "3 points converted. 6 warnings."
+    assert window.status_label.text() == "3 points converted. 3 warnings."
 
     # Amber = "look at this" (docs/method/METHOD.md section 5). It is the only
     # colour a completed run may wear.

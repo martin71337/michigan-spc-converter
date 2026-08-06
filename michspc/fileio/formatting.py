@@ -109,7 +109,7 @@ def geoid_height(value: float | None) -> str:
 
 
 def millimetres(metres: float | None) -> str:
-    """An engine-agreement discrepancy, in millimetres to 4 places."""
+    """A small linear quantity in millimetres, to 4 places."""
     if metres is None:
         return NOT_AVAILABLE
     return f"{metres * 1000.0:.4f}"

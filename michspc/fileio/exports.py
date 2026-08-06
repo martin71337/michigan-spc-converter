@@ -6,8 +6,8 @@ The owner asked for exactly three per run:
 2. ``<name>_<zone>_full.csv``  - every computed quantity, for the record
 3. ``<name>_<zone>_README.txt``- the job record explaining both (report.py)
 
-The clean export carries nothing but the five PNEZD fields. Warning flags,
-scale factors and residuals all live in the other two, because a CAD import
+The clean export carries nothing but the five PNEZD fields. Warning flags
+and scale factors live in the other two, because a CAD import
 that meets an unexpected sixth column either fails or silently shifts
 everything one field left.
 """
@@ -81,8 +81,6 @@ AUDIT_COLUMNS = [
     "Elevation factor",
     "Combined factor",
     "Combined factor (ppm)",
-    "Engine check inverse (mm)",
-    "Engine check forward (mm)",
     "Warnings",
     "Description",
 ]
@@ -130,12 +128,6 @@ def audit_rows(result: JobResult) -> list[list[str]]:
                 fmt.factor(factors.elevation_factor),
                 fmt.factor(factors.combined_factor),
                 fmt.signed_parts_per_million(factors.combined_factor),
-                fmt.millimetres(
-                    conversion.inverse_agreement.distance
-                    if conversion.inverse_agreement
-                    else None
-                ),
-                fmt.millimetres(conversion.forward_agreement.distance),
                 "; ".join(w.code.value for w in point.warnings),
                 point.row.description,
             ]

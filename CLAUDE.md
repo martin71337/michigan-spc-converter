@@ -225,8 +225,9 @@ docs/             DESIGN.md (authority), method/, the NOAA manual, reference/
 - Exports never silently clobber; atomic stage-and-rename.
 - No load-bearing asserts in production code; the suite runs under `-O`.
 - Cross-frame conversion refuses loudly. Never a silent pass-through.
-- Two engines (rigorous §3.1 and polynomial §3.4) run on every point and must
-  agree within 0.5 mm; disagreement is a named failure, never an average.
+- The rigorous §3.1 Lambert equations are the only computation path. What
+  verifies them is external and lives in the suite: the frozen NGS NCAT anchors
+  and the published Appendix C constants (DESIGN.md #14).
 
 ## Development process
 

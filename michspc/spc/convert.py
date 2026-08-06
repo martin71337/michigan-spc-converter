@@ -2,22 +2,27 @@
 
 One point in, one immutable record out, carrying not just the answer but the
 evidence for it: the geodetic pivot, both zones' convergence and scale factor,
-how closely the two independent engines agreed, and every warning raised along
-the way.
+and every warning raised along the way.
 
 The pipeline shape (docs/DESIGN.md section 4):
 
     (source zone, N, E) --inverse--> geodetic --forward--> (target zone, N, E)
 
-Both steps are computed twice, once by each engine. Within a zone's fitted band
-the two must agree to 0.5 mm or the conversion is refused. Outside it, the
-polynomial method is known to degrade (design log #5) and the disagreement is
-reported as a warning rather than treated as a defect - refusing there would
-block a conversion the rigorous engine handles correctly, which is the opposite
-of the intended behavior.
+Both steps use the rigorous Lambert conformal conic equations of NOAA Manual
+NOS NGS 5 section 3.1, which are exact at any latitude.
 
-All linear values in this module are meters. Unit conversion happens at the
-file boundary, not here.
+**On verification.** An earlier design computed every coordinate a second time
+by the manual's section 3.4 polynomial coefficient method and cross-checked the
+two at runtime. That engine was removed (docs/DESIGN.md amendment #14): it
+carried NGS's own stated 0.5 mm fitting error, degraded to metres outside each
+zone's fitted band, and required a special-case policy to stay quiet - which
+made it a second thing to verify rather than a check. What verifies this code is
+external and lives in the test suite: 27 frozen NGS NCAT anchors, and every
+published Appendix C derived constant reproduced from the defining constants
+alone.
+
+All linear values in this module are meters. Unit conversion happens at the file
+boundary, not here.
 """
 
 from __future__ import annotations
@@ -25,12 +30,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from michspc.spc import agreement as ag
-from michspc.spc import polynomial as poly
 from michspc.spc.frames import require_same_frame
 from michspc.spc.lambert import LambertConstants, constants_for
-from michspc.spc.lambert import forward as rigorous_forward
-from michspc.spc.lambert import inverse as rigorous_inverse
+from michspc.spc.lambert import forward as lambert_forward
+from michspc.spc.lambert import inverse as lambert_inverse
 from michspc.spc.zones import Zone
 
 # Half-width of the easting window used to notice that a file's coordinates do
@@ -45,7 +48,6 @@ class WarningCode(Enum):
     """Machine-readable warning kinds, so the report can group them."""
 
     OUTSIDE_ZONE_EXTENT = "outside-zone-extent"
-    ENGINE_DISAGREEMENT_OUT_OF_BAND = "engine-disagreement-out-of-band"
     EASTING_UNLIKE_SELECTED_ZONE = "easting-unlike-selected-zone"
 
 
@@ -81,64 +83,7 @@ class PointConversion:
     target_convergence: float
     target_scale_factor: float
 
-    inverse_agreement: ag.Agreement | None
-    """How closely the engines agreed on the source zone's inverse conversion.
-
-    None when the conversion started from a geodetic position, since no inverse
-    step was performed.
-    """
-
-    forward_agreement: ag.Agreement
-    """How closely the engines agreed on the target zone's forward conversion."""
-
     warnings: tuple[ConversionWarning, ...] = field(default_factory=tuple)
-
-
-def _within_fitted_band(zone: Zone, latitude: float) -> bool:
-    """Is this latitude inside the band the zone's polynomials were fit across?
-
-    Uses the zone's **measured** band, not its geographic extent. Those are
-    different things and conflating them is a real defect: Michigan Central's
-    coverage reaches 46.0 N while its polynomials hold only to 46.128 N, and
-    Michigan South's coverage reaches 44.3 N while its polynomials hold only to
-    44.312 N. Widening the enforcement band past the measured one turns the
-    polynomial method's known degradation into a spurious hard failure.
-    See docs/DESIGN.md amendment #6.
-    """
-    return zone.band_lat_min <= latitude <= zone.band_lat_max
-
-
-def _check_engines(
-    zone: Zone,
-    latitude: float,
-    agreement: ag.Agreement,
-    context: str,
-) -> ConversionWarning | None:
-    """Enforce the cross-check where both engines are valid; warn where not.
-
-    Returns a warning, or None. Raises EngineDisagreementError when the point is
-    inside the zone's fitted band and the engines still disagree - there, a
-    disagreement means one of them is genuinely wrong.
-    """
-    if agreement.within_tolerance:
-        return None
-
-    if _within_fitted_band(zone, latitude):
-        ag.require_agreement(agreement, context)
-        return None  # unreachable; require_agreement raises
-
-    return ConversionWarning(
-        code=WarningCode.ENGINE_DISAGREEMENT_OUT_OF_BAND,
-        message=(
-            f"{context}: latitude {latitude:.6f} is outside {zone.name}'s "
-            f"fitted latitude band ({zone.band_lat_min:.2f} to "
-            f"{zone.band_lat_max:.2f}), "
-            f"where the manual's Appendix C polynomial coefficients are known "
-            f"to degrade. The two engines differ by {agreement.describe()}. The "
-            f"rigorous Lambert equations are exact here and were used; the "
-            f"polynomial figure is the unreliable one."
-        ),
-    )
 
 
 def _check_extent(zone: Zone, latitude: float, longitude: float, context: str):
@@ -184,42 +129,20 @@ def to_geodetic(
     zone: Zone,
     context: str = "point",
     constants: LambertConstants | None = None,
-) -> tuple[float, float, float, float, ag.Agreement, tuple[ConversionWarning, ...]]:
-    """Grid to geodetic, both engines, with warnings.
+) -> tuple[float, float, float, float, tuple[ConversionWarning, ...]]:
+    """Grid to geodetic.
 
-    Returns (latitude, longitude, convergence, scale_factor, agreement, warnings).
+    Returns (latitude, longitude, convergence, scale_factor, warnings).
     """
     constants = constants or constants_for(zone)
-    coefficients = poly.coefficients_for(zone.code)
-
-    rigorous = rigorous_inverse(northing, easting, constants)
-    polynomial = poly.inverse(northing, easting, constants, coefficients)
-
-    # Compare the two inverse results by re-projecting the polynomial engine's
-    # geodetic answer through the rigorous forward equations. Comparing the two
-    # latitudes directly would need an ad-hoc degrees-to-meters factor; this
-    # keeps the whole comparison in meters on the grid, which is the unit the
-    # 0.5 mm tolerance is actually stated in.
-    reprojected = rigorous_forward(polynomial.latitude, polynomial.longitude, constants)
-    agreement = ag.Agreement(
-        northing_difference=northing - reprojected.northing,
-        easting_difference=easting - reprojected.easting,
-    )
-
-    warnings: list[ConversionWarning] = []
-    engine_warning = _check_engines(
-        zone, rigorous.latitude, agreement, f"{context} (from {zone.abbrev})"
-    )
-    if engine_warning:
-        warnings.append(engine_warning)
+    position = lambert_inverse(northing, easting, constants)
 
     return (
-        rigorous.latitude,
-        rigorous.longitude,
-        rigorous.convergence,
-        rigorous.scale_factor,
-        agreement,
-        tuple(warnings),
+        position.latitude,
+        position.longitude,
+        position.convergence,
+        position.scale_factor,
+        (),
     )
 
 
@@ -229,35 +152,26 @@ def from_geodetic(
     zone: Zone,
     context: str = "point",
     constants: LambertConstants | None = None,
-) -> tuple[float, float, float, float, ag.Agreement, tuple[ConversionWarning, ...]]:
-    """Geodetic to grid, both engines, with warnings.
+) -> tuple[float, float, float, float, tuple[ConversionWarning, ...]]:
+    """Geodetic to grid.
 
-    Returns (northing, easting, convergence, scale_factor, agreement, warnings).
+    Returns (northing, easting, convergence, scale_factor, warnings).
     """
     constants = constants or constants_for(zone)
-    coefficients = poly.coefficients_for(zone.code)
-
-    rigorous = rigorous_forward(latitude, longitude, constants)
-    polynomial = poly.forward(latitude, longitude, constants, coefficients)
-    agreement = ag.compare(rigorous, polynomial)
+    point = lambert_forward(latitude, longitude, constants)
 
     warnings: list[ConversionWarning] = []
-    engine_warning = _check_engines(
-        zone, latitude, agreement, f"{context} (into {zone.abbrev})"
+    extent_warning = _check_extent(
+        zone, latitude, longitude, f"{context} (into {zone.abbrev})"
     )
-    if engine_warning:
-        warnings.append(engine_warning)
-
-    extent_warning = _check_extent(zone, latitude, longitude, f"{context} (into {zone.abbrev})")
     if extent_warning:
         warnings.append(extent_warning)
 
     return (
-        rigorous.northing,
-        rigorous.easting,
-        rigorous.convergence,
-        rigorous.scale_factor,
-        agreement,
+        point.northing,
+        point.easting,
+        point.convergence,
+        point.scale_factor,
         tuple(warnings),
     )
 
@@ -275,15 +189,11 @@ def convert_point(
 
     Both zones must be in the same reference frame; crossing frames is refused
     (michspc.spc.frames). Linear values are meters.
-
-    ``source_constants`` and ``target_constants`` may be passed in so a whole
-    file's worth of points does not re-derive the zone constants per row; they
-    are otherwise derived here.
     """
     require_same_frame(source_zone.frame, target_zone.frame)
 
-    latitude, longitude, source_convergence, source_scale, inverse_agreement, warnings_in = (
-        to_geodetic(northing, easting, source_zone, context, source_constants)
+    latitude, longitude, source_convergence, source_scale, warnings_in = to_geodetic(
+        northing, easting, source_zone, context, source_constants
     )
 
     (
@@ -291,7 +201,6 @@ def convert_point(
         target_easting,
         target_convergence,
         target_scale,
-        forward_agreement,
         warnings_out,
     ) = from_geodetic(latitude, longitude, target_zone, context, target_constants)
 
@@ -308,8 +217,6 @@ def convert_point(
         source_scale_factor=source_scale,
         target_convergence=target_convergence,
         target_scale_factor=target_scale,
-        inverse_agreement=inverse_agreement,
-        forward_agreement=forward_agreement,
         warnings=warnings_in + warnings_out,
     )
 
@@ -323,15 +230,14 @@ def project_point(
 ) -> PointConversion:
     """Convert a geodetic position into a zone's grid coordinates.
 
-    The geodetic-input case. No inverse step is performed, so
-    ``inverse_agreement`` is None and the source zone is the target zone.
+    The geodetic-input case. No inverse step is performed, so the source zone is
+    the target zone.
     """
     (
         northing,
         easting,
         convergence,
         scale,
-        forward_agreement,
         warnings,
     ) = from_geodetic(latitude, longitude, target_zone, context, target_constants)
 
@@ -348,7 +254,5 @@ def project_point(
         source_scale_factor=scale,
         target_convergence=convergence,
         target_scale_factor=scale,
-        inverse_agreement=None,
-        forward_agreement=forward_agreement,
         warnings=warnings,
     )

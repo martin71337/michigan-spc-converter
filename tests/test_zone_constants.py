@@ -199,11 +199,11 @@ def test_northing_at_projection_origin_matches_published(zone, published):
 @pytest.mark.anchor
 @pytest.mark.parametrize("zone,published", ZONE_PAIRS)
 def test_scale_factor_at_central_parallel_matches_published(zone, published):
-    """ko. Appendix C prints 12 dp.
+    """ko, the grid scale factor at the central parallel. Appendix C prints 12 dp.
 
-    Appendix C also prints ko as F(1), the leading coefficient of the polynomial
-    grid scale factor series - the same number reached by an entirely different
-    route. WP2 checks that agreement.
+    Derived here from the two standard parallels via the section 3.12 zone
+    constants, then checked against the figure NGS published. Nothing in this
+    program stores ko.
     """
     constants = constants_for(zone)
     assert constants.k_origin == pytest.approx(published.ko, abs=tolerance_for("ko"))

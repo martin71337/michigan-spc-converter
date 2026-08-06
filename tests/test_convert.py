@@ -6,7 +6,6 @@ import math
 
 import pytest
 
-from michspc.spc import agreement as ag
 from michspc.spc.convert import (
     PointConversion,
     WarningCode,
@@ -177,9 +176,9 @@ def test_a_real_cross_zone_conversion_carries_its_evidence():
     therefore carry a NEGATIVE convergence in both zones.
 
     Lansing is well south of the Central zone, so this is also a realistic
-    example of a conversion that lands outside the target zone's polynomial
-    band. It must still succeed - the rigorous equations are exact there - and
-    must say what it did.
+    example of a conversion that lands outside the target zone's intended area.
+    It must still succeed - the rigorous equations are exact there - and must
+    say what it did.
     """
     lansing = project_point(42.7325, -84.5555, MI_SOUTH)
     result = convert_point(
@@ -199,17 +198,11 @@ def test_a_real_cross_zone_conversion_carries_its_evidence():
     assert result.latitude == pytest.approx(42.7325, abs=1e-9)
     assert result.longitude == pytest.approx(-84.5555, abs=1e-9)
 
-    # The record carries the evidence, not just the answer. The source zone's
-    # inverse was cross-checked cleanly, since Lansing is comfortably inside
-    # Michigan South's band.
-    assert result.inverse_agreement is not None
-    assert result.inverse_agreement.within_tolerance
-
-    # The target side is out of band, so the polynomial is unreliable there and
-    # the conversion says so rather than pretending otherwise.
-    assert not result.forward_agreement.within_tolerance
+    # Lansing at 42.7325 N is south of Michigan Central's area, which starts at
+    # 43.5 (zones.py MI_CENTRAL.lat_min), so the conversion says so rather than
+    # presenting the coordinate without comment.
     codes = {w.code for w in result.warnings}
-    assert WarningCode.ENGINE_DISAGREEMENT_OUT_OF_BAND in codes
+    assert WarningCode.OUTSIDE_ZONE_EXTENT in codes
 
 
 # --------------------------------------------------------------------------
@@ -217,43 +210,33 @@ def test_a_real_cross_zone_conversion_carries_its_evidence():
 # --------------------------------------------------------------------------
 
 
-def test_out_of_band_engine_disagreement_warns_rather_than_refusing():
-    """Design log #5: the rigorous engine is right there, so the conversion stands.
+def test_a_far_out_of_area_point_still_converts_and_says_so():
+    """A point far from its target zone must convert, and must be flagged.
 
-    A point at 48.4 N expressed in Michigan South coordinates puts the South
-    zone's polynomial 4.7 degrees outside its fitted band, where it is known to
-    be wrong by metres. The conversion must still succeed, using the rigorous
-    result, and must say so.
+    48.4 N is Upper Peninsula latitude; asked for Michigan South coordinates it
+    is more than four degrees north of that zone's area. The rigorous equations
+    are exact there, so the conversion stands - but the surveyor is told, since
+    distortion grows with distance from the zone and another zone almost
+    certainly suits the point better.
+
+    This is the only remaining warning class for an out-of-area point. The
+    engine-disagreement warning that used to accompany it went with the
+    polynomial method (docs/DESIGN.md amendment #14).
     """
     result = project_point(48.40, -84.3666666667, MI_SOUTH, context="point 1201")
 
     codes = {w.code for w in result.warnings}
-    assert WarningCode.ENGINE_DISAGREEMENT_OUT_OF_BAND in codes
+    assert WarningCode.OUTSIDE_ZONE_EXTENT in codes
 
     warning = next(
-        w for w in result.warnings
-        if w.code is WarningCode.ENGINE_DISAGREEMENT_OUT_OF_BAND
+        w for w in result.warnings if w.code is WarningCode.OUTSIDE_ZONE_EXTENT
     )
     assert "point 1201" in warning.message
-    assert "rigorous Lambert equations are exact here and were used" in warning.message
-    # The measured discrepancy is carried, not just the fact of it.
-    assert "mm" in warning.message
+    assert "computed correctly" in warning.message
 
-
-def test_in_band_engine_disagreement_would_refuse():
-    """The other half of design log #5: inside the band, disagreement is a defect.
-
-    Constructed directly rather than provoked, because the two engines do in
-    fact agree everywhere in band - which is the point. This checks the policy
-    itself: an in-band disagreement raises rather than warns.
-    """
-    from michspc.spc.convert import _check_engines
-
-    bad = ag.Agreement(northing_difference=0.05, easting_difference=0.0)
-    in_band_latitude = (MI_SOUTH.lat_min + MI_SOUTH.lat_max) / 2.0
-
-    with pytest.raises(ag.EngineDisagreementError, match="point 42"):
-        _check_engines(MI_SOUTH, in_band_latitude, bad, "point 42")
+    # And the coordinate itself is real, not a placeholder.
+    assert math.isfinite(result.target_northing)
+    assert math.isfinite(result.target_easting)
 
 
 def test_point_outside_the_target_zone_extent_warns():
@@ -316,15 +299,17 @@ def test_conversion_results_are_frozen():
         result.target_northing = 0.0  # type: ignore[misc]
 
 
-def test_geodetic_input_has_no_inverse_agreement():
-    """No inverse step was performed, so there is nothing to report about one.
+def test_geodetic_input_reports_the_zone_as_both_source_and_target():
+    """No inverse step is performed, so there is no separate source zone.
 
-    None rather than a fabricated zero-difference Agreement, which would claim
-    a check happened that did not (docs/DESIGN.md section 1, never fabricate).
+    The record says so rather than leaving the field empty or inventing a
+    source the user never chose.
     """
     result = project_point(42.7325, -84.5555, MI_SOUTH)
-    assert result.inverse_agreement is None
-    assert isinstance(result.forward_agreement, ag.Agreement)
+    assert result.source_zone is MI_SOUTH
+    assert result.target_zone is MI_SOUTH
+    assert result.source_northing == result.target_northing
+    assert result.source_easting == result.target_easting
 
 
 def test_passing_precomputed_constants_gives_identical_results():

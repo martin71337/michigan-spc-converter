@@ -222,6 +222,92 @@ and 0.18 mm easting, so it is a sound supplemental reference. Its defects:
 Defects 1, 4 and 5 belong to the two-point azimuth/distance feature, which is
 deferred (§10). They are recorded here so the fixes travel with the feature.
 
+### #12 — 2026-08-05 — Owner directive: do not invest further in the polynomial method
+
+> "you dont need to develop the polynomial method as long as you cross check with NGS"
+
+**Superseded scope, not superseded code.** The §3.4 polynomial engine is built,
+correct, and anchored. What changes is its *role*.
+
+It is currently a **runtime** gate: it runs on every point and the pipeline
+enforces agreement, which is where the whole in-band/out-of-band policy
+(amendments #5, #6) comes from. The frozen NGS NCAT anchors are a **build-time**
+authority: 27 lattice points proving the rigorous engine matches NGS to
+0.497 mm, the limit of what NCAT publishes.
+
+**To do at resume:** demote the polynomial engine from runtime gate to
+build-time verification. It keeps earning its place in the test suite — it is a
+genuinely independent second derivation and it is what produced amendment #5 —
+but it stops gating live conversions. This deletes `_check_engines`, the
+in-band/out-of-band branch, `WarningCode.ENGINE_DISAGREEMENT_OUT_OF_BAND`, and
+with them gate findings #3 and #4 below, which exist only because of that
+policy. The `Zone.band_lat_*` fields stay, used by the test suite only.
+
+Net effect: less runtime machinery, the same verification strength, and the
+authority moves from a 1980s hand-calculator approximation to NGS's own service.
+
+### #11 — 2026-08-05 — Interim review gate: findings accepted
+
+Codex CLI, read-only, over `8127446..e2a8834`. **VERDICT: FINDINGS** — three
+critical, three high, one medium. Six accepted, one rejected (#10 below).
+Surfaces it examined and found clean are recorded in `review/gate1-output.txt`,
+including an independent 60-digit recomputation of the Lambert equations that
+differed from production by at most 1.68e-9 m, and a line-by-line check of every
+Appendix A and C transcription against the committed PDF.
+
+| # | Severity | Finding | Status |
+|---|---|---|---|
+| 1 | CRITICAL | Geodetic input carries no reference frame, so a NATRF2022 position is silently projected as NAD 83 | **Open** |
+| 2 | CRITICAL | Longitude domain unvalidated: 275.4445 (the 0–360 form of −84.5555) converts silently, 2.2 M m out of place | **Fixed** |
+| 3 | HIGH | A non-finite input is downgraded to a warning by the out-of-band branch and returns NaN coordinates | **Fixed** at the engine; the policy branch is deleted by #12 |
+| 4 | HIGH | `to_geodetic` re-projects the *polynomial* result, so a defect isolated to the *rigorous* inverse is invisible — an injected 0.01° error reported 0.032 mm agreement | **Open**; dissolved by #12 |
+| 5 | CRITICAL | Caller-supplied `LambertConstants` were not bound to their zone: pairing MI South's constants with MI North's identity gave a coordinate **4,231 km** wrong, warnings only | **Fixed** |
+| 6 | HIGH | The production geoid path never authenticates the grid, and a header with row/column counts swapped (1081×1141 → 1141×1081) preserves the payload length and is accepted, giving a 5.16 m geoid error | **Open** |
+
+Fixes landed so far:
+
+- **#2 and #3** — `_require_valid_geodetic` and `_require_finite_grid` in
+  `lambert.py`, called by *both* engines before any arithmetic. The check must
+  precede both, because both are handed the same bad value and agree perfectly
+  on the wrong answer — neither the cross-check nor the extent warning protects
+  this path. The longitude refusal names the 0–360 confusion and prints the
+  corrected value.
+- **#5** — the `constants=` parameters are **deleted** rather than guarded.
+  `constants_for` is now `lru_cache`d, so callers get the per-file efficiency
+  for free and have no way to mismatch. `LambertConstants.zone_code` records
+  provenance so any future re-introduction of the seam is checkable.
+
+### #10 — 2026-08-05 — Interim gate finding #7 REJECTED, with evidence
+
+The reviewer reported that `python -O -m pytest` strips the numerical
+assertions, making the optimized run meaningless. **This is not true of how the
+suite is run.**
+
+Its probe imported a test module directly (`import tests.test_lambert as t;
+t.test_...()`), which bypasses pytest's assertion-rewriting import hook. Under
+that access pattern `-O` does strip asserts — but the program never runs tests
+that way.
+
+Falsified directly against a real test module: a genuine NCAT anchor was
+corrupted by 999 m and the suite run both ways with `__pycache__` cleared
+between runs.
+
+    py -m pytest tests/test_lambert.py     ->  1 failed, exit 1
+    py -O -m pytest tests/test_lambert.py  ->  1 failed, exit 1
+
+pytest's rewriting is applied at import by its own hook and survives `-O`. The
+optimized run is not vacuous. Recorded here so the question is settled by
+evidence rather than re-litigated.
+
+### #9 — 2026-08-05 — Subagent work packages resumed per the owner's method
+
+WP0–WP5 were written by the session lead alone. `docs/method/METHOD.md` §3 has
+subagents write and the lead independently re-derive; the lead did both halves.
+Defensible for WP1 (the load-bearing math, where re-deriving a subagent's
+version costs more than writing it) but carried through WP2–WP5 without being
+flagged, which was not. Corrected: WP5's test suite and WP6's GUI are subagent
+packages, reviewed and re-derived before acceptance.
+
 ### #8 — 2026-08-05 — GEOID18 interpolation is biquadratic, settled by measurement
 
 NGS does not document which interpolation scheme its INTG program uses for the

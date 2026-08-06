@@ -39,7 +39,13 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from michspc.spc.lambert import GeodeticPoint, GridPoint, LambertConstants
+from michspc.spc.lambert import (
+    GeodeticPoint,
+    GridPoint,
+    LambertConstants,
+    _require_finite_grid,
+    _require_valid_geodetic,
+)
 
 
 @dataclass(frozen=True)
@@ -153,11 +159,7 @@ def forward(
         N         = N' + N_0
         k         = F1 + F2 u^2 + F3 u^3
     """
-    if not -90.0 < latitude < 90.0:
-        raise ValueError(
-            f"Latitude {latitude} is not a valid geodetic latitude; it must lie "
-            f"strictly between -90 and 90 degrees."
-        )
+    _require_valid_geodetic(latitude, longitude)
 
     delta_phi = latitude - constants.lat_origin
     u = _horner(coefficients.L, delta_phi)
@@ -197,6 +199,8 @@ def inverse(
         phi       = B_0 + delta_phi
         k         = F1 + F2 u^2 + F3 u^3
     """
+    _require_finite_grid(northing, easting)
+
     northing_prime = northing - constants.northing_origin
     easting_prime = easting - constants.easting_origin
     R_prime = constants.R_origin - northing_prime

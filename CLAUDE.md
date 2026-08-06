@@ -25,16 +25,46 @@ It deliberately does **not** do UTM, SPCS2022, NAD 83 ↔ NATRF2022
 transformation, other states, NAD 27, or two-point azimuth/distance. See
 DESIGN.md §10 for why each was deferred.
 
-## Status (2026-08-05)
+## Status (2026-08-05, paused mid-gate-1 fix loop)
 
-WP0 complete: repository scaffolded, design authority written, method vendored,
-reference material committed. Suite not yet established — WP1 creates it.
+**WP0–WP4 complete, committed, pushed.** WP5 (file I/O) written and smoke-tested
+end to end. Core suite **401 passing in both `pytest` and `-O`**, exit codes
+asserted directly.
 
-**Next session — where to pick up:** WP1, the rigorous Lambert engine. Start
-with `michspc/spc/ellipsoid.py` and `michspc/spc/zones.py`, then §3.12 zone
-constants. The anchor that gates WP1: recompute every published Appendix C
-derived constant (B₀, sinB₀, R_b, R₀, K, N₀, k₀, M₀, r₀) from the defining
-constants alone, for all three zones.
+**Interim Codex gate ran and returned FINDINGS** — 3 critical, 3 high, 1 medium.
+Full output in `review/gate1-output.txt`; the table of findings and their status
+is DESIGN.md amendment #11. Two critical findings are fixed (#2 longitude
+domain, #5 zone-bound constants); three remain open.
+
+**In flight, uncommitted, needs audit before trusting:** two subagents were
+running when the session paused and left untracked files —
+`michspc/gui/{app,window,results_model}.py`, `tests/test_gui.py`,
+`tests/test_fileio.py`. These are NOT verified and NOT committed. The core suite
+above was run with those two test files excluded.
+
+### Next session — where to pick up, in order
+
+1. **Audit the subagent output per deliverable.** Run `py -m pytest` including
+   `tests/test_fileio.py` and `tests/test_gui.py`. Re-derive any load-bearing
+   expected value before accepting. Discard anything that cannot be verified —
+   partial agent work is not automatically coherent.
+2. **DESIGN.md #12 — demote the polynomial engine from runtime gate to
+   build-time check**, per the owner's directive. This deletes `_check_engines`,
+   the in-band/out-of-band branch, and `ENGINE_DISAGREEMENT_OUT_OF_BAND`, and
+   dissolves gate findings #3 and #4. Do this BEFORE fixing those two findings —
+   fixing code that is about to be deleted is waste.
+3. **Gate finding #1 (CRITICAL)** — tag geodetic input with its reference frame.
+   `project_point` must take a source frame and call `require_same_frame`.
+4. **Gate finding #6 (HIGH)** — authenticate the geoid grid in the production
+   path (`default_grid` must verify the checksum) and validate the header
+   against the shipped tile's canonical geometry, so a row/column swap that
+   preserves the payload length is refused rather than silently returning a
+   5.16 m error.
+5. **Pin every accepted finding with the reviewer's own counterexample** as a
+   regression test, then **falsify each pin** (revert the fix, watch it fail,
+   restore). None of the fixes landed so far have been falsified yet — that is
+   outstanding work, not a completed step.
+6. WP6 GUI review, WP7 release, then the closing Codex gate.
 
 ## Repo layout
 

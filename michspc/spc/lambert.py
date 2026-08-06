@@ -29,8 +29,8 @@ Conventions in this module:
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
-from functools import cached_property
+from dataclasses import dataclass, replace
+from functools import cached_property, lru_cache
 
 from michspc.spc.ellipsoid import GRS80, Ellipsoid
 from michspc.spc.zones import LambertTwoParallelDef, Zone
@@ -51,6 +51,52 @@ class ConvergenceError(Exception):
     ever does, the input is far outside the projection's usable domain and no
     plausible latitude should be invented for it.
     """
+
+
+def _require_valid_geodetic(latitude: float, longitude: float) -> None:
+    """Refuse a latitude or longitude that is out of domain or not a number.
+
+    Both engines call this. Neither the engine cross-check nor the zone-extent
+    warning can protect against a bad input here, because both engines are
+    handed the same bad value and agree perfectly on the wrong answer - so the
+    check has to happen before either of them runs.
+
+    The longitude domain matters more than it looks. This program uses signed
+    longitude, negative west; the geoid grid and many datasets use the 0-360
+    east convention, in which Michigan's 84.5555 W is 275.4445. That value is a
+    perfectly ordinary float, it produces a coordinate with no warning worth
+    noticing, and it is wrong by thousands of kilometres. Found by the interim
+    review gate; see docs/DESIGN.md amendment #10.
+    """
+    if not math.isfinite(latitude) or not math.isfinite(longitude):
+        raise ValueError(
+            f"Latitude {latitude!r} and longitude {longitude!r} must both be "
+            f"finite numbers. A coordinate that is not a number cannot be "
+            f"projected, and must never be written to a file."
+        )
+    if not -90.0 < latitude < 90.0:
+        raise ValueError(
+            f"Latitude {latitude} is not a valid geodetic latitude; it must lie "
+            f"strictly between -90 and 90 degrees."
+        )
+    if not -180.0 <= longitude <= 180.0:
+        raise ValueError(
+            f"Longitude {longitude} is outside the range -180 to 180. This "
+            f"program uses SIGNED longitude, negative west - Michigan runs from "
+            f"about -83 to -90. A value between 180 and 360 is the 0-360 east "
+            f"convention: subtract 360 from it ({longitude - 360.0:.6f} here). "
+            f"Converting it as given would place the point thousands of "
+            f"kilometres away."
+        )
+
+
+def _require_finite_grid(northing: float, easting: float) -> None:
+    """Refuse a grid coordinate that is not a number, before it is inverted."""
+    if not math.isfinite(northing) or not math.isfinite(easting):
+        raise ValueError(
+            f"Northing {northing!r} and easting {easting!r} must both be finite "
+            f"numbers. Check the input file for a blank or corrupt coordinate."
+        )
 
 
 @dataclass(frozen=True)
@@ -90,6 +136,17 @@ class LambertConstants:
 
     lon_origin: float
     """lambda_0 - central meridian, decimal degrees, NEGATIVE WEST."""
+
+    zone_code: str | None = None
+    """The zone these constants belong to, when they came from a registry zone.
+
+    Carried so constants can never be silently paired with a different zone's
+    identity. Passing Michigan South's constants while naming Michigan North
+    produced a coordinate 4,231 km out of place with only a warning - found by
+    the interim review gate. The public conversion API no longer accepts
+    caller-supplied constants at all (docs/DESIGN.md amendment #11); this field
+    makes any future re-introduction of that seam checkable.
+    """
 
     @cached_property
     def lat_origin(self) -> float:
@@ -239,11 +296,7 @@ def forward(
 
     ``latitude`` and ``longitude`` are decimal degrees, longitude negative west.
     """
-    if not -90.0 < latitude < 90.0:
-        raise ValueError(
-            f"Latitude {latitude} is not a valid geodetic latitude; it must lie "
-            f"strictly between -90 and 90 degrees."
-        )
+    _require_valid_geodetic(latitude, longitude)
 
     sin_lat = math.sin(math.radians(latitude))
     Q = constants.ellipsoid.isometric_latitude(sin_lat)
@@ -282,6 +335,8 @@ def inverse(
 
     ``northing`` and ``easting`` are meters.
     """
+    _require_finite_grid(northing, easting)
+
     R_prime = constants.R_grid_origin - northing + constants.northing_grid_origin
     E_prime = easting - constants.easting_origin
 
@@ -348,6 +403,18 @@ def _solve_sin_latitude(Q: float, ellipsoid: Ellipsoid) -> float:
     )
 
 
+@lru_cache(maxsize=32)
 def constants_for(zone: Zone, ellipsoid: Ellipsoid = GRS80) -> LambertConstants:
-    """Derive the working constants for a registry zone."""
-    return LambertConstants.from_two_parallels(zone.definition, ellipsoid)
+    """Derive the working constants for a registry zone, once.
+
+    Cached, so a file of several thousand points does not re-derive the same
+    constants per row. The cache is what made it possible to delete the
+    ``constants=`` parameters the conversion functions used to accept: callers
+    now get the per-file efficiency for free and have no way to pair one zone's
+    constants with another zone's identity (docs/DESIGN.md amendment #11).
+
+    Zone and Ellipsoid are both frozen dataclasses and therefore hashable, so
+    they are usable as cache keys directly.
+    """
+    constants = LambertConstants.from_two_parallels(zone.definition, ellipsoid)
+    return replace(constants, zone_code=zone.code)

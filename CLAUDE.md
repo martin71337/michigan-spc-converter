@@ -78,6 +78,37 @@ above was run with those two test files excluded.
    The suite must be green in both modes afterwards, and the NCAT and Appendix C
    anchor tests must still be present and passing — they are now the *only*
    verification of the projection mathematics.
+
+   **In the same change, rewrite `report.py`'s METHOD section.** It currently
+   states that every coordinate is computed twice by two independent methods and
+   prints a worst-engine-discrepancy figure. Deleting the second engine makes
+   that text FALSE, and a job record that misdescribes its own derivation is
+   worse than none — it gets signed, filed and believed. Cite what actually
+   carries the weight instead: the frozen NGS NCAT anchors and the published
+   Appendix C constants. See DESIGN.md #15 note 3, which makes this a standing
+   rule rather than a one-off.
+
+2a. **Exports ship as a single ZIP** (DESIGN.md #15 note 2). Three files per job
+   become one `<stem>.zip`. Everything the loose writers guaranteed must survive:
+   stage-and-rename atomicity on the archive, refusal to clobber without
+   confirmation, and the PNEZD round-trip verification running BEFORE the archive
+   is committed to its final name. The GUI's "Open folder" and
+   `window._existing_outputs` both need updating, and `report.py`'s "FILES
+   WRITTEN" section describes three loose files and will also be wrong.
+
+   **Ask the owner:** should the clean PNEZD file ALSO be written loose beside
+   the archive? Importing into CAD now means unzipping first. Do not assume.
+
+2b. **App icon** (DESIGN.md #15 note 1). Master artwork is committed at
+   `assets/icon/coord-convert-1024.png` (1024×1024 RGBA). Generate a
+   multi-resolution `.ico` (16/32/48/64/128/256) from it AS A BUILD STEP, not as
+   a second committed artefact, so the two cannot diverge. Consumed by the Qt
+   window icon, the PyInstaller bundle, and the Inno installer plus Start-menu
+   entry.
+
+   **Ask the owner:** at 16 and 32 px the "COORD CONVERT" lettering will be an
+   illegible smear. The usual fix is a cropped, text-free compass variant for the
+   small sizes inside the same `.ico`. It is his artwork — ask, do not assume.
 3. **Gate finding #1 (CRITICAL)** — tag geodetic input with its reference frame.
    `project_point` must take a source frame and call `require_same_frame`.
 4. **Gate finding #6 (HIGH)** — authenticate the geoid grid in the production

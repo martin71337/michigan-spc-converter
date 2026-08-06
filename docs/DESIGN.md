@@ -222,6 +222,57 @@ and 0.18 mm easting, so it is a sound supplemental reference. Its defects:
 Defects 1, 4 and 5 belong to the two-point azimuth/distance feature, which is
 deferred (§10). They are recorded here so the fixes travel with the feature.
 
+### #15 — 2026-08-05 — App icon, ZIP export, and a standing report-validity rule
+
+Three owner notes.
+
+**1. App icon.** `assets/icon/coord-convert-1024.png` — 1024×1024, 8-bit RGBA
+with transparency, a compass rose over a grid reading "COORD CONVERT". Supplied
+by the owner; committed as the master artwork.
+
+Windows needs a multi-resolution `.ico` derived from it (16, 32, 48, 64, 128,
+256 px) for three consumers: the Qt window icon, the PyInstaller bundle, and the
+Inno installer and its Start-menu entry. Generate the `.ico` as a build step
+from this master rather than committing a second hand-made artefact, so the two
+can never diverge.
+
+**One judgement call to put to the owner:** at 16 and 32 px the "COORD CONVERT"
+lettering will be an illegible smear. The usual fix is a cropped, text-free
+variant of the compass for the small sizes inside the same `.ico`. Ask before
+assuming — it is his artwork.
+
+**2. Exports ship as a single ZIP.** A job produces three files; they are to be
+delivered as one `<stem>.zip` rather than three loose ones, so a job hands over
+as a single artefact.
+
+Everything the loose writers guaranteed must survive the change: stage-and-
+rename atomicity on the archive itself, refusal to clobber without confirmation,
+and the PNEZD round-trip verification running *before* the archive is committed
+to its final name. A job still either produces a complete readable deliverable
+or leaves the output folder untouched.
+
+**Friction worth naming:** importing into CAD now requires unzipping first.
+Whether the clean PNEZD file should *also* be written loose alongside the
+archive is the owner's call, not an assumption to make silently.
+
+**3. The job record must always describe the program as it actually is.**
+Standing rule, not a one-off task. `report.py` currently states at length that
+every coordinate is computed twice by two independent methods and reports a
+worst-engine-discrepancy figure. Amendment #14 deletes the second engine, which
+makes that section **false**. It also describes three separate output files,
+which note 2 makes false.
+
+Both must be rewritten in the same change that causes them — a job record that
+misdescribes its own derivation is worse than no record, because it is signed,
+filed, and believed. The verification wording should cite what actually carries
+the weight after #14: the frozen NGS NCAT anchors and the published Appendix C
+constants.
+
+METHOD.md §5 already requires a generated manual to be rebuilt in the same
+change as any user-facing behaviour. Amendment #13 dropped the manual; this
+extends the same discipline to the job record, which is now the only generated
+documentation the program produces.
+
 ### #14 — 2026-08-05 — SUPERSEDES #12: delete the polynomial method entirely
 
 > "delete all traces of the polynomial method so that we dont have an

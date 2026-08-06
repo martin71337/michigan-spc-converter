@@ -222,6 +222,34 @@ and 0.18 mm easting, so it is a sound supplemental reference. Its defects:
 Defects 1, 4 and 5 belong to the two-point azimuth/distance feature, which is
 deferred (§10). They are recorded here so the fixes travel with the feature.
 
+### #13 — 2026-08-05 — Release via GitHub Releases; no user manual
+
+Two owner directives, both affecting WP7.
+
+**1. The published `.exe` ships as a GitHub Release** on
+`martin71337/michigan-spc-converter`, not as a loose file. Each release carries
+the installer, its SHA-256 checksum, and release notes naming what was verified
+(test counts in both run modes, the anchors, the gate verdicts). The tag is the
+version literal from `michspc/__init__.py` — which the release gate already
+refuses to build while it carries a `-dev` marker, so the tag and the binary
+cannot disagree. The repository is private, so releases are private too.
+
+**2. No user manual.** METHOD.md §5 calls for a generated manual rebuilt in the
+same change as any user-facing behavior, and §6 for a release gate checking its
+content freshness. **Both are dropped**, and this is a recorded deviation rather
+than an omission.
+
+Reason: the interface is one window with six controls, and the job record
+written beside every export already explains the units, the zones, the method,
+the factors and each output file in plain language — to a reader who did not run
+the conversion. A separate manual would restate it and then rot. The job record
+*is* the documentation, and it cannot go stale because it is generated from the
+same run it describes.
+
+Consequence for the release script: the doc-freshness gate is removed from the
+gate list. Every other gate in METHOD.md §6 stands — version sanity, full suite
+in both modes, bundle build, frozen-artifact self-test, installer, checksum.
+
 ### #12 — 2026-08-05 — Owner directive: do not invest further in the polynomial method
 
 > "you dont need to develop the polynomial method as long as you cross check with NGS"

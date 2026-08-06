@@ -95,6 +95,13 @@ above was run with those two test files excluded.
    outstanding work, not a completed step.
 8. WP6 GUI review, WP7 release, then the closing Codex gate.
 
+**WP7 scope, per DESIGN.md #13:** the `.exe` ships as a **GitHub Release** on
+`martin71337/michigan-spc-converter` — installer plus SHA-256 plus release notes
+naming what was verified, tagged with the version literal. **No user manual**:
+the generated-manual requirement and its doc-freshness release gate are
+deliberately dropped, because the job record written beside every export already
+documents the run and cannot go stale. All other METHOD.md §6 gates stand.
+
 ## Repo layout
 
 ```

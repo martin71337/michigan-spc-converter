@@ -222,6 +222,43 @@ and 0.18 mm easting, so it is a sound supplemental reference. Its defects:
 Defects 1, 4 and 5 belong to the two-point azimuth/distance feature, which is
 deferred (§10). They are recorded here so the fixes travel with the feature.
 
+### #5 — 2026-08-05 — Measured: the polynomial method alone would be wrong by metres across zones
+
+The plan asserted that the Appendix C polynomials degrade outside their fitted
+band and that this matters for cross-zone work. That is now measured, not
+asserted. A cross-zone conversion evaluates the **target** zone's polynomial at
+the **source** point's latitude:
+
+| Point in | Expressed as | Latitude | Polynomial error vs rigorous |
+|---|---|---|---|
+| MI North | MI South | 48.40 | **3355 mm** |
+| MI North | MI Central | 48.40 | 408 mm |
+| MI Central | MI South | 46.00 | 159 mm |
+| MI South | MI Central | 41.60 | 147 mm |
+| MI South | MI North | 41.60 | 110 mm |
+| MI Central | MI North | 43.50 | 4 mm |
+
+Inside its own zone the same method agrees with the rigorous equations to
+0.0775 mm (MI North), 0.3382 mm (MI Central) and 0.4304 mm (MI South) — all
+within the 0.5 mm NGS fitted them to.
+
+**Consequence.** The prior MATLAB tool (`docs/reference/SPC_converter_AllZones_Elev.m`)
+uses the polynomial method alone. Had this program done the same, a Michigan
+North point expressed in Michigan South coordinates could have been wrong by
+over three metres, with nothing in the output to reveal it. The two-engine
+design (§5) is what surfaces this, and the rigorous equations are what get it
+right.
+
+Pinned by `test_cross_zone_conversion_is_where_the_polynomial_method_actually_fails`.
+
+**This also constrains how the cross-check may be applied.** The 0.5 mm
+agreement requirement can only be enforced where both engines are valid — that
+is, when the point lies inside the target zone's fitted band. Outside it, the
+disagreement is expected and is the polynomial's fault, not a defect. The
+pipeline therefore treats an out-of-band point as a *warning carrying the
+measured discrepancy*, never as grounds to refuse a conversion the rigorous
+engine handles correctly.
+
 ### #4 — 2026-08-05 — The manual's printed 1/f and e² are mutually inconsistent at the last place
 
 Manual p. 23 prints both to 14 significant digits, each correctly rounded from

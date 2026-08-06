@@ -222,6 +222,51 @@ and 0.18 mm easting, so it is a sound supplemental reference. Its defects:
 Defects 1, 4 and 5 belong to the two-point azimuth/distance feature, which is
 deferred (§10). They are recorded here so the fixes travel with the feature.
 
+### #6 — 2026-08-05 — A zone's polynomial band is a measured property, distinct from its geographic extent
+
+**Defect found and fixed during WP3.** The first implementation of the engine
+cross-check used each zone's geographic extent as the band inside which the
+0.5 mm agreement is *enforced*, widened by a tenth of a degree of slack. That
+was wrong in both respects.
+
+The manual publishes no fitted band — it says only that the Appendix C
+coefficients were fit to ten data points per zone (PDF p. 54). So the band was
+measured directly: the latitude range over which the two engines agree within
+NGS's 0.5 mm, worst case across each zone's full longitude span.
+
+| Zone | Measured 0.5 mm band | Geographic extent | Stored band (rounded inward) |
+|---|---|---|---|
+| MI North | 44.192 – 48.901 | 45.0 – 48.4 | 44.25 – 48.85 |
+| MI Central | 43.236 – 46.128 | 43.5 – 46.0 | 43.30 – 46.05 |
+| MI South | 41.403 – 44.312 | 41.6 – 44.3 | 41.45 – 44.25 |
+
+Michigan South's band ends at 44.312 while its coverage reaches 44.3 — a margin
+of one hundredth of a degree. Adding 0.1° of outward slack pushed the *enforced*
+range past where the polynomial is valid, so a legitimate Michigan Central →
+Michigan South conversion raised a hard `EngineDisagreementError` at 0.6186 mm.
+The program refused a conversion it had computed correctly.
+
+**Decision.** `Zone` now carries `band_lat_min` / `band_lat_max` as measured
+data, rounded **inward** so the stored band can never claim more than the
+measurement supports, and `_within_fitted_band` uses them with no slack.
+`tests/test_polynomial_band.py` re-measures on every run and fails if either
+stored bound has drifted outside the real one, or if the engines ever disagree
+anywhere inside the stored band.
+
+Caught by `test_zone_to_zone_round_trips[MI-C->MI-S]`.
+
+### #7 — 2026-08-05 — No source file may carry a UTF-8 byte order mark
+
+A PowerShell 5.1 `Set-Content -Encoding utf8` edit prepended U+FEFF to
+`zones.py`. Python's importer tolerates it (source is read as utf-8-sig), so the
+program kept working — but `ast.parse` on text read as plain utf-8 does not, so
+the four architecture scanners crashed while the code they guard appeared fine.
+Checks breaking silently while the thing they check looks healthy is the worst
+available failure mode.
+
+Now machine-enforced by `test_no_source_file_carries_a_utf8_byte_order_mark`,
+with an anti-vacuousness check that reproduces the `SyntaxError`.
+
 ### #5 — 2026-08-05 — Measured: the polynomial method alone would be wrong by metres across zones
 
 The plan asserted that the Appendix C polynomials degrade outside their fitted

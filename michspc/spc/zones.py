@@ -105,6 +105,25 @@ class Zone:
     never a reason to refuse a conversion - a project legitimately straddling a
     zone boundary must still convert (docs/DESIGN.md amendment #1)."""
 
+    band_lat_min: float
+    band_lat_max: float
+    """The latitude range over which this zone's Appendix C polynomial
+    coefficients agree with the rigorous equations to NGS's stated 0.5 mm.
+
+    This is a **measured** property, not a guess and not the same thing as the
+    zone's geographic extent. The manual says only that the coefficients were
+    fit to ten data points per zone (PDF p. 54); it does not publish the band.
+    So the band was measured directly, worst-case across each zone's full
+    longitude span, and rounded inward. See docs/DESIGN.md amendment #6.
+
+    It exists for exactly one purpose: to decide whether a disagreement between
+    the two engines is a defect (inside the band) or the polynomial method's
+    known degradation (outside it). Rounding is always INWARD, so the stored
+    band can never claim more than the measurement supports.
+
+    tests/test_polynomial_band.py re-measures and fails if either bound has
+    drifted outside the real one."""
+
     def __str__(self) -> str:
         return f"{self.name} ({self.code})"
 
@@ -143,6 +162,9 @@ MI_NORTH = Zone(
     lat_max=48.4,
     lon_min=-90.5,
     lon_max=-83.4,
+    # Measured 0.5 mm agreement band: 44.192 to 48.901. Rounded inward.
+    band_lat_min=44.25,
+    band_lat_max=48.85,
 )
 
 MI_CENTRAL = Zone(
@@ -164,6 +186,9 @@ MI_CENTRAL = Zone(
     lat_max=46.0,
     lon_min=-86.7,
     lon_max=-82.9,
+    # Measured 0.5 mm agreement band: 43.236 to 46.128. Rounded inward.
+    band_lat_min=43.30,
+    band_lat_max=46.05,
 )
 
 MI_SOUTH = Zone(
@@ -185,6 +210,12 @@ MI_SOUTH = Zone(
     lat_max=44.3,
     lon_min=-87.0,
     lon_max=-82.3,
+    # Measured 0.5 mm agreement band: 41.403 to 44.312. Rounded inward.
+    # Note this band's top edge sits essentially AT the top of the zone's own
+    # coverage, so points in the far north of Michigan South are legitimately
+    # near the limit of the polynomial cross-check.
+    band_lat_min=41.45,
+    band_lat_max=44.25,
 )
 
 

@@ -93,7 +93,26 @@ above was run with those two test files excluded.
    regression test, then **falsify each pin** (revert the fix, watch it fail,
    restore). None of the fixes landed so far have been falsified yet — that is
    outstanding work, not a completed step.
-8. WP6 GUI review, WP7 release, then the closing Codex gate.
+8. **WP6 GUI landed from a subagent — audit it, then close its gaps.**
+   `michspc/gui/{app,window,results_model}.py` and `tests/test_gui.py`
+   (35 tests). Suite verified by the lead at 553 passing in both modes, exit 0.
+   The agent falsified three of its own pins and launched the app twice on the
+   real Windows platform plugin. Still to do:
+   - **Record the approved GUI layout and look in DESIGN.md**, per METHOD.md §5
+     ("recorded once and enforced in review"). The agent correctly refused to
+     write to the design authority itself.
+   - **The agent added a `Geodetic (latitude / longitude)` entry to the From and
+     To dropdowns** so one pair of controls states all three directions. This is
+     an addition to the owner-approved layout — confirm with the owner or record
+     it as an amendment.
+   - `job.JobSettings.longitude_convention` still carries a `NEGATIVE_WEST`
+     default, which DESIGN.md §7 forbids. The GUI enforces the no-default rule,
+     but the API-level default remains a bypass. Remove it.
+   - `window._existing_outputs` duplicates the three output suffixes; add
+     `exports.destination_paths(result)` and use it.
+   - No end-to-end geodetic conversion test exists — only the longitude gating.
+   - `QDesktopServices.openUrl` is never exercised.
+9. WP7 release, then the closing Codex gate.
 
 **WP7 scope, per DESIGN.md #13:** the `.exe` ships as a **GitHub Release** on
 `martin71337/michigan-spc-converter` — installer plus SHA-256 plus release notes

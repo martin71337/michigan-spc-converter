@@ -32,7 +32,7 @@ from __future__ import annotations
 import traceback
 from pathlib import Path
 
-from PySide6.QtCore import QUrl, Qt
+from PySide6.QtCore import QStandardPaths, QUrl, Qt
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QApplication,
@@ -54,6 +54,7 @@ from PySide6.QtWidgets import (
 )
 
 from michspc.fileio import exports, geoid18
+from michspc.gui.icon import application_icon
 from michspc.gui.results_model import ResultsModel
 from michspc.job import Direction, JobResult, JobSettings, LongitudeConvention, run
 from michspc.spc.units import ALL_UNITS, INTERNATIONAL_FEET
@@ -68,6 +69,38 @@ Not the same thing as a default. A combo box that opens on a real value has
 answered a question the user was never asked, which is precisely the failure the
 longitude convention rule exists to prevent, so the zone and convention combos
 open on a placeholder and Convert stays disabled until they are answered.
+"""
+
+INPUT_LABEL = "Input file:"
+"""The input row's label, in every state (docs/DESIGN.md amendment #16 note 1).
+
+Never "Input PNEZD file:". The file is only PNEZD when the conversion starts
+from a State Plane zone; when it starts from geodetic positions, columns two and
+three are latitude and longitude. Rather than swap the label between two
+spellings, the label names the control and the hint below it names the layout,
+so the control's identity stays stable.
+"""
+
+INPUT_HINT_ZONE = "No header row: point, northing, easting, elevation, description"
+INPUT_HINT_GEODETIC = (
+    "No header row: point, latitude, longitude, elevation, description"
+)
+INPUT_HINT_UNCHOSEN = (
+    "No header row. The column layout follows the From selection below."
+)
+"""The three states of the format hint, which follows the From selection.
+
+**This is a correctness aid, not decoration.** The two layouts are not
+distinguishable from the numbers in the sense that matters: a geodetic file read
+as PNEZD yields a plausible coordinate rather than an error, and the program's
+easting guard (``michspc.spc.convert.easting_looks_wrong_for_zone``) only fires
+on the zone branch. The hint is what tells the user, before they run anything,
+which reading their file is about to be given.
+
+The unchosen state names the dependency rather than showing the PNEZD wording.
+Showing PNEZD there would be a silent default for the very question this hint
+exists to ask — and defaulting a question the user was never asked is the
+failure the longitude rule exists to prevent (docs/DESIGN.md section 7).
 """
 
 GEODETIC = "geodetic"
@@ -96,12 +129,40 @@ def _zone_label(zone: Zone) -> str:
     return f"{zone.name} {zone.code}"
 
 
+def default_output_directory() -> str:
+    """Where exports go unless the user says otherwise: the Downloads folder.
+
+    Resolved through Qt rather than assembled as ``~/Downloads``: Windows lets
+    the Downloads folder be relocated, and ``QStandardPaths`` reads the real
+    shell path, while a hand-built one would name a folder that may not exist
+    (docs/DESIGN.md amendment #16 note 3). If Qt returns nothing — it can, on an
+    unusual profile — the home directory is used, which always exists.
+
+    A pre-filled destination relaxes nothing. ``exports.write_all`` still
+    refuses to clobber, still stages and renames, and still verifies the PNEZD
+    round trip before committing the archive to its final name, so a default
+    folder cannot quietly destroy a previous job.
+    """
+    location = QStandardPaths.writableLocation(
+        QStandardPaths.StandardLocation.DownloadLocation
+    )
+    if not location:
+        return str(Path.home())
+    # Qt reports paths with forward slashes on every platform; show the user
+    # their own separator. Path() reads either.
+    return str(Path(location))
+
+
 class MainWindow(QMainWindow):
     """The application window."""
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle(WINDOW_TITLE)
+        # Cosmetic, and the only thing in this window allowed to be absent: the
+        # .ico is a build product, and a source checkout that has not run
+        # tools/make_icon.py must still open (michspc.gui.icon).
+        self.setWindowIcon(application_icon())
 
         self.result: JobResult | None = None
         self.written_files: dict[str, Path] = {}
@@ -110,6 +171,7 @@ class MainWindow(QMainWindow):
         path is observable to a test without driving a modal dialog."""
 
         self._build()
+        self._update_input_hint()
         self._update_longitude_relevance()
         self._update_convert_enabled()
         self.resize(1000, 640)
@@ -134,18 +196,24 @@ class MainWindow(QMainWindow):
 
         # --- input file -------------------------------------------------
         self.input_edit = QLineEdit(box)
-        self.input_edit.setPlaceholderText(
-            r"C:\jobs\24-118\pts.csv  (PNEZD: point, northing, easting, "
-            r"elevation, description — no header row)"
-        )
+        self.input_edit.setPlaceholderText(r"C:\jobs\24-118\pts.csv")
         self.input_edit.textChanged.connect(self._update_convert_enabled)
         self.input_browse = QPushButton("...", box)
-        self.input_browse.setToolTip("Choose the PNEZD coordinate file to convert")
+        self.input_browse.setToolTip("Choose the coordinate file to convert")
         self.input_browse.clicked.connect(self._choose_input_file)
 
-        grid.addWidget(QLabel("Input PNEZD file:", box), 0, 0)
+        self.input_label = QLabel(INPUT_LABEL, box)
+        grid.addWidget(self.input_label, 0, 0)
         grid.addWidget(self.input_edit, 0, 1, 1, 3)
         grid.addWidget(self.input_browse, 0, 4)
+
+        # The format hint sits under the field rather than inside it as
+        # placeholder text, because a placeholder disappears the moment a path
+        # is typed — exactly when the user most needs to know which columns the
+        # file is about to be read as.
+        self.input_hint = QLabel(INPUT_HINT_UNCHOSEN, box)
+        self.input_hint.setTextFormat(Qt.TextFormat.PlainText)
+        grid.addWidget(self.input_hint, 1, 1, 1, 3)
 
         # --- from / to --------------------------------------------------
         self.from_zone = self._zone_combo(box)
@@ -153,15 +221,15 @@ class MainWindow(QMainWindow):
         self.input_unit = self._unit_combo(box)
         self.output_unit = self._unit_combo(box)
 
-        grid.addWidget(QLabel("From zone:", box), 1, 0)
-        grid.addWidget(self.from_zone, 1, 1)
-        grid.addWidget(QLabel("Units:", box), 1, 2)
-        grid.addWidget(self.input_unit, 1, 3)
-
-        grid.addWidget(QLabel("To zone:", box), 2, 0)
-        grid.addWidget(self.to_zone, 2, 1)
+        grid.addWidget(QLabel("From zone:", box), 2, 0)
+        grid.addWidget(self.from_zone, 2, 1)
         grid.addWidget(QLabel("Units:", box), 2, 2)
-        grid.addWidget(self.output_unit, 2, 3)
+        grid.addWidget(self.input_unit, 2, 3)
+
+        grid.addWidget(QLabel("To zone:", box), 3, 0)
+        grid.addWidget(self.to_zone, 3, 1)
+        grid.addWidget(QLabel("Units:", box), 3, 2)
+        grid.addWidget(self.output_unit, 3, 3)
 
         # --- longitude sign convention ----------------------------------
         self.longitude_label = QLabel("Longitude sign:", box)
@@ -176,8 +244,8 @@ class MainWindow(QMainWindow):
         )
         self.longitude_combo.currentIndexChanged.connect(self._update_convert_enabled)
 
-        grid.addWidget(self.longitude_label, 3, 0)
-        grid.addWidget(self.longitude_combo, 3, 1, 1, 3)
+        grid.addWidget(self.longitude_label, 4, 0)
+        grid.addWidget(self.longitude_combo, 4, 1, 1, 3)
 
         # --- elevations -------------------------------------------------
         self.elevation_in_file = QRadioButton("in file", box)
@@ -193,21 +261,26 @@ class MainWindow(QMainWindow):
             f"{geoid18.GEOID_MODEL_NAME} grid."
         )
 
-        grid.addWidget(QLabel("Elevations:", box), 4, 0)
-        grid.addWidget(self.elevation_in_file, 4, 1)
-        grid.addWidget(geoid_label, 4, 2, 1, 2)
+        grid.addWidget(QLabel("Elevations:", box), 5, 0)
+        grid.addWidget(self.elevation_in_file, 5, 1)
+        grid.addWidget(geoid_label, 5, 2, 1, 2)
 
         # --- output folder ----------------------------------------------
         self.output_edit = QLineEdit(box)
         self.output_edit.setPlaceholderText(r"C:\jobs\24-118\out")
+        # Pre-filled with Downloads, and editable (docs/DESIGN.md amendment #16
+        # note 3). Unlike the longitude convention, this default cannot produce
+        # a wrong number: a job written to the wrong folder is a job in the
+        # wrong folder, and the overwrite refusal still stands in front of it.
+        self.output_edit.setText(default_output_directory())
         self.output_edit.textChanged.connect(self._update_convert_enabled)
         self.output_browse = QPushButton("...", box)
-        self.output_browse.setToolTip("Choose where the three output files go")
+        self.output_browse.setToolTip("Choose where the output archive goes")
         self.output_browse.clicked.connect(self._choose_output_directory)
 
-        grid.addWidget(QLabel("Output folder:", box), 5, 0)
-        grid.addWidget(self.output_edit, 5, 1, 1, 3)
-        grid.addWidget(self.output_browse, 5, 4)
+        grid.addWidget(QLabel("Output folder:", box), 6, 0)
+        grid.addWidget(self.output_edit, 6, 1, 1, 3)
+        grid.addWidget(self.output_browse, 6, 4)
 
         # --- convert ----------------------------------------------------
         self.convert_button = QPushButton("Convert", box)
@@ -216,7 +289,7 @@ class MainWindow(QMainWindow):
         buttons.addStretch(1)
         buttons.addWidget(self.convert_button)
         self.convert_button.clicked.connect(self.convert)
-        grid.addLayout(buttons, 6, 0, 1, 5)
+        grid.addLayout(buttons, 7, 0, 1, 5)
 
         grid.setColumnStretch(1, 3)
         grid.setColumnStretch(3, 2)
@@ -364,8 +437,26 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _on_direction_changed(self) -> None:
+        self._update_input_hint()
         self._update_longitude_relevance()
         self._update_convert_enabled()
+
+    def input_hint_text(self) -> str:
+        """The column layout the input file will be read as, given From.
+
+        Reads the From selection only. The To selection cannot change how the
+        input is parsed, and a hint that moved with it would be describing the
+        wrong end of the job.
+        """
+        source = self.from_zone.currentData()
+        if source == GEODETIC:
+            return INPUT_HINT_GEODETIC
+        if isinstance(source, Zone):
+            return INPUT_HINT_ZONE
+        return INPUT_HINT_UNCHOSEN
+
+    def _update_input_hint(self) -> None:
+        self.input_hint.setText(self.input_hint_text())
 
     def _update_longitude_relevance(self) -> None:
         """The selector matters only when geodetic coordinates are involved."""
@@ -386,7 +477,7 @@ class MainWindow(QMainWindow):
     def _choose_input_file(self) -> None:
         chosen, _ = QFileDialog.getOpenFileName(
             self,
-            "Choose the PNEZD coordinate file",
+            "Choose the coordinate file",
             self.input_edit.text(),
             "Coordinate files (*.csv *.txt *.pts);;All files (*)",
         )
@@ -405,7 +496,7 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def convert(self) -> bool:
-        """Run the job and write its three files. True if everything landed.
+        """Run the job and write its archive. True if everything landed.
 
         Responsiveness: the window shows a wait cursor and a "Converting…"
         status line, repainted synchronously, and the controls are disabled for
@@ -475,7 +566,7 @@ class MainWindow(QMainWindow):
         return True
 
     def _write(self, result: JobResult) -> dict[str, Path] | None:
-        """Write the three outputs, asking before clobbering anything.
+        """Write the job's archive, asking before clobbering anything.
 
         ``exports.write_all`` refuses to overwrite unless told to. That refusal
         is answered by asking the user, never by passing ``overwrite=True``

@@ -30,7 +30,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from michspc.spc.frames import require_same_frame
+from michspc.spc.frames import ReferenceFrame, require_same_frame
 from michspc.spc.lambert import LambertConstants, constants_for
 from michspc.spc.lambert import forward as lambert_forward
 from michspc.spc.lambert import inverse as lambert_inverse
@@ -65,6 +65,17 @@ class PointConversion:
 
     source_zone: Zone
     target_zone: Zone
+
+    frame: ReferenceFrame
+    """The reference frame this position is expressed in.
+
+    A geodetic position is meaningless without it (docs/DESIGN.md section 4:
+    the pivot of every conversion is "a geodetic position tagged with its
+    reference frame"). Carried on the record so the job record can state which
+    frame the numbers were interpreted as, rather than leaving a reader to
+    assume NAD 83 - the assumption that is a one-to-two metre error when it is
+    wrong.
+    """
 
     source_northing: float
     source_easting: float
@@ -207,6 +218,7 @@ def convert_point(
     return PointConversion(
         source_zone=source_zone,
         target_zone=target_zone,
+        frame=source_zone.frame,
         source_northing=northing,
         source_easting=easting,
         latitude=latitude,
@@ -224,6 +236,7 @@ def convert_point(
 def project_point(
     latitude: float,
     longitude: float,
+    source_frame: ReferenceFrame,
     target_zone: Zone,
     context: str = "point",
     target_constants: LambertConstants | None = None,
@@ -232,7 +245,33 @@ def project_point(
 
     The geodetic-input case. No inverse step is performed, so the source zone is
     the target zone.
+
+    ``source_frame`` is the reference frame the latitude and longitude are
+    expressed in, and it is **required with no default**. A latitude and
+    longitude alone do not say which frame they belong to, and NAD 83 and
+    NATRF2022 differ by one to two metres over North America; projecting a
+    NATRF2022 position with the SPCS 83 constants yields a coordinate that looks
+    entirely ordinary and is wrong by more than the width of a road. The
+    equivalent zone-to-zone refusal has existed since the beginning
+    (``convert_point``); this closes the geodetic-input door on the same rule.
+    See docs/DESIGN.md sections 4 and 6, and amendment #11 finding 1.
+
+    Refuses with ``FrameMismatchError`` if the position's frame is not the
+    target zone's frame.
     """
+    if not isinstance(source_frame, ReferenceFrame):
+        raise TypeError(
+            f"project_point needs the reference frame the geodetic position is "
+            f"expressed in, as its third argument; got "
+            f"{type(source_frame).__name__} ({source_frame!r}). A latitude and "
+            f"longitude do not carry their own frame, and the frame decides "
+            f"whether the resulting State Plane coordinate is right or is one "
+            f"to two metres out. Pass michspc.spc.frames.NAD83_2011 for an "
+            f"NAD 83 position."
+        )
+
+    require_same_frame(source_frame, target_zone.frame)
+
     (
         northing,
         easting,
@@ -244,6 +283,7 @@ def project_point(
     return PointConversion(
         source_zone=target_zone,
         target_zone=target_zone,
+        frame=source_frame,
         source_northing=northing,
         source_easting=easting,
         latitude=latitude,

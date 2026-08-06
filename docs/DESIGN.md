@@ -222,6 +222,63 @@ and 0.18 mm easting, so it is a sound supplemental reference. Its defects:
 Defects 1, 4 and 5 belong to the two-point azimuth/distance feature, which is
 deferred (§10). They are recorded here so the fixes travel with the feature.
 
+### #18 — 2026-08-06 — Five file-layer defects fixed; one brief of mine was wrong
+
+All five defects the WP5 test subagent found are fixed and pinned with their own
+counterexamples, each falsified. Two entries are worth keeping for the record.
+
+**My brief was wrong about `_parse_number`'s `.replace(",", "")`.** I told the
+subagent it was dead code. It is dead for *unquoted* fields — `csv.reader` has
+already eaten those commas as delimiters — but **live for quoted ones**, and
+`'101,"13,221,442.048",…'` was an existing passing test. The subagent checked
+rather than complied, and said so. It kept the replace and *validated* it: the
+text must match a genuine grouped-number pattern first, so a quoted `"1,2"` is
+now refused instead of silently becoming `12`. That is a better outcome than
+either the original code or my instruction.
+
+**The thousands-separator refusal fires only on genuine ambiguity.** A row is
+refused when it has two well-formed readings — the split signature (a 1–3 digit
+field followed by an exactly-3-digit field) *and* a description beginning with a
+bare number, which is the structural consequence of a stray comma shifting a
+numeric token past the elevation column. Independently probed by the lead
+against fourteen row shapes: the counterexample, a quoted `"1,2"`, `nan` and
+`inf` are refused; ordinary rows, quoted grouping, comma-bearing descriptions, a
+description that *is* a number, blank elevations, negative eastings and metric
+coordinates all still parse. No over-rejection.
+
+**Dead carry guards in `angle_dms` deleted**, with the live mechanism documented
+in their place: rounding happens once on the total before either `divmod`, and
+`divmod`'s remainder is strictly below its divisor, so neither boundary can be
+crossed after the split. The subagent proved the claim itself over 88,612,997
+angles rather than accepting mine, and noted honestly that re-adding a dead
+guard cannot fail a test — so it falsified against the rounding order instead.
+
+Also fixed: `build_report` now iterates the warnings actually raised rather than
+the heading table, so a future `WarningCode` without a heading is printed rather
+than counted-and-hidden; and `pnezd.read`'s cp1252 fallback catches
+`UnicodeDecodeError` as well as `OSError`, so an undecodable byte produces a
+`PnezdError` naming the byte and its position rather than a raw traceback.
+
+### #19 — 2026-08-06 — Interim gate finding #1 fully closed: the record states the frame
+
+The core has refused a cross-frame geodetic input since #11's fix landed, but
+the job record did not say which frame it had read the file as — so half the
+finding was still open. A geodetic input file carries no frame in its own
+columns, and reading NATRF2022 positions as NAD 83 is a one-to-two metre error
+that looks entirely ordinary on the page.
+
+`report.py` now prints, for geodetic-input jobs only, the frame the latitudes
+and longitudes were interpreted as. Zone-to-zone jobs do not get the line: their
+frame comes from the zones, which the COORDINATE SYSTEMS section already states
+per zone, and an input-frame line there would imply the user chose something
+they never chose.
+
+Verified end to end, which also closed the WP6 subagent's reported gap that no
+geodetic conversion was tested at all: 42.73250000 N, −84.55550000 W into
+Michigan South gives 449,212.689 / 13,072,628.343 international feet, which is
+the interim reviewer's own metre figures (136,920.027586723 / 3,984,537.119005890)
+divided by 0.3048 exactly. The pin was falsified.
+
 ### #17 — 2026-08-05 — Owner resolves the two open questions from #15 and #16
 
 **No loose PNEZD file.** The ZIP is the only deliverable. A job writes exactly
@@ -442,12 +499,12 @@ Appendix A and C transcription against the committed PDF.
 
 | # | Severity | Finding | Status |
 |---|---|---|---|
-| 1 | CRITICAL | Geodetic input carries no reference frame, so a NATRF2022 position is silently projected as NAD 83 | **Open** |
+| 1 | CRITICAL | Geodetic input carries no reference frame, so a NATRF2022 position is silently projected as NAD 83 | **Fixed** |
 | 2 | CRITICAL | Longitude domain unvalidated: 275.4445 (the 0–360 form of −84.5555) converts silently, 2.2 M m out of place | **Fixed** |
 | 3 | HIGH | A non-finite input is downgraded to a warning by the out-of-band branch and returns NaN coordinates | **Fixed** at the engine; the policy branch is deleted by #12 |
-| 4 | HIGH | `to_geodetic` re-projects the *polynomial* result, so a defect isolated to the *rigorous* inverse is invisible — an injected 0.01° error reported 0.032 mm agreement | **Open**; dissolved by #12 |
+| 4 | HIGH | `to_geodetic` re-projects the *polynomial* result, so a defect isolated to the *rigorous* inverse is invisible — an injected 0.01° error reported 0.032 mm agreement | **Dissolved** by #14 |
 | 5 | CRITICAL | Caller-supplied `LambertConstants` were not bound to their zone: pairing MI South's constants with MI North's identity gave a coordinate **4,231 km** wrong, warnings only | **Fixed** |
-| 6 | HIGH | The production geoid path never authenticates the grid, and a header with row/column counts swapped (1081×1141 → 1141×1081) preserves the payload length and is accepted, giving a 5.16 m geoid error | **Open** |
+| 6 | HIGH | The production geoid path never authenticates the grid, and a header with row/column counts swapped (1081×1141 → 1141×1081) preserves the payload length and is accepted, giving a 5.16 m geoid error | **Fixed** |
 
 Fixes landed so far:
 
@@ -461,6 +518,43 @@ Fixes landed so far:
   `constants_for` is now `lru_cache`d, so callers get the per-file efficiency
   for free and have no way to mismatch. `LambertConstants.zone_code` records
   provenance so any future re-introduction of the seam is checkable.
+- **#1** — `project_point` takes a **required** `source_frame` with no default
+  and calls `require_same_frame` against the target zone's frame, so a
+  cross-frame geodetic input is refused exactly as a cross-frame zone-to-zone
+  conversion already was. A `TypeError` guard rejects a non-frame argument
+  before that call; the subagent found this was not decoration, because a `Zone`
+  duck-types straight through `require_same_frame` (both carry `.code`) and
+  produced the nonsense refusal *"Cannot convert from 2113 to NAD83(2011)"*.
+  `PointConversion` now carries the frame, so the record itself is tagged as
+  §4 requires. `JobSettings.geodetic_frame` defaults to NAD83(2011) at the
+  **application** layer only — every registry zone is NAD83(2011) and NATRF2022
+  has neither zones nor a transformation, so the only route to a mismatch today
+  is a caller setting the field deliberately, and the core then refuses it.
+- **#6** — `default_grid()` now routes through `load_shipped_grid()`, which
+  verifies the SHA-256 **and** the tile's canonical geometry. Independently
+  re-derived by the session lead rather than accepted: the row/column swap
+  reproduces the reviewer's figures exactly — −27.927000063 m against a true
+  −33.084999085 m, a **5.158 m** error — and the geometry check was confirmed
+  load-bearing *on its own*, refusing the swap with the checksum disabled, so it
+  is not merely masked by the hash. Generic header guards (non-positive
+  spacings, a grid too small for the 3×3 interpolation stencil) were likewise
+  confirmed to refuse independently. Hashing costs 2.1 ms and a cold
+  `default_grid()` 26.4 ms, once per process — measured by the lead, not
+  material.
+
+  A geometry **tolerance** of 1e-9° is a disclosed convention, not a citation:
+  the shipped header stores one arcminute as `0.016666666667`, about 3.3e-13°
+  from the double nearest 1/60, so an exact comparison would reject the genuine
+  NGS file. NGS publishes no tolerance for reading back its own header.
+
+  The payload is also scanned for non-finite values. Strictly redundant with the
+  SHA-256 on the shipped tile, but `load_grid` accepts any path, and a NaN cell
+  is the worst kind of failure: neither an exception nor a number, it propagates
+  through interpolation into `h = H + N` and out into the elevation and combined
+  factors, landing in the audit file beside real values. 11 ms against the 22 ms
+  unpack already being done. A plausibility *range* check was deliberately not
+  added — a "no data" sentinel such as 9999 is finite anyway, and a range would
+  make the reader useless for a non-CONUS tile.
 
 ### #10 — 2026-08-05 — Interim gate finding #7 REJECTED, with evidence
 

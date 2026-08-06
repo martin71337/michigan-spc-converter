@@ -31,6 +31,7 @@ from michspc.spc.convert import (
     project_point,
 )
 from michspc.spc.factors import Factors, factors_at
+from michspc.spc.frames import NAD83_2011, ReferenceFrame
 from michspc.spc.lambert import constants_for
 from michspc.spc.units import LinearUnit
 from michspc.spc.zones import Zone
@@ -54,8 +55,15 @@ class LongitudeConvention(Enum):
     it every run (docs/DESIGN.md section 7).
     """
 
-    NEGATIVE_WEST = "negative west (-84.37), as used by OPUS, NCAT, GPS and GIS"
-    POSITIVE_WEST = "positive west (84.37), as used by NOAA Manual NOS NGS 5"
+    # The sign and the worked example are what disambiguate; the attribution
+    # tail ("as used by OPUS, NCAT, GPS and GIS" / "as used by NOAA Manual NOS
+    # NGS 5") was dropped by the owner (docs/DESIGN.md amendments #16 note 2 and
+    # #17). These strings are BOTH the dropdown's text and the job record's
+    # "Longitude" line, and the owner decided the shorter wording for both: the
+    # record states the conversion direction and each zone's defining constants
+    # immediately around that line, so the convention is not left contextless.
+    NEGATIVE_WEST = "negative west (-84.37)"
+    POSITIVE_WEST = "positive west (84.37)"
 
     def to_signed(self, longitude: float) -> float:
         return -longitude if self is LongitudeConvention.POSITIVE_WEST else longitude
@@ -80,6 +88,27 @@ class JobSettings:
 
     longitude_convention: LongitudeConvention = LongitudeConvention.NEGATIVE_WEST
     apply_geoid: bool = True
+
+    geodetic_frame: ReferenceFrame = NAD83_2011
+    """The reference frame a geodetic INPUT file's latitudes and longitudes are
+    read as. Ignored when the input is State Plane, because a zone carries its
+    own frame.
+
+    Unlike the longitude convention this one does carry a default, and the
+    reason is that the two risks are not comparable. The longitude sign is a
+    real coin-flip - the manual uses one convention, every GPS and GIS the other
+    - and getting it wrong throws a Michigan point about 340 miles, so
+    docs/DESIGN.md section 7 forbids a default there. The frame is not a
+    coin-flip today: every zone in the registry is NAD83(2011), NATRF2022 has no
+    zones and no transformation (docs/DESIGN.md section 10), so the only way to
+    reach a mismatch is for a caller to set this field to NATRF2022 on purpose -
+    and ``project_point`` then refuses it, which is finding 1's whole point.
+
+    It is a field on the settings rather than a constant inside the loop
+    precisely so it is visible: the job record states the frame the input was
+    interpreted as, because a record that does not say which frame it assumed is
+    not a record.
+    """
 
 
 @dataclass(frozen=True)
@@ -218,7 +247,12 @@ def _convert_row(
         latitude = row.northing
         longitude = settings.longitude_convention.to_signed(row.easting)
         conversion = project_point(
-            latitude, longitude, settings.target_zone, context, target_constants
+            latitude,
+            longitude,
+            settings.geodetic_frame,
+            settings.target_zone,
+            context,
+            target_constants,
         )
         output_unit = settings.output_unit
         output_northing = output_unit.from_meters(conversion.target_northing)

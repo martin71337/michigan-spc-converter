@@ -40,6 +40,7 @@ pinned (docs/DESIGN.md section 3).
 from __future__ import annotations
 
 import hashlib
+import math
 import struct
 from dataclasses import dataclass
 from functools import lru_cache
@@ -61,9 +62,76 @@ Downloaded 2026-08-05, 4,933,728 bytes.
 
 GEOID_MODEL_NAME = "GEOID18"
 
+# The 3x3 Lagrange neighbourhood height_biquadratic anchors needs three rows and
+# three columns; below that its clamping arithmetic (``row_count - 3``) goes
+# negative and it would index from the wrong end of the array rather than fail.
+_MINIMUM_INTERPOLATION_SPAN = 3
+
 
 class GeoidError(Exception):
     """The geoid grid could not be read, or does not cover the point asked for."""
+
+
+@dataclass(frozen=True)
+class TileGeometry:
+    """The geometry a particular published tile is known to have.
+
+    Separate from ``GeoidGrid`` because this is an *expectation* stated by the
+    program, checked against what a file claims - not something read out of the
+    file. Kept as data so ``load_grid`` stays usable for a different tile: a
+    caller who has another NGS grid passes that grid's geometry, or none.
+    """
+
+    south_latitude: float
+    west_longitude: float
+    """Degrees EAST, 0-360, as the file stores it."""
+
+    latitude_spacing: float
+    longitude_spacing: float
+    row_count: int
+    column_count: int
+    name: str
+
+
+GEOID18_U3_GEOMETRY = TileGeometry(
+    south_latitude=40.0,
+    west_longitude=264.0,  # 96 W in the file's 0-360 east convention
+    latitude_spacing=1.0 / 60.0,  # one arcminute
+    longitude_spacing=1.0 / 60.0,
+    row_count=1081,
+    column_count=1141,
+    name="GEOID18 CONUS grid #3 (g2018u3)",
+)
+"""The geometry of the tile this program ships.
+
+Source: the GEOID18 readme's grid table, and the file's own name - u3 is the
+third CONUS grid, 40-58 N by 96-77 W at one arcminute. Recorded independently in
+docs/DESIGN.md amendment #8. Checkable by hand from the counts alone:
+
+    north = 40.0 + (1081 - 1) / 60 = 40 + 18 = 58 N
+    east  = 264.0 + (1141 - 1) / 60 = 264 + 19 = 283 E = 77 W
+
+**Why this exists.** Row and column counts appear in the header only as two
+integers whose product must match the payload length, and 1081 x 1141 has the
+same product as 1141 x 1081. Swapping them therefore passes every structural
+check while re-shaping the grid: the interim review gate measured the result at
+43.0 N, 84.5 W as -27.927 m against a true -33.085 m, a 5.16 m error that looks
+like a perfectly ordinary Michigan geoid height (docs/DESIGN.md amendment #11,
+finding 6). Only knowing what the shipped tile's geometry actually *is* catches
+that.
+"""
+
+# How far a header value may sit from the canonical geometry above.
+#
+# Not zero: the shipped file stores the one-arcminute spacing as the decimal
+# literals 0.016666666667 and 0.01666666666699, which differ from the double
+# nearest 1/60 by about 3.3e-13 degrees. An exact comparison would reject the
+# genuine, checksum-verified NGS file. 1e-9 degrees is about 0.11 mm on the
+# ground - four orders of magnitude tighter than the smallest header confusion
+# that could plausibly occur (1/60 against 1/30, or 40 N against 41 N), so the
+# tolerance admits the real file and nothing else. Disclosed convention: NGS
+# publishes no tolerance for reading back its own header.
+_GEOMETRY_TOLERANCE_DEG = 1e-9
 
 
 @dataclass(frozen=True)
@@ -189,12 +257,150 @@ def _to_signed_longitude(east: float) -> float:
     return east - 360.0 if east > 180.0 else east
 
 
-def load_grid(path: Path | None = None, verify_checksum: bool = False) -> GeoidGrid:
+def _require_readable_header(
+    path: Path,
+    south: float,
+    west: float,
+    dlat: float,
+    dlon: float,
+    rows: int,
+    columns: int,
+) -> None:
+    """Refuse a header that no real geoid grid could carry.
+
+    These are the checks that hold for *any* NGS tile, so they live here rather
+    than in the canonical-geometry check. Everything here would otherwise reach
+    the interpolators, which divide by the spacings and index by the counts.
+    """
+    for label, spacing in (("DLAT", dlat), ("DLON", dlon)):
+        if not math.isfinite(spacing) or spacing <= 0.0:
+            raise GeoidError(
+                f"{path} declares {label}={spacing!r}. A grid spacing must be a "
+                f"positive, finite number of degrees; the interpolators divide "
+                f"by it, so a zero, negative or non-finite spacing would place "
+                f"every lookup in the wrong cell or produce a non-finite geoid "
+                f"height. The file is corrupt or is not a geoid grid."
+            )
+
+    for label, count in (("NLAT", rows), ("NLON", columns)):
+        if count < _MINIMUM_INTERPOLATION_SPAN:
+            raise GeoidError(
+                f"{path} declares {label}={count}. This reader interpolates over "
+                f"a {_MINIMUM_INTERPOLATION_SPAN}x{_MINIMUM_INTERPOLATION_SPAN} "
+                f"neighbourhood, so a grid narrower than "
+                f"{_MINIMUM_INTERPOLATION_SPAN} in either direction cannot be "
+                f"interpolated in at all and would be read from the wrong end of "
+                f"the array. No geoid height can be taken from it."
+            )
+
+    if not math.isfinite(south) or not (-90.0 <= south <= 90.0):
+        raise GeoidError(
+            f"{path} declares SLAT={south!r}, which is not a latitude. The file "
+            f"is corrupt, or is stored in the big-endian (Unix) byte order this "
+            f"reader does not handle."
+        )
+
+    if not math.isfinite(west) or not (0.0 <= west <= 360.0):
+        raise GeoidError(
+            f"{path} declares WLON={west!r}. This format stores the westernmost "
+            f"longitude in degrees EAST on 0-360, so a value outside that range "
+            f"means the file is corrupt or is not a geoid grid."
+        )
+
+
+def _require_canonical_geometry(
+    path: Path,
+    expected: TileGeometry,
+    south: float,
+    west: float,
+    dlat: float,
+    dlon: float,
+    rows: int,
+    columns: int,
+) -> None:
+    """Refuse a file whose header does not describe the tile it claims to be.
+
+    The payload-length check cannot do this: it compares only ``rows * columns``
+    against the byte count, and a transposed header preserves that product.
+    """
+    mismatches: list[str] = []
+
+    for label, found, want in (
+        ("SLAT (southernmost latitude)", south, expected.south_latitude),
+        ("WLON (westernmost longitude, east of Greenwich)", west, expected.west_longitude),
+        ("DLAT (north-south spacing)", dlat, expected.latitude_spacing),
+        ("DLON (east-west spacing)", dlon, expected.longitude_spacing),
+    ):
+        if not math.isfinite(found) or abs(found - want) > _GEOMETRY_TOLERANCE_DEG:
+            mismatches.append(f"  {label}: expected {want!r}, found {found!r}")
+
+    for label, found, want in (
+        ("NLAT (row count)", rows, expected.row_count),
+        ("NLON (column count)", columns, expected.column_count),
+    ):
+        if found != want:
+            mismatches.append(f"  {label}: expected {want}, found {found}")
+
+    if not mismatches:
+        return
+
+    raise GeoidError(
+        f"{path} does not have the geometry of {expected.name}, the tile this "
+        f"program ships:\n" + "\n".join(mismatches) + "\n"
+        f"A header that misdescribes the grid does not fail: it re-shapes it, "
+        f"and every geoid height then comes from the wrong cell. Transposing "
+        f"the row and column counts alone moves a Michigan geoid height by over "
+        f"five metres while leaving the file the right length, which is why the "
+        f"geometry is checked and not just the size. Refused rather than "
+        f"returning heights that would look ordinary and be wrong."
+    )
+
+
+def _require_finite_payload(path: Path, values: tuple[float, ...]) -> None:
+    """Refuse a payload carrying NaN or an infinity.
+
+    A non-finite cell would not stop anything by itself: the biquadratic
+    interpolator would return NaN, ``h = H + N`` would be NaN, and the elevation
+    and combined factors would be NaN in the audit file - a value that is not a
+    refusal and not a number, printed beside real ones.
+
+    On the shipped tile this is redundant with the SHA-256, which authenticates
+    every byte. It is here because ``load_grid`` accepts any path, and because
+    it is cheap: measured on this machine over the 1,233,421-cell tile, the scan
+    below takes about 11 ms once per process, against about 22 ms to unpack the
+    same array - work this loader already did.
+
+    The whole array is tested first, in one C-level pass; the Python loop that
+    locates the offending cell for the message runs only when there is one.
+    """
+    if all(map(math.isfinite, values)):
+        return
+
+    for index, value in enumerate(values):
+        if not math.isfinite(value):
+            raise GeoidError(
+                f"{path} contains a non-finite geoid height ({value!r}) at cell "
+                f"index {index}. Every cell of a geoid grid is a real height in "
+                f"metres; a NaN or infinity would propagate silently into the "
+                f"ellipsoid height and out into the elevation and combined "
+                f"factors, so the file is refused rather than read."
+            )
+
+
+def load_grid(
+    path: Path | None = None,
+    verify_checksum: bool = False,
+    expect_geometry: TileGeometry | None = None,
+) -> GeoidGrid:
     """Read a GEOID18 binary tile.
 
-    ``verify_checksum`` re-hashes the whole 4.7 MB file; it is off by default so
-    ordinary use does not pay for it on every load, and the pin is checked by
-    the test suite and by the frozen bundle's self-test instead.
+    ``verify_checksum`` re-hashes the whole 4.7 MB file against the pinned
+    SHA-256 of the shipped tile. ``expect_geometry`` additionally requires the
+    header to describe a named, known tile; without it only the format-level
+    checks that hold for any NGS grid are applied, so this function stays usable
+    for a different tile.
+
+    The production path passes both. See ``load_shipped_grid``.
     """
     path = path or GEOID18_TILE
 
@@ -234,6 +440,13 @@ def load_grid(path: Path | None = None, verify_checksum: bool = False) -> GeoidG
             f"big-endian (Unix) grid will not read correctly here."
         )
 
+    _require_readable_header(path, south, west, dlat, dlon, rows, columns)
+
+    if expect_geometry is not None:
+        _require_canonical_geometry(
+            path, expect_geometry, south, west, dlat, dlon, rows, columns
+        )
+
     expected = rows * columns * 4
     payload = raw[_HEADER_BYTES:]
     if len(payload) != expected:
@@ -244,6 +457,7 @@ def load_grid(path: Path | None = None, verify_checksum: bool = False) -> GeoidG
         )
 
     values = struct.unpack(f"<{rows * columns}f", payload)
+    _require_finite_payload(path, values)
 
     return GeoidGrid(
         path=path,
@@ -257,14 +471,48 @@ def load_grid(path: Path | None = None, verify_checksum: bool = False) -> GeoidG
     )
 
 
+def load_shipped_grid(path: Path | None = None) -> GeoidGrid:
+    """Load the tile this program ships, fully authenticated.
+
+    This is the production policy in one place: the SHA-256 must match the
+    pinned digest of the unmodified NGS file, **and** the header must describe
+    the geometry that tile is known to have. Two independent gates, because they
+    fail differently - the checksum catches any altered byte, the geometry check
+    catches a file that is internally consistent and still describes the wrong
+    grid.
+
+    Takes a path only so the checks themselves can be exercised against a
+    deliberately tampered copy in a test. Nothing in the program passes one.
+    """
+    return load_grid(
+        path or GEOID18_TILE,
+        verify_checksum=True,
+        expect_geometry=GEOID18_U3_GEOMETRY,
+    )
+
+
 @lru_cache(maxsize=1)
 def default_grid() -> GeoidGrid:
     """The shipped tile, loaded once per process.
 
     A file of several thousand points would otherwise re-read and re-unpack
     4.7 MB per row.
+
+    **Authenticated.** This is the path production actually takes, so it takes
+    the checked one: it hashes the file and validates the header geometry
+    (``load_shipped_grid``). The gate previously ran only in the test suite and
+    the frozen bundle's self-test, which left the running program trusting
+    whatever bytes were on disk - the interim review gate's finding 6
+    (docs/DESIGN.md amendment #11).
+
+    The cost is paid once per process and measured, not assumed: reading and
+    hashing the 4,933,728-byte file takes about 3.5 ms, against about 22 ms to
+    unpack the same payload into floats - work this loader already did - and
+    about 32 ms for the whole cold load. The check is roughly a tenth of the
+    load it protects, and the load happens once no matter how many points a
+    file holds.
     """
-    return load_grid()
+    return load_shipped_grid()
 
 
 def geoid_height(latitude: float, longitude: float, grid: GeoidGrid | None = None) -> float:

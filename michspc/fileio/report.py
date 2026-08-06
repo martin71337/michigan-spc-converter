@@ -32,6 +32,48 @@ _WARNING_HEADINGS = {
     ),
     WarningCode.OUTSIDE_ZONE_EXTENT: "POINTS OUTSIDE THE TARGET ZONE'S AREA",
 }
+"""Readable headings for the warning kinds this program currently raises.
+
+Presentation only. It does NOT decide which warnings are printed - see
+``_warning_codes_present``. A heading missing from this table changes how a
+warning is introduced, never whether the surveyor is shown it.
+"""
+
+
+def _warning_codes_present(result: JobResult) -> list:
+    """Every warning code this job actually raised, in the order to print.
+
+    Driven by the warnings, not by ``_WARNING_HEADINGS``. Iterating the heading
+    table instead would mean a warning kind added later, before anyone wrote it
+    a heading, was counted in the "N warning(s)" total at the top of the section
+    and then never printed underneath it - the report telling the surveyor that
+    something is wrong and declining to say what. Latent rather than live today,
+    because both current codes have headings; structural, because the next code
+    added would activate it silently.
+
+    Known kinds keep their declared order so the section reads the same way from
+    job to job; anything unheaded follows, in the order it first appeared.
+    """
+    raised = []
+    for _point_id, warning in result.warnings:
+        if warning.code not in raised:
+            raised.append(warning.code)
+
+    known = [code for code in _WARNING_HEADINGS if code in raised]
+    return known + [code for code in raised if code not in _WARNING_HEADINGS]
+
+
+def _warning_heading(code) -> str:
+    """A heading for a code, falling back to the code itself.
+
+    The fallback is deliberately the raw code text rather than something
+    generic like "OTHER": a surveyor reading an unfamiliar heading can search
+    for it, and it is honest about being unpolished.
+    """
+    registered = _WARNING_HEADINGS.get(code)
+    if registered is not None:
+        return registered
+    return str(getattr(code, "value", code)).replace("-", " ").replace("_", " ").upper()
 
 
 def _zone_block(zone, label: str) -> list[str]:
@@ -98,6 +140,19 @@ def build_report(result: JobResult) -> str:
     add(f"                   {settings.output_unit.citation}")
     if settings.direction is not Direction.ZONE_TO_ZONE:
         add(f"Longitude          {settings.longitude_convention.value}")
+    if settings.direction is Direction.GEODETIC_TO_ZONE:
+        # The one thing a geodetic input file cannot carry in its own columns.
+        # A latitude and longitude mean nothing without the frame they are
+        # expressed in, and reading NATRF2022 positions as NAD 83 is a one-to-
+        # two metre error that looks entirely ordinary (docs/DESIGN.md section
+        # 6). The core refuses a mismatch; this states what was assumed, so the
+        # record answers the question rather than leaving a reader to guess.
+        add(
+            f"Reference frame    {settings.geodetic_frame.code} - "
+            f"{settings.geodetic_frame.name}"
+        )
+        add("                   The latitudes and longitudes in the input file")
+        add("                   were read as positions in this frame.")
     add("")
     add("Precision written:")
     add(f"  Coordinates and elevations  {settings.output_unit.decimals} decimal places")
@@ -238,12 +293,12 @@ def build_report(result: JobResult) -> str:
         add("A warning is not an error. Every point below was converted, and the")
         add("coordinate written for it is correct. A warning means something about")
         add("the job is worth a second look.")
-        for code, heading in _WARNING_HEADINGS.items():
+        for code in _warning_codes_present(result):
             group = result.warnings_of(code)
             if not group:
                 continue
             add("")
-            add(f"  {heading} ({len(group)} point(s))")
+            add(f"  {_warning_heading(code)} ({len(group)} point(s))")
             add("")
             for point_id, warning in group[:20]:
                 add(f"    {warning.message}")

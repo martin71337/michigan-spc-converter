@@ -242,10 +242,10 @@ def test_a_missing_grid_is_refused_with_a_useful_message(tmp_path):
 
 
 def test_checksum_verification_catches_a_tampered_grid(tmp_path):
-    """verify_checksum is off by default; prove it works when asked for.
+    """``verify_checksum`` is opt-in on ``load_grid``; prove it works.
 
-    The frozen bundle's self-test turns it on, since that is the one place the
-    ordinary suite cannot reach.
+    The production path (``load_shipped_grid`` / ``default_grid``) turns it on
+    unconditionally - see the finding-6 tests below.
     """
     original = bytearray(geoid18.GEOID18_TILE.read_bytes())
     original[100] ^= 0xFF  # flip a byte in the payload
@@ -258,6 +258,217 @@ def test_checksum_verification_catches_a_tampered_grid(tmp_path):
 
     with pytest.raises(geoid18.GeoidError, match="does not match"):
         geoid18.load_grid(tampered, verify_checksum=True)
+
+
+# --------------------------------------------------------------------------
+# Interim review gate finding 6 (docs/DESIGN.md amendment #11): the production
+# path must authenticate the grid, and a header that preserves the payload
+# length while re-shaping the grid must be refused.
+# --------------------------------------------------------------------------
+
+
+def _tile_with_header(
+    tmp_path,
+    name: str,
+    south: float = 40.0,
+    west: float = 264.0,
+    dlat: float = 1 / 60,
+    dlon: float = 1 / 60,
+    rows: int = 1081,
+    columns: int = 1141,
+    ikind: int = 1,
+):
+    """The shipped tile's payload behind a header of our choosing.
+
+    Built in tmp_path. ``data/g2018u3.bin`` is never modified; it is the NGS
+    original and its hash is pinned.
+    """
+    payload = geoid18.GEOID18_TILE.read_bytes()[44:]
+    path = tmp_path / name
+    path.write_bytes(
+        struct.pack("<4d3i", south, west, dlat, dlon, rows, columns, ikind) + payload
+    )
+    return path
+
+
+def test_a_row_column_swap_survives_every_structural_check(tmp_path):
+    """Anti-vacuousness for the geometry check below: the defect is real.
+
+    The reviewer's counterexample. 1081 x 1141 and 1141 x 1081 have the same
+    product, so the payload-length check - the only thing that ever looked at
+    the counts - cannot tell them apart:
+
+        1081 * 1141 = 1,233,421 cells = 4,933,684 bytes
+        1141 * 1081 = 1,233,421 cells = 4,933,684 bytes
+
+    Without the geometry check the file loads, and every lookup then comes from
+    the wrong cell. At 43.0 N, 84.5 W the interim review gate measured
+    -27.927000063 m against the true -33.084999085 m: a 5.158 m error that looks
+    like an entirely ordinary Michigan geoid height. (Both figures are the
+    reviewer's measurements, quoted as the record of the defect.)
+    """
+    swapped = _tile_with_header(tmp_path, "swapped.bin", rows=1141, columns=1081)
+
+    # No expectation passed: this is the reader as any other tile would use it.
+    grid_swapped = geoid18.load_grid(swapped)
+    wrong = grid_swapped.height_biquadratic(43.0, -84.5)
+
+    # 5 mm of slack on a 5.158 m discrepancy - loose enough not to pin the
+    # reviewer's last digit, tight enough that only the transposed reading
+    # produces it.
+    assert wrong == pytest.approx(-27.927, abs=0.005)
+
+    truth = geoid18.load_grid().height_biquadratic(43.0, -84.5)
+    assert truth == pytest.approx(-33.085, abs=0.005)
+    assert abs(truth - wrong) == pytest.approx(5.158, abs=0.01)
+
+
+def test_a_row_column_swap_is_refused_when_the_tile_is_the_shipped_one(tmp_path):
+    """Finding 6(b), pinned with the reviewer's own counterexample.
+
+    Same file as the test above. Declaring which tile it is meant to be is what
+    catches it, because the geometry is the only thing the transposition
+    changes that anything can check.
+    """
+    swapped = _tile_with_header(tmp_path, "swapped.bin", rows=1141, columns=1081)
+
+    with pytest.raises(geoid18.GeoidError) as caught:
+        geoid18.load_grid(swapped, expect_geometry=geoid18.GEOID18_U3_GEOMETRY)
+
+    message = str(caught.value)
+    # Names what is wrong, with both numbers, and what it means for the output.
+    assert "NLAT (row count): expected 1081, found 1141" in message
+    assert "NLON (column count): expected 1141, found 1081" in message
+    assert "wrong cell" in message
+
+    # And the production entry point refuses it too, by the same rule.
+    with pytest.raises(geoid18.GeoidError):
+        geoid18.load_shipped_grid(swapped)
+
+
+def test_the_production_path_authenticates_the_grid(tmp_path):
+    """Finding 6(a): ``default_grid`` is what production calls, so it checks.
+
+    Previously ``load_grid``'s ``verify_checksum`` defaulted to False and
+    ``default_grid`` took that default, so the pin was enforced only by the test
+    suite and the frozen bundle's self-test - never by the running program.
+
+    Exercised through ``load_shipped_grid``, which is the policy ``default_grid``
+    applies; ``default_grid`` itself is lru_cached on the shipped path and
+    cannot be pointed at a test file.
+    """
+    original = bytearray(geoid18.GEOID18_TILE.read_bytes())
+    original[100] ^= 0xFF  # flip a byte in the payload, leaving the header valid
+    tampered = tmp_path / "tampered.bin"
+    tampered.write_bytes(bytes(original))
+
+    # Same file the unchecked reader accepted in
+    # test_checksum_verification_catches_a_tampered_grid.
+    geoid18.load_grid(tampered)
+
+    with pytest.raises(geoid18.GeoidError, match="does not match"):
+        geoid18.load_shipped_grid(tampered)
+
+    # The real file passes both gates, so the check is not simply refusing
+    # everything.
+    assert geoid18.load_shipped_grid().row_count == 1081
+    assert geoid18.default_grid().column_count == 1141
+
+
+def test_the_canonical_geometry_is_the_one_the_readme_documents(grid):
+    """The expectation must match the file, or it is just a second guess.
+
+    GEOID18 CONUS grid #3: 40-58 N, 96-77 W, one arcminute, 1081 x 1141.
+    Hand check of the extents from the counts alone:
+        north = 40.0 + (1081 - 1) / 60 = 40 + 18 = 58 N
+        east  = 264.0 + (1141 - 1) / 60 = 264 + 19 = 283 E = 283 - 360 = 77 W
+    """
+    expected = geoid18.GEOID18_U3_GEOMETRY
+
+    assert expected.row_count == 1081
+    assert expected.column_count == 1141
+    assert expected.south_latitude + (expected.row_count - 1) * expected.latitude_spacing == pytest.approx(58.0)
+    assert expected.west_longitude + (expected.column_count - 1) * expected.longitude_spacing == pytest.approx(283.0)
+
+    # And it describes the file that actually ships.
+    assert grid.row_count == expected.row_count
+    assert grid.column_count == expected.column_count
+
+
+def test_the_geometry_tolerance_admits_the_real_file_and_little_else(tmp_path):
+    """The spacing cannot be compared exactly, so the slack must be justified.
+
+    The shipped header stores one arcminute as the decimal literals
+    0.016666666667 and 0.01666666666699, which differ from the double nearest
+    1/60 by about 3.3e-13 degrees - so an exact test would reject the genuine
+    NGS file. The tolerance is 1e-9 degrees, roughly 0.11 mm on the ground.
+
+    Both halves are checked: the real spacings pass, and a spacing wrong by
+    1e-7 degrees - still only about 1 cm, far smaller than any plausible header
+    confusion - is refused.
+    """
+    # The real file, with the canonical expectation applied: accepted.
+    geoid18.load_shipped_grid()
+
+    nudged = _tile_with_header(tmp_path, "nudged.bin", dlat=1 / 60 + 1e-7)
+    with pytest.raises(geoid18.GeoidError, match="DLAT"):
+        geoid18.load_grid(nudged, expect_geometry=geoid18.GEOID18_U3_GEOMETRY)
+
+    # A shifted origin is caught the same way.
+    shifted = _tile_with_header(tmp_path, "shifted.bin", south=41.0)
+    with pytest.raises(geoid18.GeoidError, match="SLAT"):
+        geoid18.load_grid(shifted, expect_geometry=geoid18.GEOID18_U3_GEOMETRY)
+
+
+def test_a_non_positive_or_non_finite_spacing_is_refused(tmp_path):
+    """The interpolators divide by the spacing; zero or negative is nonsense.
+
+    Checked in ``load_grid`` with no expectation passed, because this holds for
+    any geoid grid, not just the shipped one.
+    """
+    for value, label in ((0.0, "DLAT"), (-1 / 60, "DLAT")):
+        path = _tile_with_header(tmp_path, f"dlat{value}.bin", dlat=value)
+        with pytest.raises(geoid18.GeoidError, match=label):
+            geoid18.load_grid(path)
+
+    path = _tile_with_header(tmp_path, "dlon_nan.bin", dlon=float("nan"))
+    with pytest.raises(geoid18.GeoidError, match="DLON"):
+        geoid18.load_grid(path)
+
+
+def test_a_grid_too_small_to_interpolate_in_is_refused(tmp_path):
+    """``height_biquadratic`` anchors a 3x3 block.
+
+    With fewer than three rows its clamp ``min(max(int(row) - 1, 0),
+    row_count - 3)`` goes negative, and Python's negative indexing would then
+    read from the far end of the array instead of failing. A 2 x 2 grid is
+    refused rather than silently interpolated backwards.
+    """
+    header = struct.pack("<4d3i", 40.0, 264.0, 1 / 60, 1 / 60, 2, 2, 1)
+    path = tmp_path / "tiny.bin"
+    path.write_bytes(header + struct.pack("<4f", -33.0, -33.1, -33.2, -33.3))
+
+    with pytest.raises(geoid18.GeoidError, match="NLAT=2"):
+        geoid18.load_grid(path)
+
+
+def test_a_non_finite_payload_value_is_refused(tmp_path):
+    """A NaN cell would become a NaN geoid height, then a NaN combined factor.
+
+    Nothing downstream refuses a NaN - it is not an exception and not a number,
+    and it would be printed in the audit file beside real values. Redundant with
+    the checksum on the shipped tile, and not redundant for any other file
+    ``load_grid`` is pointed at.
+    """
+    payload = bytearray(geoid18.GEOID18_TILE.read_bytes()[44:])
+    payload[0:4] = struct.pack("<f", float("nan"))
+    path = tmp_path / "nan.bin"
+    path.write_bytes(
+        struct.pack("<4d3i", 40.0, 264.0, 1 / 60, 1 / 60, 1081, 1141, 1) + bytes(payload)
+    )
+
+    with pytest.raises(geoid18.GeoidError, match="non-finite geoid height"):
+        geoid18.load_grid(path)
 
 
 # --------------------------------------------------------------------------
@@ -406,10 +617,11 @@ def test_a_real_point_through_the_whole_factor_chain(grid):
     below one here.
     """
     from michspc.spc.convert import project_point
+    from michspc.spc.frames import NAD83_2011
     from michspc.spc.zones import MI_SOUTH
 
     latitude, longitude = 42.7325, -84.5555
-    point = project_point(latitude, longitude, MI_SOUTH)
+    point = project_point(latitude, longitude, NAD83_2011, MI_SOUTH)
 
     orthometric = INTERNATIONAL_FEET.to_meters(800.0)
     geoid = geoid18.geoid_height(latitude, longitude, grid)

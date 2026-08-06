@@ -19,6 +19,7 @@ import dataclasses
 import io
 import hashlib
 import math
+from enum import Enum
 from pathlib import Path
 
 import pytest
@@ -36,6 +37,8 @@ from michspc.job import (
     file_sha256,
     run,
 )
+from michspc.spc.frames import NAD83_2011, NATRF2022, FrameMismatchError
+from michspc.spc.convert import ConversionWarning, WarningCode
 from michspc.spc.units import INTERNATIONAL_FEET, METERS, US_SURVEY_FEET
 from michspc.spc.zones import MI_CENTRAL, MI_SOUTH
 
@@ -338,30 +341,246 @@ def test_read_without_a_bom_is_unaffected(tmp_path):
     assert parsed.rows[0].point_id == "101"
 
 
-def test_unquoted_thousands_separators_are_read_as_field_separators(tmp_path):
-    """CURRENT BEHAVIOUR, pinned deliberately - see the report accompanying
-    this suite.
+def test_a_byte_that_is_neither_utf8_nor_cp1252_raises_a_pnezd_error(tmp_path):
+    """The refusal must be this program's, not Python's.
 
-    "101,13,221,442.048,650.00,IRON PIPE" is split by csv into SIX fields:
-        fields[0] = "101"        -> point id
-        fields[1] = "13"         -> northing  13.0
-        fields[2] = "221"        -> easting   221.0
-        fields[3] = "442.048"    -> elevation 442.048
-        fields[4:] = ["650.00", "IRON PIPE"] -> description "650.00,IRON PIPE"
+    read() decodes utf-8-sig and falls back to cp1252. The fallback's `except`
+    caught only OSError, so a file that is neither raised a raw
+    UnicodeDecodeError straight out of the file layer - which the GUI shows the
+    surveyor as a Python traceback message rather than a sentence naming the
+    file and saying what to do (DESIGN.md s.1, "a loud, specific refusal naming
+    the offending item").
 
-    The `.replace(",", "")` inside _parse_number never sees the grouped number,
-    because csv has already taken the commas away as delimiters. This test
-    asserts what the code does, not what one might wish it did.
+    Hand-derived choice of byte: 0x81 is not a legal UTF-8 lead byte, AND it is
+    one of the five positions cp1252 leaves undefined (0x81, 0x8D, 0x8F, 0x90,
+    0x9D). So both decoders must fail on it, which is what makes it the right
+    counterexample - anything else would only prove the first decoder failed.
     """
-    parsed = pnezd.parse_lines(["101,13,221,442.048,650.00,IRON PIPE"])
+    path = tmp_path / "binary.txt"
+    path.write_bytes(b"101,780000.000,13123359.580,800.00,IRON\x81PIPE\r\n")
+
+    with pytest.raises(pnezd.PnezdError) as caught:
+        pnezd.read(path)
+
+    message = str(caught.value)
+    # Hand-derived: names the file, the byte, and where it is.
+    assert "binary.txt" in message
+    assert "0x81" in message
+    # Hand-derived: b"101,780000.000,13123359.580,800.00,IRON" is 39 bytes
+    # (4 + 11 + 1 + 13 + 1 + 6 + 1 + 4 = 39... counted directly below), so the
+    # offending byte sits at that index.
+    assert str(b"101,780000.000,13123359.580,800.00,IRON".index(b"N") + 1) in message
+    # And it says what to do.
+    assert "Export it again" in message
+
+
+def test_the_cp1252_fallback_still_reads_a_legacy_ansi_file(tmp_path):
+    """Anti-vacuousness: the fix must not have turned the fallback into a wall.
+
+    Hand-derived: 0xE9 is cp1252 for 'e-acute'. On its own it is not valid
+    UTF-8 (it is a three-byte lead byte followed by ASCII), so utf-8-sig fails
+    and cp1252 succeeds - the case the fallback exists for.
+    """
+    path = tmp_path / "ansi.txt"
+    path.write_bytes(b"101,780000.000,13123359.580,800.00,B\xc9TON\r\n")
+
+    parsed = pnezd.read(path)
+
+    # Hand-derived: cp1252 0xC9 is 'E-acute', U+00C9.
+    assert parsed.rows[0].description == "BÉTON"
+    assert parsed.rows[0].northing == 780000.0
+
+
+def test_unquoted_thousands_separators_are_refused_not_guessed(tmp_path):
+    """REWRITTEN. This test previously pinned the DEFECT as current behaviour.
+
+    It asserted that "101,13,221,442.048,650.00,IRON PIPE" was accepted as
+    northing 13.0, easting 221.0, elevation 442.048 - a point some 13 million
+    feet from the one written, produced silently. The tier sentence says a
+    wrong coordinate moves a boundary, so the behaviour was fixed and the pin
+    rewritten to assert the refusal. It is not weakened to keep green.
+
+    Hand-derived. csv splits the row into SIX fields:
+        ["101", "13", "221", "442.048", "650.00", "IRON PIPE"]
+    Two readings of those commas are both well formed PNEZD:
+        literal - N 13, E 221, Z 442.048, description "650.00,IRON PIPE"
+        grouped - N 13, E 221442.048, Z 650.00, description "IRON PIPE"
+    Nothing in the file says which was meant, so the reader refuses.
+
+    The signature the reader keys on: fields[1] = "13" is one-to-three digits
+    and fields[2] = "221" is exactly three, which is the shape an unquoted
+    group separator leaves behind; and the description "650.00,..." begins with
+    a bare number, which is the shifted field the stray comma pushed there.
+    """
+    with pytest.raises(pnezd.PnezdError) as caught:
+        pnezd.parse_lines(["101,13,221,442.048,650.00,IRON PIPE"], path="J.txt")
+
+    message = str(caught.value)
+    # Hand-derived: the refusal names the file and the line, per DESIGN.md s.1.
+    assert "J.txt" in message
+    assert "line 1" in message
+    # It names the offending text, not just the row.
+    assert "'13,221'" in message
+    # And it says what to do about it, in both permitted forms.
+    assert "remove the thousands separators" in message
+    assert "double quotes" in message
+
+
+def test_the_reviewers_grouped_row_is_refused_and_never_reaches_a_file(tmp_path):
+    """The reviewer's own counterexample, end to end.
+
+        101,780,000.000,13,123,359.580,800.00,IRON PIPE
+
+    Hand-derived. csv splits this into EIGHT fields:
+        ["101", "780", "000.000", "13", "123", "359.580", "800.00", "IRON PIPE"]
+    so the literal reading is northing 780.0, easting 0.0, elevation 13.0 and
+    description "123,359.580,800.00,IRON PIPE" - while the reading the surveyor
+    plainly meant is northing 780000.000, easting 13123359.580, elevation
+    800.00. The two differ by more than 13 million feet in easting. Both are
+    well formed, so the file is refused.
+
+    Asserted at the JOB level as well as the parser, because the defect that
+    mattered was that this row produced a written export.
+    """
+    path = tmp_path / "grouped.txt"
+    path.write_text(
+        "101,780,000.000,13,123,359.580,800.00,IRON PIPE\n",
+        encoding="utf-8",
+        newline="",
+    )
+    out = tmp_path / "out"
+    out.mkdir()
+
+    with pytest.raises(pnezd.PnezdError) as caught:
+        _south_to_central(tmp_path, input_path=path, output_directory=out)
+
+    message = str(caught.value)
+    # Hand-derived: refusal names the file, the line, and the offending text.
+    assert "grouped.txt" in message
+    assert "line 1" in message
+    assert "'780,000.000'" in message
+    # Hand-derived: the literal reading is quoted back so the surveyor can see
+    # what the program would otherwise have believed.
+    assert "'780'" in message
+    assert "'000.000'" in message
+    # The property that matters: nothing was written.
+    assert list(out.iterdir()) == []
+
+
+def test_a_row_carrying_the_signature_with_no_second_reading_is_still_read():
+    """Anti-vacuousness, and the limit of the rule.
+
+    "A,1,2,100.0,x" carries the same textual signature - "2" is one-to-three
+    digits and "100.0" is exactly three plus decimals - but joining them gives
+    "A,1,2100.0,x", four fields whose elevation field is "x". "x" is not a
+    number, so that reading is not well formed and there is no ambiguity to
+    refuse: the literal reading is the only one.
+
+    Without this test the refusal could be widened until it rejected ordinary
+    files, and nothing would notice.
+    """
+    parsed = pnezd.parse_lines(["A,1,2,100.0,x"])
     row = parsed.rows[0]
 
-    # Hand-derived from the six-way split above.
-    assert row.point_id == "101"
-    assert row.northing == 13.0
-    assert row.easting == 221.0
-    assert row.elevation == 442.048
-    assert row.description == "650.00,IRON PIPE"
+    # Hand-derived from the five-way split: id A, N 1, E 2, Z 100.0, desc "x".
+    assert row.point_id == "A"
+    assert row.northing == 1.0
+    assert row.easting == 2.0
+    assert row.elevation == 100.0
+    assert row.description == "x"
+
+
+def test_an_ordinary_michigan_row_with_a_numeric_description_is_read():
+    """The second anti-vacuousness case: a real coordinate, numeric description.
+
+    "101,780000.000,13123359.580,800.00,500" has a bare number as its
+    description (surveyors do use numeric feature codes). No grouping signature
+    exists - the elevation "800.00" carries a decimal point, so it cannot be
+    the leading group of a grouped number - so the row is read literally.
+    """
+    parsed = pnezd.parse_lines(["101,780000.000,13123359.580,800.00,500"])
+    row = parsed.rows[0]
+
+    # Hand-derived from the five-way split.
+    assert row.northing == 780000.0
+    assert row.easting == 13123359.58
+    assert row.elevation == 800.0
+    assert row.description == "500"
+
+
+def test_the_reviewers_nan_elevation_row_is_refused_and_never_reaches_a_file(
+    tmp_path,
+):
+    """The reviewer's other counterexample, end to end.
+
+        101,780000.000,13123359.580,nan,IRON PIPE
+
+    This row previously converted and WROTE a file, because every guard between
+    the reader and the disk misses NaN specifically:
+
+      * float("nan") parses, so the reader accepted it;
+      * `value == 0.0` is False for NaN, so the absent-elevation branch that
+        turns 0.00 into "not recorded" did not catch it either;
+      * write_all's finiteness loop checks the northing and the easting only;
+      * verify_round_trip re-parses the written "nan" happily.
+
+    Hand-derived: math.isfinite(float("nan")) is False, so the reader now
+    refuses at the elevation field, which is column 4.
+    """
+    path = tmp_path / "nanelev.txt"
+    path.write_text(
+        "101,780000.000,13123359.580,nan,IRON PIPE\n", encoding="utf-8", newline=""
+    )
+    out = tmp_path / "out"
+    out.mkdir()
+
+    with pytest.raises(pnezd.PnezdError) as caught:
+        _south_to_central(tmp_path, input_path=path, output_directory=out)
+
+    message = str(caught.value)
+    # Hand-derived: names file, line, column and the offending text.
+    assert "nanelev.txt" in message
+    assert "line 1" in message
+    assert "elevation" in message
+    assert "'nan'" in message
+    # It tells the surveyor what to do instead of a placeholder.
+    assert "BLANK" in message
+    # The property that matters: nothing was written.
+    assert list(out.iterdir()) == []
+
+
+def test_a_blank_elevation_is_still_the_way_to_say_not_recorded():
+    """Anti-vacuousness for the refusal above: the sanctioned spelling works.
+
+    The refusal message tells the surveyor to leave the field blank rather than
+    filling it with a placeholder, so the blank must actually be accepted.
+    """
+    parsed = pnezd.parse_lines(["101,780000.000,13123359.580,,IRON PIPE"])
+
+    # Hand-derived from the module docstring: blank means "not recorded".
+    assert parsed.rows[0].elevation is None
+    assert parsed.rows[0].elevation_was_zero is False
+
+
+def test_a_quoted_field_of_commas_that_is_not_grouping_is_refused():
+    """The comma strip is validated, not blind.
+
+    _parse_number keeps its `.replace(",", "")` because it is NOT dead code for
+    a QUOTED field - see the test below, where '"13,221,442.048"' arrives as one
+    field with its commas intact. But stripping unconditionally would turn a
+    quoted '"1,2"' into 12 without a word.
+
+    Hand-derived: "1,2" fails the grouped-number pattern (a group after the
+    first separator must be exactly three digits, and "2" is one), so it is
+    refused rather than silently becoming twelve.
+    """
+    with pytest.raises(pnezd.PnezdError) as caught:
+        pnezd.parse_lines(['101,"1,2",13123359.580,800.00,IP'], path="J.txt")
+
+    message = str(caught.value)
+    assert "northing" in message
+    assert "'1,2'" in message
+    assert "thousands separators" in message
 
 
 def test_quoted_thousands_separators_are_stripped_from_the_number():
@@ -508,6 +727,84 @@ def test_angle_dms_of_a_whole_degree_and_a_half():
 def test_angle_dms_of_none_is_not_available():
     assert fmt.angle_dms(None) == "N/A"
     assert fmt.angle_dms(None) == fmt.NOT_AVAILABLE
+
+
+def _dms_parts(text: str) -> tuple[str, int, int, float]:
+    """Split "+00 14 58.30" into sign, degrees, minutes, seconds."""
+    sign, rest = text[0], text[1:]
+    degrees, minutes, seconds = rest.split(" ")
+    return sign, int(degrees), int(minutes), float(seconds)
+
+
+def test_angle_dms_needs_no_carry_guard_because_it_rounds_before_it_splits():
+    """The two carry guards deleted from angle_dms could never fire.
+
+    They were of the form "if the seconds rounded up to 60, borrow a minute".
+    Hand-derived reason they are unreachable: the rounding is applied ONCE, to
+    the total seconds, BEFORE either divmod. divmod's contract is that the
+    remainder is strictly smaller than the divisor, so `remainder` is below 3600
+    and `seconds` is below 60 by construction; and because the total was already
+    rounded to `seconds_decimals` places, so is `seconds`, so rounding it again
+    cannot move it. Neither boundary can be crossed after the split.
+
+    Verified independently before deletion by a sweep of 88,612,997 angles - a
+    dense pass at 1e-7 deg across the whole convergence domain, every
+    0.01-arcsecond tick approached from both sides, values engineered onto the
+    carry boundaries, and a random sample across all seven legal values of
+    `seconds_decimals`. Neither guard was reached once.
+
+    This test keeps a representative slice of that sweep live. It is not a test
+    that the guards are gone; it is a test of the INVARIANT that made them
+    pointless, and it fails if the rounding is ever moved after the split.
+    """
+    # -------------------------------------------------- engineered boundaries
+    # The only values where a carry could arise: a hair under a whole minute
+    # and a hair under a whole degree, at every whole degree across a domain
+    # far wider than any convergence angle (Michigan's is under 3.4 deg).
+    for whole in range(0, 91):
+        for sub in (59.999, 59.99999, 59.9999999, 3599.999, 3599.9999999):
+            for base in (whole * 3600.0, whole * 60.0):
+                for degrees in ((base + sub) / 3600.0, -(base + sub) / 3600.0):
+                    _, _, minutes, seconds = _dms_parts(fmt.angle_dms(degrees))
+                    # Hand-derived: 60 minutes is one degree and 60 seconds is
+                    # one minute, so neither may ever be printed.
+                    assert minutes < 60, degrees
+                    assert seconds < 60.0, degrees
+
+    # ------------------------------------------------------------ tick sweep
+    # Every representable 0.01-arcsecond output in [0, 0.05) deg, approached
+    # from just below, exactly on, and just above.
+    for ticks in range(0, 18_000):
+        for nudge in (-1e-12, 0.0, 1e-12):
+            degrees = (ticks / 100.0) / 3600.0 + nudge
+            _, _, minutes, seconds = _dms_parts(fmt.angle_dms(degrees))
+            assert minutes < 60, degrees
+            assert seconds < 60.0, degrees
+
+    # -------------------------------------------- every seconds_decimals used
+    for decimals in range(0, 7):
+        for sub in (59.999999, 3599.999999):
+            text = fmt.angle_dms(sub / 3600.0, seconds_decimals=decimals)
+            _, _, minutes, seconds = _dms_parts(text)
+            assert minutes < 60, (decimals, sub)
+            assert seconds < 60.0, (decimals, sub)
+
+
+def test_angle_dms_still_carries_after_the_guards_were_deleted():
+    """The behaviour the deleted guards appeared to provide is still provided.
+
+    Deleting a dead check is only safe if the live mechanism is pinned, so this
+    asserts the carry itself rather than the absence of the guards.
+
+    Hand-derived: 59.999 arcsec rounds to 60.00 arcsec = exactly 1 minute, so
+    divmod(60.0, 60.0) gives 1 minute and 0.00 seconds - the carry, produced by
+    the rounding order and not by any guard. Likewise 3599.999 arcsec rounds to
+    3600.00 = exactly 1 degree, so divmod(3600.0, 3600.0) gives 1 degree, 0
+    minutes, 0.00 seconds.
+    """
+    assert fmt.angle_dms(59.999 / 3600.0) == "+00 01 00.00"
+    assert fmt.angle_dms(3599.999 / 3600.0) == "+01 00 00.00"
+    assert fmt.angle_dms(-3599.999 / 3600.0) == "-01 00 00.00"
 
 
 def test_angle_dms_with_whole_seconds_uses_a_two_character_field():
@@ -963,43 +1260,87 @@ def test_verify_round_trip_refuses_a_point_identifier_mismatch(tmp_path):
     assert "'101'" in message
 
 
-def test_verify_round_trip_does_not_catch_the_text_nan(tmp_path):
-    """CURRENT BEHAVIOUR, pinned deliberately, and it is not what the docstring
-    of verify_round_trip claims.
+def test_verify_round_trip_now_catches_the_text_nan(tmp_path):
+    """REWRITTEN. This test previously pinned the gap as current behaviour.
 
-    exports.verify_round_trip says a value formatted as "nan" "would produce a
-    file that looks written and imports wrongly", implying the check stops it.
-    It does not: Python's float("nan") succeeds, so pnezd.parse_lines accepts
-    the cell as a perfectly good northing and the round trip passes.
+    exports.verify_round_trip's docstring has always claimed that a value
+    formatted as "nan" "would produce a file that looks written and imports
+    wrongly" - implying the check stops it. It did not, because float("nan")
+    succeeds and the reader it round-trips through accepted the cell as a
+    perfectly good northing. The docstring described teeth the code lacked.
 
-    Hand-derived: float("nan") is a legal float literal, therefore
-    _parse_number's try/except never fires, therefore no PnezdError, therefore
-    no WriteError.
+    Fixing the READER gives the check the teeth its docstring claims, because
+    verify_round_trip re-parses through that same reader. So the old pin is
+    rewritten to assert the refusal rather than the gap.
 
-    What actually stops a NaN reaching the clean export is the fmt.is_finite
-    loop at the top of write_all - a different mechanism, over a narrower set
-    of values. See the accompanying report.
+    Hand-derived: pnezd._parse_number now rejects any value for which
+    math.isfinite is False, so parse_lines raises PnezdError on the "nan" cell,
+    which verify_round_trip converts into a WriteError.
     """
     result = _south_to_central(tmp_path)
     rows = exports.clean_pnezd_rows(result)
     rows[0] = [rows[0][0], "nan", rows[0][2], rows[0][3], rows[0][4]]
 
-    # Must not raise - pinning the gap, not endorsing it.
-    exports.verify_round_trip(rows, result)
+    with pytest.raises(WriteError) as caught:
+        exports.verify_round_trip(rows, result)
+
+    message = str(caught.value)
+    # Hand-derived: the WriteError wraps the reader's own refusal text.
+    assert "cannot be read back by its own reader" in message
+    assert "'nan'" in message
 
 
-def test_the_reader_accepts_the_text_nan_as_a_coordinate():
-    """The root of the gap above, isolated.
+def test_the_reader_refuses_the_text_nan_as_a_coordinate():
+    """REWRITTEN. This test previously pinned "nan" and "inf" as ACCEPTED.
 
-    CURRENT BEHAVIOUR. "nan", "inf" and "-inf" are all accepted by float(), so
-    _parse_number returns them and a non-finite value enters the core from a
-    coordinate file. Reported, not fixed.
+    It asserted math.isnan(rows[0].northing) - i.e. that a non-finite value
+    entered the core from a coordinate file. That is the root of the defect and
+    is now refused at the one entry point (DESIGN.md s.7, "one entry point per
+    data path; loaders validate as strictly as the UI").
+
+    Hand-derived: math.isfinite(float("nan")) is False and
+    math.isfinite(float("inf")) is False, so the first numeric field of the row
+    fails the finiteness check and the row is refused before any of it is used.
     """
-    parsed = pnezd.parse_lines(["101,nan,inf,3,D"])
+    with pytest.raises(pnezd.PnezdError) as caught:
+        pnezd.parse_lines(["101,nan,inf,3,D"], path="J.txt")
 
-    # Hand-derived from float()'s accepted literals.
-    assert math.isnan(parsed.rows[0].northing)
-    assert math.isinf(parsed.rows[0].easting)
+    message = str(caught.value)
+    # Hand-derived: northing is field 1, so it is the field named first.
+    assert "northing" in message
+    assert "'nan'" in message
+    assert "J.txt" in message
+    assert "line 1" in message
+
+
+def test_every_numeric_column_refuses_every_non_finite_spelling():
+    """All three numeric columns, all four spellings float() accepts.
+
+    Anti-vacuousness for the test above, which only exercises columns 2 and 3.
+    float() accepts "nan", "inf", "-inf" and "infinity" case-insensitively;
+    each is placed in each numeric column in turn and each must be refused.
+    """
+    spellings = ["nan", "NaN", "inf", "-inf", "infinity", "-Infinity"]
+    # Hand-derived: column index 1 is northing, 2 easting, 3 elevation.
+    columns = {1: "northing", 2: "easting", 3: "elevation"}
+
+    for index, field_name in columns.items():
+        for spelling in spellings:
+            cells = ["101", "780000.000", "13123359.580", "800.00", "IRON PIPE"]
+            cells[index] = spelling
+            row = ",".join(cells)
+
+            with pytest.raises(pnezd.PnezdError) as caught:
+                pnezd.parse_lines([row], path="J.txt")
+
+            message = str(caught.value)
+            assert field_name in message, (row, message)
+            assert repr(spelling) in message, (row, message)
+
+    # Anti-vacuousness: the same row with real numbers is accepted, so the
+    # refusals above are about the spellings and not about the row shape.
+    ok = pnezd.parse_lines(["101,780000.000,13123359.580,800.00,IRON PIPE"])
+    assert ok.rows[0].northing == 780000.0
 
 
 def test_write_all_writes_nothing_when_a_coordinate_is_not_a_number(tmp_path):
@@ -1174,6 +1515,87 @@ def test_the_report_says_when_every_point_had_an_elevation(tmp_path):
     # Hand-derived: both points carry an elevation, so the "all" branch.
     assert "All 2 points carried a usable elevation." in text
     assert "had NO usable elevation" not in text
+
+
+class _FutureWarningCode(Enum):
+    """Stands in for a WarningCode added after this report section was written.
+
+    A real one cannot be used, because Python enums cannot be extended and both
+    codes that exist today have headings - which is exactly why the defect was
+    latent. This reproduces the situation faithfully: a code object that
+    report._WARNING_HEADINGS has never heard of, attached to a real warning on a
+    real converted point.
+    """
+
+    GEOID_TILE_EDGE = "geoid-tile-edge"
+
+
+def test_the_report_prints_a_warning_whose_code_has_no_heading(tmp_path):
+    """A warning counted in the total must also be shown.
+
+    build_report used to iterate _WARNING_HEADINGS rather than the warnings, so
+    a warning kind with no heading was included in the "N warning(s)" count at
+    the head of the section and then never printed underneath it. The surveyor
+    would be told something was wrong and not told what - the worst shape a
+    warning can take, because it cannot be acted on and cannot be dismissed.
+
+    Hand-derived: one point is given one extra warning carrying a code that has
+    no heading, so the section's total must read 1 more than the job's own
+    warnings, and the new warning's message text must appear in the body.
+    """
+    result = _south_to_central(tmp_path)
+    before = len(result.warnings)
+
+    unheaded = ConversionWarning(
+        code=_FutureWarningCode.GEOID_TILE_EDGE,
+        message="point 101 lies within one grid cell of the geoid tile edge",
+    )
+    first = dataclasses.replace(
+        result.points[0], warnings=result.points[0].warnings + (unheaded,)
+    )
+    result = dataclasses.replace(result, points=(first,) + result.points[1:])
+
+    # Hand-derived: the code is genuinely unknown to the report's table, or the
+    # test proves nothing.
+    assert _FutureWarningCode.GEOID_TILE_EDGE not in report._WARNING_HEADINGS
+
+    text = report.build_report(result)
+
+    # Hand-derived: exactly one warning was added.
+    assert f"{before + 1} warning(s)" in text
+    # The point of the whole test: the message is actually printed.
+    assert "within one grid cell of the geoid tile edge" in text
+    # And it is introduced by a heading derived from the code itself, since the
+    # table has none: "geoid-tile-edge" -> "GEOID TILE EDGE".
+    assert "GEOID TILE EDGE (1 point(s))" in text
+
+
+def test_the_report_still_uses_the_written_heading_when_there_is_one(tmp_path):
+    """Anti-vacuousness for the test above.
+
+    If _warning_heading fell back to the raw code for every warning, the test
+    above would still pass while the report got worse. This pins that a code
+    WITH a registered heading still gets it.
+
+    Hand-derived: SAMPLE_PNEZD's CP-4 sits about 123,000 feet west of the
+    others, far enough out that the easting guard fires - so this job raises the
+    EASTING_UNLIKE_SELECTED_ZONE warning, whose heading is registered.
+    """
+    path = tmp_path / "farwest.txt"
+    # Hand-derived: Michigan South's false easting is 13,123,359.58 int. ft.
+    # 400 km is 1,312,335.958 int. ft, so an easting 2,000,000 ft below the
+    # false easting is outside the window the guard uses.
+    path.write_text(
+        "101,780000.000,11123359.580,800.00,WAY WEST\n", encoding="utf-8", newline=""
+    )
+    result = _south_to_central(tmp_path, input_path=path)
+
+    text = report.build_report(result)
+
+    heading = report._WARNING_HEADINGS[WarningCode.EASTING_UNLIKE_SELECTED_ZONE]
+    # Hand-derived: the registered heading, not the raw code text.
+    assert heading in text
+    assert "EASTING UNLIKE SELECTED ZONE" not in text
 
 
 # ==========================================================================
@@ -1636,3 +2058,139 @@ def test_the_round_trip_test_would_notice_a_shifted_coordinate(tmp_path):
         # If the "round trip" above were comparing a value to itself, this
         # separation would be zero.
         assert abs(point.output_easting - point.row.easting) > 0.001
+
+
+# ==========================================================================
+# job.py - the reference frame a geodetic input file is read as.
+# Interim review gate finding 1 (docs/DESIGN.md amendment #11).
+# ==========================================================================
+
+
+GEODETIC_INPUT = "101,42.73250000,-84.55550000,800.00,IRON PIPE\n"
+"""One point, in the layout a geodetic input file uses: the second and third
+columns are latitude and longitude, not northing and easting. Lansing, the
+reviewer's counterexample position."""
+
+
+def _geodetic_job(tmp_path: Path, **overrides) -> JobSettings:
+    path = tmp_path / "geodetic.txt"
+    path.write_text(GEODETIC_INPUT, encoding="utf-8", newline="")
+    return JobSettings(
+        input_path=path,
+        output_directory=tmp_path / "out",
+        direction=Direction.GEODETIC_TO_ZONE,
+        source_zone=None,
+        target_zone=MI_SOUTH,
+        input_unit=INTERNATIONAL_FEET,
+        output_unit=INTERNATIONAL_FEET,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        **overrides,
+    )
+
+
+def test_a_geodetic_job_states_the_frame_it_reads_the_file_in(tmp_path):
+    """The setting exists and is visible, rather than being implied.
+
+    NAD83(2011) is the frame every zone in the registry is in (zones.py), so it
+    is the only value that can produce a conversion today - but it is recorded
+    as a choice on the settings, because the job record has to be able to say
+    which frame the latitudes and longitudes were interpreted as.
+    """
+    settings = _geodetic_job(tmp_path)
+
+    assert settings.geodetic_frame is NAD83_2011
+    assert settings.geodetic_frame.code == "NAD83(2011)"
+
+    result = run(settings)
+    # The frame travels onto the conversion record, not just the settings.
+    assert result.points[0].conversion.frame is NAD83_2011
+
+
+def test_a_geodetic_job_declared_natrf2022_is_refused_end_to_end(tmp_path):
+    """The application layer's default cannot be used to sneak past the core.
+
+    Setting the frame to NATRF2022 is the only way to reach a mismatch today,
+    and it must fail loudly at the point of conversion rather than producing
+    Michigan South coordinates computed as though the file were NAD 83. The
+    reviewer measured that untransformed answer at N = 136920.027586723 m,
+    E = 3984537.119005890 m, which is exactly what a NAD 83 reading gives - the
+    frames differ by one to two metres and nothing in the numbers shows it.
+    """
+    settings = _geodetic_job(tmp_path, geodetic_frame=NATRF2022)
+
+    with pytest.raises(FrameMismatchError, match="NATRF2022"):
+        run(settings)
+
+
+def test_a_geodetic_job_record_states_the_frame_it_read_the_file_as(tmp_path):
+    """Closing the second half of interim-gate finding 1 (docs/DESIGN.md #11).
+
+    The core now REFUSES a cross-frame geodetic input. That protects the
+    computation, but a job record still has to say which frame it read the file
+    as - a latitude and longitude carry no frame in their own columns, and
+    reading NATRF2022 positions as NAD 83 is a one-to-two metre error that looks
+    entirely ordinary on the page.
+
+    Hand-derived: 42.73250000 N, -84.55550000 W in Michigan South is
+    N = 136920.027586723 m, E = 3984537.119005890 m (the interim reviewer's own
+    figures for this position). In International feet, 0.3048 m exactly:
+        136920.027586723 / 0.3048 = 449212.6889 ift
+        3984537.119005890 / 0.3048 = 13072628.3432 ift
+    """
+    source = tmp_path / "opus.csv"
+    source.write_text(
+        "101,42.73250000,-84.55550000,812.40,OPUS SOLUTION\n", encoding="utf-8"
+    )
+
+    settings = JobSettings(
+        input_path=source,
+        output_directory=tmp_path / "out",
+        direction=Direction.GEODETIC_TO_ZONE,
+        source_zone=None,
+        target_zone=MI_SOUTH,
+        input_unit=INTERNATIONAL_FEET,
+        output_unit=INTERNATIONAL_FEET,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        geodetic_frame=NAD83_2011,
+    )
+    result = run(settings)
+
+    # The conversion itself, against the reviewer's metre values converted above.
+    point = result.points[0]
+    assert point.output_northing == pytest.approx(449212.6889, abs=0.001)
+    assert point.output_easting == pytest.approx(13072628.3432, abs=0.001)
+    assert point.conversion.frame is NAD83_2011
+
+    text = report.build_report(result)
+    assert "Reference frame    NAD83(2011)" in text
+    assert "read as positions in this frame" in text
+
+    # And the short longitude wording the owner chose (docs/DESIGN.md #17)
+    # reaches the record, not just the dropdown.
+    assert "Longitude          negative west (-84.37)" in text
+    assert "as used by" not in text
+
+
+def test_a_zone_to_zone_record_does_not_claim_a_geodetic_frame(tmp_path):
+    """The frame line belongs only where a geodetic file was actually read.
+
+    A zone-to-zone job takes its frame from the zones themselves, which the
+    COORDINATE SYSTEMS section already states per zone. Repeating it as an
+    input-frame line would imply the user chose something they never chose.
+    """
+    result = _south_to_central(tmp_path)
+    lines = report.build_report(result).splitlines()
+
+    # The input-frame line starts at column 0; the per-zone frame lines are
+    # indented two spaces inside their zone block. Checked line by line rather
+    # than by substring, because "Reference frame    " is a prefix of the zone
+    # block's own "Reference frame           " and a substring test passes
+    # against the wrong line.
+    assert not [line for line in lines if line.startswith("Reference frame")]
+
+    # The zone blocks still carry theirs, one per zone in the conversion.
+    indented = [line for line in lines if line.strip().startswith("Reference frame")]
+    assert len(indented) == 2
+    for line in indented:
+        assert line.startswith("  ")
+        assert "NAD83(2011)" in line

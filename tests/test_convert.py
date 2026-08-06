@@ -82,6 +82,80 @@ def test_convert_point_refuses_to_cross_frames():
         convert_point(160000.0, 4000000.0, MI_NORTH, future_zone)
 
 
+def test_a_natrf2022_geodetic_position_is_refused_by_project_point():
+    """Interim review gate finding 1 (docs/DESIGN.md amendment #11), pinned.
+
+    The reviewer's counterexample verbatim: treat 42.73250000, -84.55550000 as a
+    NATRF2022 position and ask for Michigan South coordinates. Before the fix
+    that returned
+
+        N = 136920.027586723 m,  E = 3984537.119005890 m
+
+    with no warning of any kind (numbers measured by the reviewer, quoted here
+    as the record of the defect - not as an expected value). Those are the
+    NAD 83 numbers. Nothing in them shows that the input was in a different
+    frame, and docs/DESIGN.md section 6 puts the untransformed difference at one
+    to two metres - a boundary-moving error on a sealed drawing.
+
+    ``convert_point`` has refused this since the beginning, because both zones
+    carry a frame. A bare latitude and longitude carries none, which is exactly
+    why the frame has to be supplied and checked here too.
+    """
+    with pytest.raises(FrameMismatchError) as caught:
+        project_point(42.73250000, -84.55550000, NATRF2022, MI_SOUTH)
+
+    message = str(caught.value)
+    # The refusal names both frames and what it would cost to ignore it.
+    assert "NATRF2022" in message
+    assert "NAD83(2011)" in message
+    assert "one to two" in message
+
+
+def test_the_same_position_in_the_zones_own_frame_still_converts():
+    """The refusal must be about the frame, not about the position.
+
+    Same latitude and longitude as the counterexample above, tagged NAD83(2011)
+    - the frame every zone in the registry is in. It must convert, and land in
+    Michigan South: eastings there sit near the zone's 4,000,000 m false
+    easting (zones.py MI_SOUTH), and the point is inside the zone's area so it
+    must raise no warning.
+    """
+    result = project_point(42.73250000, -84.55550000, NAD83_2011, MI_SOUTH)
+
+    assert result.frame is NAD83_2011
+    assert result.warnings == ()
+    assert 3_900_000 < result.target_easting < 4_100_000
+    assert math.isfinite(result.target_northing)
+
+
+def test_project_point_will_not_accept_a_position_with_no_frame():
+    """No default, and no way to fall through to one.
+
+    The frame cannot be inferred from the numbers, so omitting it is a
+    ``TypeError`` from the signature itself, and passing something that is not a
+    frame is refused by name rather than being duck-typed into silence. A
+    ``Zone`` is the likeliest wrong thing to pass, since it also has a ``.code``.
+    """
+    with pytest.raises(TypeError):
+        project_point(42.7325, -84.5555, MI_SOUTH)  # type: ignore[call-arg]
+
+    with pytest.raises(TypeError, match="reference frame"):
+        project_point(42.7325, -84.5555, MI_SOUTH, MI_SOUTH)  # type: ignore[arg-type]
+
+
+def test_every_conversion_record_is_tagged_with_its_frame():
+    """docs/DESIGN.md section 4: the pivot is a position tagged with its frame.
+
+    Both entry points must carry it, so a job record can state which frame the
+    coordinates were interpreted as rather than leaving a reader to assume.
+    """
+    projected = project_point(42.7325, -84.5555, NAD83_2011, MI_SOUTH)
+    converted = convert_point(160000.0, 4010000.0, MI_SOUTH, MI_CENTRAL)
+
+    assert projected.frame is NAD83_2011
+    assert converted.frame is MI_SOUTH.frame is NAD83_2011
+
+
 # --------------------------------------------------------------------------
 # Zone to zone: the core operation.
 # --------------------------------------------------------------------------
@@ -119,7 +193,7 @@ def test_zone_to_zone_round_trips(source, target):
         latitude = source.lat_min + (source.lat_max - source.lat_min) * i / 6.0
         for j in range(7):
             longitude = source.lon_min + (source.lon_max - source.lon_min) * j / 6.0
-            start = project_point(latitude, longitude, source)
+            start = project_point(latitude, longitude, NAD83_2011, source)
 
             there = convert_point(
                 start.target_northing, start.target_easting, source, target
@@ -148,7 +222,7 @@ def test_zone_to_zone_preserves_the_geodetic_position(source, target):
     latitude = (source.lat_min + source.lat_max) / 2.0
     longitude = (source.lon_min + source.lon_max) / 2.0
 
-    start = project_point(latitude, longitude, source)
+    start = project_point(latitude, longitude, NAD83_2011, source)
     moved = convert_point(start.target_northing, start.target_easting, source, target)
     checked = convert_point(
         moved.target_northing, moved.target_easting, target, target
@@ -180,7 +254,7 @@ def test_a_real_cross_zone_conversion_carries_its_evidence():
     It must still succeed - the rigorous equations are exact there - and must
     say what it did.
     """
-    lansing = project_point(42.7325, -84.5555, MI_SOUTH)
+    lansing = project_point(42.7325, -84.5555, NAD83_2011, MI_SOUTH)
     result = convert_point(
         lansing.target_northing, lansing.target_easting, MI_SOUTH, MI_CENTRAL
     )
@@ -223,7 +297,9 @@ def test_a_far_out_of_area_point_still_converts_and_says_so():
     engine-disagreement warning that used to accompany it went with the
     polynomial method (docs/DESIGN.md amendment #14).
     """
-    result = project_point(48.40, -84.3666666667, MI_SOUTH, context="point 1201")
+    result = project_point(
+        48.40, -84.3666666667, NAD83_2011, MI_SOUTH, context="point 1201"
+    )
 
     codes = {w.code for w in result.warnings}
     assert WarningCode.OUTSIDE_ZONE_EXTENT in codes
@@ -242,7 +318,7 @@ def test_a_far_out_of_area_point_still_converts_and_says_so():
 def test_point_outside_the_target_zone_extent_warns():
     """A project straddling a boundary must still convert."""
     # Upper Peninsula latitude, asked for South zone coordinates.
-    result = project_point(47.0, -87.0, MI_SOUTH, context="point 7")
+    result = project_point(47.0, -87.0, NAD83_2011, MI_SOUTH, context="point 7")
 
     codes = {w.code for w in result.warnings}
     assert WarningCode.OUTSIDE_ZONE_EXTENT in codes
@@ -252,7 +328,7 @@ def test_point_outside_the_target_zone_extent_warns():
 
 def test_a_point_well_inside_its_zone_raises_no_warnings():
     """The common case must be quiet, or the warnings mean nothing."""
-    result = project_point(42.7325, -84.5555, MI_SOUTH)
+    result = project_point(42.7325, -84.5555, NAD83_2011, MI_SOUTH)
     assert result.warnings == ()
 
 
@@ -283,7 +359,7 @@ def test_easting_guard_catches_a_file_from_the_wrong_zone():
 
 def test_easting_guard_works_on_a_real_converted_coordinate():
     """Not a synthetic number: a genuine Lansing point in each zone."""
-    lansing = project_point(42.7325, -84.5555, MI_SOUTH)
+    lansing = project_point(42.7325, -84.5555, NAD83_2011, MI_SOUTH)
     assert not easting_looks_wrong_for_zone(lansing.target_easting, MI_SOUTH)
     assert easting_looks_wrong_for_zone(lansing.target_easting, MI_CENTRAL)
 
@@ -294,7 +370,7 @@ def test_easting_guard_works_on_a_real_converted_coordinate():
 
 
 def test_conversion_results_are_frozen():
-    result = project_point(42.7325, -84.5555, MI_SOUTH)
+    result = project_point(42.7325, -84.5555, NAD83_2011, MI_SOUTH)
     with pytest.raises(Exception):
         result.target_northing = 0.0  # type: ignore[misc]
 
@@ -305,7 +381,7 @@ def test_geodetic_input_reports_the_zone_as_both_source_and_target():
     The record says so rather than leaving the field empty or inventing a
     source the user never chose.
     """
-    result = project_point(42.7325, -84.5555, MI_SOUTH)
+    result = project_point(42.7325, -84.5555, NAD83_2011, MI_SOUTH)
     assert result.source_zone is MI_SOUTH
     assert result.target_zone is MI_SOUTH
     assert result.source_northing == result.target_northing

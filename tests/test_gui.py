@@ -31,15 +31,25 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 from pathlib import Path  # noqa: E402
 
 import pytest  # noqa: E402
-from PySide6.QtCore import Qt  # noqa: E402
+from PySide6.QtCore import QStandardPaths, Qt  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from tests.conftest import archive_members, member_text
 
 from michspc.fileio import exports, formatting as fmt, pnezd  # noqa: E402
-from michspc.gui import results_model  # noqa: E402
+from michspc.gui import icon, results_model, window as window_module  # noqa: E402
 from michspc.gui.app import build_application  # noqa: E402
-from michspc.gui.window import GEODETIC, UNCHOSEN, MainWindow  # noqa: E402
+from michspc.gui.window import (  # noqa: E402
+    GEODETIC,
+    INPUT_HINT_GEODETIC,
+    INPUT_HINT_UNCHOSEN,
+    INPUT_HINT_ZONE,
+    INPUT_LABEL,
+    UNCHOSEN,
+    WINDOW_TITLE,
+    MainWindow,
+)
+from michspc.job import LongitudeConvention  # noqa: E402
 from michspc.spc.units import (  # noqa: E402
     ALL_UNITS,
     INTERNATIONAL_FEET,
@@ -224,7 +234,13 @@ def test_convert_starts_disabled(window):
 def test_convert_enables_only_once_every_question_is_answered(
     window, job_file, out_dir
 ):
-    """Each of the four answers is necessary; together they are sufficient."""
+    """Each of the four answers is necessary; together they are sufficient.
+
+    The output folder is cleared first. It now opens pre-filled with Downloads
+    (docs/DESIGN.md amendment #16 note 3), so leaving it alone would make this
+    test pass while proving nothing about the folder being required.
+    """
+    window.output_edit.setText("")
     window.input_edit.setText(str(job_file))
     assert window.convert_button.isEnabled() is False  # no output folder
 
@@ -810,6 +826,397 @@ def test_build_application_never_makes_a_second_qapplication(qapp):
     (docs/method/TOOLING.md), so the entry point reuses the existing one."""
     assert build_application([]) is qapp
     assert QApplication.instance() is qapp
+
+
+# --------------------------------------------------------------------------
+# The input row: a static label, a hint that follows the From selection
+# --------------------------------------------------------------------------
+
+
+def test_the_input_label_is_static_and_never_says_pnezd(window):
+    """"Input file:" in every state (docs/DESIGN.md amendment #16 note 1).
+
+    The label names the control; the hint names the layout. Checked across every
+    From selection the program offers, because the whole point of the amendment
+    is that the label does NOT move between two spellings.
+    """
+    selections = [UNCHOSEN, GEODETIC] + list(ALL_ZONES)
+    for selection in selections:
+        window.from_zone.setCurrentIndex(window.from_zone.findData(selection))
+        assert window.input_label.text() == INPUT_LABEL
+        assert window.input_label.text() == "Input file:"
+        assert "PNEZD" not in window.input_label.text()
+
+
+@pytest.mark.parametrize(
+    "selection,expected",
+    [
+        # A State Plane source: the file is PNEZD, columns two and three are
+        # northing and easting.
+        (MI_NORTH, INPUT_HINT_ZONE),
+        (MI_CENTRAL, INPUT_HINT_ZONE),
+        (MI_SOUTH, INPUT_HINT_ZONE),
+        # A geodetic source: columns two and three are latitude and longitude,
+        # so the file is not PNEZD at all.
+        (GEODETIC, INPUT_HINT_GEODETIC),
+        # Nothing chosen: the hint names the dependency rather than defaulting
+        # to either reading.
+        (UNCHOSEN, INPUT_HINT_UNCHOSEN),
+    ],
+)
+def test_the_format_hint_follows_the_from_selection(window, selection, expected):
+    """A geodetic file read as PNEZD produces a coordinate, not an error.
+
+    michspc.spc.convert.easting_looks_wrong_for_zone only fires on the zone
+    branch, so nothing downstream catches a file fed under the wrong reading.
+    The hint is the correctness aid that has to (docs/DESIGN.md amendment #16
+    note 1).
+    """
+    window.from_zone.setCurrentIndex(window.from_zone.findData(selection))
+    assert window.input_hint.text() == expected
+
+
+def test_the_geodetic_hint_names_latitude_and_longitude(window):
+    """Stated against the words themselves, not against the constant.
+
+    A change that kept the constant's name but emptied its meaning would pass
+    the parametrised test above and fail here.
+    """
+    window.from_zone.setCurrentIndex(window.from_zone.findData(GEODETIC))
+    hint = window.input_hint.text()
+
+    assert "latitude" in hint
+    assert "longitude" in hint
+    assert "northing" not in hint
+    assert "easting" not in hint
+    assert "no header row" in hint.lower()
+
+
+def test_the_zone_hint_names_northing_and_easting(window):
+    window.from_zone.setCurrentIndex(window.from_zone.findData(MI_CENTRAL))
+    hint = window.input_hint.text()
+
+    assert "northing" in hint
+    assert "easting" in hint
+    assert "latitude" not in hint
+    assert "longitude" not in hint
+
+
+def test_the_hint_ignores_the_to_selection(window):
+    """The To zone cannot change how the INPUT file is parsed.
+
+    A State Plane to geodetic job still reads a PNEZD file. A hint that moved
+    with the target would be describing the wrong end of the conversion, and
+    would tell a surveyor his northings were latitudes.
+    """
+    window.from_zone.setCurrentIndex(window.from_zone.findData(MI_CENTRAL))
+    window.to_zone.setCurrentIndex(window.to_zone.findData(GEODETIC))
+    assert window.input_hint.text() == INPUT_HINT_ZONE
+
+    window.from_zone.setCurrentIndex(window.from_zone.findData(GEODETIC))
+    window.to_zone.setCurrentIndex(window.to_zone.findData(MI_CENTRAL))
+    assert window.input_hint.text() == INPUT_HINT_GEODETIC
+
+
+# --------------------------------------------------------------------------
+# The longitude wording
+# --------------------------------------------------------------------------
+
+
+def test_the_longitude_convention_reads_the_wording_the_owner_chose():
+    """Exactly these two strings (docs/DESIGN.md amendments #16 note 2, #17).
+
+    The attribution tails - "as used by OPUS, NCAT, GPS and GIS" and "as used by
+    NOAA Manual NOS NGS 5" - were dropped. The sign and the worked example are
+    what disambiguate, and the owner chose the short form for BOTH surfaces, so
+    there is no separate GUI label to drift from this.
+    """
+    assert LongitudeConvention.NEGATIVE_WEST.value == "negative west (-84.37)"
+    assert LongitudeConvention.POSITIVE_WEST.value == "positive west (84.37)"
+    assert [c.value for c in LongitudeConvention] == [
+        "negative west (-84.37)",
+        "positive west (84.37)",
+    ]
+
+
+def test_the_longitude_dropdown_shows_the_enum_values_and_nothing_else(window):
+    """One authoritative representation of this wording.
+
+    The GUI does not carry its own labels for these; it shows the enum's own
+    values, which is what makes the job record and the screen unable to
+    disagree (docs/DESIGN.md amendment #17).
+    """
+    combo = window.longitude_combo
+    # The placeholder plus one entry per convention, and no more.
+    assert combo.count() == 1 + len(LongitudeConvention)
+    assert combo.itemData(0) == UNCHOSEN
+
+    for position in range(1, combo.count()):
+        convention = combo.itemData(position)
+        assert isinstance(convention, LongitudeConvention)
+        assert combo.itemText(position) == convention.value
+        assert "as used by" not in combo.itemText(position)
+
+
+def test_the_longitude_selector_still_has_no_default(window, job_file, out_dir):
+    """Shortening the wording must not have introduced a default.
+
+    docs/DESIGN.md section 7: the two conventions are indistinguishable from the
+    numbers and choosing wrongly throws a Michigan point about 340 miles, so the
+    user states it every run. Re-checked here beside the wording change because
+    a dropdown is exactly the kind of control that acquires a default by
+    accident.
+    """
+    assert window.longitude_combo.currentIndex() == 0
+    assert window.longitude_combo.currentData() == UNCHOSEN
+    assert window.longitude_convention() is None
+
+    fill_in(
+        window,
+        input_path=job_file,
+        output_directory=out_dir,
+        source=GEODETIC,
+        target=MI_CENTRAL,
+    )
+    # Everything else is answered; only the convention is missing.
+    assert window.settings() is None
+    assert window.convert_button.isEnabled() is False
+
+    window.longitude_combo.setCurrentIndex(
+        window.longitude_combo.findData(LongitudeConvention.POSITIVE_WEST)
+    )
+    assert window.convert_button.isEnabled() is True
+
+
+# A one-point geodetic file, sited by the same hand derivation as CENTRAL_POINTS
+# read backwards: latitude 43.800 N, longitude 84.367 W. Michigan Central's grid
+# origin is 43 deg 19 min N with a false easting of 6,000,000 m and a central
+# meridian at 84 deg 22 min W (NOAA Manual NOS NGS 5 Appendix A).
+#
+#   43.800 - 43.31667 = 0.48333 deg x 111,132 m/deg = 53,706 m of northing,
+#   which is 53,706 / 0.3048 = 176,200 international feet.
+#
+#   84.367 - 84.36667 = 0.00033 deg of longitude west of the central meridian,
+#   x cos(43.8) x 111,320 m/deg = about 27 m, so the easting sits about 88 ift
+#   west of the false easting 6,000,000 m = 19,685,039.370 ift.
+GEODETIC_POINT = "101,43.800,-84.367,812.40,IRON PIPE\n"
+
+
+@pytest.fixture
+def geodetic_file(tmp_path) -> Path:
+    path = tmp_path / "24-118-gps.csv"
+    path.write_text(GEODETIC_POINT, encoding="utf-8")
+    return path
+
+
+def test_a_geodetic_job_runs_end_to_end_and_lands_where_it_should(
+    window, geodetic_file, out_dir
+):
+    """The geodetic branch, driven through the interface for the first time.
+
+    The bounds are deliberately loose - the siting above is a flat-earth
+    approximation, good to a few hundred feet, and the projection itself is
+    anchored to the frozen NCAT lattice elsewhere. What they establish is that
+    the file's columns two and three were read as latitude and longitude and
+    actually projected: a pass-through, a wrong zone, or a sign error would each
+    be wrong by hundreds of thousands of feet, not by hundreds.
+    """
+    fill_in(
+        window,
+        input_path=geodetic_file,
+        output_directory=out_dir,
+        source=GEODETIC,
+        target=MI_CENTRAL,
+        unit=INTERNATIONAL_FEET,
+    )
+    window.longitude_combo.setCurrentIndex(
+        window.longitude_combo.findData(LongitudeConvention.NEGATIVE_WEST)
+    )
+    if not window.convert():
+        raise AssertionError(f"the run failed: {window.shown_failures}")
+
+    point = window.result.points[0]
+    assert abs(point.output_northing - 176_200) < 1000
+    assert abs(point.output_easting - 19_685_039) < 1000
+    # And the table shows the formatter's own strings, as everywhere else.
+    assert cell(window, 0, 1) == fmt.coordinate(
+        point.output_northing, INTERNATIONAL_FEET
+    )
+
+
+def test_the_job_record_prints_the_short_longitude_wording(
+    window, geodetic_file, out_dir
+):
+    """The record and the dropdown say the same thing, and it is the short one.
+
+    docs/DESIGN.md amendment #17 accepted the shorter text in the job record
+    too. This reads the record out of the archive that was actually written, so
+    it is the document a surveyor would file six months later, not a string
+    assembled here.
+    """
+    fill_in(
+        window,
+        input_path=geodetic_file,
+        output_directory=out_dir,
+        source=GEODETIC,
+        target=MI_CENTRAL,
+        unit=INTERNATIONAL_FEET,
+    )
+    window.longitude_combo.setCurrentIndex(
+        window.longitude_combo.findData(LongitudeConvention.POSITIVE_WEST)
+    )
+    if not window.convert():
+        raise AssertionError(f"the run failed: {window.shown_failures}")
+
+    record = member_text(window.written_files["archive"], "_README.txt")
+    longitude_lines = [
+        line for line in record.splitlines() if line.startswith("Longitude")
+    ]
+
+    assert len(longitude_lines) == 1
+    # The line is a fixed-width label followed by the convention's own value.
+    assert longitude_lines[0].split(maxsplit=1)[1].strip() == "positive west (84.37)"
+    assert longitude_lines[0].strip() == "Longitude          positive west (84.37)"
+    # The dropped attribution is gone from the whole record, not just this line.
+    assert "as used by" not in record
+
+
+# --------------------------------------------------------------------------
+# The output folder defaults to Downloads
+# --------------------------------------------------------------------------
+
+
+def test_the_output_folder_opens_pre_filled_with_downloads(window):
+    """docs/DESIGN.md amendment #16 note 3.
+
+    Compared against what Qt itself reports, not against a path assembled here,
+    which is the entire point of the amendment: Windows lets Downloads be
+    relocated and only the shell knows where it went.
+    """
+    reported = QStandardPaths.writableLocation(
+        QStandardPaths.StandardLocation.DownloadLocation
+    )
+    # Anti-vacuousness: this machine really does have a Downloads folder, so the
+    # comparison below is against a real path rather than against "".
+    assert reported != ""
+
+    assert window.output_edit.text() != ""
+    assert Path(window.output_edit.text()) == Path(reported)
+    assert window.output_directory == Path(reported)
+
+
+def test_the_default_folder_is_whatever_qt_reports_not_a_hand_built_downloads(
+    qapp, tmp_path, monkeypatch
+):
+    """Move the shell's Downloads folder and the default moves with it.
+
+    This is what separates the required implementation from the forbidden one.
+    A hand-built ``~/Downloads`` would ignore the relocation and keep naming a
+    folder the user no longer uses - or one that does not exist at all.
+    """
+    relocated = tmp_path / "Relocated Downloads"
+    monkeypatch.setattr(
+        QStandardPaths,
+        "writableLocation",
+        staticmethod(lambda location: str(relocated)),
+    )
+
+    assert window_module.default_output_directory() == str(relocated)
+    assert Path(window_module.default_output_directory()) != Path.home() / "Downloads"
+
+
+def test_the_default_folder_falls_back_to_home_when_qt_reports_nothing(
+    qapp, monkeypatch
+):
+    """Qt can return an empty string on an unusual profile.
+
+    The fallback is the home directory, which always exists, rather than a
+    fabricated path that does not - naming a folder that is not there would
+    turn a convenience into a refusal at write time.
+    """
+    monkeypatch.setattr(
+        QStandardPaths, "writableLocation", staticmethod(lambda location: "")
+    )
+
+    assert window_module.default_output_directory() == str(Path.home())
+
+    built = MainWindow()
+    try:
+        assert built.output_edit.text() == str(Path.home())
+        assert built.output_directory == Path.home()
+    finally:
+        built.close()
+
+
+def test_the_pre_filled_folder_is_still_editable(window, out_dir):
+    """A default, not a decision. The user overrides it by typing."""
+    assert window.output_edit.isReadOnly() is False
+
+    window.output_edit.setText(str(out_dir))
+    assert window.output_directory == out_dir
+
+
+def test_the_default_folder_does_not_relax_the_overwrite_refusal(
+    window, job_file, out_dir
+):
+    """A pre-filled destination cannot silently clobber a previous job.
+
+    docs/DESIGN.md amendment #16 note 3 says so explicitly, and it is the one
+    property of this change that could actually cost someone their work, so it
+    is checked rather than assumed.
+    """
+    fill_in(
+        window,
+        input_path=job_file,
+        output_directory=out_dir,
+        source=MI_CENTRAL,
+        target=MI_SOUTH,
+    )
+    if not window.convert():
+        raise AssertionError(f"the run failed: {window.shown_failures}")
+
+    window.overwrite_answer = False
+    window.overwrite_prompts.clear()
+    assert window.convert() is False
+    assert len(window.overwrite_prompts) == 1
+
+
+# --------------------------------------------------------------------------
+# The application icon
+# --------------------------------------------------------------------------
+
+
+def test_the_window_wears_the_application_icon(window):
+    """The master artwork is committed, so a fresh clone has one even before
+    tools/make_icon.py has ever run (docs/DESIGN.md amendment #15 note 1)."""
+    assert icon.icon_path() is not None
+    assert window.windowIcon().isNull() is False
+
+
+def test_the_window_still_opens_when_no_icon_has_been_built(
+    qapp, tmp_path, monkeypatch
+):
+    """The generated .ico is build output and may simply not be there.
+
+    A missing icon is cosmetic. Refusing to open the window over it would apply
+    the tier sentence backwards - nothing about a coordinate depends on the
+    picture - so the loader returns a null QIcon and construction carries on.
+    """
+    monkeypatch.setattr(icon, "GENERATED_ICO", tmp_path / "not-built.ico")
+    monkeypatch.setattr(icon, "MASTER_PNG", tmp_path / "no-master.png")
+
+    # Anti-vacuousness: there really is nothing to find in this state.
+    assert icon.icon_path() is None
+
+    built = MainWindow()
+    try:
+        assert built.windowIcon().isNull() is True
+        assert built.windowTitle() == WINDOW_TITLE
+        # And the window is fully usable, not a stub that happened to construct.
+        assert built.convert_button.isEnabled() is False
+        assert built.input_label.text() == INPUT_LABEL
+    finally:
+        built.close()
 
 
 def test_launch_imports_main_with_the_signature_it_expects():

@@ -113,12 +113,14 @@ above was run with those two test files excluded.
    small sizes inside the same `.ico`. It is his artwork — ask, do not assume.
 
 2c. **Three GUI notes** (DESIGN.md #16):
-   - The input row's format hint must **follow the selected From zone**. When
-     From is `Geodetic (latitude / longitude)` the file is not PNEZD — columns
-     two and three are latitude and longitude — so the hint must say so and the
-     label must stop calling it PNEZD. A file fed under the wrong reading yields
-     a coordinate rather than an error, and the easting guard only covers the
-     zone case, so this is a correctness aid.
+   - The input row's **label is renamed to "Input file:"** in every state (not
+     "Input PNEZD file:"), and its **format hint follows the selected From
+     zone**. When From is `Geodetic (latitude / longitude)` the file is not
+     PNEZD — columns two and three are latitude and longitude — so the hint must
+     read *point, latitude, longitude, elevation, description*. A file fed under
+     the wrong reading yields a coordinate rather than an error, and the easting
+     guard only covers the zone case, so this is a correctness aid, not
+     cosmetics.
    - **Remove the "as used by …" tail** from the longitude sign selector.
      **Decided (DESIGN.md #17): short in BOTH surfaces** — change the
      `LongitudeConvention` enum values themselves to `"negative west (-84.37)"`

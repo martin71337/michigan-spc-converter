@@ -249,12 +249,17 @@ context.
 
 ### #16 — 2026-08-05 — Three GUI notes
 
-**1. The input-file format hint must follow the selected From zone.** The input
-row currently always reads as PNEZD — *point, northing, easting, elevation,
-description*. When From is set to `Geodetic (latitude / longitude)` the file is
-not PNEZD at all: columns two and three hold latitude and longitude. The hint
-must switch to say so, e.g. *point, latitude, longitude, elevation, description*,
-and the row's label should stop calling the file "PNEZD" in that state.
+**1. The input row's label is static; its format hint follows the From zone.**
+
+The label reads **"Input file:"** in every state — not "Input PNEZD file:".
+Renaming it once, rather than swapping it between two spellings, keeps the
+control's identity stable and is what the owner asked for.
+
+The *format hint* is what changes. It currently always describes PNEZD —
+*point, northing, easting, elevation, description*. When From is set to
+`Geodetic (latitude / longitude)` the file is not PNEZD at all: columns two and
+three hold latitude and longitude, so the hint must read *point, latitude,
+longitude, elevation, description*.
 
 This is a correctness aid, not cosmetics. The two layouts are indistinguishable
 from the numbers alone in the sense that matters — a file fed under the wrong

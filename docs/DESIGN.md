@@ -222,6 +222,37 @@ and 0.18 mm easting, so it is a sound supplemental reference. Its defects:
 Defects 1, 4 and 5 belong to the two-point azimuth/distance feature, which is
 deferred (§10). They are recorded here so the fixes travel with the feature.
 
+### #8 — 2026-08-05 — GEOID18 interpolation is biquadratic, settled by measurement
+
+NGS does not document which interpolation scheme its INTG program uses for the
+geoid grids — not in the GEOID18 readme, not on the computation or technical
+details pages. The plan therefore called for implementing both candidates and
+pinning whichever matched NGS's own service.
+
+Measured against 20 frozen anchors from the NGS geoid API (`model=14`), at
+positions deliberately placed well inside grid cells so interpolation is what is
+actually being tested:
+
+| Scheme | Worst error vs NGS |
+|---|---|
+| Bilinear (2×2) | 1.3 mm |
+| **Biquadratic (3×3 Lagrange)** | **0.6 mm** |
+
+NGS publishes geoid heights to 0.001 m, so ±0.5 mm is pure quantization.
+Biquadratic sits at that floor; bilinear is measurably worse.
+
+**Decision: biquadratic.** `geoid_height()` uses it. Both implementations are
+retained, and `test_biquadratic_beats_bilinear_against_ngs` keeps the comparison
+live so a future change that quietly switched schemes would show.
+
+Consequence is small either way — a millimetre of geoid error moves an elevation
+factor by about 1.6e-10 — but the geoid height itself is reported in the job
+record, so it should match NGS.
+
+The grid tile is `data/g2018u3.bin`, CONUS grid #3 (40–58 °N, 96–77 °W, 1′,
+1081 × 1141), committed unmodified from NGS at 4,933,728 bytes, SHA-256
+`cd2080f9…be3b3`, pinned by test.
+
 ### #6 — 2026-08-05 — A zone's polynomial band is a measured property, distinct from its geographic extent
 
 **Defect found and fixed during WP3.** The first implementation of the engine

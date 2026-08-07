@@ -46,6 +46,48 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
+## Next build: PLANNED, NOT STARTED — vertical datums (2026-08-07)
+
+**`docs/PLAN-vertical-datums.md` is the plan. Read it before touching this
+work.** It is a proposal, not yet a DESIGN.md amendment; DESIGN.md is unchanged.
+Parked at the owner's instruction with nothing built and nothing half-done.
+
+**The V0 verification gate is DONE and its measurements are in the plan (§2).**
+That is the load-bearing part, because it settles four things that would
+otherwise be assumed wrong:
+
+- **Amendment #22 was right in every particular** — NGS `.b`, little-endian
+  `<4d3i` *including IKIND, the identical struct `geoid18.py` already uses*,
+  ~2.4 MB, Fortran record markers that are a real structural check, a companion
+  error grid, and the inverse being one grid sign-reversed (verified to 0.00 mm).
+- **The grids are in the VERTCON 3.0 Digital Archive**, not `/PC_PROD/VERTCON/`
+  and **not VDatum**. Both of those lead to **VERTCON 2.0** (`released=02/24/2011`),
+  which is off by up to 43.85 mm across Michigan where 3.0 is off by 2.657 mm.
+  URLs, byte counts and SHA-256s are in plan §2.1. **The grids are NOT committed
+  yet** — that is WP-V1.
+- **The two grids need DIFFERENT interpolators**, measured against NCAT:
+  `.trn` biquadratic (2.657 mm max), `.err` **bilinear** (1.526 mm max vs
+  12.406 biquadratic). Biquadratic on both — the obvious choice, since GEOID18 is
+  biquadratic — reports *double* the true σ at Kalamazoo and *less* than the true
+  σ at Lansing. Plan §2.5.
+- **One CONUS grid covers all of Michigan**, so there is no 84 W seam, and the
+  `-88.8888` null sentinel is a VDatum convention absent from the NGS files. Two
+  risks that dissolved rather than needing mitigation.
+
+**Owner's decisions, all recorded in plan §1 and §5:** Horizontal mode unchanged
+(no vertical datum asked, nothing tagged); geoid dropdown is GEOID18 + GEOID12B
+with **no "none"**; **per-point σ on the Single point panel and in
+`<stem>_full.csv`, and NOT in the clean PNEZD export** — five fields there,
+unchanged, because a sixth column breaks the CAD import.
+
+**The disclosure fact that shaped §5:** at 43.05 N, 86.20 W the modeled shift is
+−0.1466 m and its uncertainty is **±0.366 m — 249% of the shift**. Across
+Michigan σ runs 0.001 to 0.366 m. A job-level constant would have hidden that.
+
+**Pick up at** plan §7: WP-V1 (commit the grids, pin the checksums, freeze the
+NCAT fixtures) — or take **V2 + V5 first** to land the geoid dropdown on its own,
+which needs none of the vertical work.
+
 ## Superseded status (2026-08-07, 0.3.0 RELEASED)
 
 **0.3.0 is built, gated and tagged.** The Single point tab reaches users for the
@@ -285,9 +327,11 @@ failure mode is an absent archive, never a corrupt one.
 
 ### Next build, when it comes
 
-- **NGVD 29 → NAVD 88 — THIS IS THE NEXT BUILD.** Owner's decision at the close
-  of 0.3.0 (DESIGN.md **#32**); sizing is #22 and stands as written. MEDIUM, two
-  work packages, every input available today. Build the **vertical-transformation
+- **NGVD 29 → NAVD 88 — THIS IS THE NEXT BUILD, and it is now PLANNED: see
+  `docs/PLAN-vertical-datums.md` and the status section at the top of this file.**
+  Owner's decision at the close of 0.3.0 (DESIGN.md **#32**); sizing is #22 and
+  stands as written — the V0 gate confirmed #22's data claims in every
+  particular. MEDIUM, every input available today. Build the **vertical-transformation
   registry keyed by (source, target)** rather than one hard-wired path, because
   that registry is how NAPGD2022 later arrives as data. Two risks, neither about
   effort: disclosing a *modeled* shift inside a number that looks exact, and the

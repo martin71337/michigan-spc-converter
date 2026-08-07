@@ -1082,88 +1082,90 @@ def test_the_job_record_prints_the_short_longitude_wording(
 
 
 # --------------------------------------------------------------------------
-# The output folder defaults to Downloads
+# Neither file box suggests anything
 # --------------------------------------------------------------------------
 
 
-def test_the_output_folder_opens_pre_filled_with_downloads(window):
-    """docs/DESIGN.md amendment #16 note 3.
+def test_the_input_file_box_opens_empty_with_no_placeholder(window):
+    """docs/DESIGN.md amendment #27.
 
-    Compared against what Qt itself reports, not against a path assembled here,
-    which is the entire point of the amendment: Windows lets Downloads be
-    relocated and only the shell knows where it went.
+    The greyed-out ``C:\\jobs\\24-118\\pts.csv`` is gone. It was a job number
+    that is not this surveyor's, in a folder that does not exist, sitting in
+    the field that names the file about to be read - and a placeholder in a
+    path field is indistinguishable at a glance from a path that is there.
     """
-    reported = QStandardPaths.writableLocation(
-        QStandardPaths.StandardLocation.DownloadLocation
-    )
-    # Anti-vacuousness: this machine really does have a Downloads folder, so the
-    # comparison below is against a real path rather than against "".
-    assert reported != ""
-
-    assert window.output_edit.text() != ""
-    assert Path(window.output_edit.text()) == Path(reported)
-    assert window.output_directory == Path(reported)
+    assert window.input_edit.text() == ""
+    assert window.input_edit.placeholderText() == ""
+    assert window.input_path is None
 
 
-def test_the_default_folder_is_whatever_qt_reports_not_a_hand_built_downloads(
-    qapp, tmp_path, monkeypatch
-):
-    """Move the shell's Downloads folder and the default moves with it.
+def test_the_output_folder_box_opens_empty_with_no_placeholder(window):
+    """docs/DESIGN.md amendment #27, which REVERSES amendment #16 note 3.
 
-    This is what separates the required implementation from the forbidden one.
-    A hand-built ``~/Downloads`` would ignore the relocation and keep naming a
-    folder the user no longer uses - or one that does not exist at all.
+    The Downloads pre-fill is gone and nothing replaced it. Downloads is not
+    where a survey job's exports belong, and a pre-filled destination is
+    answered by pressing Convert rather than by choosing.
     """
-    relocated = tmp_path / "Relocated Downloads"
-    monkeypatch.setattr(
-        QStandardPaths,
-        "writableLocation",
-        staticmethod(lambda location: str(relocated)),
-    )
-
-    assert window_module.default_output_directory() == str(relocated)
-    assert Path(window_module.default_output_directory()) != Path.home() / "Downloads"
+    assert window.output_edit.text() == ""
+    assert window.output_edit.placeholderText() == ""
+    assert window.output_directory is None
 
 
-def test_the_default_folder_falls_back_to_home_when_qt_reports_nothing(
-    qapp, monkeypatch
-):
-    """Qt can return an empty string on an unusual profile.
+def test_the_downloads_default_is_gone_from_the_module_entirely(window):
+    """Deleted, not merely unused.
 
-    The fallback is the home directory, which always exists, rather than a
-    fabricated path that does not - naming a folder that is not there would
-    turn a convenience into a refusal at write time.
+    A dormant ``default_output_directory`` sitting beside a field that no
+    longer calls it is one line away from being switched back on by someone who
+    reads #16 note 3 and not #27. The absence is the pin.
     """
-    monkeypatch.setattr(
-        QStandardPaths, "writableLocation", staticmethod(lambda location: "")
+    assert not hasattr(window_module, "default_output_directory")
+
+    # And nothing else reaches for the Downloads location either: the whole
+    # QStandardPaths import went with it.
+    source = Path(window_module.__file__).read_text(encoding="utf-8")
+    assert "QStandardPaths" not in source.replace(
+        "# default_output_directory, through QStandardPaths", ""
     )
 
-    assert window_module.default_output_directory() == str(Path.home())
 
-    built = MainWindow()
-    try:
-        assert built.output_edit.text() == str(Path.home())
-        assert built.output_directory == Path.home()
-    finally:
-        built.close()
+def test_an_empty_output_folder_keeps_convert_disabled(window, job_file, out_dir):
+    """The empty box is a question, not an obstacle - but it is a real question.
+
+    With no default there is nothing to fall back on, so the gate that was
+    always there is now the only thing standing between an unanswered
+    destination and a write. Filling every OTHER field must not enable Convert.
+    """
+    fill_in(
+        window,
+        input_path=job_file,
+        output_directory=out_dir,
+        source=MI_CENTRAL,
+        target=MI_SOUTH,
+    )
+    # Anti-vacuousness: with the folder answered, Convert really is available,
+    # so what the next line proves is the folder and not some other blank.
+    assert window.convert_button.isEnabled() is True
+
+    window.output_edit.setText("")
+    assert window.convert_button.isEnabled() is False
 
 
-def test_the_pre_filled_folder_is_still_editable(window, out_dir):
-    """A default, not a decision. The user overrides it by typing."""
+def test_the_output_folder_box_is_still_editable(window, out_dir):
+    """Empty, and typed into - not read-only and not a dialog-only field."""
     assert window.output_edit.isReadOnly() is False
 
     window.output_edit.setText(str(out_dir))
     assert window.output_directory == out_dir
 
 
-def test_the_default_folder_does_not_relax_the_overwrite_refusal(
+def test_a_typed_destination_does_not_relax_the_overwrite_refusal(
     window, job_file, out_dir
 ):
-    """A pre-filled destination cannot silently clobber a previous job.
+    """The property that mattered under the old default still holds.
 
-    docs/DESIGN.md amendment #16 note 3 says so explicitly, and it is the one
-    property of this change that could actually cost someone their work, so it
-    is checked rather than assumed.
+    Amendment #16 note 3 checked this of the pre-filled folder; removing the
+    default does not remove the reason to check it, because it is the one
+    property of this field that could cost someone their work.
     """
     fill_in(
         window,

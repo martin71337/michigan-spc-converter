@@ -440,6 +440,102 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #27 — 2026-08-07 — Owner's interface edits before the release: four changes
+
+Four owner directives, taken after looking at the built Single point tab
+(amendment #26) for the first time. All four are interface-only. **No
+computation changed, no formatter changed, and no value that reaches the screen
+is produced differently than it was** — the suite's agreement pins between the
+panel, the multi-point table and the audit CSV are untouched and still green.
+
+**1. The single-point result reads in two columns, INPUT on the left.**
+
+It was one column, INPUT stacked above OUTPUT. On a laptop screen that put the
+converted coordinate below the fold: reading the answer meant scrolling away
+from the typed point, which are the two numbers a surveyor most wants to see at
+once. Now the two sections sit side by side with a vertical rule between them.
+
+The split in `michspc.gui.result_panel` is **positional** — first section left,
+the rest right — not by matching the string `"INPUT"`. That module does not know
+what INPUT means and should not learn: `results_model.single_point_sections`
+already states the section layout, and a second statement of it in the panel is
+a second thing to keep in step. What ties the two together is a test, in all
+three directions.
+
+Row indices are unchanged by the split. `value_labels[i]`, `copy_buttons[i]`,
+`displayed_rows()[i]` and `copy_value(i)` all still mean the same row, in
+flattened section order, so a button in the right-hand column cannot copy a
+left-hand value. That is pinned, because it is the stale-value failure of #26
+arriving by a new road.
+
+**2. The copy control is the Windows 11 glyph, beside its own value.**
+
+It was the word `Copy`, in a grid column of its own — so every button landed at
+the right edge of the widest value in the panel, an inch of blank space from the
+number it copied, in a vertical row of identical-looking buttons. Now each
+button carries the two-offset-rounded-rectangles symbol the surveyor already
+knows from File Explorer, and sits immediately after the end of its own value.
+
+Drawn with `QPainter` in `michspc.gui.copy_icon`, **not** shipped as an asset.
+The alternatives were each worse for a program whose release is eight gates
+deep: a `.svg` or `.png` would put a new file in the path of the PyInstaller
+spec, the frozen-bundle self-test and the checksum gate; `QStyle.StandardPixmap`
+has no copy glyph on Windows; `QtSvg` is a Qt module the bundle does not carry.
+The module *is* added to `selftest.LAZY_IMPORTS`, so the frozen bundle proves it
+can import it — a missing one would show as a row of blank buttons, not as an
+error.
+
+The colour comes from the panel's own palette, so a dark Windows theme does not
+get black on near-black. The tooltip still names the section and the row, which
+is the disambiguation the #26 closing gate asked for and which matters *more*
+now that the caption is a picture and not a word; the accessible name is still
+"Copy", because a glyph with no accessible name is a button with no name at all
+to anything that is not a pair of eyes.
+
+**3. The input file box starts empty, with no placeholder.**
+
+The greyed-out `C:\jobs\24-118\pts.csv` is gone. It was a job number that is not
+this surveyor's, in a folder that does not exist, sitting in the field that
+names the file about to be read — and a placeholder in a path field is not
+distinguishable at a glance from a path that is really there. The format hint
+below the field is untouched: it is a correctness aid (#16 note 1), not a
+suggestion.
+
+**4. The output folder starts empty. This REVERSES #16 note 3.**
+
+The Downloads pre-fill is removed and nothing replaces it — no default, no
+placeholder. Downloads is not where a survey job's exports belong, and a
+pre-filled destination is answered by pressing Convert rather than by choosing.
+
+`default_output_directory` is **deleted**, not left unused, and the
+`QStandardPaths` import went with it. A dormant Downloads lookup sitting beside
+a field that no longer calls it is one line away from being switched back on by
+someone who reads #16 note 3 and not this. The absence is pinned by a test.
+
+What #16 note 3 said about safety still holds and is still checked: Convert is
+gated on the field being non-empty, and `exports.write_all` still refuses to
+clobber, still stages and renames, and still verifies the round trip.
+
+**One defect found by looking at it, not by a test.** With the panel halved in
+width, `QLabel`'s word-wrap sizeHint heuristic took less width than the text
+needed, and "Michigan Central 2112" arrived as two lines with the copy button
+stranded beside the first half — in a column with two inches of unused space to
+its right. The fix is a minimum width taken from the text's own advance and
+capped at `WRAP_WIDTH`, so every value stays on one line and only the Warnings
+paragraph wraps. It is stated as a width rule rather than as a rule about which
+row is which, because this module does not know that one of its rows is called
+Warnings. Pinned, and falsified.
+
+**Verification.** Suite **1031 → 1048**, green in both `pytest` and `-O`. Every
+new pin was falsified by seeding the defect it claims to catch: the stacked
+single column, the two columns in the wrong order, a rule that paints nothing, a
+button pushed back to the far right (**twice** — the first version of that pin
+measured the label widget's right edge instead of where the text ends, and
+passed against the defect; it now measures the text advance), the word in place
+of the glyph, an unpainted glyph, a filled glyph, and two sheets crossing
+instead of one sitting in front of the other. The frozen-bundle self-test passes
+from source with the new module in its list.
+
 ### #26 — 2026-08-07 — Single point: a second tab that types one coordinate
 
 **Written before the code, as the specification.** Closed at the end of the

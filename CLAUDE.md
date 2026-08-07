@@ -25,7 +25,44 @@ It deliberately does **not** do UTM, SPCS2022, NAD 83 ↔ NATRF2022
 transformation, other states, NAD 27, or two-point azimuth/distance. See
 DESIGN.md §10 for why each was deferred.
 
-## Status (2026-08-07, single point tab BUILT AND GATED, unreleased)
+## Status (2026-08-07, owner's interface edits DONE, awaiting his approval to release)
+
+**The four interface edits the owner asked for are in, and the release is
+paused on his approval — that is the next thing that happens.** All four are
+interface-only: no computation, no formatter, and no value on screen is
+produced differently. Full account: DESIGN.md **#27**.
+
+1. The single-point result reads in **two columns, INPUT left, OUTPUT right**,
+   with a vertical rule between. Row indices are unchanged by the split, so a
+   right-column button cannot copy a left-column value — pinned.
+2. The copy control is the **Windows 11 two-sheet glyph**, drawn with QPainter
+   in `michspc/gui/copy_icon.py` (no new asset in the build's path), sitting
+   **beside its own value** instead of pinned to the far right.
+3. The **input file box** starts empty; the `C:\jobs\24-118\pts.csv`
+   placeholder is gone. The format hint below it is untouched.
+4. The **output folder** starts empty. This reverses #16 note 3;
+   `default_output_directory` is deleted, not left dormant.
+
+Suite **1031 → 1048**, green in both `pytest` and `-O`; the frozen-bundle
+self-test still passes. Every new pin was falsified by seeding the defect it
+catches — including one that had to be rewritten because the first version
+passed against its own defect (DESIGN.md #27, Verification).
+
+### Before releasing this — open with the owner
+
+- **The layout question was asked and not answered.** "Two columns, one for
+  input and one for output" was read as the **results panel**: the Conversion
+  box keeps its owner-approved full-width shape on top, and the INPUT/OUTPUT
+  result blocks are what split. The other reading — the whole tab splitting,
+  entry form left and results right — was not built. Cheap to change.
+- **The version number is not bumped.** 0.2.0 is still the literal.
+  Recommendation is **0.3.0**: the Single point tab reaches users for the first
+  time in this release, which is a feature, not a patch.
+- **The release cannot be cut from a Linux session.** Gates 5 and 7 of
+  `tools/build_release.py` are PyInstaller and Inno Setup, Windows-only. The
+  build has to be `py tools/build_release.py` on his machine.
+
+## Superseded status (2026-08-07, single point tab BUILT AND GATED, unreleased)
 
 **The Single point tab is built, reviewed and committed — not released.** The
 owner asked to pause before cutting a release; `main` carries it, 0.2.0 is still

@@ -35,6 +35,7 @@ from pathlib import Path  # noqa: E402
 import pytest  # noqa: E402
 from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtGui import QGuiApplication  # noqa: E402
+from PySide6.QtWidgets import QFrame  # noqa: E402
 
 from michspc.fileio import exports, formatting as fmt, pnezd  # noqa: E402
 from michspc.gui import single_point as single_point_module  # noqa: E402
@@ -1082,3 +1083,253 @@ def test_the_panel_agrees_with_the_audit_csv_the_other_tab_wrote(
     # one "Source convergence"; the panel shows whichever describes the end the
     # layout puts it under.
     assert shown["Convergence"] in (audit["Convergence"], audit["Source convergence"])
+
+
+# --------------------------------------------------------------------------
+# The panel reads in two columns, INPUT on the left
+# --------------------------------------------------------------------------
+#
+# docs/DESIGN.md amendment #27. These tests measure REAL widget geometry, which
+# means the window has to be shown and the event loop has to have laid it out -
+# an unshown widget reports zeroes and every comparison below would pass
+# vacuously. `laid_out` does that, and `test_the_measurements_are_real` proves
+# it worked before the others rely on it.
+
+
+def laid_out(window, tab, case, width=1100, height=780):
+    """Convert `case` on a shown, laid-out window and return the panel."""
+    window.resize(width, height)
+    window.show()
+    fill_single(tab, case)
+    if tab.convert() is not True:
+        raise AssertionError(f"the run failed: {tab.shown_failures}")
+    QGuiApplication.processEvents()
+    return tab.panel
+
+
+def left_edge(widget, panel) -> int:
+    """A widget's x, in the panel container's own coordinates."""
+    return widget.mapTo(panel.container, widget.rect().topLeft()).x()
+
+
+def test_the_measurements_are_real(window, tab):
+    """Anti-vacuousness for every geometry test below.
+
+    An unshown Qt widget reports a zero-sized rectangle at the origin, so every
+    "left of" comparison in this section would hold for two widgets that were
+    never laid out at all.
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone"))
+
+    assert panel.width() > 100
+    assert panel.left_column.width() > 100
+    assert panel.right_column.width() > 100
+    assert {left_edge(label, panel) for label in panel.value_labels} != {0}
+
+
+@pytest.mark.parametrize("case", DIRECTION_CASES, ids=lambda c: c.name)
+def test_the_result_reads_in_two_columns_with_input_on_the_left(window, tab, case):
+    """INPUT left, OUTPUT right, in every direction.
+
+    The single stacked column this replaced put the converted coordinate below
+    the fold on a laptop screen: reading the answer meant scrolling away from
+    the typed point, which are the two numbers a surveyor most wants to compare.
+
+    Checked in all three directions because the sections differ by direction -
+    a State-Plane-to-geodetic job carries every factor under INPUT - and a
+    layout rule that holds in one direction only is not a layout rule.
+    """
+    panel = laid_out(window, tab, case)
+
+    assert [section.title for section in panel.sections] == [INPUT_TITLE, OUTPUT_TITLE]
+
+    input_count = len(panel.sections[0].values)
+    input_rows = panel.value_labels[:input_count]
+    output_rows = panel.value_labels[input_count:]
+
+    # Anti-vacuousness: both sides really have rows in them.
+    assert input_rows and output_rows
+
+    rightmost_input = max(left_edge(label, panel) for label in input_rows)
+    leftmost_output = min(left_edge(label, panel) for label in output_rows)
+    assert rightmost_input < leftmost_output
+
+    # And the split is the columns' doing, not an accident of row widths.
+    assert panel.left_column.geometry().right() <= panel.right_column.geometry().left()
+
+
+def test_a_vertical_rule_separates_the_two_columns(window, tab):
+    """A clean bar, actually drawn, actually between them.
+
+    ``QFrame.VLine`` with Qt's default Sunken shadow draws the etched two-tone
+    groove of a 1990s dialog. This one is Plain, and it is checked by grabbing
+    it: a frame with no line width would sit in the layout, pass every geometry
+    assertion here, and paint nothing.
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone"))
+    rule = panel.separator
+
+    assert rule is not None
+    assert rule.frameShape() == QFrame.Shape.VLine
+    assert rule.frameShadow() == QFrame.Shadow.Plain
+
+    # Between the columns, horizontally.
+    assert panel.left_column.geometry().right() <= left_edge(rule, panel)
+    assert left_edge(rule, panel) <= panel.right_column.geometry().left()
+
+    # Tall enough to read as a divider rather than a tick.
+    assert rule.height() > 100
+
+    # And it paints: every pixel of the grab is opaque.
+    shot = rule.grab().toImage()
+    painted = sum(
+        1
+        for y in range(shot.height())
+        for x in range(shot.width())
+        if shot.pixelColor(x, y).alpha() > 0
+    )
+    assert painted == shot.width() * shot.height()
+
+
+def test_an_empty_panel_has_no_columns_and_no_rule(window, tab):
+    """Nothing converted, nothing drawn.
+
+    An empty panel with a bar down the middle of it is furniture describing a
+    result that does not exist - and this panel is emptied by every control
+    change, not only at startup (``_invalidate_result``).
+    """
+    panel = tab.panel
+    assert panel.sections is None
+    assert panel.separator is None
+    assert panel.left_column is None
+    assert panel.right_column is None
+
+    laid_out(window, tab, case_named("zone_to_zone"))
+    assert tab.panel.separator is not None
+
+    tab.first_edit.setText("176201.000")
+    assert tab.panel.sections is None
+    assert tab.panel.separator is None
+    assert tab.panel.left_column is None
+
+
+def test_each_copy_button_sits_beside_its_own_value(window, tab):
+    """Not pinned to the far right of the panel, an inch of blank away.
+
+    It was in a grid column of its own, so every button landed at the right
+    edge of the widest value in the panel and a row of identical buttons stood
+    in a line with nothing to say which number each belonged to.
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone"))
+    rows = panel.displayed_rows()
+
+    for index, (label, text) in enumerate(rows):
+        value = panel.value_labels[index]
+        button = panel.copy_buttons[index]
+
+        # Measured from where the TEXT ends, not from where the label widget
+        # ends. Those are the same thing only when the label is not stretched -
+        # and a label given stretch inside its cell puts the button back at the
+        # far right with the gap between widget and button still reading zero,
+        # which is the defect this test failed to see the first time it was
+        # written. The Warnings row wraps to a paragraph, so its text width is
+        # not a single advance and it is measured the widget way.
+        wrapped = value.height() > value.fontMetrics().height() * 1.5
+        if wrapped:
+            text_ends = left_edge(value, panel) + value.width()
+        else:
+            text_ends = left_edge(value, panel) + value.fontMetrics().horizontalAdvance(
+                text
+            )
+
+        gap = left_edge(button, panel) - text_ends
+        assert 0 <= gap <= 24, (
+            f"row {index} ({label} = {text!r}): the copy button is {gap} px from "
+            f"the end of its value"
+        )
+
+    # And the coordinate rows' buttons are nowhere near the panel's right edge,
+    # which is where they used to be. The Warnings row is excluded on purpose:
+    # its value is a paragraph, so its own right end IS near the edge.
+    coordinates = [
+        index for index, (label, _text) in enumerate(rows)
+        if label in (NORTHING_LABEL, EASTING_LABEL, ELEVATION_LABEL)
+    ]
+    assert coordinates  # anti-vacuousness
+    for index in coordinates:
+        button = panel.copy_buttons[index]
+        assert left_edge(button, panel) < panel.width() - 100
+
+
+def test_the_copy_button_wears_the_glyph_and_still_names_itself(window, tab):
+    """The Windows 11 two-sheet symbol, in place of the word "Copy".
+
+    A glyph with no accessible name is a button with no name at all to anything
+    that is not a pair of eyes, and the tooltip is what the closing review gate
+    asked for when it found two identical buttons beside two rows both called
+    "Northing" - which matters more now that the caption is a picture.
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone"))
+
+    for button in panel.copy_buttons:
+        assert button.icon().isNull() is False
+        assert button.text() == ""
+        assert button.accessibleName() == "Copy"
+        assert button.toolTip().startswith("Copy the ")
+
+    rows = panel.displayed_rows()
+    northings = [i for i, (label, _t) in enumerate(rows) if label == NORTHING_LABEL]
+    assert len(northings) == 2
+    assert INPUT_TITLE in panel.copy_buttons[northings[0]].toolTip()
+    assert OUTPUT_TITLE in panel.copy_buttons[northings[1]].toolTip()
+
+
+def test_the_columns_did_not_reorder_what_an_index_means(window, tab):
+    """The split is visual only.
+
+    ``copy_value(index)``, ``value_labels[index]`` and ``displayed_rows()[index]``
+    all have to keep meaning the same row, or a copy button in the right-hand
+    column copies a left-hand column value - which is precisely the stale-value
+    failure the closing gate found by another road (amendment #26).
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone"))
+    rows = panel.displayed_rows()
+
+    flattened = [
+        (value.label, value.text)
+        for section in panel.sections
+        for value in section.values
+    ]
+    assert list(rows) == flattened
+
+    for index, (_label, text) in enumerate(rows):
+        tab.copied.clear()
+        panel.copy_buttons[index].click()
+        assert tab.copied == [text], f"row {index} copied the wrong value"
+
+
+def test_no_value_wraps_except_the_one_that_has_to(window, tab):
+    """A zone name broken across two lines is a defect, not a cosmetic quibble.
+
+    ``QLabel`` with word wrap takes the width its own sizeHint heuristic picks,
+    which is narrower than the text - so "Michigan Central 2112" arrived as
+    "Michigan Central" over "2112" with the copy button beside the first half,
+    in a column with two inches of unused space to its right. Every value is a
+    coordinate, a factor or a zone name except one: Warnings is a paragraph and
+    is meant to wrap.
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone_warned"))
+    rows = panel.displayed_rows()
+
+    one_line = panel.value_labels[0].fontMetrics().height() * 1.5
+    wrapped = [
+        label
+        for (label, _text), value in zip(rows, panel.value_labels)
+        if value.height() > one_line
+    ]
+    assert wrapped == ["Warnings"], f"these values wrapped: {wrapped}"
+
+    # Anti-vacuousness: this case really does carry a warning, so the one row
+    # that is allowed to wrap is present and really is wrapping.
+    assert "Warnings" in [label for label, _text in rows]
+    assert panel.value_labels[-1].height() > one_line

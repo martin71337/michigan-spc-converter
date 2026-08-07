@@ -350,10 +350,16 @@ def _convert_row(
                         f"{settings.input_unit.code} does not look like "
                         f"{settings.source_zone.name} data, whose eastings sit "
                         f"near {settings.input_unit.from_meters(settings.source_zone.definition.easting_origin):,.0f} "
+                        # "this file" was wrong the moment a typed point could
+                        # raise this warning: the single-point tab has no file,
+                        # and this is the likeliest warning a typed point
+                        # produces. Worded for both callers (closing review
+                        # gate, docs/DESIGN.md amendment #26).
                         f"{settings.input_unit.code}. Check that the source "
-                        f"zone and the input units are the ones this file is "
-                        f"actually in - selecting the wrong source zone is the "
-                        f"easiest mistake to make with this program."
+                        f"zone and the input units are the ones these "
+                        f"coordinates are actually in - selecting the wrong "
+                        f"source zone is the easiest mistake to make with this "
+                        f"program."
                     ),
                 )
             )
@@ -431,8 +437,9 @@ def _convert_row(
                     code=WarningCode.GEOID_UNAVAILABLE,
                     message=(
                         f"{context}: the elevation "
+                        # Not "read from the file": a typed point has none.
                         f"{row.elevation:,.3f} {settings.input_unit.code} was "
-                        f"read from the file, but no {geoid18.GEOID_MODEL_NAME} "
+                        f"supplied, but no {geoid18.GEOID_MODEL_NAME} "
                         f"geoid height is available at "
                         f"{conversion.latitude:.6f}, {conversion.longitude:.6f}, "
                         f"so the elevation factor and combined factor for this "

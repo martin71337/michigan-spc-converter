@@ -207,6 +207,14 @@ LAZY_IMPORTS: tuple[str, ...] = (
     "michspc.gui.icon",
     "michspc.gui.window",
     "michspc.gui.results_model",
+    # The single-point tab's three modules. They reach the frozen bundle
+    # transitively, because window.py imports them at module level - but this
+    # list's stated contract is the names the bundle then PROVES it can import,
+    # and satisfying it only indirectly is how a lazily imported module goes
+    # missing later without anything noticing (closing review gate).
+    "michspc.gui.controls",
+    "michspc.gui.single_point",
+    "michspc.gui.result_panel",
     # Standard-library modules the shipped code paths reach for. Cheap to check
     # and they have been dropped from bundles before by an over-eager exclude.
     "csv",

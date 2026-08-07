@@ -3167,8 +3167,12 @@ def test_fix_c_a_geoid_miss_raises_its_own_warning_naming_the_point(tmp_path):
     point_id, warning = raised[0]
     assert point_id == "OUT1"
     assert "point OUT1" in warning.message
-    # It says the elevation WAS read, which is the whole distinction.
-    assert "was read from the file" in warning.message
+    # It says the elevation WAS supplied, which is the whole distinction from a
+    # blank Z field. The wording avoids "read from the file" because the same
+    # message now reaches the single-point tab, which has no file to read
+    # (closing review gate, docs/DESIGN.md amendment #26).
+    assert "was supplied" in warning.message
+    assert "file" not in warning.message
     assert "GEOID18" in warning.message
 
     # The elevation survives: 800.0 ift in, 800.0 ift out (units unchanged).

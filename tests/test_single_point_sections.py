@@ -83,7 +83,7 @@ def _zone_to_zone(**overrides) -> JobResult:
         direction=Direction.ZONE_TO_ZONE,
         source_zone=MI_SOUTH,
         target_zone=MI_CENTRAL,
-        input_unit=INTERNATIONAL_FEET,
+        input_unit=overrides.pop("input_unit", INTERNATIONAL_FEET),
         output_unit=overrides.pop("output_unit", INTERNATIONAL_FEET),
         # A zone-to-zone job never asks for a convention, and this is the
         # direction whose longitude row is therefore carried entirely by the
@@ -107,7 +107,7 @@ def _zone_to_geodetic(**overrides) -> JobResult:
         direction=Direction.ZONE_TO_GEODETIC,
         source_zone=MI_SOUTH,
         target_zone=None,
-        input_unit=INTERNATIONAL_FEET,
+        input_unit=overrides.pop("input_unit", INTERNATIONAL_FEET),
         output_unit=overrides.pop("output_unit", INTERNATIONAL_FEET),
         longitude_convention=overrides.pop(
             "longitude_convention", LongitudeConvention.NEGATIVE_WEST
@@ -139,7 +139,7 @@ def _geodetic_to_zone(**overrides) -> JobResult:
         direction=Direction.GEODETIC_TO_ZONE,
         source_zone=None,
         target_zone=MI_SOUTH,
-        input_unit=INTERNATIONAL_FEET,
+        input_unit=overrides.pop("input_unit", INTERNATIONAL_FEET),
         output_unit=overrides.pop("output_unit", INTERNATIONAL_FEET),
         longitude_convention=convention,
         **overrides,
@@ -601,14 +601,25 @@ def test_the_warnings_row_carries_the_messages_in_full():
     text = target.values[-1].text
 
     assert len(point.warnings) == 2
-    # Hand-derived from the join: the messages themselves, in order, separated
-    # by a blank line - the same shape the multi-point table's tooltip uses.
-    assert text == "\n\n".join(w.message for w in point.warnings)
+    # Hand-derived from the join: the messages in order, separated by a blank
+    # line - the same shape the multi-point table's tooltip uses - each with the
+    # fabricated identifier removed from its front.
+    assert text == "\n\n".join(
+        rm._without_point_prefix(w.message) for w in point.warnings
+    )
     # And the sentences really are there, not the compressed codes.
     assert "does not look like Michigan South data" in text
-    # The typed point's identifier reaches the screen through the warning
-    # context job._convert_row builds, which is why it may not be blank.
-    assert f"point {pnezd.TYPED_POINT_ID}:" in text
+
+    # The fabricated identifier must NOT reach the screen. job._convert_row
+    # builds every warning's context from the row id, and parse_typed_point has
+    # to supply one because the reader refuses a blank - but this tab has no
+    # point numbers, so naming point 1 of 1 is noise (closing review gate).
+    assert f"point {pnezd.TYPED_POINT_ID}" not in text
+    # Anti-vacuousness: the untouched messages DO carry it, so the assertion
+    # above is testing the stripping rather than a message that never had one.
+    assert all(
+        w.message.startswith(f"point {pnezd.TYPED_POINT_ID}") for w in point.warnings
+    )
 
 
 def test_a_point_with_no_elevation_reads_not_available_and_never_one():
@@ -730,3 +741,69 @@ def test_single_point_sections_refuses_a_job_carrying_more_than_one_point():
 
     # Anti-vacuousness: the same settings with one point go through.
     assert rm.single_point_sections(_zone_to_zone())
+
+
+# ==========================================================================
+# The INPUT block's unit.
+#
+# The closing review gate found that every section test used the same unit at
+# both ends, so four separately seeded defects - rendering an INPUT coordinate,
+# an INPUT elevation, or the INPUT "Units" line in the OUTPUT unit - all passed
+# the entire 1014-test suite. The production code was correct; the pins could
+# not tell. These make the two units differ, which is the only way the mistake
+# becomes observable.
+# ==========================================================================
+
+
+def test_the_input_block_uses_the_input_unit_when_the_two_differ():
+    """Feet in, metres out: the INPUT block stays in feet.
+
+    Hand-derived: the typed values are echoed, not converted, so the INPUT
+    coordinates are the typed strings formatted to the INPUT unit's 3 decimal
+    places, and the OUTPUT ones are metres to 4.
+    """
+    result = _zone_to_zone(input_unit=INTERNATIONAL_FEET, output_unit=METERS)
+    point = result.points[0]
+    source, target = rm.single_point_sections(result)
+    entered = _by_label(source)
+    converted = _by_label(target)
+
+    assert entered["Units"] == "International feet (ift)"
+    assert converted["Units"] == "meters (m)"
+
+    assert entered["Northing"] == fmt.coordinate(point.row.northing, INTERNATIONAL_FEET)
+    assert entered["Easting"] == fmt.coordinate(point.row.easting, INTERNATIONAL_FEET)
+    assert entered["Elevation"] == fmt.coordinate(point.row.elevation, INTERNATIONAL_FEET)
+
+    # Anti-vacuousness: the same numbers in the OTHER unit are different
+    # strings, so the assertions above could not pass by coincidence.
+    assert entered["Northing"] != fmt.coordinate(point.row.northing, METERS)
+    assert converted["Northing"] == fmt.coordinate(point.output_northing, METERS)
+
+
+def test_the_geodetic_input_elevation_uses_the_input_unit_when_they_differ():
+    """The one INPUT row a geodetic input still carries a linear unit for.
+
+    Latitude and longitude are degrees, so the elevation is the only typed
+    value the input unit governs - which is exactly what the tab's own unit
+    tooltip promises, and what one of the seeded defects broke.
+    """
+    result = _geodetic_to_zone(input_unit=INTERNATIONAL_FEET, output_unit=METERS)
+    point = result.points[0]
+    entered = _by_label(rm.single_point_sections(result)[0])
+
+    assert entered["Units"] == "International feet (ift)"
+    assert entered["Elevation"] == fmt.coordinate(point.row.elevation, INTERNATIONAL_FEET)
+    assert entered["Elevation"] != fmt.coordinate(point.row.elevation, METERS)
+
+
+def test_the_zone_to_geodetic_input_block_uses_the_input_unit_when_they_differ():
+    """All the factors sit under INPUT here, and so do the typed coordinates."""
+    result = _zone_to_geodetic(input_unit=INTERNATIONAL_FEET, output_unit=METERS)
+    point = result.points[0]
+    entered = _by_label(rm.single_point_sections(result)[0])
+
+    assert entered["Units"] == "International feet (ift)"
+    assert entered["Northing"] == fmt.coordinate(point.row.northing, INTERNATIONAL_FEET)
+    assert entered["Easting"] == fmt.coordinate(point.row.easting, INTERNATIONAL_FEET)
+    assert entered["Northing"] != fmt.coordinate(point.row.northing, METERS)

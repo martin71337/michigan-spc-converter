@@ -192,13 +192,21 @@ def build_report(result: JobResult) -> str:
         # survey is defended with, so a file name it never read or a folder it
         # never wrote to would be a falsehood in the one document that exists to
         # say what happened (docs/DESIGN.md section 1, amendment #26).
+        # Name which one is actually missing. Saying "neither" when only one is
+        # absent is a false diagnostic about the half-pathless state, which is
+        # a state this program explicitly supports (closing review gate).
+        missing = []
+        if settings.input_path is None:
+            missing.append("no input file")
+        if settings.output_directory is None:
+            missing.append("no output folder")
         raise ValueError(
-            "A job record names the input file it read and the folder it wrote "
-            "to, and this job states it had neither "
+            f"A job record names the input file it read and the folder it "
+            f"wrote to, and this job states it had {' and '.join(missing)} "
             f"(input_path={settings.input_path!r}, "
             f"output_directory={settings.output_directory!r}). A job with no "
-            "file, such as a single typed point, is displayed rather than "
-            "recorded."
+            f"file, such as a single typed point, is displayed rather than "
+            f"recorded."
         )
     generated = datetime.now(timezone.utc).astimezone()
 

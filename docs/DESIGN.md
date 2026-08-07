@@ -540,6 +540,67 @@ validation gate that rejects silently, which inverts both "one entry point per
 data path" and "refusals teach". Non-numeric text travels to the reader and
 comes back as the reader's own sentence naming the field and the line.
 
+#### Closing gate on this feature (2026-08-07)
+
+Two reviewers ran blind to each other over the whole feature diff. **Both found
+the same CRITICAL independently**, and neither could construct an input where
+the two tabs disagree — one drove both real GUIs over 378 configurations
+(3×3 zone pairs, both conventions, all nine input/output unit pairs, with and
+without an elevation), parsed the audit CSV back out of the ZIP the multi-point
+run wrote, and compared it to the panel section by section: zero disagreements.
+The other confirmed by tracing and by 29 hostile typed strings that no input can
+reach the core as a different number than typed.
+
+Fixed, each pinned and each pin falsified:
+
+- **CRITICAL — a stale result survived every control and field change**, with
+  both copy paths armed. Editing a northing after converting left the previous
+  point's answer on screen, still captioned "Converted": the reviewers' shared
+  counterexample was a reading **100,001.037 ft out**, one click from the
+  clipboard. Worse in the second shape they found, where flipping the longitude
+  convention left a longitude on screen whose sign the control now contradicted
+  and which carried no qualifier to reveal it. Now every entry field and every
+  selection discards the result, clears the panel, disables Copy all and says
+  "Input changed. Press Convert." Clearing rather than annotating: a greyed-out
+  number is still a number beside a Copy button.
+- **Two warnings told a typed-point user to check a file that does not exist** —
+  "the ones this file is actually in" and "was read from the file". Reworded for
+  both callers; the wrong-source-zone warning is the likeliest a typed point
+  raises.
+- **The fabricated point identifier reached the screen.** `parse_typed_point`
+  must supply one because the reader refuses a blank, but this tab has no point
+  numbers: the panel now strips exactly `point 1` from displayed warnings, and
+  the status tooltip no longer prefixes it a second time ("1: point 1: …").
+- **Copy buttons beside two identically-named rows.** Both sections carry a
+  "Northing"; the tooltip now names the section. The INPUT buttons stay,
+  because in a State-Plane-to-geodetic job every factor sits under INPUT.
+- **The half-pathless report refusal said "neither"** when only one path was
+  missing.
+- **`selftest.LAZY_IMPORTS`** gained the three new GUI modules; they reached the
+  bundle transitively, which satisfied the list's contract only indirectly.
+
+Two test gaps closed, both found by seeding defects that the 1014-test suite
+passed: the **INPUT block was never exercised with the two units differing**, so
+four separate defects rendering an input coordinate, elevation or unit label in
+the *output* unit all went unnoticed; and the **no-write test watched a
+directory the tab has no relationship to**, so a seeded `Path("x").write_text()`
+landing in the process working directory passed it. Also added: the panel is now
+compared against the **audit CSV the other tab actually wrote**, which reaches
+convergence, geoid height, ellipsoid height and the elevation factor — none of
+which appear in the multi-point table the first pin compared against.
+
+**Accepted, not fixed, with reasons.** A per-value copy of the decimal-degrees
+`Longitude` puts a signed number on the clipboard with nothing travelling
+alongside to say which convention it is in — and on a zone-to-zone job the user
+was never asked. The mitigation is the DMS row beside it, whose hemisphere
+letter is unambiguous and independently copyable. Naming the convention in the
+row label would contradict the zone-to-zone case, where the program never asked;
+carrying it in the copied text would break the rule that a copy is exactly the
+value. Recorded so the trade is visible rather than assumed. Separately,
+`latitude_dms(-0.0)` reads `N` while `latitude(-0.0)` reads `-0.00000000`; the
+only disagreement found in ~1.6 million checks, and unreachable from any
+Michigan position.
+
 ### #25 — 2026-08-07 — 0.2.0: renamed MCX, publisher corrected, lettering removed
 
 Three owner directives, one release. **No computation changed**; the suite is

@@ -18,6 +18,7 @@ from PySide6.QtCore import QAbstractTableModel, QModelIndex, Qt
 from PySide6.QtGui import QBrush, QColor
 
 from michspc.fileio import formatting as fmt
+from michspc.fileio import pnezd
 from michspc.gui.controls import zone_label
 from michspc.job import Direction, JobResult, LongitudeConvention
 
@@ -220,7 +221,33 @@ def _warnings_text(point) -> str:
     """
     if not point.warnings:
         return NO_WARNINGS
-    return "\n\n".join(warning.message for warning in point.warnings)
+    return "\n\n".join(_without_point_prefix(w.message) for w in point.warnings)
+
+
+def _without_point_prefix(message: str) -> str:
+    """Drop the leading "point 1" that a typed point cannot meaningfully carry.
+
+    ``job._convert_row`` opens every warning with the row's identifier, and
+    ``parse_typed_point`` supplies the fabricated ``TYPED_POINT_ID`` because the
+    reader requires a non-blank one. On a tab whose specification says "no point
+    number" (docs/DESIGN.md amendment #26), naming point 1 of 1 is noise the
+    surveyor never asked for - found by the closing review gate.
+
+    Only the exact fabricated identifier is stripped, and only at the start, so
+    a real identifier can never be silently removed. Written against the
+    constant rather than a literal so the two cannot drift apart.
+    """
+    prefix = f"point {pnezd.TYPED_POINT_ID}"
+    if not message.startswith(prefix):
+        return message
+
+    rest = message[len(prefix) :]
+    if rest.startswith(":"):
+        return rest[1:].lstrip()
+    # "point 1 (into MI-C): ..." - the qualifier is kept, the identifier is not.
+    if rest.startswith(" ("):
+        return rest.lstrip()
+    return message
 
 
 def _positive_west(settings) -> bool:

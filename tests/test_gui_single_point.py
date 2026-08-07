@@ -29,6 +29,7 @@ import os
 # (docs/method/TOOLING.md).
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+import csv  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 import pytest  # noqa: E402
@@ -53,7 +54,7 @@ from michspc.gui.results_model import (  # noqa: E402
 )
 from michspc.gui.window import GEODETIC, UNCHOSEN, MainWindow  # noqa: E402
 from michspc.job import Direction, LongitudeConvention  # noqa: E402
-from michspc.spc.units import INTERNATIONAL_FEET  # noqa: E402
+from michspc.spc.units import INTERNATIONAL_FEET, METERS  # noqa: E402
 from michspc.spc.zones import ALL_ZONES, MI_CENTRAL, MI_NORTH, MI_SOUTH  # noqa: E402
 
 
@@ -747,16 +748,29 @@ def test_a_refusal_is_shown_as_plain_text(tab):
 # --------------------------------------------------------------------------
 
 
-def test_the_single_point_tab_writes_nothing(tab, tmp_path):
-    """No file, no folder, no archive - a results display only."""
-    scratch = tmp_path / "scratch"
-    scratch.mkdir()
+def test_the_single_point_tab_writes_nothing(tab, tmp_path, monkeypatch):
+    """No file, no folder, no archive - a results display only.
+
+    Watching a scratch directory the tab has no relationship to proves nothing:
+    the closing review gate showed that seeding ``convert`` with
+    ``Path("single-point.txt").write_text(...)`` left that test passing, because
+    a bare relative path lands in the PROCESS WORKING DIRECTORY, which the test
+    never looked at. So the working directory is moved into ``tmp_path`` for the
+    duration and the whole tree is compared before and after - a relative write
+    anywhere now lands inside the snapshot.
+    """
+    monkeypatch.chdir(tmp_path)
+    before = sorted(path.relative_to(tmp_path) for path in tmp_path.rglob("*"))
 
     fill_single(tab, case_named("zone_to_zone"))
     assert tab.convert() is True
 
-    assert list(scratch.iterdir()) == []
-    assert list(tmp_path.iterdir()) == [scratch]
+    after = sorted(path.relative_to(tmp_path) for path in tmp_path.rglob("*"))
+    assert after == before
+    # Anti-vacuousness: the snapshot really would notice a file. Without this a
+    # comparison of two empty lists would pass for the wrong reason.
+    (tmp_path / "sentinel.txt").write_text("x", encoding="ascii")
+    assert sorted(p.relative_to(tmp_path) for p in tmp_path.rglob("*")) != before
 
     settings = tab.result.settings
     assert settings.input_path is None
@@ -867,7 +881,18 @@ def test_a_warned_run_is_amber_and_carries_the_message(tab):
 
     first_message = tab.result.warnings[0][1].message
     assert first_message in tab.status_label.toolTip()
-    assert first_message in value_of(tab.sections, OUTPUT_TITLE, "Warnings")
+
+    # The tooltip must NOT prefix the identifier a second time. The core's
+    # message already opens "point 1: ...", and the closing review gate found
+    # the tooltip rendering it as "1: point 1: ..." (docs/DESIGN.md #26).
+    assert not tab.status_label.toolTip().startswith(pnezd.TYPED_POINT_ID + ":")
+
+    # The panel's Warnings row drops the fabricated identifier entirely - this
+    # tab has no point numbers - so it carries the message's SUBSTANCE rather
+    # than the message verbatim.
+    shown = value_of(tab.sections, OUTPUT_TITLE, "Warnings")
+    assert f"point {pnezd.TYPED_POINT_ID}" not in shown
+    assert first_message.split(": ", 1)[1] in shown
 
 
 def test_the_unit_selection_reaches_the_settings(tab):
@@ -878,3 +903,182 @@ def test_the_unit_selection_reaches_the_settings(tab):
     assert settings.input_unit is tab.input_unit.currentData()
     assert settings.output_unit is tab.output_unit.currentData()
     assert settings.input_unit is INTERNATIONAL_FEET
+
+
+# ==========================================================================
+# Result invalidation.
+#
+# The closing review gate's CRITICAL finding. Editing any control after a
+# conversion left the previous point's answer on the screen, still captioned
+# "Converted", with both copy paths live - so a surveyor who changed a northing
+# and did not press Convert could copy the PREVIOUS point's coordinate into
+# CAD. The reviewer's counterexample is reproduced verbatim below.
+# ==========================================================================
+
+
+def test_editing_a_coordinate_discards_the_result_it_no_longer_describes(tab):
+    """The reviewer's own counterexample, reproduced.
+
+    Michigan Central to Michigan South, international feet both ends:
+    N=176,200.000 E=19,685,000.000 Z=812.40 converts to N=838,214.295. Editing
+    the northing to 276,200.000 without pressing Convert left 838,214.295 on
+    screen, while the point now in the controls converts to 938,215.332 - a
+    stale reading 100,001.037 ft out, and directly copyable.
+    """
+    tab.from_zone.setCurrentIndex(tab.from_zone.findData(MI_CENTRAL))
+    tab.to_zone.setCurrentIndex(tab.to_zone.findData(MI_SOUTH))
+    tab.first_edit.setText("176200.000")
+    tab.second_edit.setText("19685000.000")
+    tab.elevation_edit.setText("812.40")
+    if tab.convert() is not True:
+        raise AssertionError(f"the run failed: {tab.shown_failures}")
+
+    # Anti-vacuousness: the stale value really was on screen to begin with.
+    before = value_of(tab.sections, OUTPUT_TITLE, "Northing")
+    assert before == "838214.295"
+
+    tab.first_edit.setText("276200.000")
+
+    assert tab.result is None
+    assert tab.sections is None
+    assert tab.copy_all_button.isEnabled() is False
+    assert tab.status_label.text() == single_point_module.STATUS_INPUT_CHANGED
+
+    # And converting again gives the point the controls now describe.
+    if tab.convert() is not True:
+        raise AssertionError(f"the run failed: {tab.shown_failures}")
+    assert value_of(tab.sections, OUTPUT_TITLE, "Northing") == "938215.332"
+
+
+@pytest.mark.parametrize(
+    "control",
+    ["first_edit", "second_edit", "elevation_edit"],
+)
+def test_every_entry_field_discards_the_result(tab, control):
+    """Including the elevation, which does not gate Convert but does change the
+    answer: it drives the elevation and combined factors."""
+    fill_single(tab, case_named("zone_to_zone"))
+    if tab.convert() is not True:
+        raise AssertionError(f"the run failed: {tab.shown_failures}")
+    assert tab.result is not None
+
+    edit = getattr(tab, control)
+    edit.setText(edit.text() + "1")
+
+    assert tab.result is None
+    assert tab.sections is None
+    assert tab.copy_all_button.isEnabled() is False
+
+
+@pytest.mark.parametrize(
+    "control, data",
+    [
+        ("to_zone", MI_NORTH),
+        ("input_unit", METERS),
+        ("output_unit", METERS),
+    ],
+)
+def test_every_selection_discards_the_result(tab, control, data):
+    """A zone or unit change makes the displayed numbers describe a job nobody
+    asked for. The unit combos had no handler at all before this fix, so a
+    feet-to-metres change left the previous unit's numbers under the new
+    unit's label."""
+    fill_single(tab, case_named("zone_to_zone"))
+    if tab.convert() is not True:
+        raise AssertionError(f"the run failed: {tab.shown_failures}")
+    assert tab.result is not None
+
+    combo = getattr(tab, control)
+    index = combo.findData(data)
+    assert index >= 0, f"{control} has no entry for {data!r}"
+    combo.setCurrentIndex(index)
+
+    assert tab.result is None
+    assert tab.sections is None
+    assert tab.copy_all_button.isEnabled() is False
+
+
+def test_the_copy_tooltip_says_which_section_the_value_came_from(tab):
+    """Both sections carry a row called "Northing" in a zone-to-zone job.
+
+    Two identical-looking Copy buttons beside two identically-named rows is a
+    direct route to pasting an unconverted number as the converted coordinate
+    (closing review gate). The tooltip names the section.
+    """
+    fill_single(tab, case_named("zone_to_zone"))
+    if tab.convert() is not True:
+        raise AssertionError(f"the run failed: {tab.shown_failures}")
+
+    rows = tab.panel.displayed_rows()
+    tooltips = [button.toolTip() for button in tab.panel.copy_buttons]
+
+    northings = [i for i, (label, _text) in enumerate(rows) if label == "Northing"]
+    # Anti-vacuousness: there really are two of them, which is the problem.
+    assert len(northings) == 2
+
+    assert INPUT_TITLE in tooltips[northings[0]]
+    assert OUTPUT_TITLE in tooltips[northings[1]]
+
+
+@pytest.mark.parametrize("case", DIRECTION_CASES, ids=lambda c: c.name)
+def test_the_panel_agrees_with_the_audit_csv_the_other_tab_wrote(
+    window, tab, tmp_path, case, read_member
+):
+    """The strongest form of the anti-divergence claim.
+
+    The pin above compares the panel against the multi-point TABLE, which holds
+    only seven columns. The quantities a surveyor is most likely to transcribe
+    by hand - convergence, geoid height, ellipsoid height, the elevation factor
+    - appear in neither the table nor that comparison, and the closing review
+    gate noted the gap: a single-point-only defect in any of them would pass.
+
+    The audit CSV inside the archive the multi-point run actually wrote is the
+    file of record for those values, so this compares against it. Screen against
+    file, not screen against screen.
+    """
+    job_file = tmp_path / "one-point.csv"
+    job_file.write_text(
+        f"{pnezd.TYPED_POINT_ID},{case.first},{case.second},{case.elevation}\n",
+        encoding="utf-8",
+    )
+    out_dir = tmp_path / "out"
+
+    fill_multi(window, case, input_path=job_file, output_directory=out_dir)
+    if window.convert() is not True:
+        raise AssertionError(f"the multi-point run failed: {window.shown_failures}")
+
+    fill_single(tab, case)
+    if tab.convert() is not True:
+        raise AssertionError(f"the single-point run failed: {tab.shown_failures}")
+
+    audit_name = exports.member_names(window.result)["audit"]
+    text = read_member(window.written_files["archive"], audit_name)
+    # splitlines(): csv.reader over a bare string iterates CHARACTERS, which
+    # yields a header of single letters and a KeyError that looks like a
+    # missing column rather than a mis-read file.
+    rows = list(csv.reader(text.splitlines()))
+    header, values = rows[0], rows[1]
+    audit = dict(zip(header, values))
+
+    # Every quantity the audit CSV and the panel both carry, by the audit's own
+    # column name. The panel's section differs by direction, so each is looked
+    # up in whichever section holds it.
+    shown = {
+        label: text for section in tab.sections for label, text in [(v.label, v.text) for v in section.values]
+    }
+    for column, label in (
+        ("Geoid height (m)", "Geoid height (m)"),
+        ("Ellipsoid height (m)", "Ellipsoid height (m)"),
+        ("Elevation factor", "Elevation factor"),
+        ("Combined factor", "Combined factor"),
+        ("Latitude", "Latitude"),
+    ):
+        assert label in shown, f"the panel has no {label!r} row"
+        assert shown[label] == audit[column], (
+            f"{label}: panel {shown[label]!r} != audit CSV {audit[column]!r}"
+        )
+
+    # Convergence: the audit names the target one "Convergence" and the source
+    # one "Source convergence"; the panel shows whichever describes the end the
+    # layout puts it under.
+    assert shown["Convergence"] in (audit["Convergence"], audit["Source convergence"])

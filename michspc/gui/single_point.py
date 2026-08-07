@@ -107,6 +107,16 @@ ELEVATION_TOOLTIP = (
     "elevation and combined factors then read N/A rather than a plausible 1.0."
 )
 
+STATUS_READY = "Ready."
+
+STATUS_INPUT_CHANGED = "Input changed. Press Convert."
+"""Shown when a displayed result is discarded because a control moved.
+
+It says what happened and what to do. "Ready." would be true but would not
+explain why the numbers vanished, and a surveyor who thought the result was
+still there is exactly the person this message is for.
+"""
+
 UNITS_TOOLTIP_ZONE_IN = "The unit the typed northing, easting and elevation are in."
 UNITS_TOOLTIP_GEODETIC_IN = (
     "The typed latitude and longitude are decimal degrees, which carry no "
@@ -183,6 +193,13 @@ class SinglePointTab(QWidget):
         self.input_unit = unit_combo(box)
         self.output_unit = unit_combo(box)
 
+        # Every control that can change the answer invalidates a displayed one.
+        # The unit combos have no other handler at all, so without this a
+        # feet-to-metres change would leave the previous unit's numbers on
+        # screen under the new unit's label.
+        self.input_unit.currentIndexChanged.connect(self._invalidate_result)
+        self.output_unit.currentIndexChanged.connect(self._invalidate_result)
+
         self.input_unit_label = QLabel(UNITS_LABEL, box)
         self.output_unit_label = QLabel(UNITS_LABEL, box)
 
@@ -213,10 +230,14 @@ class SinglePointTab(QWidget):
         self.elevation_edit.setToolTip(ELEVATION_TOOLTIP)
 
         # Only the two coordinate fields gate Convert. The elevation is optional
-        # by the file reader's own convention, so it deliberately does not
-        # participate in enablement and its text change is not connected.
+        # by the file reader's own convention, so it does not participate in
+        # enablement - but every field, including the elevation, invalidates a
+        # displayed result, which is a separate concern (see _invalidate_result).
         self.first_edit.textChanged.connect(self._update_convert_enabled)
         self.second_edit.textChanged.connect(self._update_convert_enabled)
+        self.first_edit.textChanged.connect(self._invalidate_result)
+        self.second_edit.textChanged.connect(self._invalidate_result)
+        self.elevation_edit.textChanged.connect(self._invalidate_result)
 
         grid.addWidget(self.first_label, 3, 0)
         grid.addWidget(self.first_edit, 3, 1, 1, 3)
@@ -250,7 +271,7 @@ class SinglePointTab(QWidget):
 
     def _build_status_line(self) -> QHBoxLayout:
         row = QHBoxLayout()
-        self.status_label = QLabel("Ready.", self)
+        self.status_label = QLabel(STATUS_READY, self)
         self.status_label.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
@@ -343,6 +364,33 @@ class SinglePointTab(QWidget):
         self._update_unit_labels()
         self._update_longitude_relevance()
         self._update_convert_enabled()
+        self._invalidate_result()
+
+    def _invalidate_result(self) -> None:
+        """Discard a displayed result the controls no longer describe.
+
+        Found by the closing review gate, as a CRITICAL. Editing any field or
+        selection after a conversion left the previous point's answer on the
+        screen, still captioned "Converted", with both copy paths still live -
+        so a surveyor who changed a northing and did not press Convert could
+        copy the PREVIOUS point's coordinate straight into CAD. The reviewer's
+        counterexample: Michigan Central to Michigan South, N=176,200.000
+        converts to N=838,214.295; editing the entry to 276,200.000 without
+        converting left 838,214.295 on screen, while the point now in the
+        controls is 938,215.332 - a stale reading 100,001.037 ft out.
+
+        Clearing rather than marking stale: a greyed-out or annotated result is
+        still a number on the screen next to a Copy button, and this program's
+        rule is that a value it cannot stand behind is not displayed at all.
+
+        Idempotent, so the many signals that reach it cost nothing when there is
+        no result to discard.
+        """
+        if self.result is None and self.panel.sections is None:
+            return
+        self.result = None
+        self._render_sections(None)
+        self._set_status(STATUS_INPUT_CHANGED)
 
     def entry_labels(self) -> tuple[str, str]:
         """The two coordinate labels for the current From selection."""
@@ -553,11 +601,14 @@ class SinglePointTab(QWidget):
         warned = len(result.warnings)
         self._set_status(self.status_text(result), style=AMBER if warned else "")
         if warned:
+            # The message already opens "point 1: ...", because job._convert_row
+            # builds its context from the row identifier. Prefixing the same
+            # identifier again produced "1: point 1: ..." - found by the closing
+            # review gate. The panel's own Warnings row strips the fabricated
+            # identifier entirely; this tooltip shows the message as the core
+            # wrote it, minus the duplicate.
             self.status_label.setToolTip(
-                "\n\n".join(
-                    f"{point_id}: {warning.message}"
-                    for point_id, warning in result.warnings
-                )
+                "\n\n".join(warning.message for _point_id, warning in result.warnings)
             )
         else:
             self.status_label.setToolTip("")

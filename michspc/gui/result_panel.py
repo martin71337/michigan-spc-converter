@@ -82,7 +82,7 @@ class ResultPanel(QScrollArea):
             grid.addWidget(self._title_label(section.title, container), row, 0, 1, 3)
             row += 1
             for value in section.values:
-                self._add_value_row(grid, container, value, row)
+                self._add_value_row(grid, container, value, row, section.title)
                 row += 1
 
         grid.setColumnStretch(VALUE_COLUMN, 1)
@@ -117,8 +117,27 @@ class ResultPanel(QScrollArea):
         return label
 
     def _add_value_row(
-        self, grid: QGridLayout, container: QWidget, value: ResultValue, row: int
+        self,
+        grid: QGridLayout,
+        container: QWidget,
+        value: ResultValue,
+        row: int,
+        section_title: str,
     ) -> None:
+        """One label / value / Copy row.
+
+        ``section_title`` is carried in solely for the tooltip. Both sections
+        can hold a row called "Northing" - the typed one and the converted one -
+        and the closing review gate found that two identical-looking Copy
+        buttons beside two identically-named rows is a direct route to pasting
+        an unconverted number as the converted coordinate. Naming the section is
+        the cheapest honest disambiguation.
+
+        The INPUT rows keep their Copy buttons rather than losing them: in a
+        State-Plane-to-geodetic job EVERY factor sits under INPUT, because there
+        is no target zone, and those are exactly the computed values a surveyor
+        needs to lift off the screen.
+        """
         index = len(self.value_labels)
 
         name = QLabel(value.label, container)
@@ -135,7 +154,7 @@ class ResultPanel(QScrollArea):
         button = QToolButton(container)
         button.setText(COPY_BUTTON_TEXT)
         button.setAutoRaise(True)
-        button.setToolTip(f"Copy the {value.label} value to the clipboard")
+        button.setToolTip(f"Copy the {section_title} {value.label} value to the clipboard")
         # The default argument freezes this row's index; ``clicked`` also passes
         # a checked flag, which is swallowed.
         button.clicked.connect(lambda *_ignored, at=index: self._copy(at))

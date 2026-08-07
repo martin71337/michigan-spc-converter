@@ -1478,7 +1478,7 @@ def test_fix_h_a_zone_to_itself_is_a_real_job_and_the_docstring_says_so(window):
     assert window.direction() is Direction.ZONE_TO_ZONE
 
     # The description of it.
-    text = MainWindow.direction.__doc__
+    text = window_module.direction_for.__doc__
     assert "A zone to ITSELF is deliberately not in that list" in text
     assert "not a conversion: geodetic to geodetic" in text
     assert "and a zone to itself" not in text

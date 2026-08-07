@@ -628,6 +628,459 @@ def test_read_records_the_path_and_the_blank_line_count(tmp_path):
 
 
 # ==========================================================================
+# pnezd.parse_typed_point - the single-point seam (docs/DESIGN.md #26)
+#
+# The constraint the whole feature is built on: a typed point and a file row
+# must be incapable of disagreeing, so the typed values go through this same
+# reader. These tests therefore assert that the seam ADDS nothing - no parsing,
+# no validation, no convention of its own - and that the one thing it does add,
+# unconditional quoting, is load-bearing.
+# ==========================================================================
+
+
+def _typed(first, second, elevation, source=pnezd.TYPED_POINT_SOURCE_GRID):
+    """Shorthand for the seam under test, at its grid-entry source."""
+    return pnezd.parse_typed_point(first, second, elevation, source=source)
+
+
+def _unquoted_typed_line(first, second, elevation):
+    """What the seam would build if it did NOT quote. The falsification target.
+
+    Identical to ``parse_typed_point``'s own construction except for the
+    quoting, so a test that passes against this one is not testing the quoting.
+    """
+    return ",".join([pnezd.TYPED_POINT_ID, first, second, elevation])
+
+
+def test_parse_typed_point_yields_one_row_through_the_reader():
+    """Four quoted fields, one line, one row - and no digest.
+
+    Hand-derived from the construction: the line is
+    '"1","780000.000","13123359.580","800.00"', which csv reads as exactly four
+    fields, so parse_lines takes the fourth as the elevation and leaves the
+    description empty (fields[4:] is the empty list).
+
+    sha256 is None because parse_lines was handed already-decoded text: no bytes
+    passed through this program, so there is nothing it can honestly certify
+    (PnezdFile.sha256's own docstring).
+    """
+    parsed = _typed("780000.000", "13123359.580", "800.00")
+
+    assert len(parsed.rows) == 1
+    row = parsed.rows[0]
+    # Hand-derived: the four fields, verbatim, read as float() reads them.
+    assert row.northing == 780000.0
+    assert row.easting == 13123359.58
+    assert row.elevation == 800.0
+    assert row.description == ""
+    assert parsed.sha256 is None
+
+
+def test_parse_typed_point_gives_the_point_the_identifier_the_reader_needs():
+    """TYPED_POINT_ID is "1", and parse_lines refuses a blank identifier.
+
+    It also reaches the screen: job._convert_row builds every warning's context
+    as f"point {row.point_id}", so an empty identifier would surface as
+    "point : an easting of ...".
+    """
+    parsed = _typed("780000.000", "13123359.580", "800.00")
+
+    # Hand-derived from the module constant.
+    assert pnezd.TYPED_POINT_ID == "1"
+    assert parsed.rows[0].point_id == "1"
+
+
+@pytest.mark.parametrize(
+    "text, expected_elevation, expected_was_zero",
+    [
+        # The reader's own convention, unchanged: blank is absent and was not a
+        # zero; an explicit "0.00" is absent and WAS a zero; anything else is
+        # the number itself.
+        ("", None, False),
+        ("0.00", None, True),
+        ("812.40", 812.4, False),
+    ],
+)
+def test_parse_typed_point_uses_the_readers_elevation_convention(
+    text, expected_elevation, expected_was_zero
+):
+    """No special case in the seam: _parse_elevation already decides all three.
+
+    Hand-derived from pnezd._parse_elevation: "" is in _ABSENT_ELEVATION_TEXT so
+    it returns (None, False); "0.00" parses to 0.0 and hits the `value == 0.0`
+    branch, returning (None, True); "812.40" parses to 812.4 and is returned as
+    itself with the flag False.
+    """
+    row = _typed("780000.000", "13123359.580", text).rows[0]
+
+    assert row.elevation == expected_elevation
+    assert row.elevation_was_zero is expected_was_zero
+
+
+@pytest.mark.parametrize(
+    "source",
+    [pnezd.TYPED_POINT_SOURCE_GRID, pnezd.TYPED_POINT_SOURCE_GEODETIC],
+)
+def test_parse_typed_point_refusals_name_the_typed_source(source):
+    """A refusal must not say "<text>", and must name the right columns.
+
+    parse_lines writes `path` at the head of every refusal, so passing the
+    typed source is what makes the sentence describe the entry layout the
+    surveyor is actually looking at.
+    """
+    with pytest.raises(pnezd.PnezdError) as raised:
+        pnezd.parse_typed_point("not a number", "13123359.580", "800.00", source=source)
+
+    message = str(raised.value)
+    # Hand-derived: parse_lines interpolates `path` first, then ", line 1: ".
+    assert message.startswith(f"{source}, line 1:")
+    assert "<text>" not in message
+
+
+def test_parse_typed_point_names_the_geodetic_columns_when_that_is_the_layout():
+    """The two source constants differ in exactly the columns they name.
+
+    A surveyor who typed a longitude must not be told his "easting" is wrong -
+    which is the whole reason `source` is keyword-only with no default.
+    """
+    # Hand-derived from the constants themselves.
+    assert pnezd.TYPED_POINT_SOURCE_GRID == (
+        "The typed point (northing, easting, elevation)"
+    )
+    assert pnezd.TYPED_POINT_SOURCE_GEODETIC == (
+        "The typed point (latitude, longitude, elevation)"
+    )
+
+
+def test_parse_typed_point_has_no_default_source():
+    """Keyword-only AND required: omitting it is a TypeError, not a guess."""
+    with pytest.raises(TypeError):
+        pnezd.parse_typed_point("780000.000", "13123359.580", "800.00")
+
+    # And it cannot be passed positionally either, so no call site can supply
+    # it by accident in the wrong slot.
+    with pytest.raises(TypeError):
+        pnezd.parse_typed_point(
+            "780000.000", "13123359.580", "800.00", pnezd.TYPED_POINT_SOURCE_GRID
+        )
+
+
+@pytest.mark.parametrize(
+    "first, second, elevation, expected_n, expected_e, expected_z",
+    [
+        # A grouped northing. 780,000.000 with the separators removed is
+        # 780000.000, and the other two fields are untouched.
+        ("780,000.000", "13123359.580", "800.00", 780000.0, 13123359.58, 800.0),
+        # A grouped easting. 13,123,359.580 -> 13123359.580.
+        ("780000.000", "13,123,359.580", "800.00", 780000.0, 13123359.58, 800.0),
+        # A grouped elevation. 1,800.00 -> 1800.00.
+        ("780000.000", "13123359.580", "1,800.00", 780000.0, 13123359.58, 1800.0),
+    ],
+)
+def test_a_comma_in_a_typed_field_never_shifts_a_column(
+    first, second, elevation, expected_n, expected_e, expected_z
+):
+    """The quoting, stated as the property it buys.
+
+    A typed field is one field by construction - a text box cannot hold a
+    delimiter - so a comma inside one is a thousands separator and nothing else.
+    Quoted, csv keeps the field whole and the comma survives into
+    _parse_number's grouped-number branch, which honours it. Every value below
+    is hand-derived by deleting the separators, which is exactly what
+    _GROUPED_NUMBER licenses.
+    """
+    row = _typed(first, second, elevation).rows[0]
+
+    assert row.northing == expected_n
+    assert row.easting == expected_e
+    assert row.elevation == expected_z
+
+
+def test_without_the_quoting_a_typed_grouped_northing_shifts_every_column():
+    """The falsification: the same three fields, built unquoted.
+
+    Run against ``_unquoted_typed_line`` on 2026-08-07, this is what came back
+    for a typed northing of "780,000.000", easting "13221442.048" and a blank
+    elevation - the amendment's own counterexample:
+
+        line     '1,780,000.000,13221442.048,'
+        parsed   N=780.0  E=0.0  Z=13221442.048  desc=''
+
+    A northing 779,220 feet from the one the surveyor typed, an easting of
+    zero, and the easting sitting in the elevation column - accepted without a
+    murmur. _refuse_ambiguous_grouping cannot catch it: its second condition is
+    a description beginning with a bare number, and a typed point's description
+    is empty.
+
+    The other unquoted combinations were refused rather than mis-read, with the
+    ambiguous-grouping message - which is still wrong, because the quoted
+    builder ACCEPTS all three and reads them exactly as typed (the test above).
+    So the quoting is not defence-in-depth; it is what makes a grouped typed
+    number mean what it says.
+    """
+    shifted = pnezd.parse_lines(
+        [_unquoted_typed_line("780,000.000", "13221442.048", "")],
+        path="<unquoted builder>",
+    ).rows[0]
+
+    # Hand-derived from the csv split of '1,780,000.000,13221442.048,':
+    # fields are ['1', '780', '000.000', '13221442.048', ''].
+    assert shifted.northing == 780.0
+    assert shifted.easting == 0.0
+    assert shifted.elevation == 13221442.048
+
+    # And the seam itself, on the same three fields, is not fooled.
+    correct = _typed("780,000.000", "13221442.048", "").rows[0]
+    assert correct.northing == 780000.0
+    assert correct.easting == 13221442.048
+    assert correct.elevation is None
+
+
+def test_parse_typed_point_refuses_a_comma_that_is_not_thousands_grouping():
+    """"1,2" is quoted, survives csv whole, and fails _GROUPED_NUMBER.
+
+    The reader's own teaching message is what must appear - the seam adds no
+    wording of its own, and stripping the comma to make 12 is exactly the
+    silent wrong number this program exists to prevent.
+    """
+    with pytest.raises(pnezd.PnezdError) as raised:
+        _typed("1,2", "13123359.580", "800.00")
+
+    message = str(raised.value)
+    # Hand-derived from _parse_number's grouped-number refusal.
+    assert "thousands separators" in message
+    assert "13,221,442.048" in message
+    assert "northing" in message
+
+
+@pytest.mark.parametrize("text", ["nan", "inf", "-inf", "infinity", "INF", "NaN"])
+def test_parse_typed_point_refuses_nan_and_infinity(text):
+    """float() accepts all of these; none of them is a position.
+
+    Refused by _parse_number's math.isfinite check, at the one entry point, for
+    a typed point exactly as for a file row.
+    """
+    with pytest.raises(pnezd.PnezdError) as raised:
+        _typed(text, "13123359.580", "800.00")
+
+    # Hand-derived from _parse_number's non-finite refusal wording.
+    assert "not a usable number" in str(raised.value)
+
+
+def test_parse_typed_point_doubles_an_embedded_double_quote():
+    """CSV's own escape, so a quote inside a typed field cannot open a field.
+
+    Not reachable from a numeric entry box, but the quoting rule is
+    unconditional and must be correct for whatever text arrives. The field
+    below carries both a quote and a comma, which is what makes the test bite:
+    written raw it would be '1"2,3', which csv splits at the comma into '1"2'
+    and '3' and the row shifts one column right. Doubled and quoted it is
+    '"1""2,3"', which csv reads back as the single field 1"2,3.
+
+    So the assertion is that the refusal names the WHOLE typed text. It can
+    only do that if the field survived as one field.
+    """
+    with pytest.raises(pnezd.PnezdError) as raised:
+        _typed('1"2,3', "13123359.580", "800.00")
+
+    message = str(raised.value)
+    # Hand-derived from _parse_number's grouped-number refusal, which is what a
+    # field containing a comma reaches: it quotes `cleaned` back verbatim.
+    assert repr('1"2,3') in message
+    # Not a quoting complaint - that is what a broken escape would produce.
+    assert "malformed" not in message
+
+
+# ==========================================================================
+# The pathless job: input_path and output_directory as Path | None
+#
+# Four reads are guarded, each raising its own layer's error and saying why.
+# Every test below has an anti-vacuousness half: the SAME result with real
+# paths must go through, or the guard would be indistinguishable from the
+# function being broken.
+# ==========================================================================
+
+
+def _typed_zone_to_zone(**overrides) -> jobmod.JobResult:
+    """A one-point South -> Central job from a typed point and no files."""
+    source = overrides.pop(
+        "source",
+        _typed("780000.000", "13123359.580", "800.00"),
+    )
+    settings = JobSettings(
+        input_path=overrides.pop("input_path", None),
+        output_directory=overrides.pop("output_directory", None),
+        direction=Direction.ZONE_TO_ZONE,
+        source_zone=MI_SOUTH,
+        target_zone=MI_CENTRAL,
+        input_unit=INTERNATIONAL_FEET,
+        output_unit=INTERNATIONAL_FEET,
+        longitude_convention=None,
+        **overrides,
+    )
+    return run(settings, source=source)
+
+
+def test_a_typed_point_converts_with_no_paths_at_all():
+    """The property the whole change exists for: None is a usable statement."""
+    result = _typed_zone_to_zone()
+
+    assert result.settings.input_path is None
+    assert result.settings.output_directory is None
+    assert len(result.points) == 1
+    # No bytes were read, so nothing is certified - see JobResult.input_sha256.
+    assert result.input_sha256 is None
+
+
+def test_run_with_no_source_and_no_input_path_names_parse_typed_point():
+    """Refused rather than defaulted: there is nothing to read and nothing to
+    convert, and a placeholder path would send pnezd.read at a file nobody
+    named."""
+    settings = JobSettings(
+        input_path=None,
+        output_directory=None,
+        direction=Direction.ZONE_TO_ZONE,
+        source_zone=MI_SOUTH,
+        target_zone=MI_CENTRAL,
+        input_unit=INTERNATIONAL_FEET,
+        output_unit=INTERNATIONAL_FEET,
+        longitude_convention=None,
+    )
+
+    with pytest.raises(ValueError) as raised:
+        run(settings, source=None)
+
+    message = str(raised.value)
+    assert "parse_typed_point" in message
+    assert "nothing to convert" in message
+
+
+def test_run_with_no_input_path_but_a_source_is_fine(tmp_path):
+    """Anti-vacuousness for the guard above: the same settings, with rows."""
+    result = run(
+        JobSettings(
+            input_path=None,
+            output_directory=None,
+            direction=Direction.ZONE_TO_ZONE,
+            source_zone=MI_SOUTH,
+            target_zone=MI_CENTRAL,
+            input_unit=INTERNATIONAL_FEET,
+            output_unit=INTERNATIONAL_FEET,
+            longitude_convention=None,
+        ),
+        source=_typed("780000.000", "13123359.580", "800.00"),
+    )
+
+    assert len(result.points) == 1
+
+
+def test_output_stem_refuses_a_job_that_came_from_no_file(tmp_path):
+    """Every member of the archive is named after the input file."""
+    with pytest.raises(WriteError) as raised:
+        exports.output_stem(_typed_zone_to_zone())
+
+    assert "input_path is None" in str(raised.value)
+
+    # Anti-vacuousness: the same job, given a real path, is named as usual.
+    named = _typed_zone_to_zone(
+        input_path=tmp_path / "24-118-topo.txt",
+        output_directory=tmp_path / "out",
+    )
+    # Hand-derived from output_stem: "<input stem>_<target zone abbrev>", and
+    # MI_CENTRAL's abbreviation is what the registry carries.
+    assert exports.output_stem(named) == f"24-118-topo_{MI_CENTRAL.abbrev}"
+
+
+def test_archive_path_refuses_a_job_with_no_output_folder(tmp_path):
+    """Refused rather than falling back on the working directory."""
+    with pytest.raises(WriteError) as raised:
+        exports.archive_path(_typed_zone_to_zone(input_path=tmp_path / "job.txt"))
+
+    assert "output_directory is None" in str(raised.value)
+
+    # Anti-vacuousness: with a folder, the deliverable is named.
+    named = _typed_zone_to_zone(
+        input_path=tmp_path / "job.txt", output_directory=tmp_path / "out"
+    )
+    assert exports.archive_path(named) == tmp_path / "out" / (
+        f"job_{MI_CENTRAL.abbrev}.zip"
+    )
+
+
+def test_destination_paths_refuses_a_pathless_job(tmp_path):
+    """destination_paths reaches both guards through archive_path/output_stem.
+
+    Checked rather than assumed: this is the function the GUI's overwrite check
+    calls, so a None slipping through here would reach a path comparison.
+    """
+    with pytest.raises(WriteError):
+        exports.destination_paths(_typed_zone_to_zone())
+
+    # Anti-vacuousness: exactly one destination, the archive, when paths exist.
+    named = _typed_zone_to_zone(
+        input_path=tmp_path / "job.txt", output_directory=tmp_path / "out"
+    )
+    assert exports.destination_paths(named) == (exports.archive_path(named),)
+
+
+def test_write_all_refuses_a_pathless_job_and_writes_nothing(tmp_path):
+    """The deliverable path, end to end, on a job that has no deliverable."""
+    with pytest.raises(WriteError):
+        exports.write_all(_typed_zone_to_zone())
+
+    # Nothing was created anywhere the test can see.
+    assert list(tmp_path.iterdir()) == []
+
+    # Anti-vacuousness: the same one-point job, given paths, writes its archive.
+    named = _typed_zone_to_zone(
+        input_path=tmp_path / "job.txt", output_directory=tmp_path / "out"
+    )
+    written = exports.write_all(named)
+    assert written["archive"].exists()
+
+
+def test_build_report_refuses_a_pathless_job(tmp_path):
+    """The record names the file it read and the folder it wrote to.
+
+    Neither line can be written from None, and neither may be substituted: this
+    document is what a sealed survey is defended with.
+    """
+    with pytest.raises(ValueError) as raised:
+        report.build_report(_typed_zone_to_zone())
+
+    message = str(raised.value)
+    assert "input_path=None" in message
+    assert "output_directory=None" in message
+
+    # Anti-vacuousness: with both paths the record is built and names them.
+    named = _typed_zone_to_zone(
+        input_path=tmp_path / "job.txt", output_directory=tmp_path / "out"
+    )
+    text = report.build_report(named)
+    assert str(tmp_path / "job.txt") in text
+    assert str(tmp_path / "out") in text
+
+
+@pytest.mark.parametrize(
+    "input_path, output_directory",
+    [
+        # Half-pathless is refused too, from whichever end is missing.
+        (None, Path("out")),
+        (Path("job.txt"), None),
+    ],
+)
+def test_build_report_refuses_when_either_path_alone_is_missing(
+    input_path, output_directory
+):
+    with pytest.raises(ValueError):
+        report.build_report(
+            _typed_zone_to_zone(
+                input_path=input_path, output_directory=output_directory
+            )
+        )
+
+
+# ==========================================================================
 # formatting.py
 # ==========================================================================
 
@@ -934,6 +1387,182 @@ def test_longitude_positive_west_flips_the_sign():
     assert fmt.longitude(-84.36666667, positive_west=True) == "84.36666667"
     # And the default is untouched, since a silent flip here is 340 miles.
     assert fmt.longitude(-84.36666667) == "-84.36666667"
+
+
+# --------------------------------------------------------------------------
+# latitude_dms / longitude_dms - the owner's format (docs/DESIGN.md #26)
+#
+# 42 deg 43' 57.00000" N and -84 deg 33' 19.80000" W, with the degree, minute
+# and second symbols and a trailing HEMISPHERE LETTER. The letter is geographic
+# and the numeric sign is the convention in force, which is what lets a
+# zone-to-zone job - which never asks for a convention - show a longitude at
+# all.
+# --------------------------------------------------------------------------
+
+
+def test_latitude_dms_is_the_owners_format():
+    """42.7325 degrees north.
+
+        42.7325 x 3600 = 153,837.0 seconds exactly
+            42 x 3600 = 151,200; 0.7325 x 3600 = 2,637.0
+        153,837.0 / 3600 = 42 degrees remainder 2,637.0
+            42 x 3600 = 151,200; 153,837.0 - 151,200 = 2,637.0
+        2,637.0 / 60 = 43 minutes remainder 57.0
+            43 x 60 = 2,580; 2,637.0 - 2,580 = 57.0
+
+    so 42 deg, 43 min, 57.00000 s, north of the equator and positive, giving no
+    sign character - the owner's example verbatim.
+    """
+    # Hand-derived above.
+    assert fmt.latitude_dms(42.7325) == "42°43'57.00000\"N"
+
+
+def test_longitude_dms_is_the_owners_format():
+    """-84.5555 degrees, i.e. 84.5555 west.
+
+        84.5555 x 3600 = 304,399.8 seconds
+            84 x 3600 = 302,400; 0.5555 x 3600 = 1,999.8
+        304,399.8 / 3600 = 84 degrees remainder 1,999.8
+        1,999.8 / 60 = 33 minutes remainder 19.8
+            33 x 60 = 1,980; 1,999.8 - 1,980 = 19.8
+
+    so 84 deg, 33 min, 19.80000 s, and the letter is W because the signed value
+    is negative under the program's own negative-west storage.
+
+    No minus sign: the letter already says west, and the owner corrected his
+    own first sketch on exactly this point - a sign beside the letter reads as
+    a double negative (docs/DESIGN.md amendment #26).
+    """
+    # Hand-derived above.
+    assert fmt.longitude_dms(-84.5555) == "84°33'19.80000\"W"
+
+
+def test_longitude_dms_is_convention_independent():
+    """A DMS longitude is magnitude plus a letter, so no convention can move it.
+
+    That is why ``longitude_dms`` takes no ``positive_west`` flag while its
+    decimal-degrees sibling still must: a bare number has to pick a sign, and a
+    magnitude-with-a-letter does not.
+    """
+    # Hand-derived from the derivation above.
+    assert fmt.longitude_dms(-84.5555) == "84°33'19.80000\"W"
+
+    # The flag does not exist, so the two conventions cannot disagree here.
+    with pytest.raises(TypeError):
+        fmt.longitude_dms(-84.5555, positive_west=True)
+
+    # The decimal-degrees sibling still carries the convention, and still shows
+    # a sign, which is the asymmetry this test exists to record.
+    assert fmt.longitude(-84.5555) == "-84.55550000"
+    assert fmt.longitude(-84.5555, positive_west=True) == "84.55550000"
+
+
+def test_latitude_dms_south_of_the_equator_reads_s():
+    """-20.5 degrees.
+
+        20.5 x 3600 = 73,800 seconds exactly
+        73,800 / 3600 = 20 degrees remainder 0
+        0 / 60 = 0 minutes remainder 0
+    """
+    # Hand-derived above; negative, so the letter is S - and no sign, because
+    # the letter already says south.
+    assert fmt.latitude_dms(-20.5) == "20°30'00.00000\"S"
+
+
+def test_longitude_dms_east_of_greenwich_reads_e():
+    """+2.25 degrees, which under negative-west storage is genuinely east.
+
+        2.25 x 3600 = 8,100 seconds exactly
+        8,100 / 3600 = 2 degrees remainder 900
+        900 / 60 = 15 minutes remainder 0
+
+    The degrees field is two characters wide, so 2 prints as "02".
+    """
+    # Hand-derived above.
+    assert fmt.longitude_dms(2.25) == "02°15'00.00000\"E"
+
+
+def test_the_dms_formatters_of_none_are_not_available():
+    """An absent value is "N/A" here as everywhere else - never a blank, never
+    a plausible zero on the equator."""
+    assert fmt.latitude_dms(None) == "N/A"
+    assert fmt.longitude_dms(None) == "N/A"
+    assert fmt.latitude_dms(None) == fmt.NOT_AVAILABLE
+    assert fmt.longitude_dms(None) == fmt.NOT_AVAILABLE
+
+
+def test_the_dms_formatters_default_to_five_decimals_of_a_second():
+    """The owner asked for five (docs/DESIGN.md amendment #26).
+
+    One second of latitude is about 30.9 m, so the fifth decimal is about
+    0.3 mm - finer than any coordinate this program writes.
+    """
+    latitude = fmt.latitude_dms(42.7325)
+    longitude = fmt.longitude_dms(-84.5555)
+
+    # Hand-derived: the seconds field is everything between the apostrophe and
+    # the double quote, and its fractional part must be exactly five digits.
+    for text in (latitude, longitude):
+        seconds = text.split("'")[1].split('"')[0]
+        assert len(seconds.split(".")[1]) == 5
+
+
+def test_dms_seconds_rounding_carries_into_the_next_minute():
+    """The same mechanism angle_dms uses: round once, on the total, before both
+    divmods.
+
+    degrees = 59.9999999 / 3600, i.e. 59.9999999 seconds.
+    round(59.9999999, 5) = 60.00000, which is a whole minute.
+        60.00000 / 3600 = 0 degrees remainder 60.00000
+        60.00000 / 60   = 1 minute remainder 0.00000
+    so 0 degrees, 1 minute, 00.00000 seconds - never "00 deg 00' 60.00000"".
+    """
+    # Hand-derived above.
+    assert fmt.latitude_dms(59.9999999 / 3600.0) == "00°01'00.00000\"N"
+    assert "60.00000" not in fmt.latitude_dms(59.9999999 / 3600.0)
+
+
+def test_dms_minute_rounding_carries_into_the_next_degree():
+    """degrees = 3599.999999 / 3600, i.e. 3599.999999 seconds.
+
+    round(3599.999999, 5) = 3600.00000 seconds.
+        3600.00000 / 3600 = 1 degree remainder 0.00000
+        0.00000 / 60      = 0 minutes remainder 0.00000
+    """
+    # Hand-derived above.
+    result = fmt.longitude_dms(-3599.999999 / 3600.0)
+    assert result == "01°00'00.00000\"W"
+    assert "60" not in result
+
+
+def test_the_dms_formatters_take_a_seconds_precision_like_angle_dms():
+    """43.8 degrees at zero decimals.
+
+        43.8 x 3600 = 157,680 seconds exactly
+        157,680 / 3600 = 43 degrees remainder 0
+        0 / 60 = 0 minutes remainder 0
+
+    At seconds_decimals=0 the seconds field is two characters wide, matching
+    angle_dms's own width rule.
+    """
+    # Hand-derived above.
+    assert fmt.latitude_dms(43.8, seconds_decimals=0) == "43°48'00\"N"
+
+
+def test_angle_dms_still_defaults_to_two_decimals_of_a_second():
+    """Anti-regression for the DMS work above: angle_dms was not touched.
+
+    exports.audit_rows reads it for the two convergence columns (the "Source
+    convergence" and "Convergence" cells) and the job record reads it too, so a
+    changed default here would silently reformat both of those files.
+    """
+    import inspect
+
+    signature = inspect.signature(fmt.angle_dms)
+    # Hand-derived from formatting.py's declaration: seconds_decimals = 2.
+    assert signature.parameters["seconds_decimals"].default == 2
+    # And the string it produces, which is what the two files actually carry.
+    assert fmt.angle_dms(0.25) == "+00 15 00.00"
 
 
 def test_geoid_height_is_three_decimal_places():

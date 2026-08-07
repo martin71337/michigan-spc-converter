@@ -185,6 +185,21 @@ def _zone_block(zone, label: str) -> list[str]:
 def build_report(result: JobResult) -> str:
     """Render the job record."""
     settings = result.settings
+    if settings.input_path is None or settings.output_directory is None:
+        # The record's INPUT block opens with "File" and its OUTPUT block opens
+        # with "Folder". Neither line can be written from None, and neither may
+        # be filled in with a plausible substitute: this record is what a sealed
+        # survey is defended with, so a file name it never read or a folder it
+        # never wrote to would be a falsehood in the one document that exists to
+        # say what happened (docs/DESIGN.md section 1, amendment #26).
+        raise ValueError(
+            "A job record names the input file it read and the folder it wrote "
+            "to, and this job states it had neither "
+            f"(input_path={settings.input_path!r}, "
+            f"output_directory={settings.output_directory!r}). A job with no "
+            "file, such as a single typed point, is displayed rather than "
+            "recorded."
+        )
     generated = datetime.now(timezone.utc).astimezone()
 
     lines: list[str] = []

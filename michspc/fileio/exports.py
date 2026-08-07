@@ -38,6 +38,19 @@ reader, which is the property `verify_round_trip` below exists to guarantee.
 def output_stem(result: JobResult) -> str:
     """``<input stem>_<zone abbreviation>``, e.g. ``24-118-topo_MI-C``."""
     settings = result.settings
+    if settings.input_path is None:
+        # The stem of every member of the archive is built from the input file's
+        # name, so a job that came from no file cannot be named. Refused rather
+        # than substituting something like "typed" or "untitled": the members
+        # would then claim to describe a file that does not exist, in the one
+        # deliverable a sealed survey is supported by (amendment #26).
+        raise WriteError(
+            "This job states it came from no input file "
+            "(JobSettings.input_path is None), so its export cannot be named - "
+            "every file inside the archive is named after the input file. A "
+            "job with no file, such as a single typed point, is displayed "
+            "rather than written."
+        )
     if settings.direction is Direction.ZONE_TO_GEODETIC:
         suffix = "GEODETIC"
     else:
@@ -375,6 +388,16 @@ def destination_paths(result: JobResult) -> tuple[Path, ...]:
 
 def archive_path(result: JobResult) -> Path:
     """``<output folder>/<stem>.zip`` - the job's single deliverable."""
+    if result.settings.output_directory is None:
+        # Refused rather than falling back on the working directory, which is
+        # wherever the program happened to be started from and is the one place
+        # a surveyor would never look for a deliverable (amendment #26).
+        raise WriteError(
+            "This job states it produces no file "
+            "(JobSettings.output_directory is None), so there is nowhere to "
+            "write its archive. A job with no output folder, such as a single "
+            "typed point, is displayed rather than written."
+        )
     return result.settings.output_directory / f"{output_stem(result)}.zip"
 
 

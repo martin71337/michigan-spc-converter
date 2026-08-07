@@ -29,14 +29,12 @@ never summarised, never replaced with "conversion failed".
 
 from __future__ import annotations
 
-import traceback
 from pathlib import Path
 
 from PySide6.QtCore import QStandardPaths, QUrl, Qt
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QApplication,
-    QComboBox,
     QFileDialog,
     QGridLayout,
     QGroupBox,
@@ -49,27 +47,47 @@ from PySide6.QtWidgets import (
     QPushButton,
     QRadioButton,
     QTableView,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
 
 from michspc import APP_FULL_NAME, APP_NAME
 from michspc.fileio import exports, geoid18
+# Re-exported deliberately, not merely used: these names were defined here
+# before the two-tab split (docs/DESIGN.md amendment #26) and importing them
+# at module level keeps ``michspc.gui.window.UNCHOSEN`` and its neighbours
+# spelled the way every existing caller and test already spells them. One
+# definition, two spellings — never two definitions.
+from michspc.gui.controls import (
+    AMBER,
+    GEODETIC,
+    RED,
+    UNCHOSEN,
+    UNITS_LABEL,
+    UNITS_LABEL_ELEVATION_ONLY,
+    direction_for,
+    longitude_combo,
+    longitude_is_relevant,
+    show_failure_dialog,
+    unit_combo,
+    zone_combo,
+)
 from michspc.gui.icon import application_icon
 from michspc.gui.results_model import ResultsModel
+from michspc.gui.single_point import SinglePointTab
 from michspc.job import Direction, JobResult, JobSettings, LongitudeConvention, run
-from michspc.spc.units import ALL_UNITS, INTERNATIONAL_FEET
-from michspc.spc.zones import ALL_ZONES, Zone
+from michspc.spc.zones import Zone
 
 WINDOW_TITLE = f"{APP_NAME} - {APP_FULL_NAME}"
 
-UNCHOSEN = "unchosen"
-"""Sentinel for a dropdown the user has not answered yet.
+SINGLE_POINT_TAB = "Single point"
+MULTI_POINT_TAB = "Multi point"
+"""The two tab captions, in the order the owner chose.
 
-Not the same thing as a default. A combo box that opens on a real value has
-answered a question the user was never asked, which is precisely the failure the
-longitude convention rule exists to prevent, so the zone and convention combos
-open on a placeholder and Convert stays disabled until they are answered.
+Single point is index 0 and the window opens there: it is the everyday case
+(docs/DESIGN.md amendment #26). The file converter is unchanged behind the
+second tab.
 """
 
 INPUT_LABEL = "Input file:"
@@ -104,30 +122,6 @@ exists to ask — and defaulting a question the user was never asked is the
 failure the longitude rule exists to prevent (docs/DESIGN.md section 7).
 """
 
-UNITS_LABEL = "Units:"
-UNITS_LABEL_ELEVATION_ONLY = "Units (elevation only):"
-"""The two spellings of a unit selector's label.
-
-**Both selectors stay enabled in every direction, and that is the honest
-state.** A unit selector is disabled only if it governs nothing, and neither
-one ever governs nothing:
-
-* The INPUT unit reads the input file. When the file is geodetic its columns
-  two and three are degrees and carry no linear unit - but its ELEVATION column
-  still does, and that column is what the elevation factor and the combined
-  factor are computed from. Disabling the selector there would make a wrong
-  foot definition unselectable rather than unnecessary.
-* The OUTPUT unit writes the export. When the export is geodetic the same is
-  true of its elevation column, which is re-expressed into the output unit end
-  to end (WP-R2 fix A) and which the job record's "Units out" and "Precision
-  written" lines both describe.
-
-So what changes is the label, not the enablement: it says "elevation only" on
-the side whose coordinate columns are degrees, and the tooltip says which
-column that is and why it still matters. Greying out a control that is still
-load-bearing would be a worse lie than the unqualified label was.
-"""
-
 UNITS_TOOLTIP_ZONE_IN = (
     "The unit the input file's northing, easting and elevation columns are "
     "written in."
@@ -147,31 +141,6 @@ UNITS_TOOLTIP_GEODETIC_OUT = (
     "ELEVATION column only - the elevation is re-expressed into it, and the "
     "job record says so."
 )
-
-GEODETIC = "geodetic"
-"""Sentinel for "this side of the conversion is latitude/longitude, not a zone".
-
-Carried in the same dropdown as the zones because the direction of a job is
-exactly the question "what is it coming from, and what is it going to" — the
-program converts zone to zone, geodetic to zone, and zone to geodetic
-(docs/DESIGN.md section 2), and one pair of dropdowns states all three.
-"""
-
-_RED = "color: #B00020;"
-_AMBER = "color: #8A5A00;"
-"""The status line's two severity colours, and the only stylesheet in the
-program. Red = actually wrong (a refusal). Amber = look at this (warnings were
-raised). A clean run is the system's ordinary text colour. Nothing else is
-coloured (docs/method/METHOD.md section 5).
-
-Both are darkened against a light background rather than pure red/orange so the
-text stays legible; the hue is what carries the meaning.
-"""
-
-
-def _zone_label(zone: Zone) -> str:
-    """"Michigan South 2113" — built from the registry, never typed out."""
-    return f"{zone.name} {zone.code}"
 
 
 def default_output_directory() -> str:
@@ -230,11 +199,38 @@ class MainWindow(QMainWindow):
         central = QWidget(self)
         layout = QVBoxLayout(central)
 
+        # Index 0 is Single point and the window opens there, which is Qt's own
+        # default for a fresh QTabWidget — deliberately not set explicitly, so
+        # there is one statement of the order (the insertion order below) rather
+        # than two that could disagree.
+        self.tabs = QTabWidget(central)
+        # Fully self-contained: it owns its own zone, unit and longitude-sign
+        # controls and shares no state with this window, so neither tab can
+        # silently alter the other (docs/DESIGN.md amendment #26).
+        self.single_point = SinglePointTab(self.tabs)
+        self.tabs.addTab(self.single_point, SINGLE_POINT_TAB)
+        self.tabs.addTab(self._build_multi_point_tab(), MULTI_POINT_TAB)
+
+        layout.addWidget(self.tabs)
+
+        self.setCentralWidget(central)
+
+    def _build_multi_point_tab(self) -> QWidget:
+        """The file converter, unchanged, in the shape it always had.
+
+        The three blocks below and their order are exactly what ``_build`` used
+        to place directly in the window. Nothing about the multi-point job moved
+        with it — every attribute and method is still where it was, so its tests
+        describe the same object they always did.
+        """
+        page = QWidget(self.tabs)
+        layout = QVBoxLayout(page)
+
         layout.addWidget(self._build_settings())
         layout.addWidget(self._build_table(), 1)
         layout.addLayout(self._build_status_line())
 
-        self.setCentralWidget(central)
+        return page
 
     def _build_settings(self) -> QWidget:
         box = QGroupBox("Conversion", self)
@@ -262,10 +258,10 @@ class MainWindow(QMainWindow):
         grid.addWidget(self.input_hint, 1, 1, 1, 3)
 
         # --- from / to --------------------------------------------------
-        self.from_zone = self._zone_combo(box)
-        self.to_zone = self._zone_combo(box)
-        self.input_unit = self._unit_combo(box)
-        self.output_unit = self._unit_combo(box)
+        self.from_zone = zone_combo(box, self._on_direction_changed)
+        self.to_zone = zone_combo(box, self._on_direction_changed)
+        self.input_unit = unit_combo(box)
+        self.output_unit = unit_combo(box)
 
         # Held as attributes rather than dropped into the layout anonymously:
         # their text follows the From/To selections (see _update_unit_labels).
@@ -284,16 +280,7 @@ class MainWindow(QMainWindow):
 
         # --- longitude sign convention ----------------------------------
         self.longitude_label = QLabel("Longitude sign:", box)
-        self.longitude_combo = QComboBox(box)
-        self.longitude_combo.addItem("— choose —", UNCHOSEN)
-        for convention in LongitudeConvention:
-            self.longitude_combo.addItem(convention.value, convention)
-        self.longitude_combo.setToolTip(
-            "The two conventions are indistinguishable from the numbers alone, "
-            "and choosing wrongly moves a Michigan point about 340 miles. There "
-            "is deliberately no default."
-        )
-        self.longitude_combo.currentIndexChanged.connect(self._update_convert_enabled)
+        self.longitude_combo = longitude_combo(box, self._update_convert_enabled)
 
         grid.addWidget(self.longitude_label, 4, 0)
         grid.addWidget(self.longitude_combo, 4, 1, 1, 3)
@@ -346,34 +333,6 @@ class MainWindow(QMainWindow):
         grid.setColumnStretch(3, 2)
         return box
 
-    def _zone_combo(self, parent) -> QComboBox:
-        """A zone dropdown, built from the registry.
-
-        Zone names are never typed out here — a zone added to
-        ``michspc.spc.zones.ALL_ZONES`` appears in this list with no interface
-        change (docs/DESIGN.md section 6).
-        """
-        combo = QComboBox(parent)
-        combo.addItem("— choose —", UNCHOSEN)
-        combo.addItem("Geodetic (latitude / longitude)", GEODETIC)
-        for zone in ALL_ZONES:
-            combo.addItem(_zone_label(zone), zone)
-        combo.currentIndexChanged.connect(self._on_direction_changed)
-        return combo
-
-    def _unit_combo(self, parent) -> QComboBox:
-        """A unit dropdown, defaulting to Michigan's legislated unit.
-
-        A default is defensible here and not for longitude: the units are stated
-        in every output file, a wrong choice is visible in the magnitudes, and
-        Michigan legislated the International foot (docs/DESIGN.md section 7).
-        """
-        combo = QComboBox(parent)
-        for unit in ALL_UNITS:
-            combo.addItem(unit.name, unit)
-        combo.setCurrentIndex(ALL_UNITS.index(INTERNATIONAL_FEET))
-        return combo
-
     def _build_table(self) -> QTableView:
         self.model = ResultsModel(self)
         self.table = QTableView(self)
@@ -425,31 +384,8 @@ class MainWindow(QMainWindow):
         return Path(text) if text else None
 
     def direction(self) -> Direction | None:
-        """The job this pair of dropdowns describes, or None if it is not one.
-
-        Returns None while either side is unanswered, and for the one
-        combination that is not a conversion: geodetic to geodetic, which has
-        no zone at either end and nothing to project through.
-
-        A zone to ITSELF is deliberately not in that list. It returns
-        ``ZONE_TO_ZONE`` and runs, because it is a real job: the units are
-        selected independently of the zones, so Michigan South in feet to
-        Michigan South in metres is a conversion the surveyor asked for, and
-        even the identity case produces the per-point scale, convergence and
-        combined factors that the audit CSV and the job record exist to report.
-        """
-        source = self.from_zone.currentData()
-        target = self.to_zone.currentData()
-
-        if source == UNCHOSEN or target == UNCHOSEN:
-            return None
-        if source == GEODETIC and target == GEODETIC:
-            return None
-        if source == GEODETIC:
-            return Direction.GEODETIC_TO_ZONE
-        if target == GEODETIC:
-            return Direction.ZONE_TO_GEODETIC
-        return Direction.ZONE_TO_ZONE
+        """This tab's job, per ``controls.direction_for``, which owns the rule."""
+        return direction_for(self.from_zone.currentData(), self.to_zone.currentData())
 
     def longitude_convention(self) -> LongitudeConvention | None:
         data = self.longitude_combo.currentData()
@@ -545,10 +481,7 @@ class MainWindow(QMainWindow):
 
     def _update_longitude_relevance(self) -> None:
         """The selector matters only when geodetic coordinates are involved."""
-        relevant = self.direction() in (
-            Direction.GEODETIC_TO_ZONE,
-            Direction.ZONE_TO_GEODETIC,
-        )
+        relevant = longitude_is_relevant(self.direction())
         self.longitude_label.setEnabled(relevant)
         self.longitude_combo.setEnabled(relevant)
 
@@ -695,7 +628,7 @@ class MainWindow(QMainWindow):
         warned = len(result.warnings)
         self._set_status(
             self.status_text(result),
-            style=_AMBER if warned else "",
+            style=AMBER if warned else "",
         )
         if warned:
             self.status_label.setToolTip(
@@ -716,7 +649,7 @@ class MainWindow(QMainWindow):
         """
         self.last_failure = error
         message = str(error) or repr(error)
-        self._set_status(f"Refused: {message.splitlines()[0]}", style=_RED)
+        self._set_status(f"Refused: {message.splitlines()[0]}", style=RED)
         self.status_label.setToolTip(message)
         self._show_failure(error)
 
@@ -726,26 +659,13 @@ class MainWindow(QMainWindow):
         self.status_label.repaint()
 
     def _show_failure(self, error: BaseException) -> None:
-        """The failure dialog. Overridden in tests, which cannot answer a modal."""
-        box = QMessageBox(self)
-        box.setIcon(QMessageBox.Icon.Critical)
-        box.setWindowTitle(f"{WINDOW_TITLE} — conversion refused")
-        # Plain text for the same reason the status line is: these messages
-        # quote file content back, and no part of a refusal may be rendered
-        # away as markup.
-        box.setTextFormat(Qt.TextFormat.PlainText)
-        box.setText(str(error) or repr(error))
-        box.setInformativeText(
-            "Nothing was written. This message names the problem exactly; it is "
-            "not a summary."
-        )
-        box.setDetailedText(
-            "".join(
-                traceback.format_exception(type(error), error, error.__traceback__)
-            )
-        )
-        box.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        box.exec()
+        """The failure dialog. Overridden in tests, which cannot answer a modal.
+
+        Stays a method because that override is an attribute assignment on the
+        instance; the dialog itself lives in ``controls`` so both tabs raise the
+        identical box.
+        """
+        show_failure_dialog(self, error, WINDOW_TITLE)
 
     def _ask_overwrite(self, existing: list[Path], error: BaseException) -> bool:
         """Ask before replacing files. Overridden in tests."""

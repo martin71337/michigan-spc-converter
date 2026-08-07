@@ -11,6 +11,7 @@ Precision, as specified by the owner:
     grid, elevation, combined factor 8 dp
     convergence angle                degrees-minutes-seconds to 0.01 second
     latitude / longitude             8 dp
+    latitude / longitude in DMS      5 dp of a second, with a hemisphere letter
     geoid height                     3 dp (metres), matching what NGS publishes
 """
 
@@ -112,6 +113,85 @@ def longitude(value: float | None, positive_west: bool = False) -> str:
     if value is None:
         return NOT_AVAILABLE
     return f"{-value if positive_west else value:.8f}"
+
+
+def _dms_magnitude(magnitude: float, seconds_decimals: int) -> str:
+    """``DD°MM'SS.sssss"`` for an unsigned quantity in decimal degrees.
+
+    ``angle_dms`` is deliberately NOT reused here, and not because reuse would
+    be wrong to want. Its output is a different shape - a leading sign, three
+    space-separated fields, no symbols - and it is read as text by the audit CSV
+    and the job record. Building this string by taking that one apart would make
+    one display format depend on another display format's characters, and
+    changing either would silently move the other. ``angle_dms`` is left exactly
+    as it is, at its settled default of 2 decimals (docs/DESIGN.md amendment #26).
+
+    What IS reused is its arithmetic, verbatim and in the same order: the total
+    seconds are rounded ONCE, before both divmods. That ordering is the entire
+    carry mechanism and is why there is no carry guard here either - each divmod
+    returns a remainder strictly smaller than its divisor, and the seconds were
+    already rounded to ``seconds_decimals`` places before the split, so neither
+    boundary can be crossed afterwards. ``angle_dms``'s own docstring records the
+    88,612,997-angle sweep that established this.
+    """
+    total_seconds = round(magnitude * 3600.0, seconds_decimals)
+
+    whole_degrees, remainder = divmod(total_seconds, 3600.0)
+    whole_minutes, seconds = divmod(remainder, 60.0)
+
+    width = 2 if seconds_decimals == 0 else seconds_decimals + 3
+    return (
+        f"{int(whole_degrees):02d}°{int(whole_minutes):02d}'"
+        f"{seconds:0{width}.{seconds_decimals}f}\""
+    )
+
+
+def latitude_dms(value: float | None, seconds_decimals: int = 5) -> str:
+    """``42°43'57.00000"N`` - the owner's format, exactly.
+
+    **Magnitude and a letter, never a sign.** The trailing letter is geographic:
+    N above the equator, S below it. It states the direction completely, so a
+    minus sign beside it would say the same thing twice - and ``-20°...S`` reads
+    like a double negative rather than like a latitude. The owner corrected this
+    during the build (docs/DESIGN.md amendment #26).
+
+    Exactly 0.0 is called N. It is a boundary that does not occur in Michigan,
+    and calling it S would be no more true.
+    """
+    if value is None:
+        return NOT_AVAILABLE
+
+    hemisphere = "S" if value < 0 else "N"
+    return f"{_dms_magnitude(abs(value), seconds_decimals)}{hemisphere}"
+
+
+def longitude_dms(value: float | None, seconds_decimals: int = 5) -> str:
+    """``84°33'19.80000"W`` - the owner's format, exactly.
+
+    ``value`` is the program's own signed, negative-west longitude.
+
+    **Magnitude and a letter, never a sign** - and therefore no convention
+    parameter either. W means the position is in the western hemisphere, which
+    is a fact about the point rather than about how it was written, so it is
+    read from the signed value. The magnitude is the same number under either
+    convention, so a DMS longitude is convention-INDEPENDENT: one Michigan
+    position reads ``84°33'19.80000"W`` whichever way the file writes its signs.
+
+    That is what lets a longitude be shown at all in a zone-to-zone job, which
+    never asks for a convention: there is no sign to interpret, so the interface
+    is not answering a question it was never asked. Its decimal-degrees sibling
+    ``longitude`` still takes ``positive_west``, because a bare number does have
+    to pick one (docs/DESIGN.md amendment #26).
+
+    The owner's first sketch paired a minus with the letter, and he corrected it
+    during the build: the two say the same thing, and together they read as a
+    double negative.
+    """
+    if value is None:
+        return NOT_AVAILABLE
+
+    hemisphere = "W" if value < 0 else "E"
+    return f"{_dms_magnitude(abs(value), seconds_decimals)}{hemisphere}"
 
 
 def geoid_height(value: float | None) -> str:

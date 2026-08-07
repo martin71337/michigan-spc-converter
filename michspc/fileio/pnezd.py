@@ -426,6 +426,82 @@ def parse_lines(lines, path="<text>") -> PnezdFile:
     return PnezdFile(path=Path(path), rows=tuple(rows), skipped_blank_lines=blank)
 
 
+TYPED_POINT_ID = "1"
+"""The identifier a typed point is given before it reaches the reader.
+
+It cannot be blank - ``parse_lines`` refuses a blank identifier, and rightly, so
+that a converted row can always be matched back to the row it came from. And it
+cannot be nothing at all, because ``job._convert_row`` builds every warning's
+context as ``f"point {row.point_id}"`` and that text reaches the screen: a
+typed point that raises the easting-unlike-the-zone warning must say something
+readable rather than "point :". "1" is the shortest thing that is true - this is
+the first and only point of a one-point job.
+"""
+
+TYPED_POINT_SOURCE_GRID = "The typed point (northing, easting, elevation)"
+TYPED_POINT_SOURCE_GEODETIC = "The typed point (latitude, longitude, elevation)"
+"""What ``parse_typed_point``'s refusals call the row, per entry layout.
+
+Every refusal this reader raises begins with the source and names a field by the
+column it sits in, so the source has to say which columns those are. A typed
+geodetic point whose longitude is unreadable must not be told that its "easting"
+is wrong, and neither may be told the problem is in ``<text>``.
+"""
+
+
+def _quote_typed_field(text: str) -> str:
+    """One typed field, as an unambiguous CSV field."""
+    return '"' + text.replace('"', '""') + '"'
+
+
+def parse_typed_point(
+    first: str, second: str, elevation: str, *, source: str
+) -> PnezdFile:
+    """One typed coordinate, rendered as a CSV line and read by ``parse_lines``.
+
+    Does no parsing and no validation of its own. ``parse_lines`` is the single
+    gate every route funnels through - manual entry, imports and file loads alike
+    (docs/method/METHOD.md section 5) - so a typed point is refused by exactly
+    the sentences a file row is refused by, and accepted on exactly the same
+    terms. ``first`` and ``second`` are a northing and an easting, or a latitude
+    and a longitude, according to the job's direction; this function does not
+    need to know which, because the reader does not either.
+
+    **Every field is quoted, unconditionally.** That is load-bearing, not
+    tidiness. A typed field is one field by construction - a text box cannot
+    hold a delimiter - and quoting is what makes the CSV reader agree with that
+    fact. Unquoted, a typed northing of ``780,000.000`` is split at its own
+    comma and the row shifts one column right: it parses cleanly as northing
+    780, easting 0.0, elevation 13,221,442.048 and converts without a murmur.
+    ``_refuse_ambiguous_grouping`` cannot catch it either, because that guard's
+    second condition is a description beginning with a bare number and a typed
+    point has no description at all. Quoted, the same text lands in
+    ``_parse_number``'s existing grouped-number branch, where genuine grouping
+    is honoured and ``1,2`` is refused with the reader's own teaching message.
+
+    So the quoting is a semantic decision: it makes ``780,000.000`` *valid*
+    rather than silently wrong (docs/DESIGN.md amendment #26).
+
+    ``source`` is keyword-only and has no default. It names the row in every
+    refusal, and a default would let a refusal describe the wrong column layout
+    - telling a surveyor who typed a longitude that his easting is unreadable.
+    Callers pass ``TYPED_POINT_SOURCE_GRID`` or ``TYPED_POINT_SOURCE_GEODETIC``.
+
+    The optional-elevation convention needs no special case here: a blank field,
+    "-", "n/a", "na", "null" and "none" all reach ``_parse_elevation``'s absent
+    set, and an explicit "0.00" reaches its explicit-zero branch, exactly as
+    they do from a file.
+    """
+    # Four fields, not five: a typed point has no description (amendment #26,
+    # "no point number and no description - coordinates only"), and four fields
+    # is what parse_lines requires at minimum.
+    line = ",".join(
+        _quote_typed_field(text)
+        for text in (TYPED_POINT_ID, first, second, elevation)
+    )
+    return parse_lines([line], path=source)
+
+
 def read(path: Path) -> PnezdFile:
     """Read and parse a PNEZD file.
 

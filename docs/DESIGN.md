@@ -440,6 +440,106 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #26 — 2026-08-07 — Single point: a second tab that types one coordinate
+
+**Written before the code, as the specification.** Closed at the end of the
+work with what actually landed.
+
+The program converts a *file*. The owner wants the everyday case that makes
+clumsy: one coordinate, typed in, converted, read off the screen — no file to
+prepare, no folder to choose, nothing written. The existing tool becomes the
+**Multi point** tab; the new one is **Single point**.
+
+**The constraint that shapes everything else:** the two tabs must be
+*incapable* of disagreeing about the same point. A surveyor who checks a
+coordinate on one tab and then runs the file through the other must get the same
+numbers — a discrepancy between two views of the same conversion is the tier
+sentence's failure mode arriving by a new road. So the typed values go through
+the **same validation gate** (`pnezd.parse_lines`) and the **same conversion
+function** (`job.run` → `_convert_row`) as a file row. Not a parallel path that
+happens to agree today.
+
+**Owner's decisions.** Two tabs, Single point at index 0 and the window opens
+there. Tabs are **fully self-contained** — each carries its own zone, unit and
+longitude-sign controls and shares no state, so neither can silently alter the
+other. No export, no file, no output folder on the single-point tab: a results
+display only. No point number and no description — coordinates only. Elevation
+optional, on the file reader's own convention. The input is **either N/E/Z or
+geodetic, never both**; the entry fields relabel by direction. A Convert button,
+not live-as-you-type. Latitude and longitude in **both** decimal degrees and
+DMS, DMS to **five decimal places of a second**. A small copy button beside each
+output value and one Copy all.
+
+**Latitude and longitude in DMS are magnitude plus a hemisphere letter, never a
+sign.** The owner's format: `42°43'57.00000"N`, `84°33'19.80000"W`. His first
+sketch paired a minus with the letter — `-84°33'19.80000"W` — and he corrected
+it during the build: the two say the same thing, and together they read as a
+double negative. The letter alone states the direction completely.
+
+A consequence worth stating, because it is what makes the format work: a DMS
+longitude is **convention-independent**. The magnitude is the same number
+whichever way the file writes its signs, and the letter is geographic — always
+`W` in Michigan — so one position reads `84°33'19.80000"W` under both
+conventions. `longitude_dms` therefore takes no `positive_west` parameter at
+all, while its decimal-degrees sibling `longitude` still must, because a bare
+number has to pick a sign. The letter is read from the **signed** value the
+core stores, never from the displayed number: handed a user's positive-west
+`84.5555` with nothing said about the convention, the formatter could only call
+it east, and a Michigan longitude labelled "east" is the quiet falsehood this
+program exists to refuse.
+
+That letter also replaces what would otherwise have been a separate "longitude
+sign" row, and it answers a real problem: a zone-to-zone job never asks for a
+convention (`job.run` refuses `None` only for the geodetic directions) yet its
+result shows a longitude. With no sign to interpret, the interface is not
+answering a question it was never asked.
+
+**Results layout, decided by the owner.** The general rule is that computed
+values independent of the target zone appear under OUTPUT; the factors that
+describe the *typed* State Plane coordinate stay under INPUT.
+
+| Direction | INPUT | OUTPUT |
+|---|---|---|
+| zone → zone | zone, units, N, E, Z, source grid scale factor, source convergence | target zone, units, N, E, Z, latitude and longitude (DD and DMS), grid scale factor, convergence, geoid height, ellipsoid height, elevation factor, combined factor, warnings |
+| SPC → geodetic | zone, units, N, E, Z, grid scale factor, convergence, geoid height, ellipsoid height, elevation factor, combined factor | latitude and longitude (DD and DMS), elevation, units, warnings |
+| geodetic → SPC | latitude and longitude as typed (DD and DMS), elevation, units | target zone, units, N, E, Z, grid scale factor, convergence, geoid height, ellipsoid height, elevation factor, combined factor, warnings |
+
+In SPC → geodetic there is no target zone at all, so every factor describes the
+typed point and none of them belong on the output side. Warnings are the last
+OUTPUT row in **all three** directions, including the one the owner did not list
+— a layout rule that hides a warning in one direction is not a layout rule.
+
+**`JobSettings.input_path` and `.output_directory` become `Path | None`** —
+still required, still without defaults, the idiom `longitude_convention` already
+uses: `None` is a statement, not an absence. `run` never reads
+`output_directory` and reads `input_path` only when no parsed source was handed
+in, so a typed point can state honestly that it came from no file and produces
+none. The alternative was a fabricated placeholder path, which is the plausible
+default §1 forbids. Four reads are guarded, each raising its own layer's error:
+`run`, `exports.output_stem`, `exports.archive_path`, `report.build_report`.
+
+**Every typed field is quoted before it reaches the reader.** A typed field is
+one field by construction — a `QLineEdit` cannot contain a delimiter — and
+quoting is what makes the CSV reader agree with that fact. Unquoted, a typed
+`780,000.000` northing shifts every column right: the row parses cleanly as
+N=780, E=0.0, Z=13221442.048 and converts, and the ambiguous-grouping guard
+cannot catch it because a typed point has no description for that guard to
+inspect. Quoted, the same text lands in `_parse_number`'s existing
+grouped-number branch, where genuine grouping is honoured and `1,2` is refused
+with the reader's own teaching message. This is a real semantic decision — it
+makes `780,000.000` *valid* rather than silently wrong — and it is pinned by a
+test falsified against an unquoted builder.
+
+**Rejected: a second job-layer entry point.** A `convert_one()` would have to
+restate the direction/zone validation and the longitude refusal, and two copies
+of those rules is exactly the divergence this feature is forbidden to create.
+The two tabs call the same function object.
+
+**Rejected: a validator on the entry fields.** A `QDoubleValidator` is a second
+validation gate that rejects silently, which inverts both "one entry point per
+data path" and "refusals teach". Non-numeric text travels to the reader and
+comes back as the reader's own sentence naming the field and the line.
+
 ### #25 — 2026-08-07 — 0.2.0: renamed MCX, publisher corrected, lettering removed
 
 Three owner directives, one release. **No computation changed**; the suite is

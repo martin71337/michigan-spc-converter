@@ -75,8 +75,32 @@ class LongitudeConvention(Enum):
 class JobSettings:
     """Everything the user chose. Recorded verbatim in the job record."""
 
-    input_path: Path
-    output_directory: Path
+    input_path: Path | None
+    """The file these coordinates were read from.
+
+    **Required, with no default**, the idiom ``longitude_convention`` already
+    uses below. ``None`` is a statement, not an absence: "this job came from no
+    file". A single typed point says exactly that, and the alternative - a
+    fabricated placeholder path - is the plausible default docs/DESIGN.md
+    section 1 forbids, because it would put a file name that was never read into
+    the job record's INPUT block (amendment #26).
+
+    Every read of this field is guarded, and each guard raises its own layer's
+    error rather than letting ``None`` travel: ``run`` needs it only when no
+    parsed source was handed in, and ``exports.output_stem`` and
+    ``report.build_report`` refuse without it.
+    """
+
+    output_directory: Path | None
+    """The folder this job's archive is written into.
+
+    **Required, with no default**, and ``None`` is again a statement: "this job
+    produces no file". The single-point path converts and displays, writing
+    nothing at all, so it has no folder to name and does not invent one.
+    ``run`` never reads this field; ``exports.archive_path`` and
+    ``report.build_report`` refuse without it (amendment #26).
+    """
+
     direction: Direction
 
     source_zone: Zone | None
@@ -254,6 +278,19 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
             "GIS and NGS tool writes them negative west, the two are "
             "indistinguishable from the numbers alone, and choosing wrongly "
             "moves a Michigan point about 340 miles."
+        )
+
+    if source is None and settings.input_path is None:
+        # ``input_path`` is None only because the caller stated this job came
+        # from no file, and no rows arrived either - so there is nothing to
+        # convert and nothing to read. Refused rather than defaulted: a
+        # placeholder path here would send pnezd.read at a file nobody named
+        # (docs/DESIGN.md section 1, amendment #26).
+        raise ValueError(
+            "This job has no input file and no parsed rows, so there is "
+            "nothing to convert. Either give JobSettings an input_path, or "
+            "hand run() a source - michspc.fileio.pnezd.parse_typed_point "
+            "builds one from a single typed coordinate."
         )
 
     parsed = source or pnezd.read(settings.input_path)

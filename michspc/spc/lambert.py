@@ -422,21 +422,54 @@ def inverse(
     longitude = constants.lon_origin + convergence / constants.sin_lat_origin
 
     R = math.hypot(R_prime, E_prime)
+
+    # hypot of two finite doubles can still overflow to infinity, and K/inf is
+    # 0.0, which sends math.log into a bare "math domain error" naming nothing -
+    # reachable from an ordinary finite row through job.run. Guarded before the
+    # logarithm rather than after, and the easting is named because an R this
+    # large is almost always the easting's doing, not the northing's.
+    if not math.isfinite(R) or constants.K / R <= 0.0:
+        raise ApexLatitudeError(
+            f"Northing {northing} m and easting {easting} m are too far from "
+            f"this zone's origin to have a geodetic position: the mapping "
+            f"radius overflows to {R} m. Check that the northing and easting "
+            f"are not transposed, and that the correct zone and unit were "
+            f"selected."
+        )
+
     Q = math.log(constants.K / R) / constants.sin_lat_origin
 
     try:
         sin_lat = _solve_sin_latitude(Q, constants.ellipsoid)
     except ApexLatitudeError as exc:
-        # The solver knows only Q. Re-raise naming the quantity the surveyor
-        # actually typed, in the wording of the adjacent apex refusal above.
+        # The solver knows only Q, so the refusal is composed here where the
+        # surveyor's own numbers are in scope. The sign of Q says WHICH pole was
+        # reached: Q -> +inf is the cone apex above the zone, Q -> -inf is the
+        # far side, which a huge easting reaches without the northing being
+        # unusual at all. Naming the apex in both cases - as this wrapper first
+        # did - tells the surveyor to check the wrong field.
+        if Q > 0.0:
+            reached = (
+                f"is within a rounding step of the apex of the projection cone "
+                f"for this zone"
+            )
+        else:
+            reached = (
+                f"lie so far from this zone's central meridian that the "
+                f"latitude they imply has run off the opposite side of the "
+                f"projection"
+            )
+        subject = (
+            f"Northing {northing} m"
+            if Q > 0.0
+            else f"Northing {northing} m and easting {easting} m"
+        )
         raise ApexLatitudeError(
-            f"Northing {northing} m is within a rounding step of the apex of "
-            f"the projection cone for this zone (the mapping radius is only "
-            f"{R:.3f} m, isometric latitude {Q:.6f}). Every latitude that close "
-            f"to 90 degrees is the same double-precision number, so no geodetic "
-            f"position can be reported for it. Check that the northing and "
-            f"easting are not transposed and that the correct zone and unit "
-            f"were selected."
+            f"{subject} {reached} (the mapping radius is {R:.3f} m, isometric "
+            f"latitude {Q:.6f}). Every latitude that close to a pole is the "
+            f"same double-precision number, so no geodetic position can be "
+            f"reported for it. Check that the northing and easting are not "
+            f"transposed and that the correct zone and unit were selected."
         ) from exc
 
     return GeodeticPoint(

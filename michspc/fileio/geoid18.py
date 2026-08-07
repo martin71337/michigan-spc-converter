@@ -42,6 +42,7 @@ from __future__ import annotations
 import hashlib
 import math
 import struct
+import sys
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -49,7 +50,28 @@ from pathlib import Path
 _HEADER = struct.Struct("<4d3i")
 _HEADER_BYTES = _HEADER.size  # 44
 
-DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+
+def _data_directory() -> Path:
+    """Where the shipped tile lives, frozen or from source.
+
+    PyInstaller sets ``sys._MEIPASS`` to the directory it unpacked the bundle's
+    data files into, and nothing else sets it (docs/method/TOOLING.md). A source
+    run walks up from this module instead: fileio -> michspc -> the repository
+    root, then ``data/``.
+
+    Stated explicitly rather than left to the source-tree walk happening to land
+    in the right place inside a bundle. It very nearly does — a frozen module's
+    ``__file__`` sits under ``sys._MEIPASS`` — but "the frozen program finds its
+    geoid grid" is not a property to hold by coincidence, and
+    ``tests/test_selftest.py`` pins both branches.
+    """
+    bundle = getattr(sys, "_MEIPASS", None)
+    if bundle:
+        return Path(bundle) / "data"
+    return Path(__file__).resolve().parent.parent.parent / "data"
+
+
+DATA_DIR = _data_directory()
 GEOID18_TILE = DATA_DIR / "g2018u3.bin"
 
 GEOID18_TILE_SHA256 = "cd2080f904d168e3356effffc535d5d0c9cd8c2a0019ddb4f40a0e2454ebe3b3"

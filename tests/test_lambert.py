@@ -655,3 +655,94 @@ def test_the_pole_guard_leaves_an_ordinary_michigan_point_untouched():
 
     assert point.northing == pytest.approx(136920.027587, abs=1e-6)
     assert point.easting == pytest.approx(3984537.119006, abs=1e-6)
+
+
+# ---------------------------------------------------------------------------
+# The inverse refusal must name the RIGHT field, and must not leak bare
+# arithmetic on overflow.
+#
+# Found by the narrowing re-confirmation gate (Codex, gate 3), as a defect
+# INTRODUCED by the apex fix itself: the first wrapper turned every
+# ApexLatitudeError from the solver into "northing ... within a rounding step
+# of the apex", which is a statement about the +90 side. A huge EASTING reaches
+# the opposite side with a perfectly ordinary northing, and the refusal then
+# sent the surveyor to check the wrong field. Measured before the fix:
+#
+#     inverse(136920.027586723, 1.7976931348623157e308)
+#         -> "Northing 136920.027586723 m is within a rounding step of the
+#            apex", with Q = -1019.026235 and the offending easting unmentioned
+#     inverse(-1.7976931348623157e308, 1.7976931348623157e308)
+#         -> bare ValueError("math domain error"): hypot overflowed to inf,
+#            K/inf is 0.0, and math.log(0.0) raised. Reachable through job.run
+#            from an ordinary finite PNEZD row.
+# ---------------------------------------------------------------------------
+
+_FLOAT_MAX = 1.7976931348623157e308
+
+
+def test_inverse_names_the_easting_when_the_easting_is_what_ran_off():
+    """Q < 0 is the far side of the projection, not the cone apex."""
+    constants = constants_for(MI_SOUTH)
+
+    with pytest.raises(ApexLatitudeError) as caught:
+        inverse(136920.027586723, _FLOAT_MAX, constants)
+
+    message = str(caught.value)
+    # The offending field must be named - it was omitted entirely before.
+    assert repr(_FLOAT_MAX) in message or f"{_FLOAT_MAX}" in message
+    # And it must NOT claim the ordinary northing is at the cone apex.
+    assert "apex" not in message
+
+
+def test_inverse_still_names_only_the_northing_at_the_real_cone_apex():
+    """The Q > 0 case keeps the wording the apex band always had.
+
+    Hand-derived: 7,031,167.28 m is inside the MI South apex-proximity band
+    measured when that guard was written (its lower edge is about
+    7,031,166 m, the apex itself about 7,031,168 m).
+    """
+    constants = constants_for(MI_SOUTH)
+
+    with pytest.raises(ApexLatitudeError) as caught:
+        inverse(7031167.28, 4000000.0, constants)
+
+    message = str(caught.value)
+    assert "apex of the projection cone" in message
+    assert "7031167.28" in message
+
+
+def test_inverse_refuses_a_mapping_radius_that_overflows_to_infinity():
+    """No bare math-domain error may escape the core.
+
+    hypot of two finite doubles can still overflow; K / inf is 0.0, and
+    math.log(0.0) raises a ValueError naming nothing at all.
+    """
+    constants = constants_for(MI_SOUTH)
+
+    with pytest.raises(ApexLatitudeError) as caught:
+        inverse(-_FLOAT_MAX, _FLOAT_MAX, constants)
+
+    message = str(caught.value)
+    assert "overflows" in message
+    # Both numbers the surveyor supplied are named.
+    assert "1.7976931348623157e+308" in message
+
+
+def test_an_extreme_finite_row_refuses_informatively_through_the_job():
+    """The reviewer's reachability claim: an ordinary finite PNEZD row.
+
+    A row a file can legitimately contain must not produce a raw traceback
+    from deep inside the ellipsoid module.
+    """
+    from michspc.spc.convert import to_geodetic
+
+    with pytest.raises(ApexLatitudeError) as caught:
+        to_geodetic(-_FLOAT_MAX, _FLOAT_MAX, MI_SOUTH)
+
+    # An ApexLatitudeError - and therefore a ValueError, caught wherever the
+    # module's other refusals are - naming both numbers the surveyor supplied.
+    # Asserted on the type, not merely on the absence of one phrase: before the
+    # guard this raised a bare ValueError out of math.log, which is also a
+    # ValueError and would have satisfied a laxer test.
+    assert isinstance(caught.value, ValueError)
+    assert "1.7976931348623157e+308" in str(caught.value)

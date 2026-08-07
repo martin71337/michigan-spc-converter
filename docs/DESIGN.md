@@ -389,6 +389,50 @@ relies on Windows `os.rename` refusing an existing target. POSIX `rename`
 replaces silently. This program ships for Windows (§9); a port would need
 `O_EXCL` or an equivalent.
 
+### #23 — 2026-08-06 — Narrowing re-confirmation: 10 closed, 1 accepted weak, 1 new defect fixed
+
+The closing gate's reviewer re-examined only the fixed surfaces, at commit
+`386763c`, and returned **10 of 11 CLOSED with faithful pins** (full table in
+`review/gate3-output.txt`). It independently re-verified the frozen anchors —
+356 fixture fields compared field-by-field against the raw NGS captures, **zero
+mismatches** — and confirmed the new end-to-end tests bite by seeding three
+defects, including the original feet-in-a-metres-column defect, and watching the
+committed assertions catch each one.
+
+**A defect the fixes introduced, now fixed.** The apex refusal added to
+`lambert.inverse` wrapped *every* `ApexLatitudeError` from the solver in the
+wording "northing … within a rounding step of the apex" — a statement about the
++90° side. But `Q < 0` is the *opposite* side, which an extreme easting reaches
+with a perfectly ordinary northing, so the refusal sent the surveyor to check
+the wrong field and never mentioned the easting at all. Separately,
+`math.hypot` of two finite doubles can overflow to infinity, making `K / R` zero
+and `math.log` raise a bare `ValueError("math domain error")` naming nothing —
+reachable from an ordinary finite PNEZD row through `job.run`.
+
+Both are fixed: the mapping radius is checked for overflow before the logarithm,
+and the refusal now branches on the sign of `Q`, naming the easting when the
+easting is at fault and keeping the original apex wording when it is not. Four
+pins, all falsified — one of which was first written too weakly (it asserted
+only the absence of a phrase, and the pre-fix bare `ValueError` satisfied it),
+caught during falsification and strengthened to assert the exception type.
+
+**Finding 11 accepted as WEAK, deliberately.** The reviewer is right that the
+final rename is not write-through: the archive's *contents* are fsynced and
+CRC-verified before the rename, but the rename's own metadata is not forced to
+stable storage, so a power loss in that window could leave the deliverable
+missing. Not fixed, for three reasons. The failure mode is an **absent** archive,
+never a corrupt or wrong one — the tier sentence is about wrong coordinates
+reaching a drawing, and a job that has to be re-run is not that. Forcing it
+means calling `MoveFileEx` with `MOVEFILE_WRITE_THROUGH` through `ctypes`, which
+is new platform-specific code in the write path that had just passed
+verification. And the window is bounded by the filesystem's own flush interval.
+Recorded here so it is a decision with reasons rather than an oversight, and
+stated plainly in the release notes rather than hidden.
+
+The reviewer also confirmed the rejection of a startup sweep for orphaned
+`.partial` files (#20) as adequately reasoned: a sweep could delete a concurrent
+instance's stage, and a `.partial` file cannot masquerade as a deliverable.
+
 ### #21 — 2026-08-06 — §6 was wrong about SPCS2022, and the extensibility claim did not survive
 
 Both reviewers were asked to attack §6's claim that SPCS2022 "arrives as data

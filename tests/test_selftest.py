@@ -507,7 +507,16 @@ def test_the_installer_script_freezes_one_appid_and_uses_hka_conventions():
     assert "AppVersion={#AppVersion}" in inno
     from michspc import __version__
 
-    assert f"AppVersion={__version__}" not in inno
+    # Comment lines are stripped first. The file documents the ISCC command in
+    # a header comment, and that example necessarily shows a literal version -
+    # which collided with this assertion the moment the version literal became
+    # the same string the example used, failing the release gate on a comment.
+    # The rule being enforced is about DIRECTIVES: no Inno directive may carry
+    # a version this program would otherwise have to keep in step by hand.
+    directives = "\n".join(
+        line for line in inno.splitlines() if not line.lstrip().startswith(";")
+    )
+    assert f"AppVersion={__version__}" not in directives
     # autopf/autoprograms/autodesktop are the HKA-equivalent constants for a
     # per-user-or-admin install; a hardcoded Program Files path or HKLM write
     # fails outright in a per-user install.

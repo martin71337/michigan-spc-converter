@@ -46,7 +46,9 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QFrame,
     QPushButton,
+    QScrollArea,
     QStackedWidget,
     QToolButton,
     QVBoxLayout,
@@ -74,6 +76,7 @@ from michspc.gui.results_model import (
     ResultSection,
     single_point_clipboard_text,
     single_point_sections,
+    single_point_warnings,
 )
 from michspc.job import Direction, JobResult, JobSettings, LongitudeConvention, run
 from michspc.spc.zones import Zone
@@ -150,8 +153,29 @@ INCOMPLETE_FORM = (
     "coordinates are involved — choose the longitude sign convention."
 )
 
+WARNINGS_TITLE = "Warnings"
+
+WARNINGS_MIN_HEIGHT = 34
+WARNINGS_MAX_HEIGHT = 76
+"""How tall the warnings field may be, in logical pixels — about two lines at
+the minimum and four at the maximum, scrolling past that.
+
+Bounded on BOTH sides deliberately. Below the minimum a single warning would
+arrive in a slot too small to read; above the maximum the field would push the
+converted coordinates off a laptop screen at exactly the moment a warning says
+to look at them.
+"""
+
+NO_RESULT_WARNINGS = "—"
+"""What the warnings field shows when there is no result on screen.
+
+Not "none", which is a statement ABOUT a conversion - that this point raised no
+warnings - and would be a lie before one has been run. A dash says the field
+has nothing to report yet, which is the truth.
+"""
+
 ANGLE_FORMAT_LABEL = "Lat/long entry:"
-ANGLE_FORMAT_DECIMAL = "Decimal degrees (43.800)"
+ANGLE_FORMAT_DECIMAL = "Decimal degrees"
 ANGLE_FORMAT_DMS = "Degrees / minutes / seconds"
 DECIMAL_PAGE = 0
 DMS_PAGE = 1
@@ -212,9 +236,11 @@ class SinglePointTab(QWidget):
         settings_box = self._build_settings()
         status_row = self._build_status_line()
         results_panel = self._build_results_panel()
+        warnings_box = self._build_warnings_field()
 
         layout.addWidget(settings_box)
         layout.addWidget(results_panel, 1)
+        layout.addWidget(warnings_box)
         layout.addLayout(status_row)
 
     def _build_settings(self) -> QWidget:
@@ -339,6 +365,67 @@ class SinglePointTab(QWidget):
         self.panel = ResultPanel(self, on_copy=self.copy_value)
         self.copy_all_button.setEnabled(self.panel.sections is not None)
         return self.panel
+
+    def _build_warnings_field(self) -> QGroupBox:
+        """Warnings, full width, in a box of their own beneath the results.
+
+        The owner's shape (docs/DESIGN.md amendment #30). They were the last
+        OUTPUT line of the right-hand column, where a paragraph of prose sat in
+        a column sized for coordinates and pushed every number above it around.
+        Full width is what a sentence needs.
+
+        **No copy button, and not in Copy all.** Also his instruction, and it
+        follows from what the clipboard is for here: the numbers go into CAD or
+        a spreadsheet, and a warning is something to read on the screen and act
+        on. The text is still selectable with the mouse, which is how every
+        other label in this program behaves - that is reading, not a copy
+        control.
+
+        The box is always present rather than appearing with a warning. A field
+        that materialises only sometimes is one a surveyor learns not to look
+        for, and "none" is a result worth stating - it is the good one.
+        """
+        box = QGroupBox(WARNINGS_TITLE, self)
+        layout = QVBoxLayout(box)
+
+        self.warnings_label = QLabel(NO_RESULT_WARNINGS, box)
+        # Plain text and word-wrapped, for the reasons the panel's value labels
+        # are: these messages quote typed input back, and QLabel's AutoText
+        # guess would render a token that looks like a tag away - deleting part
+        # of a warning-grade sentence with nothing said.
+        self.warnings_label.setTextFormat(Qt.TextFormat.PlainText)
+        self.warnings_label.setWordWrap(True)
+        self.warnings_label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        # Top-aligned so one short line sits at the top of the box rather than
+        # floating in the middle of it.
+        self.warnings_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop
+        )
+
+        # **The label goes in a scroll area, and that is a correctness fix.**
+        # A word-wrapped QLabel does not propagate its height-for-width out
+        # through a QGroupBox's layout: the box took the height of ONE line and
+        # clipped the rest, so a three-warning conversion showed its first
+        # sentence and silently dropped the other two. Found by looking at a
+        # warned run rather than by a test, which is why the test that now
+        # covers it measures the rendered label against its own content.
+        #
+        # Scrolling rather than growing without limit: the box sits between the
+        # results and the status line, and a field that expanded to six lines
+        # would push the numbers off a laptop screen exactly when a warning
+        # says to look at them. Nothing is hidden - the text is all there and
+        # reachable, and the status line states the count.
+        self.warnings_scroll = QScrollArea(box)
+        self.warnings_scroll.setWidgetResizable(True)
+        self.warnings_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.warnings_scroll.setWidget(self.warnings_label)
+        self.warnings_scroll.setMinimumHeight(WARNINGS_MIN_HEIGHT)
+        self.warnings_scroll.setMaximumHeight(WARNINGS_MAX_HEIGHT)
+
+        layout.addWidget(self.warnings_scroll)
+        return box
 
     def _build_status_line(self) -> QHBoxLayout:
         row = QHBoxLayout()
@@ -665,12 +752,13 @@ class SinglePointTab(QWidget):
             )
             result = run(settings, source=parsed)
             sections = single_point_sections(result)
+            warnings = single_point_warnings(result)
         except Exception as error:  # noqa: BLE001 - shown in full, then stopped
             self._report_failure(error)
             return False
 
         self.result = result
-        self._render_sections(sections)
+        self._render_sections(sections, warnings)
         self._report_success(result)
         return True
 
@@ -678,14 +766,27 @@ class SinglePointTab(QWidget):
     # The results panel
     # ------------------------------------------------------------------
 
-    def _render_sections(self, sections: tuple[ResultSection, ...] | None) -> None:
+    def _render_sections(
+        self,
+        sections: tuple[ResultSection, ...] | None,
+        warnings: str = NO_RESULT_WARNINGS,
+    ) -> None:
         """Show a result, or ``None`` to empty the panel.
 
         Copy all follows the panel exactly: it is enabled when, and only when,
         there is something on screen to copy.
+
+        The warnings field is driven from here rather than from ``convert``, so
+        that it is emptied by the SAME call that empties the panel. Every route
+        that discards a result - a control changing, a refusal, a fresh run
+        starting - goes through this method, and a warnings field that outlived
+        the numbers it described would be the stale-result failure of amendment
+        #26 in a new place: the surveyor would read "none" beside a blank panel
+        and take it as this point's answer.
         """
         self.panel.render_sections(sections)
         self.copy_all_button.setEnabled(sections is not None)
+        self.warnings_label.setText(warnings)
 
     @property
     def sections(self) -> tuple[ResultSection, ...] | None:

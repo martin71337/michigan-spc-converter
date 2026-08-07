@@ -447,6 +447,83 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #30 — 2026-08-07 — Warnings get their own field; display punctuation
+
+Five owner directives, all interface. The third and fourth introduce the first
+formatters in this program that write pixels and not files, and that separation
+is the load-bearing part of this amendment.
+
+**1. The lat/long entry selector loses its worked example.** `Decimal degrees
+(43.800)` → `Decimal degrees`. The same edit #28 made to the longitude sign
+entries, for the same reason: the parenthesis taught nothing the changing shape
+of the boxes does not.
+
+**2. The longitude sign list is reordered, positive west first.** Declaration
+order in `LongitudeConvention` is what the dropdown offers — `longitude_combo`
+iterates the enum rather than carrying a list of its own — so member order is a
+user-visible fact and is pinned as one. Nothing branches on it; `to_signed` and
+`from_signed` test identity.
+
+**3. Warnings move to a full-width field beneath the results panel.**
+
+They were the last row of the right-hand OUTPUT column, where a paragraph sat in
+a column sized for coordinates. Now they have a `Warnings` box of their own,
+spanning the tab, between the panel and the status line.
+
+**No copy button, and not in Copy all** — his instruction, and it follows from
+what the clipboard is for here: the numbers go into CAD or a spreadsheet, and a
+two-paragraph warning dropped among them has to be deleted there. The text is
+still selectable with the mouse, which is reading rather than a copy control.
+
+`single_point_sections` no longer builds a warnings row, so
+`single_point_clipboard_text` — which serialises those sections and nothing
+else — drops them without a special case. The text comes from
+`single_point_warnings`, a new accessor over the same `_warnings_text` the
+sections used to call, so moving the display did not create a second account of
+what a warning says.
+
+**A defect found by looking at it, not by a test.** A word-wrapped `QLabel` does
+not propagate height-for-width out through a `QGroupBox`'s layout: the box took
+the height of one line and clipped the rest, so a three-warning conversion
+showed one sentence with nothing on screen saying two more existed — in the one
+field whose entire job is to say something is wrong. Fixed with a bounded scroll
+area: nothing is hidden, the text is all reachable, and the field cannot grow
+until it pushes the coordinates off a laptop screen. Pinned by measuring the
+label's laid-out height against the height its own text needs at its own width.
+
+**4. The decimal latitude and longitude carry a degree symbol; the convergence
+angle is shown in DMS notation.** `43.80000000°` and `-16°49'17.78"`.
+
+**These are display-only formatters, and that is not fussiness.**
+`formatting.latitude` and `longitude` write the clean PNEZD export's columns two
+and three, and that file is read back by `pnezd` before the archive may take its
+name (`exports._verify_archive`). `float("43.80000000°")` raises — so a symbol
+in the file formatter would not merely look wrong, it would make **every
+geodetic job refuse to write**, and any file that did survive would be one no
+CAD package could import. `angle_dms` likewise writes the audit CSV's
+Convergence column and the job record.
+
+So `latitude_display`, `longitude_display` and `convergence_display` are built
+**on top of** the file formatters' own output rather than reimplementing the
+number. The screen and the file therefore cannot disagree about a digit; they
+differ in punctuation only, and the agreement tests normalise the punctuation
+and still demand equality rather than skipping those rows. `convergence_display`
+is built on `_dms_magnitude`, the single definition of symbol notation in the
+program, so the three angles on the panel cannot come to punctuate themselves
+differently.
+
+The symbol appears on the INPUT block — which is what the owner named — and on
+the OUTPUT block, because both are built by `_geodetic_values` and one section
+showing `43.8` while the other showed `43.8°` would be two notations for one
+quantity on one screen.
+
+**Verification.** Suite **1120 → 1128**, green in both modes; the frozen-bundle
+self-test passes. Five seeded defects, all caught: the degree symbol moved into
+the file formatter (which fails 12 export and round-trip tests, exactly as the
+argument above predicts), warnings restored to the OUTPUT section, the warnings
+field not cleared when a result is discarded, the convergence returned to space
+notation, and the warnings label put back in the group box unscrolled.
+
 ### #29 — 2026-08-07 — Owner sets two defaults, one of which reverses §7
 
 Two preselections, both asked for by name after using the built version.

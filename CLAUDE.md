@@ -28,8 +28,27 @@ DESIGN.md §10 for why each was deferred.
 ## Status (2026-08-07, all owner edits DONE, merged to main, unreleased)
 
 **Every interface edit the owner asked for is in and merged to `main`. The
-release itself is still not cut.** Three rounds: DESIGN.md **#27**, **#28**,
-**#29**.
+release itself is still not cut.** Four rounds: DESIGN.md **#27**, **#28**,
+**#29**, **#30**.
+
+### Round four (DESIGN.md #30) — warnings move out; display punctuation
+
+1. **Warnings are a full-width field beneath the results panel**, with no copy
+   button and out of Copy all. `single_point_sections` no longer builds the
+   row, so the clipboard drops it without a special case; the text comes from
+   the new `single_point_warnings` over the same `_warnings_text`.
+2. **A defect found by looking, not by a test:** a wrapping `QLabel` does not
+   propagate height-for-width out of a `QGroupBox`, so the field showed ONE
+   line of a three-warning run and clipped the rest. Fixed with a bounded
+   scroll area; pinned by measuring the label against its own content.
+3. **Decimal lat/long carry `°`; convergence reads `-16°49'17.78"`.** These are
+   **display-only** formatters built on top of the file ones. The symbol cannot
+   go in `formatting.latitude`/`longitude`: they write the clean PNEZD export,
+   which is read back before the archive is committed, so a symbol there would
+   make every geodetic job refuse to write.
+4. `Decimal degrees (43.800)` → `Decimal degrees`.
+5. The longitude sign list is **positive west first** — enum declaration order
+   is what the dropdown offers, so it is pinned as a user-visible fact.
 
 ### Round three (DESIGN.md #29) — two defaults, one of which reverses §7
 
@@ -70,8 +89,8 @@ sign entries.
    not built: packed `434759.8` is indistinguishable from an ordinary decimal
    degree, so a file reader would have to guess.
 
-Suite **1031 → 1120** across all three rounds, green in both `pytest` and
-`-O`; frozen-bundle self-test passes. Eleven seeded defects, all caught.
+Suite **1031 → 1128** across all four rounds, green in both `pytest` and `-O`;
+frozen-bundle self-test passes. Sixteen seeded defects, all caught.
 
 ### Round one (DESIGN.md #27), also in
 

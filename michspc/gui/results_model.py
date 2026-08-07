@@ -280,12 +280,18 @@ def _geodetic_values(conversion, positive_west: bool) -> tuple[ResultValue, ...]
     falsehood this program exists to refuse (docs/DESIGN.md amendment #26: the
     letter is "always W in Michigan").
     """
+    #
+    # The two decimal lines use the DISPLAY formatters, which are the file
+    # formatters plus a degree symbol (docs/DESIGN.md amendment #30). The symbol
+    # cannot go in the file ones: they also write the clean PNEZD export, which
+    # is read back before the archive is committed and lands in the surveyor's
+    # CAD package. The DMS lines already carry their own symbols.
     return (
-        ResultValue(LATITUDE_LABEL, fmt.latitude(conversion.latitude)),
+        ResultValue(LATITUDE_LABEL, fmt.latitude_display(conversion.latitude)),
         ResultValue(LATITUDE_DMS_LABEL, fmt.latitude_dms(conversion.latitude)),
         ResultValue(
             LONGITUDE_LABEL,
-            fmt.longitude(conversion.longitude, positive_west=positive_west),
+            fmt.longitude_display(conversion.longitude, positive_west=positive_west),
         ),
         # No convention flag: a DMS longitude is magnitude plus a hemisphere
         # letter, and the magnitude is the same number either way.
@@ -331,9 +337,16 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
     geodetic job has no target zone at all, so all of its factors are on the
     input side.
 
-    Warnings are the last OUTPUT line in all three directions, including the one
-    the owner's table did not list - a layout rule that hides a warning in one
-    direction is not a layout rule.
+    **Warnings are NOT in here.** They were the last OUTPUT line in all three
+    directions until the owner moved them out to a full-width field of their own
+    beneath the panel (docs/DESIGN.md amendment #30). They are still built from
+    the same point, by ``single_point_warnings`` below, so there is one
+    statement of what a warning says - it is only shown somewhere else.
+
+    That also takes warnings out of ``single_point_clipboard_text``, which
+    serialises these sections and nothing else. Deliberate, and his
+    instruction: the clipboard carries the numbers a surveyor pastes into CAD,
+    and a paragraph of prose in the middle of them is what he is removing.
     """
     if len(result.points) != 1:
         raise ValueError(
@@ -348,7 +361,6 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
     conversion = point.conversion
     factors = point.factors
     positive_west = _positive_west(settings)
-    warnings = ResultValue(WARNINGS_LABEL, _warnings_text(point))
 
     if settings.direction is Direction.GEODETIC_TO_ZONE:
         # The file's northing and easting columns hold a latitude and a
@@ -380,10 +392,10 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                     GRID_FACTOR_LABEL, fmt.factor(factors.grid_scale_factor)
                 ),
                 ResultValue(
-                    CONVERGENCE_LABEL, fmt.angle_dms(conversion.target_convergence)
+                    CONVERGENCE_LABEL,
+                    fmt.convergence_display(conversion.target_convergence),
                 ),
                 *_elevation_dependent_values(factors),
-                warnings,
             ),
         )
         return source, target
@@ -409,7 +421,8 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                     GRID_FACTOR_LABEL, fmt.factor(factors.grid_scale_factor)
                 ),
                 ResultValue(
-                    CONVERGENCE_LABEL, fmt.angle_dms(conversion.target_convergence)
+                    CONVERGENCE_LABEL,
+                    fmt.convergence_display(conversion.target_convergence),
                 ),
                 *_elevation_dependent_values(factors),
             ),
@@ -423,7 +436,6 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                     fmt.coordinate(point.output_elevation, settings.output_unit),
                 ),
                 ResultValue(UNITS_LABEL, _units_text(settings.output_unit)),
-                warnings,
             ),
         )
         return source, target
@@ -445,7 +457,8 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                 GRID_FACTOR_LABEL, fmt.factor(conversion.source_scale_factor)
             ),
             ResultValue(
-                CONVERGENCE_LABEL, fmt.angle_dms(conversion.source_convergence)
+                CONVERGENCE_LABEL,
+                fmt.convergence_display(conversion.source_convergence),
             ),
         ),
     )
@@ -462,13 +475,34 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
             *_geodetic_values(conversion, positive_west),
             ResultValue(GRID_FACTOR_LABEL, fmt.factor(factors.grid_scale_factor)),
             ResultValue(
-                CONVERGENCE_LABEL, fmt.angle_dms(conversion.target_convergence)
+                CONVERGENCE_LABEL,
+                fmt.convergence_display(conversion.target_convergence),
             ),
             *_elevation_dependent_values(factors),
-            warnings,
         ),
     )
     return source, target
+
+
+def single_point_warnings(result: JobResult) -> str:
+    """Every warning the single converted point raised, or ``NO_WARNINGS``.
+
+    Separate from ``single_point_sections`` because the owner put warnings in a
+    field of their own (docs/DESIGN.md amendment #30) - but built from the same
+    ``_warnings_text`` the sections used to call, so moving the display did not
+    create a second account of what a warning says.
+
+    Refuses a multi-point job for the same reason ``single_point_sections``
+    does: naming one point's warnings as though they were the whole job's is
+    exactly the kind of quiet mis-statement this program refuses.
+    """
+    if len(result.points) != 1:
+        raise ValueError(
+            f"The single-point warnings field describes one converted point "
+            f"and this job carries {len(result.points)}. Refused rather than "
+            f"showing the first of them."
+        )
+    return _warnings_text(result.points[0])
 
 
 def single_point_clipboard_text(sections: tuple[ResultSection, ...]) -> str:
@@ -481,8 +515,11 @@ def single_point_clipboard_text(sections: tuple[ResultSection, ...]) -> str:
     a comma would collide with the very thousands separators this program
     argues about elsewhere.
 
-    A multi-line warning keeps its own newlines. Flattening them would compress
-    exactly the sentences that explain why the point was flagged.
+    Warnings are not in these sections and so are not in this text, which is
+    the owner's instruction (amendment #30): the clipboard carries the numbers
+    a surveyor pastes into CAD or a spreadsheet, and a paragraph of prose
+    dropped among them has to be deleted there. The warnings field on screen is
+    where they are read.
     """
     blocks = []
     for section in sections:

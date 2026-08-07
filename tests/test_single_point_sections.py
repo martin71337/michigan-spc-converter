@@ -32,6 +32,8 @@ import os
 # pure.
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+from dataclasses import replace  # noqa: E402
+
 import pytest  # noqa: E402
 
 from michspc.fileio import formatting as fmt, pnezd  # noqa: E402
@@ -208,7 +210,6 @@ def test_zone_to_zone_is_the_owners_layout():
         "Ellipsoid height (m)",
         "Elevation factor",
         "Combined factor",
-        "Warnings",
     )
 
 
@@ -243,7 +244,6 @@ def test_zone_to_geodetic_is_the_owners_layout():
         "Longitude (DMS)",
         "Elevation",
         "Units",
-        "Warnings",
     )
 
 
@@ -277,7 +277,6 @@ def test_geodetic_to_zone_is_the_owners_layout():
         "Ellipsoid height (m)",
         "Elevation factor",
         "Combined factor",
-        "Warnings",
     )
 
 
@@ -307,7 +306,7 @@ def test_zone_to_zone_values_are_the_formatters_output():
         "Easting": fmt.coordinate(point.row.easting, settings.input_unit),
         "Elevation": fmt.coordinate(point.row.elevation, settings.input_unit),
         "Grid scale factor": fmt.factor(conversion.source_scale_factor),
-        "Convergence": fmt.angle_dms(conversion.source_convergence),
+        "Convergence": fmt.convergence_display(conversion.source_convergence),
     }
     assert _by_label(target) == {
         "Zone": zone_label(MI_CENTRAL),
@@ -315,17 +314,16 @@ def test_zone_to_zone_values_are_the_formatters_output():
         "Northing": fmt.coordinate(point.output_northing, settings.output_unit),
         "Easting": fmt.coordinate(point.output_easting, settings.output_unit),
         "Elevation": fmt.coordinate(point.output_elevation, settings.output_unit),
-        "Latitude": fmt.latitude(conversion.latitude),
+        "Latitude": fmt.latitude_display(conversion.latitude),
         "Latitude (DMS)": fmt.latitude_dms(conversion.latitude),
-        "Longitude": fmt.longitude(conversion.longitude),
+        "Longitude": fmt.longitude_display(conversion.longitude),
         "Longitude (DMS)": fmt.longitude_dms(conversion.longitude),
         "Grid scale factor": fmt.factor(factors.grid_scale_factor),
-        "Convergence": fmt.angle_dms(conversion.target_convergence),
+        "Convergence": fmt.convergence_display(conversion.target_convergence),
         "Geoid height (m)": fmt.geoid_height(factors.geoid_height),
         "Ellipsoid height (m)": fmt.geoid_height(factors.ellipsoid_height),
         "Elevation factor": fmt.factor(factors.elevation_factor),
         "Combined factor": fmt.factor(factors.combined_factor),
-        "Warnings": "none",
     }
 
 
@@ -351,7 +349,7 @@ def test_zone_to_geodetic_values_are_the_formatters_output():
         "Easting": fmt.coordinate(point.row.easting, settings.input_unit),
         "Elevation": fmt.coordinate(point.row.elevation, settings.input_unit),
         "Grid scale factor": fmt.factor(factors.grid_scale_factor),
-        "Convergence": fmt.angle_dms(conversion.target_convergence),
+        "Convergence": fmt.convergence_display(conversion.target_convergence),
         "Geoid height (m)": fmt.geoid_height(factors.geoid_height),
         "Ellipsoid height (m)": fmt.geoid_height(factors.ellipsoid_height),
         "Elevation factor": fmt.factor(factors.elevation_factor),
@@ -360,15 +358,15 @@ def test_zone_to_geodetic_values_are_the_formatters_output():
 
     values = _by_label(target)
     # The position, compared against the columns job.run itself produced.
-    assert values["Latitude"] == fmt.latitude(point.output_northing)
-    assert values["Longitude"] == fmt.longitude(point.output_easting)
+    assert values["Latitude"] == fmt.latitude_display(point.output_northing)
+    assert values["Longitude"] == fmt.longitude_display(point.output_easting)
     assert values["Elevation"] == fmt.coordinate(
         point.output_elevation, settings.output_unit
     )
     assert values["Units"] == (
         f"{INTERNATIONAL_FEET.name} ({INTERNATIONAL_FEET.code})"
     )
-    assert values["Warnings"] == "none"
+    # Warnings live in their own field now (#30), checked by their own tests.
     # And the DMS rows, against the same numbers.
     assert values["Latitude (DMS)"] == fmt.latitude_dms(conversion.latitude)
     assert values["Longitude (DMS)"] == fmt.longitude_dms(conversion.longitude)
@@ -390,8 +388,8 @@ def test_geodetic_to_zone_values_are_the_formatters_output():
     source, target = rm.single_point_sections(result)
 
     values = _by_label(source)
-    assert values["Latitude"] == fmt.latitude(point.row.northing)
-    assert values["Longitude"] == fmt.longitude(point.row.easting)
+    assert values["Latitude"] == fmt.latitude_display(point.row.northing)
+    assert values["Longitude"] == fmt.longitude_display(point.row.easting)
     assert values["Elevation"] == fmt.coordinate(
         point.row.elevation, settings.input_unit
     )
@@ -408,12 +406,11 @@ def test_geodetic_to_zone_values_are_the_formatters_output():
         "Easting": fmt.coordinate(point.output_easting, settings.output_unit),
         "Elevation": fmt.coordinate(point.output_elevation, settings.output_unit),
         "Grid scale factor": fmt.factor(factors.grid_scale_factor),
-        "Convergence": fmt.angle_dms(conversion.target_convergence),
+        "Convergence": fmt.convergence_display(conversion.target_convergence),
         "Geoid height (m)": fmt.geoid_height(factors.geoid_height),
         "Ellipsoid height (m)": fmt.geoid_height(factors.ellipsoid_height),
         "Elevation factor": fmt.factor(factors.elevation_factor),
         "Combined factor": fmt.factor(factors.combined_factor),
-        "Warnings": "none",
     }
 
 
@@ -502,7 +499,7 @@ def test_the_input_longitude_is_shown_in_the_convention_the_user_typed(
     source, _ = rm.single_point_sections(result)
     values = _by_label(source)
 
-    assert values["Longitude"] == fmt.longitude(point.row.easting)
+    assert values["Longitude"] == fmt.longitude_display(point.row.easting)
     assert values["Longitude (DMS)"] == expected_dms
     assert values["Longitude (DMS)"].endswith("W")
 
@@ -525,7 +522,7 @@ def test_the_output_longitude_is_shown_in_the_convention_that_was_chosen(
     _, target = rm.single_point_sections(result)
     values = _by_label(target)
 
-    assert values["Longitude"] == fmt.longitude(point.output_easting)
+    assert values["Longitude"] == fmt.longitude_display(point.output_easting)
     assert values["Longitude (DMS)"].endswith("W")
     # The DMS row never carries a sign, under either convention - only the
     # decimal-degrees row above it does.
@@ -558,32 +555,47 @@ def test_a_zone_to_zone_longitude_says_west_although_no_convention_was_asked():
 
 
 @pytest.mark.parametrize("name", sorted(ALL_DIRECTIONS))
-def test_warnings_are_the_last_output_row_in_every_direction(name):
-    """Including the direction the owner's table did not list.
+def test_warnings_are_in_no_section_in_any_direction(name):
+    """They moved to a full-width field of their own (amendment #30).
 
-    "A layout rule that hides a warning in one direction is not a layout rule"
-    (docs/DESIGN.md amendment #26).
+    Checked in every direction, for the reason amendment #26 gave when they
+    were IN the sections: a layout rule that behaves differently in one
+    direction is not a layout rule. A warnings row surviving in one of the
+    three would be shown twice - once in the panel, once in the field - and the
+    two could then disagree.
     """
     source, target = rm.single_point_sections(ALL_DIRECTIONS[name]())
 
-    assert target.values[-1].label == "Warnings"
-    # And it is on the output side only, in every direction.
     assert "Warnings" not in _labels(source)
+    assert "Warnings" not in _labels(target)
 
 
 @pytest.mark.parametrize("name", sorted(ALL_DIRECTIONS))
 def test_a_clean_conversion_reads_none_rather_than_blank(name):
-    """An empty value in a labelled list reads as an oversight.
+    """An empty warnings field reads as an oversight.
 
     And "N/A" is reserved for a quantity that is genuinely absent and
     unknowable, which "this point raised no warnings" is not - it is a result,
-    and it is the good one.
+    and it is the good one. The text is unchanged by the move out of the
+    sections; only where it is shown changed.
     """
-    _, target = rm.single_point_sections(ALL_DIRECTIONS[name]())
+    text = rm.single_point_warnings(ALL_DIRECTIONS[name]())
 
-    assert target.values[-1].text == "none"
-    assert target.values[-1].text != ""
-    assert target.values[-1].text != fmt.NOT_AVAILABLE
+    assert text == "none"
+    assert text != ""
+    assert text != fmt.NOT_AVAILABLE
+
+
+def test_the_warnings_accessor_refuses_a_multi_point_job():
+    """Same refusal ``single_point_sections`` makes, and for the same reason:
+    naming one point's warnings as though they were the whole job's is the kind
+    of quiet mis-statement this program exists to refuse."""
+    single = _zone_to_zone()
+    many = replace(single, points=single.points + single.points)
+
+    with pytest.raises(ValueError) as raised:
+        rm.single_point_warnings(many)
+    assert "carries 2" in str(raised.value)
 
 
 def test_the_warnings_row_carries_the_messages_in_full():
@@ -597,8 +609,7 @@ def test_the_warnings_row_carries_the_messages_in_full():
     """
     result = _zone_to_zone(easting="11000000.000")
     point = result.points[0]
-    _, target = rm.single_point_sections(result)
-    text = target.values[-1].text
+    text = rm.single_point_warnings(result)
 
     assert len(point.warnings) == 2
     # Hand-derived from the join: the messages in order, separated by a blank
@@ -695,16 +706,24 @@ def test_the_clipboard_text_has_no_trailing_blank_line():
     assert "\n\nOUTPUT\n" in text
 
 
-def test_a_multi_line_warning_keeps_its_newlines_in_the_clipboard_text():
-    """Flattening them would compress the sentences that explain the flag."""
-    result = _zone_to_zone(easting="11000000.000")
-    sections = rm.single_point_sections(result)
-    text = rm.single_point_clipboard_text(sections)
+def test_warnings_are_not_in_the_clipboard_text():
+    """The owner's instruction (amendment #30).
 
-    warnings_value = sections[1].values[-1].text
-    # The value goes in verbatim, blank lines and all, on the tab's right side.
-    assert f"Warnings\t{warnings_value}" in text
-    assert warnings_value.count("\n\n") == 1
+    Copy all carries the numbers a surveyor pastes into CAD or a spreadsheet,
+    and a two-paragraph warning dropped among them has to be deleted there. The
+    field on screen is where warnings are read.
+    """
+    result = _zone_to_zone(easting="11000000.000")
+    text = rm.single_point_clipboard_text(rm.single_point_sections(result))
+
+    # Anti-vacuousness: this point really did raise warnings, with sentences
+    # long enough to be unmistakable if they had come along.
+    warnings_text = rm.single_point_warnings(result)
+    assert len(result.points[0].warnings) == 2
+    assert "does not look like Michigan South data" in warnings_text
+
+    assert "Warnings" not in text
+    assert "does not look like Michigan South data" not in text
 
 
 # ==========================================================================

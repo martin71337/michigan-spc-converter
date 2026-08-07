@@ -35,10 +35,10 @@ from pathlib import Path  # noqa: E402
 import pytest  # noqa: E402
 from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtGui import QGuiApplication  # noqa: E402
-from PySide6.QtWidgets import QFrame, QLabel  # noqa: E402
+from PySide6.QtWidgets import QFrame, QLabel, QToolButton  # noqa: E402
 
 from michspc.fileio import exports, formatting as fmt, pnezd  # noqa: E402
-from michspc.gui import single_point as single_point_module  # noqa: E402
+from michspc.gui import results_model, single_point as single_point_module  # noqa: E402
 from michspc.gui.app import build_application  # noqa: E402
 from michspc.gui.results_model import (  # noqa: E402
     COMBINED_FACTOR_LABEL,
@@ -244,6 +244,27 @@ def case_named(name: str) -> Case:
         if case.name == name:
             return case
     raise AssertionError(f"no case named {name!r}")
+
+
+def as_the_file_writes_it(text: str) -> str:
+    """A panel string with its display-only punctuation taken back off.
+
+    The panel shows ``43.80000000°`` and ``-16°49\'17.78"`` where the audit CSV
+    and the multi-point table show ``43.80000000`` and ``-16 49 17.78``
+    (docs/DESIGN.md amendment #30). That difference is punctuation and nothing
+    else: ``formatting.latitude_display`` and ``convergence_display`` are built
+    on the file formatters rather than reimplementing the number.
+
+    So the agreement tests below normalise rather than skip. Stripping the
+    symbols and then demanding equality still catches a digit that differs,
+    which is the property those tests exist for; ignoring the rows would not.
+    """
+    return (
+        text.replace(fmt.DEGREE_SYMBOL, " ")
+        .replace("'", " ")
+        .replace('"', "")
+        .strip()
+    )
 
 
 def fill_single(tab, case):
@@ -616,9 +637,12 @@ def test_the_two_tabs_cannot_disagree_about_the_same_point(
 
     shown = dict(tab.displayed_rows())
     for column, title, label in mapping:
-        assert value_of(tab.sections, title, label) == cell(window, 0, column)
+        in_table = cell(window, 0, column)
+        assert as_the_file_writes_it(
+            value_of(tab.sections, title, label)
+        ) == as_the_file_writes_it(in_table)
         # ... and the panel is really showing it, not merely able to produce it.
-        assert shown[label] == cell(window, 0, column)
+        assert as_the_file_writes_it(shown[label]) == as_the_file_writes_it(in_table)
 
     # The point identifier the file row carried is the one the typed point was
     # given, which is what makes the two warning texts identical.
@@ -905,12 +929,18 @@ def test_a_warned_run_is_amber_and_carries_the_message(tab):
     # the tooltip rendering it as "1: point 1: ..." (docs/DESIGN.md #26).
     assert not tab.status_label.toolTip().startswith(pnezd.TYPED_POINT_ID + ":")
 
-    # The panel's Warnings row drops the fabricated identifier entirely - this
-    # tab has no point numbers - so it carries the message's SUBSTANCE rather
-    # than the message verbatim.
-    shown = value_of(tab.sections, OUTPUT_TITLE, "Warnings")
+    # The warnings FIELD - beneath the results, full width (#30) - drops the
+    # fabricated identifier entirely, this tab having no point numbers, so it
+    # carries the message's SUBSTANCE rather than the message verbatim.
+    shown = tab.warnings_label.text()
     assert f"point {pnezd.TYPED_POINT_ID}" not in shown
     assert first_message.split(": ", 1)[1] in shown
+
+    # And it is not in the panel or on the clipboard.
+    assert "Warnings" not in dict(tab.displayed_rows())
+    tab.copied.clear()
+    assert tab.copy_all() is True
+    assert first_message.split(": ", 1)[1] not in tab.copied[0]
 
 
 def test_the_unit_selection_reaches_the_settings(tab):
@@ -1092,14 +1122,36 @@ def test_the_panel_agrees_with_the_audit_csv_the_other_tab_wrote(
         ("Latitude", "Latitude"),
     ):
         assert label in shown, f"the panel has no {label!r} row"
-        assert shown[label] == audit[column], (
-            f"{label}: panel {shown[label]!r} != audit CSV {audit[column]!r}"
-        )
+        assert as_the_file_writes_it(shown[label]) == as_the_file_writes_it(
+            audit[column]
+        ), f"{label}: panel {shown[label]!r} != audit CSV {audit[column]!r}"
 
     # Convergence: the audit names the target one "Convergence" and the source
     # one "Source convergence"; the panel shows whichever describes the end the
-    # layout puts it under.
-    assert shown["Convergence"] in (audit["Convergence"], audit["Source convergence"])
+    # layout puts it under - and shows it in symbol notation, which normalises
+    # to the audit's space-separated form.
+    assert as_the_file_writes_it(shown["Convergence"]) in (
+        as_the_file_writes_it(audit["Convergence"]),
+        as_the_file_writes_it(audit["Source convergence"]),
+    )
+
+    # The warnings are no longer a panel row at all (#30); the field beneath the
+    # panel is where they are. Compared against the multi-point run's own
+    # warning objects rather than the audit CSV's Warnings column, which
+    # carries the compressed CODES ("easting-unlike-selected-zone") because a
+    # spreadsheet cell has no room for the sentences. The single-point field
+    # has the room and shows the sentences, which is the whole reason it
+    # exists - so the messages are what the two surfaces must agree about.
+    assert "Warnings" not in shown
+
+    field = tab.warnings_label.text()
+    for _point_id, warning in window.result.warnings:
+        # Each message opens "point <id>: "; the field drops that prefix
+        # because this tab has no point numbers.
+        assert warning.message.split(": ", 1)[1] in field
+
+    if not window.result.warnings:
+        assert field == results_model.NO_WARNINGS
 
 
 # --------------------------------------------------------------------------
@@ -1325,15 +1377,18 @@ def test_the_columns_did_not_reorder_what_an_index_means(window, tab):
         assert tab.copied == [text], f"row {index} copied the wrong value"
 
 
-def test_no_value_wraps_except_the_one_that_has_to(window, tab):
+def test_no_panel_value_wraps_at_all(window, tab):
     """A zone name broken across two lines is a defect, not a cosmetic quibble.
 
     ``QLabel`` with word wrap takes the width its own sizeHint heuristic picks,
     which is narrower than the text - so "Michigan Central 2112" arrived as
     "Michigan Central" over "2112" with the copy button beside the first half,
-    in a column with two inches of unused space to its right. Every value is a
-    coordinate, a factor or a zone name except one: Warnings is a paragraph and
-    is meant to wrap.
+    in a column with two inches of unused space to its right.
+
+    Since #30 there is no exception. Every panel value is a coordinate, a
+    factor or a zone name; the one that was a paragraph - Warnings - now has a
+    full-width field of its own, which is where a paragraph belongs and is
+    why the owner moved it.
     """
     panel = laid_out(window, tab, case_named("zone_to_zone_warned"))
     rows = panel.displayed_rows()
@@ -1344,12 +1399,13 @@ def test_no_value_wraps_except_the_one_that_has_to(window, tab):
         for (label, _text), value in zip(rows, panel.value_labels)
         if value.height() > one_line
     ]
-    assert wrapped == ["Warnings"], f"these values wrapped: {wrapped}"
+    assert wrapped == [], f"these values wrapped: {wrapped}"
 
-    # Anti-vacuousness: this case really does carry a warning, so the one row
-    # that is allowed to wrap is present and really is wrapping.
-    assert "Warnings" in [label for label, _text in rows]
-    assert panel.value_labels[-1].height() > one_line
+    # Anti-vacuousness: this case really does carry a warning, so the paragraph
+    # that used to wrap in here exists - it is just somewhere else now.
+    assert "Warnings" not in [label for label, _text in rows]
+    assert tab.warnings_label.text() != single_point_module.NO_RESULT_WARNINGS
+    assert len(tab.warnings_label.text()) > 80
 
 
 # --------------------------------------------------------------------------
@@ -1782,13 +1838,217 @@ def test_the_preselected_hemisphere_is_still_a_live_control(window, tab):
     set_up_dms_job(tab)
     assert tab.first_dms.hemisphere_letter() == "N"
     assert tab.convert() is True
-    northern = dict(tab.displayed_rows())["Latitude"]
+    northern = as_the_file_writes_it(dict(tab.displayed_rows())["Latitude"])
 
     tab.first_dms.hemisphere.setCurrentIndex(
         tab.first_dms.hemisphere.findData("S")
     )
     assert tab.convert() is True
-    southern = dict(tab.displayed_rows())["Latitude"]
+    southern = as_the_file_writes_it(dict(tab.displayed_rows())["Latitude"])
 
     assert northern != southern
     assert float(southern) == pytest.approx(-float(northern), abs=1e-8)
+
+
+# --------------------------------------------------------------------------
+# Warnings in a field of their own; display punctuation
+# --------------------------------------------------------------------------
+#
+# docs/DESIGN.md amendment #30.
+
+
+def test_the_warnings_field_spans_the_full_width_beneath_the_panel(window, tab):
+    """The owner's shape, measured rather than assumed.
+
+    It was the last row of the right-hand column, where a paragraph sat in a
+    column sized for coordinates. Full width is what a sentence needs, and
+    "beneath the panel" is where it has to be for the numbers to stay together.
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone_warned"))
+    field = tab.warnings_label
+
+    # Beneath: the field's top is below the panel's bottom, in the tab's own
+    # coordinates.
+    panel_bottom = panel.mapTo(tab, panel.rect().bottomLeft()).y()
+    field_top = field.mapTo(tab, field.rect().topLeft()).y()
+    assert field_top > panel_bottom
+
+    # Full width: wider than either results column, which is what it was
+    # confined to before.
+    assert field.width() > panel.left_column.width()
+    assert field.width() > panel.right_column.width()
+
+
+def test_the_warnings_field_has_no_copy_button_and_is_not_in_copy_all(window, tab):
+    """Both halves of the owner's instruction.
+
+    The clipboard carries the numbers that go into CAD or a spreadsheet. A
+    two-paragraph warning dropped among them has to be deleted there, and it is
+    not what a copy button is for on this tab.
+    """
+    laid_out(window, tab, case_named("zone_to_zone_warned"))
+    text = tab.warnings_label.text()
+
+    # Anti-vacuousness: there really is a warning to have been copied.
+    assert text != results_model.NO_WARNINGS
+    assert len(text) > 80
+
+    # No copy button anywhere in the field's box.
+    box = tab.warnings_label.parentWidget()
+    assert box.findChildren(QToolButton) == []
+
+    # One copy button per panel value and not one more - the field did not
+    # bring one with it.
+    assert len(tab.copy_buttons) == len(tab.displayed_rows())
+
+    tab.copied.clear()
+    assert tab.copy_all() is True
+    assert text not in tab.copied[0]
+    assert "Warnings" not in tab.copied[0]
+
+
+def test_the_warnings_field_is_emptied_with_the_result(window, tab):
+    """A field that outlived the numbers it described would be the stale-result
+    failure of amendment #26 in a new place: "none" beside a blank panel reads
+    as this point's answer.
+    """
+    assert tab.warnings_label.text() == single_point_module.NO_RESULT_WARNINGS
+
+    set_up_dms_job(tab)
+    assert tab.convert() is True
+    assert tab.warnings_label.text() == results_model.NO_WARNINGS
+
+    # A control change discards the result - and the warnings with it.
+    tab.first_dms.degrees.setText("44")
+    assert tab.sections is None
+    assert tab.warnings_label.text() == single_point_module.NO_RESULT_WARNINGS
+
+    # So does a refusal.
+    fill_single(tab, case_named("zone_to_zone_warned"))
+    assert tab.convert() is True
+    assert tab.warnings_label.text() != single_point_module.NO_RESULT_WARNINGS
+    tab.first_edit.setText("NOPE")
+    assert tab.convert() is False
+    assert tab.warnings_label.text() == single_point_module.NO_RESULT_WARNINGS
+
+
+def test_the_decimal_latitude_and_longitude_carry_a_degree_symbol(window, tab):
+    """The owner asked for it on the results (docs/DESIGN.md amendment #30).
+
+    On the INPUT block, which is what he named, and on the OUTPUT block too:
+    both are built by ``_geodetic_values``, and one section showing 43.8 while
+    the other showed 43.8° would be two notations for one quantity on one
+    screen.
+    """
+    fill_single(tab, case_named("geodetic_to_zone"))
+    if tab.convert() is not True:
+        raise AssertionError(f"the run failed: {tab.shown_failures}")
+
+    # This direction puts the typed position under INPUT.
+    shown = dict(tab.displayed_rows())
+    assert shown["Latitude"].endswith(fmt.DEGREE_SYMBOL)
+    assert shown["Longitude"].endswith(fmt.DEGREE_SYMBOL)
+
+    # And the other direction, where the position is the OUTPUT.
+    fill_single(tab, case_named("zone_to_geodetic"))
+    assert tab.convert() is True
+    shown = dict(tab.displayed_rows())
+    assert shown["Latitude"].endswith(fmt.DEGREE_SYMBOL)
+    assert shown["Longitude"].endswith(fmt.DEGREE_SYMBOL)
+
+    # The symbol is punctuation on the file's own string, not a second way of
+    # writing the number: strip it and the digits are the file's exactly.
+    assert as_the_file_writes_it(shown["Latitude"]) == fmt.latitude(
+        tab.result.points[0].conversion.latitude
+    )
+
+
+def test_the_degree_symbol_never_reaches_the_exported_file(
+    window, tab, tmp_path, read_member
+):
+    """The reason the display formatter is separate, pinned as a property.
+
+    ``formatting.latitude`` and ``longitude`` write the clean PNEZD export, and
+    that file is read back by ``pnezd`` before the archive may take its name.
+    ``float("43.80000000°")`` raises, so a symbol in the file formatter would
+    not merely look wrong - every geodetic job would refuse to write, and the
+    file that did survive would be one no CAD package could import.
+    """
+    job_file = tmp_path / "one-point.csv"
+    job_file.write_text("1,176200.000,19685000.000,812.40,PT\n", encoding="utf-8")
+    out_dir = tmp_path / "out"
+
+    window.input_edit.setText(str(job_file))
+    window.output_edit.setText(str(out_dir))
+    window.from_zone.setCurrentIndex(window.from_zone.findData(MI_CENTRAL))
+    window.to_zone.setCurrentIndex(window.to_zone.findData(GEODETIC))
+    window.longitude_combo.setCurrentIndex(
+        window.longitude_combo.findData(LongitudeConvention.NEGATIVE_WEST)
+    )
+    if not window.convert():
+        raise AssertionError(f"the run failed: {window.shown_failures}")
+
+    archive = window.written_files["archive"]
+    names = exports.member_names(window.result)
+    for member in (names["pnezd"], names["audit"], names["report"]):
+        text = read_member(archive, member)
+        assert fmt.DEGREE_SYMBOL not in text, f"{member} carries a degree symbol"
+
+
+def test_the_convergence_is_shown_in_symbol_notation(window, tab):
+    """``-16°49'17.78"`` where the audit CSV writes ``-16 49 17.78``.
+
+    The owner asked for DMS notation on screen. It is built on the same
+    ``_dms_magnitude`` the latitude and longitude DMS rows use, so the three
+    angles on this panel cannot come to punctuate themselves differently.
+    """
+    fill_single(tab, case_named("zone_to_zone"))
+    if tab.convert() is not True:
+        raise AssertionError(f"the run failed: {tab.shown_failures}")
+
+    # The INPUT one specifically: a zone-to-zone job shows a Convergence row in
+    # both sections, and dict() would silently keep only the second.
+    shown = value_of(tab.sections, INPUT_TITLE, "Convergence")
+
+    assert fmt.DEGREE_SYMBOL in shown
+    assert "'" in shown
+    assert shown.endswith('"')
+    assert shown[0] in "+-"
+
+    # The same angle the file formatter writes, in different punctuation - not
+    # a differently computed one.
+    convergence = tab.result.points[0].conversion.source_convergence
+    assert as_the_file_writes_it(shown) == fmt.angle_dms(convergence)
+
+
+def test_a_long_warning_is_not_clipped(window, tab):
+    """The defect this field arrived with, found by looking at a warned run.
+
+    A word-wrapped ``QLabel`` does not propagate its height-for-width out
+    through a ``QGroupBox``'s layout: the box took the height of ONE line and
+    the rest of the text was simply not drawn. Three warnings showed one
+    sentence, with nothing on screen saying two more existed - which is the
+    failure this program exists to refuse, in the one field whose whole job is
+    to tell a surveyor something is wrong.
+
+    The pin is the label's laid-out height against the height its own text
+    needs at its own width. That is the question "is any of it cut off", asked
+    of the widget rather than of the layout that was supposed to size it.
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone_warned"))
+    label = tab.warnings_label
+
+    # Anti-vacuousness: this really is a multi-warning run whose text is long
+    # enough to need more than one line at this width.
+    assert len(tab.result.warnings) >= 2
+    assert label.heightForWidth(label.width()) > label.fontMetrics().height() * 2
+
+    assert label.height() >= label.heightForWidth(label.width()), (
+        f"the warnings label is {label.height()} px tall and its text needs "
+        f"{label.heightForWidth(label.width())} px - the rest is cut off"
+    )
+
+    # The box itself stays bounded, so a wordy warning cannot push the
+    # converted coordinates off the screen. What does not fit scrolls.
+    assert tab.warnings_scroll.height() <= single_point_module.WARNINGS_MAX_HEIGHT
+    assert panel.height() > tab.warnings_scroll.height()

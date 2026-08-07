@@ -65,8 +65,14 @@ class LongitudeConvention(Enum):
     # rather than a short label beside a long record entry. The worked example
     # now lives in the dropdown's tooltip, where it teaches the person making
     # the choice without following the choice into every document.
-    NEGATIVE_WEST = "negative west"
+    # Positive west is listed FIRST at the owner's request (docs/DESIGN.md
+    # amendment #30). Declaration order is what the dropdown offers, because
+    # controls.longitude_combo iterates the enum rather than carrying its own
+    # list - so his own convention now sits at the top of it, above the
+    # preselected entry he reaches for. Nothing in the program branches on
+    # member order; `to_signed` and `from_signed` test identity.
     POSITIVE_WEST = "positive west"
+    NEGATIVE_WEST = "negative west"
 
     def to_signed(self, longitude: float) -> float:
         return -longitude if self is LongitudeConvention.POSITIVE_WEST else longitude

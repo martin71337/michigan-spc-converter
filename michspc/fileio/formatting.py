@@ -194,6 +194,66 @@ def longitude_dms(value: float | None, seconds_decimals: int = 5) -> str:
     return f"{_dms_magnitude(abs(value), seconds_decimals)}{hemisphere}"
 
 
+DEGREE_SYMBOL = "°"
+
+# --------------------------------------------------------------------------
+# Display-only variants
+# --------------------------------------------------------------------------
+#
+# The three below are for the SCREEN and nothing else (docs/DESIGN.md amendment
+# #30). Every other function in this module writes files as well as pixels, and
+# these deliberately do not.
+#
+# The distinction is load-bearing, not stylistic. ``latitude`` and ``longitude``
+# write the clean PNEZD export's columns two and three, and that file is read
+# back by ``pnezd`` before the archive is allowed to take its name
+# (``exports._verify_archive``). A degree symbol in it is not a cosmetic change:
+# ``float("43.80000000°")`` raises, so the round-trip check would fail and every
+# geodetic job would refuse to write. It would also reach the surveyor's CAD
+# package, which is the one file in this program that has to be machine-plain.
+# ``angle_dms`` likewise writes the audit CSV's Convergence column and the job
+# record.
+#
+# So the symbol is added HERE, once, on top of the file formatter's own output -
+# not by a second implementation of the number. The screen and the file
+# therefore cannot disagree about a digit; they differ only in punctuation, and
+# `tests/test_gui_single_point.py` compares them with the punctuation normalised
+# rather than ignoring the comparison.
+
+
+def latitude_display(value: float | None) -> str:
+    """``43.80000000°`` — the file's own string, plus the symbol."""
+    text = latitude(value)
+    return text if text == NOT_AVAILABLE else f"{text}{DEGREE_SYMBOL}"
+
+
+def longitude_display(value: float | None, positive_west: bool = False) -> str:
+    """``-84.36700000°`` — the file's own string, plus the symbol."""
+    text = longitude(value, positive_west=positive_west)
+    return text if text == NOT_AVAILABLE else f"{text}{DEGREE_SYMBOL}"
+
+
+def convergence_display(degrees: float | None, seconds_decimals: int = 2) -> str:
+    """``-16°49'17.78"`` — the convergence angle in symbol notation.
+
+    The same angle the audit CSV carries as ``-16 49 17.78``, written the way a
+    surveyor reads it off an instrument. Built on ``_dms_magnitude``, which is
+    the single definition of this symbol notation in the program — the same one
+    ``latitude_dms`` and ``longitude_dms`` use — so the convergence and the two
+    geodetic angles cannot come to punctuate themselves differently.
+
+    The sign is carried on the whole quantity and there is no hemisphere letter,
+    exactly as ``angle_dms`` does it: a convergence is a rotation, not a
+    position, so N/S/E/W would be meaningless. ``angle_dms``'s docstring records
+    why the sign sits on the front rather than on the degrees field.
+    """
+    if degrees is None:
+        return NOT_AVAILABLE
+
+    sign = "-" if degrees < 0 else "+"
+    return f"{sign}{_dms_magnitude(abs(degrees), seconds_decimals)}"
+
+
 def geoid_height(value: float | None) -> str:
     """Metres to 3 places, the precision NGS publishes."""
     if value is None:

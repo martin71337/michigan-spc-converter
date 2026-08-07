@@ -963,9 +963,14 @@ def test_the_longitude_convention_reads_the_wording_the_owner_chose():
     """
     assert LongitudeConvention.NEGATIVE_WEST.value == "negative west"
     assert LongitudeConvention.POSITIVE_WEST.value == "positive west"
+
+    # POSITIVE FIRST, at the owner's request (amendment #30). Declaration order
+    # is what the dropdown offers - controls.longitude_combo iterates the enum
+    # rather than carrying a list of its own - so this is the order on screen
+    # and not an internal detail.
     assert [c.value for c in LongitudeConvention] == [
-        "negative west",
         "positive west",
+        "negative west",
     ]
 
     # The worked example is gone from the values themselves, not merely

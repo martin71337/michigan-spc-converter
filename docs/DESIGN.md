@@ -134,9 +134,15 @@ failure the tier sentence exists to prevent.
 - Units are explicit at every boundary. International feet is the default
   because Michigan legislated it (manual Table 1.5, p. 9, "Michigan(I)"), but
   the unit in force is stated in every output file.
-- Longitude sign convention is **selected by the user with no default**. The
-  manual and the prior MATLAB tool use positive-west; NCAT, OPUS, GPS and GIS
-  use negative-west. A silent default here throws a Michigan point ~340 miles.
+- Longitude sign convention is **selected by the user, and the CORE has no
+  default**. The manual and the prior MATLAB tool use positive-west; NCAT,
+  OPUS, GPS and GIS use negative-west. A silent default here throws a Michigan
+  point ~340 miles, so `JobSettings` requires it and `job.run` refuses a
+  geodetic conversion that does not state one. **The GUI dropdown now opens on
+  positive-west — amendment #29, on the owner's instruction. Read it before
+  "fixing" this back.** The distinction that makes both true: the core assumes
+  nothing, while the interface shows its answer in words before Convert is
+  pressed.
 - Missing elevations produce `N/A` in factor columns — never `1.0`, never the
   grid factor alone — and every affected point is named in the report.
 - One authoritative representation per fact. Derived values are derived, never
@@ -199,7 +205,8 @@ Owner-approved decisions recorded verbatim:
 - Zone ↔ zone plus geodetic ⇄ SPC. Input PNEZD, no header row.
 - Default International feet; US survey feet and meters selectable, input and
   output independently.
-- Longitude sign convention: explicit GUI selector, no default.
+- Longitude sign convention: explicit GUI selector; no default in the core,
+  and the dropdown opens on positive-west since amendment #29.
 - GEOID18 bundled, automatic per-point lookup.
 - Missing elevation: convert, write `N/A` in factor columns, name the points in
   the report.
@@ -439,6 +446,77 @@ Not addressed, and still the owner's call: at 16 and 32 px the "COORD CONVERT"
 lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
+
+### #29 — 2026-08-07 — Owner sets two defaults, one of which reverses §7
+
+Two preselections, both asked for by name after using the built version.
+
+**1. The DMS hemisphere opens on N and W.** It was built to open unanswered, on
+the house rule that nothing answers a question for the user. He judged the two
+extra clicks per conversion not worth it for data that is always north and
+west, and he is right about his own data.
+
+This one costs little. The answer is a visible token in the box beside the
+angle it belongs to, it reads back in the result panel afterwards, and it is
+correct for every point MCX can convert — the program carries the three
+Michigan zones and nothing else. `dms_entry.DEFAULT_HEMISPHERE` is the single
+place that assumption is written down, so a zone outside the north-west
+quadrant is one edit rather than a habit to hunt.
+
+The placeholder entry went with it: a "not yet" option beside a preselected
+default is reachable only by choosing it, and choosing "not yet" is not
+something anyone does. `fileio.dms` still refuses an empty letter, which is now
+unreachable from the GUI and stays anyway — it is what stops a later change up
+in the interface from quietly acquiring a default down in the composition.
+
+**2. The longitude sign dropdown opens on positive west. This reverses §7.**
+
+§7 has said since #1 that this control has no default, and an adversarial
+review once recorded a default here as a finding (#20). The reasoning was
+sound and is unchanged: the two conventions are indistinguishable from the
+numbers in a file, and choosing wrongly moves a Michigan point about 340 miles
+onto a sealed survey.
+
+**What changed is not the risk but who carries it.** The owner works in
+positive west — the convention of NOAA Manual NOS NGS 5 and of the MATLAB tool
+this replaces — he is the only user, he is a licensed surveyor, and restating
+the same answer every run is friction he does not want. That is his call to
+make about his own instrument.
+
+The concern, recorded rather than argued: **files from OPUS, NCAT, GPS
+receivers and GIS software are normally negative west**, and those are exactly
+the files a surveyor downloads rather than writes. A preselected positive west
+is wrong for every one of them, and wrong by 340 miles. The tooltip now carries
+that sentence in capitals, because with no default the control asked the
+question by existing and now it does not.
+
+**Scope of the reversal, which is deliberately narrow.** The default is in the
+interface and nowhere else:
+
+* `LongitudeConvention` still has no default member;
+* `JobSettings.longitude_convention` is still a required field with no default,
+  so constructing one without it is a `TypeError`;
+* `job.run` still refuses a geodetic conversion whose settings state no
+  convention, with the 340-mile sentence intact;
+* a zone-to-zone job still passes `longitude_convention=None` deliberately, so
+  the record says nothing about a question never asked.
+
+All four are pinned, in
+`test_the_core_has_no_longitude_default_even_though_the_dropdown_does`. The
+distinction that makes §7 and this amendment both true: **the core assumes
+nothing; the interface shows its answer in words before Convert is pressed.**
+
+§7 and CLAUDE.md's convention list have both been amended to point here, so the
+next reviewer who reaches for "no default" finds the decision rather than
+filing it as a regression.
+
+**Verification.** Suite **1118 → 1120**, green in both modes. Four seeded
+defects, all caught: the preselected convention no longer reaching the settings,
+the dropdown opening on the other convention, the hemisphere opening on E, and
+the hemisphere dropdown becoming a dead control the composition ignores. The
+last two matter most — a preselected value that stops being read would satisfy
+every assertion about what the box shows while the conversion used something
+else.
 
 ### #28 — 2026-08-07 — Owner's second pass: DMS entry, and the worked example goes
 

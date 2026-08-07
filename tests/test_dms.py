@@ -295,16 +295,21 @@ def test_a_signed_component_is_refused_rather_than_combined():
     assert "hemisphere letter" in str(raised.value)
 
 
-def test_an_unanswered_hemisphere_is_refused_and_says_it_has_no_default():
-    """The GUI passes "" when the dropdown is unanswered, deliberately - so
-    this function refuses it by name rather than the interface second-guessing
-    what a valid letter is."""
+def test_a_missing_hemisphere_is_refused_rather_than_assumed():
+    """The dropdown opens on a real letter and cannot be emptied (#28 note 3),
+    so this guard is unreachable from the GUI today - and it stays.
+
+    It is what stops a later change up in the interface from quietly acquiring
+    a default down here: an empty letter reaching this function is a caller
+    that did not answer, and inventing "N" for it would put an assumption in
+    the one module that is supposed to hold none.
+    """
     with pytest.raises(dms.DmsError) as raised:
         dms.decimal_degrees("43", "48", "00", "", axis=dms.LATITUDE)
 
     message = str(raised.value)
     assert "N or S" in message
-    assert "no default" in message
+    assert "will not invent one" in message
 
 
 def test_the_wrong_axis_letter_is_refused():

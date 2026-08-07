@@ -25,12 +25,29 @@ It deliberately does **not** do UTM, SPCS2022, NAD 83 ↔ NATRF2022
 transformation, other states, NAD 27, or two-point azimuth/distance. See
 DESIGN.md §10 for why each was deferred.
 
-## Status (2026-08-07, owner's second round of edits DONE, awaiting approval to release)
+## Status (2026-08-07, all owner edits DONE, merged to main, unreleased)
 
-**Both rounds of the owner's interface edits are in and the release is still
-paused on his approval.** Round two: DMS entry, a smaller copy glyph, and the
-worked example out of the longitude sign entries. Full account: DESIGN.md
-**#28**.
+**Every interface edit the owner asked for is in and merged to `main`. The
+release itself is still not cut.** Three rounds: DESIGN.md **#27**, **#28**,
+**#29**.
+
+### Round three (DESIGN.md #29) — two defaults, one of which reverses §7
+
+1. **The DMS hemisphere opens on N and W.** Cheap: the letter is a visible
+   token beside its angle, and it is correct for every point MCX can convert.
+   `dms_entry.DEFAULT_HEMISPHERE` is the one place that assumption lives.
+2. **The longitude sign dropdown opens on positive west** — the owner's own
+   convention, and a **reversal of §7's no-default rule**, on his instruction.
+   The reversal is narrow and pinned: the enum, `JobSettings` and `job.run` all
+   still refuse to assume, so only the interface opens on a value.
+   **Recorded concern:** OPUS, NCAT, GPS and GIS files are normally *negative*
+   west, so the preselect is wrong for every downloaded file — by 340 miles.
+   The tooltip carries that warning in capitals.
+
+### Round two (DESIGN.md #28)
+
+DMS entry, a smaller copy glyph, and the worked example out of the longitude
+sign entries.
 
 1. **Copy glyph 14 px → 11 px.** Pinned as a relationship — the button may
    stand above its line of text by the frame a flat QToolButton needs and no
@@ -40,9 +57,9 @@ worked example out of the longitude sign entries. Full account: DESIGN.md
    job record's `Longitude` line too**, which is #17's standing choice (one
    wording in both surfaces), not an oversight.
 3. **Lat/long can be typed as degrees / minutes / seconds** on the Single point
-   tab — four boxes per angle with the symbols already in place, hemisphere
-   letter instead of a sign, opening unanswered. Decimal degrees is still what
-   the tab opens on. The composition lives in `michspc/fileio/dms.py`, beside
+   tab — four boxes per angle with the symbols already in place and a
+   hemisphere letter instead of a sign. Decimal degrees is still what the tab
+   opens on. The composition lives in `michspc/fileio/dms.py`, beside
    the formatters that define the notation, because the GUI may not compute an
    angle. The load-bearing pin: **the same DMS entry converts identically under
    both longitude conventions, where the same decimal entry gives two points
@@ -53,8 +70,8 @@ worked example out of the longitude sign entries. Full account: DESIGN.md
    not built: packed `434759.8` is indistinguishable from an ordinary decimal
    degree, so a file reader would have to guess.
 
-Suite **1048 → 1118**, green in both modes; frozen-bundle self-test passes.
-Seven seeded defects, all caught.
+Suite **1031 → 1120** across all three rounds, green in both `pytest` and
+`-O`; frozen-bundle self-test passes. Eleven seeded defects, all caught.
 
 ### Round one (DESIGN.md #27), also in
 
@@ -78,14 +95,15 @@ defect (DESIGN.md #27, Verification).
 
 ### Before releasing this — open with the owner
 
+- **The positive-west preselect is wrong for downloaded files.** OPUS, NCAT,
+  GPS and GIS all write negative west. His own data is positive west, which is
+  why he asked for it, but the first OPUS file through this tool will convert
+  340 miles off unless the dropdown is changed. The tooltip warns; nothing
+  blocks. Worth one more thought before release.
 - **The job record's `Longitude` line is now shorter too** — `Longitude
   negative west`, with no `(-84.37)`. That follows #17's standing choice of one
   wording in both surfaces. If he wants the example kept in the record and out
   of the dropdown only, that is a separate GUI label and #17 has to be reopened.
-- **The DMS hemisphere opens unanswered** and Convert waits for it. Michigan is
-  always N and W, so that is two clicks per conversion he may not want. Made
-  this way because the house rule is that nothing answers a question for the
-  user; preselecting N and W is a two-line change if he would rather have it.
 - **The layout question was asked and not answered.** "Two columns, one for
   input and one for output" was read as the **results panel**: the Conversion
   box keeps its owner-approved full-width shape on top, and the INPUT/OUTPUT
@@ -273,7 +291,10 @@ docs/             DESIGN.md (authority), method/, the NOAA manual, reference/
 
 - Units explicit at every boundary; International feet is the default because
   Michigan legislated it, and the unit in force is stated in every output file.
-- Longitude sign convention is user-selected with **no default**.
+- Longitude sign convention: **no default in the core** — `JobSettings`
+  requires it and `job.run` refuses a geodetic job without it. The GUI dropdown
+  opens on positive-west (DESIGN.md #29, owner's instruction); that is a
+  decision, not a regression, and #29 says why.
 - Fail closed, never fabricate; refusals name the offending item.
 - Missing elevation writes `N/A` in factor columns — never `1.0`.
 - One authoritative representation per fact; derived values are never stored.

@@ -16,12 +16,25 @@ a ``QValidator`` is a second validation gate that rejects silently, and this
 program's refusals are meant to arrive as sentences that name the offending box.
 Non-numeric text travels to ``fileio.dms`` and comes back as its own message.
 
-**The hemisphere opens unanswered.** It is the one component that is not a
-number, and it decides which side of the meridian the point is on. A dropdown
-that opened on "W" would answer that for the user — right for Michigan, and
-wrong the first time this is used on anything else, with nothing on screen
-saying a choice had been made. Convert stays disabled until it is set, exactly
-as it does for the zones and the longitude convention.
+**The hemisphere opens on N and W** — the owner's decision, taken after using
+the unanswered version (docs/DESIGN.md amendment #28 note 3). It was built to
+open on a placeholder, on the house rule that nothing answers a question for the
+user; he judged the two extra clicks per conversion not worth it, and he is
+right about his own data.
+
+What makes this defensible where a longitude-convention default would not be:
+**the answer is on the screen, in the box, before Convert is pressed.** The
+convention has no default because its two options are indistinguishable from the
+numbers — nothing on screen tells you which one is in force. A hemisphere letter
+is a visible token beside the angle it belongs to, and it reads back in the
+result panel as well. It is a starting value, not a hidden assumption.
+
+It is also right for every point this program can convert: MCX carries the three
+Michigan zones and nothing else (``michspc.spc.zones.ALL_ZONES``), and Michigan
+lies wholly north of the equator and west of Greenwich. ``DEFAULT_HEMISPHERE``
+below is the one place that assumption is written down, so a program that ever
+grew a zone outside that quadrant has one line to revisit rather than a habit to
+find.
 """
 
 from __future__ import annotations
@@ -29,7 +42,22 @@ from __future__ import annotations
 from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QLineEdit, QWidget
 
 from michspc.fileio import dms
-from michspc.gui.controls import UNCHOSEN
+
+DEFAULT_HEMISPHERE = {
+    dms.LATITUDE: "N",
+    dms.LONGITUDE: "W",
+}
+"""Which letter each dropdown opens on (docs/DESIGN.md amendment #28 note 3).
+
+The one place the "every point MCX converts is north and west" assumption is
+written down. It holds because the program carries the three Michigan zones and
+nothing else; a zone outside that quadrant makes this line wrong, and it is
+here rather than spread through the widget so that is one edit.
+
+There is no unanswered state. A placeholder beside a preselected default would
+be a third option meaning "not yet", which the user can only reach by choosing
+it — and choosing "not yet" is not something anyone does.
+"""
 
 DEGREE_SYMBOL = "°"
 MINUTE_SYMBOL = "'"
@@ -45,10 +73,6 @@ the panel shows five decimal places. Fixed widths are what make the row read as
 one angle instead of three unrelated fields.
 """
 
-HEMISPHERE_PLACEHOLDER = "—"
-"""What the hemisphere dropdown shows before it is answered. Shorter than the
-"— choose —" the zone combos use because it sits in a narrow box at the end of
-a row, and the row's own label already says which angle it belongs to."""
 
 
 class DmsEntry(QWidget):
@@ -74,9 +98,17 @@ class DmsEntry(QWidget):
         self.seconds.setFixedWidth(SECONDS_WIDTH)
 
         self.hemisphere = QComboBox(self)
-        self.hemisphere.addItem(HEMISPHERE_PLACEHOLDER, UNCHOSEN)
         for letter in dms.HEMISPHERES[axis]:
             self.hemisphere.addItem(letter, letter)
+        self.hemisphere.setCurrentIndex(
+            self.hemisphere.findData(DEFAULT_HEMISPHERE[axis])
+        )
+        self.hemisphere.setToolTip(
+            f"Which side of the {'equator' if axis == dms.LATITUDE else 'meridian'} "
+            f"this point is on. Michigan is always "
+            f"{DEFAULT_HEMISPHERE[axis]}, which is what this opens on; change it "
+            f"for a point outside Michigan."
+        )
 
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)
@@ -100,17 +132,24 @@ class DmsEntry(QWidget):
     # ------------------------------------------------------------------
 
     def hemisphere_letter(self) -> str:
-        """The chosen letter, or "" while the dropdown is unanswered.
+        """The chosen letter. Always one of the two — there is no empty state.
 
-        Empty rather than None so it can be handed to ``fileio.dms`` unchanged
-        — which refuses it, by name, exactly as it refuses a wrong letter. The
-        interface does not need a second opinion about what a valid letter is.
+        Whatever it returns goes to ``fileio.dms`` unchanged, including the ""
+        this cannot currently produce: that function refuses an empty letter by
+        name, and leaving the guard there is what keeps a future change here
+        from silently defaulting one deeper down.
         """
         data = self.hemisphere.currentData()
-        return data if isinstance(data, str) and data != UNCHOSEN else ""
+        return data if isinstance(data, str) else ""
 
     def is_complete(self) -> bool:
-        """Every box answered. Says nothing about whether they are READABLE.
+        """The three typed boxes answered. Says nothing about whether they are
+        READABLE.
+
+        The hemisphere is deliberately not tested: it opens on a real letter
+        and cannot be emptied, so a check on it would be a condition that is
+        always true — which reads to the next person as though the dropdown had
+        an unanswered state to guard against.
 
         This gates the Convert button, and gating is all it does: whether 61
         minutes is a legal angle is ``fileio.dms``'s question, and asking it
@@ -120,7 +159,6 @@ class DmsEntry(QWidget):
             self.degrees.text().strip()
             and self.minutes.text().strip()
             and self.seconds.text().strip()
-            and self.hemisphere_letter()
         )
 
     def decimal_degrees_text(self, *, positive_west: bool) -> str:
@@ -135,7 +173,10 @@ class DmsEntry(QWidget):
         )
 
     def clear(self) -> None:
-        """Empty every box and unanswer the hemisphere."""
+        """Empty the three typed boxes and put the hemisphere back to its
+        opening letter — the state a freshly built row is in."""
         for box in (self.degrees, self.minutes, self.seconds):
             box.clear()
-        self.hemisphere.setCurrentIndex(0)
+        self.hemisphere.setCurrentIndex(
+            self.hemisphere.findData(DEFAULT_HEMISPHERE[self.axis])
+        )

@@ -127,10 +127,11 @@ def decimal_degrees(
         allowed = " or ".join(HEMISPHERES[axis])
         raise DmsError(
             f"The {axis} hemisphere is {hemisphere.strip()!r}; it has to be "
-            f"{allowed}. There is deliberately no default: the letter is what "
-            f"states which side of the equator or the meridian this point is "
-            f"on, and it is not something this program can infer from the "
-            f"numbers."
+            f"{allowed}. The letter is what states which side of the equator "
+            f"or the meridian this point is on, and nothing is assumed here "
+            f"when it is missing: the interface opens its dropdown on a real "
+            f"letter, and this function will not invent one for a caller that "
+            f"passes none."
         )
 
     whole_degrees = _component(degrees, "degrees", axis, whole=True)

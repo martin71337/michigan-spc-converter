@@ -291,15 +291,30 @@ def test_the_longitude_selector_is_irrelevant_to_a_zone_to_zone_job(
         target=MI_SOUTH,
     )
     assert window.longitude_combo.isEnabled() is False
-    assert window.longitude_combo.currentData() == UNCHOSEN
     assert window.convert_button.isEnabled() is True
 
+    # And the selector's value does not leak into the job. The dropdown now
+    # opens on a real convention (#29), so the ONLY thing keeping a zone-to-zone
+    # job from carrying one is settings() stating None deliberately - which is
+    # what makes the job record say nothing about a question never asked.
+    assert window.settings().longitude_convention is None
 
-def test_the_longitude_selector_opens_unanswered(window):
-    """No default, ever. The two conventions are indistinguishable from the
-    numbers and choosing wrongly moves a Michigan point about 340 miles
-    (docs/DESIGN.md section 7)."""
-    assert window.longitude_combo.currentData() == UNCHOSEN
+
+def test_the_longitude_selector_opens_on_positive_west(window):
+    """docs/DESIGN.md amendment #29 - which REVERSES section 7 on this control.
+
+    The owner asked for it: he works in positive west, the NOAA Manual NOS NGS
+    5 convention, and answering the same question every run is friction he does
+    not want. What section 7's reasoning still buys is everywhere else - the
+    enum has no default, JobSettings has no default, and job.run refuses a
+    geodetic conversion that does not state one. Only the dropdown opens on a
+    value, where it is visible in words before Convert is pressed.
+    """
+    assert window.longitude_combo.currentData() == LongitudeConvention.POSITIVE_WEST
+    assert window.longitude_convention() is LongitudeConvention.POSITIVE_WEST
+
+    # No "not yet" entry to fall back into: one item per convention, no more.
+    assert window.longitude_combo.count() == len(LongitudeConvention)
 
 
 @pytest.mark.parametrize(
@@ -311,11 +326,17 @@ def test_the_longitude_selector_opens_unanswered(window):
         (MI_SOUTH, GEODETIC),
     ],
 )
-def test_a_geodetic_job_will_not_run_until_the_longitude_sign_is_chosen(
+def test_a_geodetic_job_runs_on_the_preselected_sign_and_follows_a_change(
     window, job_file, out_dir, source, target
 ):
-    from michspc.job import LongitudeConvention
+    """The default does not hold the job up, and it is not a dead control.
 
+    Anti-vacuousness for #29: a preselected value that stopped reaching the
+    conversion would pass every "it opens on positive west" assertion while
+    doing nothing. Here the run is available immediately AND the other
+    convention is still selectable and still changes the settings the job runs
+    with.
+    """
     fill_in(
         window,
         input_path=job_file,
@@ -323,14 +344,19 @@ def test_a_geodetic_job_will_not_run_until_the_longitude_sign_is_chosen(
         source=source,
         target=target,
     )
-    # Everything else is answered, so only the convention is holding it back.
     assert window.longitude_combo.isEnabled() is True
-    assert window.convert_button.isEnabled() is False
+    assert window.convert_button.isEnabled() is True
+    assert (
+        window.settings().longitude_convention is LongitudeConvention.POSITIVE_WEST
+    )
 
     window.longitude_combo.setCurrentIndex(
         window.longitude_combo.findData(LongitudeConvention.NEGATIVE_WEST)
     )
     assert window.convert_button.isEnabled() is True
+    assert (
+        window.settings().longitude_convention is LongitudeConvention.NEGATIVE_WEST
+    )
 
 
 def test_geodetic_to_geodetic_is_not_a_conversion(window, job_file, out_dir):
@@ -962,9 +988,12 @@ def test_the_longitude_tooltip_carries_the_worked_example(window):
 
     assert "-84.37" in tip
     assert "84.37" in tip
-    # And the part that says why the question is being asked at all.
+    # And the part that says why the question is being asked at all - which
+    # matters more now that the control opens on an answer (#29), because the
+    # tooltip is where the question still gets asked.
     assert "340 miles" in tip
-    assert "no default" in tip
+    assert "opens on positive west" in tip
+    assert "CHECK THIS AGAINST THE FILE" in tip
 
     # Anti-vacuousness: the example really is absent from the place it used to
     # be, so the tooltip is now the only surface carrying it.
@@ -980,45 +1009,63 @@ def test_the_longitude_dropdown_shows_the_enum_values_and_nothing_else(window):
     disagree (docs/DESIGN.md amendment #17).
     """
     combo = window.longitude_combo
-    # The placeholder plus one entry per convention, and no more.
-    assert combo.count() == 1 + len(LongitudeConvention)
-    assert combo.itemData(0) == UNCHOSEN
+    # One entry per convention and no more. The "— choose —" placeholder went
+    # with the no-default rule (#29): beside a preselected value it would be a
+    # third option meaning "not yet".
+    assert combo.count() == len(LongitudeConvention)
 
-    for position in range(1, combo.count()):
+    for position in range(combo.count()):
         convention = combo.itemData(position)
         assert isinstance(convention, LongitudeConvention)
         assert combo.itemText(position) == convention.value
         assert "as used by" not in combo.itemText(position)
 
 
-def test_the_longitude_selector_still_has_no_default(window, job_file, out_dir):
-    """Shortening the wording must not have introduced a default.
+def test_the_core_has_no_longitude_default_even_though_the_dropdown_does(
+    window, job_file, out_dir, tmp_path
+):
+    """The half of section 7 that #29 did NOT reverse, pinned where it lives.
 
-    docs/DESIGN.md section 7: the two conventions are indistinguishable from the
-    numbers and choosing wrongly throws a Michigan point about 340 miles, so the
-    user states it every run. Re-checked here beside the wording change because
-    a dropdown is exactly the kind of control that acquires a default by
-    accident.
+    The owner moved the default into the interface, and only into the
+    interface. Everything below it still refuses to assume: a JobSettings that
+    states no convention on a geodetic direction is refused by job.run, in the
+    core, with the 340-mile sentence intact. That is what stops the preselect
+    from becoming a program-wide assumption if the GUI is ever bypassed - by a
+    test, by a script, or by a later feature.
     """
-    assert window.longitude_combo.currentIndex() == 0
-    assert window.longitude_combo.currentData() == UNCHOSEN
-    assert window.longitude_convention() is None
+    from michspc.job import Direction, JobSettings, run
 
-    fill_in(
-        window,
+    settings = JobSettings(
         input_path=job_file,
         output_directory=out_dir,
-        source=GEODETIC,
-        target=MI_CENTRAL,
+        direction=Direction.GEODETIC_TO_ZONE,
+        source_zone=None,
+        target_zone=MI_CENTRAL,
+        input_unit=INTERNATIONAL_FEET,
+        output_unit=INTERNATIONAL_FEET,
+        longitude_convention=None,
+        apply_geoid=True,
     )
-    # Everything else is answered; only the convention is missing.
-    assert window.settings() is None
-    assert window.convert_button.isEnabled() is False
 
-    window.longitude_combo.setCurrentIndex(
-        window.longitude_combo.findData(LongitudeConvention.POSITIVE_WEST)
-    )
-    assert window.convert_button.isEnabled() is True
+    with pytest.raises(ValueError) as raised:
+        run(settings)
+
+    message = str(raised.value)
+    assert "has no default" in message
+    assert "340 miles" in message
+
+    # And the dataclass itself does not supply one to a caller who omits it.
+    with pytest.raises(TypeError):
+        JobSettings(
+            input_path=job_file,
+            output_directory=out_dir,
+            direction=Direction.GEODETIC_TO_ZONE,
+            source_zone=None,
+            target_zone=MI_CENTRAL,
+            input_unit=INTERNATIONAL_FEET,
+            output_unit=INTERNATIONAL_FEET,
+            apply_geoid=True,
+        )
 
 
 # A one-point geodetic file, sited by the same hand derivation as CENTRAL_POINTS

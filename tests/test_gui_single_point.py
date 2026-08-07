@@ -388,17 +388,29 @@ def test_convert_is_enabled_with_the_elevation_blank(tab):
 # --------------------------------------------------------------------------
 
 
-def test_the_longitude_convention_has_no_default(tab):
-    """It opens unanswered. The two are indistinguishable from the numbers."""
-    assert tab.longitude_combo.currentData() == UNCHOSEN
-    assert tab.longitude_convention() is None
+def test_the_longitude_convention_opens_on_positive_west(tab):
+    """The owner's convention, preselected (docs/DESIGN.md amendment #29).
+
+    Both tabs get it from the same ``controls.longitude_combo``, so this is the
+    same control the Multi point tab carries rather than a lookalike that could
+    open on something else.
+    """
+    assert tab.longitude_combo.currentData() is LongitudeConvention.POSITIVE_WEST
+    assert tab.longitude_convention() is LongitudeConvention.POSITIVE_WEST
+    assert tab.longitude_combo.count() == len(LongitudeConvention)
 
 
 @pytest.mark.parametrize(
     "case", [case_named("zone_to_geodetic"), case_named("geodetic_to_zone")], ids=lambda c: c.name
 )
-def test_a_geodetic_direction_is_gated_on_the_convention(tab, case):
-    """Both geodetic directions refuse to enable Convert without it."""
+def test_a_geodetic_direction_runs_on_the_preselected_convention(tab, case):
+    """Neither geodetic direction waits for the convention any more - and both
+    still follow it when it is changed.
+
+    The second half is the anti-vacuousness: a preselected value that stopped
+    reaching the settings would satisfy every assertion about what the dropdown
+    shows while the conversion quietly used something else.
+    """
     tab.from_zone.setCurrentIndex(tab.from_zone.findData(case.source))
     tab.to_zone.setCurrentIndex(tab.to_zone.findData(case.target))
     tab.first_edit.setText(case.first)
@@ -406,11 +418,16 @@ def test_a_geodetic_direction_is_gated_on_the_convention(tab, case):
     tab.elevation_edit.setText(case.elevation)
 
     assert tab.longitude_combo.isEnabled() is True
-    assert tab.settings() is None
-    assert tab.convert_button.isEnabled() is False
+    assert tab.convert_button.isEnabled() is True
+    assert (
+        tab.settings().longitude_convention is LongitudeConvention.POSITIVE_WEST
+    )
 
     tab.longitude_combo.setCurrentIndex(
-        tab.longitude_combo.findData(case.convention)
+        tab.longitude_combo.findData(LongitudeConvention.NEGATIVE_WEST)
+    )
+    assert (
+        tab.settings().longitude_convention is LongitudeConvention.NEGATIVE_WEST
     )
     assert tab.convert_button.isEnabled() is True
 
@@ -1440,21 +1457,18 @@ def test_the_dms_row_has_four_boxes_with_the_symbols_already_in_place(tab):
         ]
         assert symbols == ["°", "'", '"']
 
-        # The hemisphere opens unanswered, like every other question this
-        # program refuses to answer for the user.
-        assert entry.hemisphere.currentIndex() == 0
-        assert entry.hemisphere_letter() == ""
+        # Both letters, and no third "not yet" entry.
         offered = [
-            entry.hemisphere.itemData(i) for i in range(1, entry.hemisphere.count())
+            entry.hemisphere.itemData(i) for i in range(entry.hemisphere.count())
         ]
         assert tuple(offered) == letters
 
 
-def test_convert_waits_for_every_box_including_the_hemisphere(tab):
-    """Four boxes each, and an unanswered hemisphere is a missing box.
+def test_convert_waits_for_every_typed_box(tab):
+    """Any of the six typed boxes left empty holds Convert.
 
-    A dropdown left on its placeholder is exactly the state a default would
-    have hidden, and the letter decides which side of the meridian this is.
+    The hemisphere is not among them and does not need to be: it opens on a
+    real letter and has no empty state, so there is nothing to wait for.
     """
     set_up_dms_job(tab)
     assert tab.convert_button.isEnabled() is True
@@ -1462,12 +1476,16 @@ def test_convert_waits_for_every_box_including_the_hemisphere(tab):
     for clear, restore in (
         (lambda: tab.first_dms.degrees.setText(""),
          lambda: tab.first_dms.degrees.setText(LATITUDE_DMS[0])),
+        (lambda: tab.first_dms.minutes.setText(""),
+         lambda: tab.first_dms.minutes.setText(LATITUDE_DMS[1])),
+        (lambda: tab.first_dms.seconds.setText(""),
+         lambda: tab.first_dms.seconds.setText(LATITUDE_DMS[2])),
+        (lambda: tab.second_dms.degrees.setText(""),
+         lambda: tab.second_dms.degrees.setText(LONGITUDE_DMS[0])),
         (lambda: tab.second_dms.minutes.setText(""),
          lambda: tab.second_dms.minutes.setText(LONGITUDE_DMS[1])),
         (lambda: tab.second_dms.seconds.setText(""),
          lambda: tab.second_dms.seconds.setText(LONGITUDE_DMS[2])),
-        (lambda: tab.second_dms.hemisphere.setCurrentIndex(0),
-         lambda: fill_dms(tab.second_dms, LONGITUDE_DMS)),
     ):
         clear()
         assert tab.convert_button.isEnabled() is False
@@ -1632,11 +1650,14 @@ def test_editing_any_dms_box_discards_a_displayed_result(window, tab):
         assert tab.sections is None, f"{box} left a result on screen"
         assert tab.result is None
 
-    # And the two hemisphere dropdowns.
+    # And the two hemisphere dropdowns, moved to their OTHER letter - which is
+    # the only change either one can make, and the one that matters most: it
+    # reflects the point across the equator or the meridian.
     for entry in (tab.first_dms, tab.second_dms):
         set_up_dms_job(tab)
         assert tab.convert() is True
-        entry.hemisphere.setCurrentIndex(0)
+        other = 1 - entry.hemisphere.currentIndex()
+        entry.hemisphere.setCurrentIndex(other)
         assert tab.sections is None
 
 
@@ -1714,3 +1735,60 @@ def test_the_copy_button_does_not_tower_over_the_value_it_copies(window, tab):
         # The glyph itself is smaller than a character, which is the part the
         # eye actually reads as the button's size.
         assert button.iconSize().height() < line_height
+
+
+def test_the_hemisphere_opens_on_north_and_west(tab):
+    """The owner's decision (docs/DESIGN.md amendment #28 note 3).
+
+    It was built to open unanswered, on the house rule that nothing answers a
+    question for the user. He judged the two extra clicks per conversion not
+    worth it for data that is always N and W, and this is his tool.
+
+    What makes it defensible where a longitude-convention default would not be:
+    the answer is a visible token in the box before Convert is pressed, and it
+    reads back in the result panel afterwards. It is a starting value, not a
+    hidden assumption.
+    """
+    tab.from_zone.setCurrentIndex(tab.from_zone.findData(GEODETIC))
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DMS_PAGE)
+    )
+
+    assert tab.first_dms.hemisphere_letter() == "N"
+    assert tab.second_dms.hemisphere_letter() == "W"
+
+    # There is no third "not yet" entry to fall back into.
+    assert tab.first_dms.hemisphere.count() == 2
+    assert tab.second_dms.hemisphere.count() == 2
+
+    # A freshly cleared row is in the same state a freshly built one is.
+    tab.first_dms.degrees.setText("43")
+    tab.first_dms.hemisphere.setCurrentIndex(
+        tab.first_dms.hemisphere.findData("S")
+    )
+    tab.first_dms.clear()
+    assert tab.first_dms.degrees.text() == ""
+    assert tab.first_dms.hemisphere_letter() == "N"
+
+
+def test_the_preselected_hemisphere_is_still_a_live_control(window, tab):
+    """Anti-vacuousness for the default: a preselect must not become a control
+    that is set once and then ignored.
+
+    43 deg 48 min N and 43 deg 48 min S are 6,000 miles apart, so if the letter
+    still reaches the conversion the two runs cannot agree - and if it stopped
+    reaching it, they would.
+    """
+    set_up_dms_job(tab)
+    assert tab.first_dms.hemisphere_letter() == "N"
+    assert tab.convert() is True
+    northern = dict(tab.displayed_rows())["Latitude"]
+
+    tab.first_dms.hemisphere.setCurrentIndex(
+        tab.first_dms.hemisphere.findData("S")
+    )
+    assert tab.convert() is True
+    southern = dict(tab.displayed_rows())["Latitude"]
+
+    assert northern != southern
+    assert float(southern) == pytest.approx(-float(northern), abs=1e-8)

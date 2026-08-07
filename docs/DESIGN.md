@@ -447,6 +447,60 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #34 — 2026-08-07 — Three tooltips removed from the entry controls (0.3.1)
+
+Owner's instruction. Removed, on both tabs where the control appears on both:
+
+1. **The longitude sign dropdown** (`controls.longitude_combo`) — carried #28's
+   worked example (`-84.37` / `84.37`) and #29's *"Files from OPUS, NCAT, GPS
+   receivers and GIS software are normally negative west - CHECK THIS AGAINST
+   THE FILE."* **This helper builds the control for the file tab and the Single
+   point tab both**, so the removal reaches both, which is what the owner chose
+   when asked. Keeping one tab's tooltip and not the other's would have put two
+   different explanations of one control in one program, against #17's standing
+   rule of one wording in both surfaces.
+2. **The angle-format dropdown** (`single_point.ANGLE_FORMAT_TOOLTIP`, deleted)
+   — said the choice governs what is TYPED only.
+3. **Both hemisphere letter boxes** (`dms_entry`) — said Michigan is always N
+   and W.
+
+**What is gone is text, not information.** The longitude control still names the
+convention in words before Convert is pressed; the job record still states it on
+its own line and in the input and export descriptions; `job.run` still refuses a
+geodetic job with no convention, in a sentence carrying the 340 miles; the
+hemisphere boxes still show their letter; the format dropdown still names both
+formats. Nothing about any conversion changed, and no output file changed.
+
+**This supersedes one sentence of #33**, written the same day, which listed the
+tooltip among the mitigations for the positive-west preselect. That mitigation is
+withdrawn by the owner under the same ruling #33 records: verifying the
+convention is the user's responsibility. The remaining mitigations there stand.
+#29's account of adding the sentence is history and is left as written.
+
+**Pinned, because deleted text grows back.** Each of these explained a control
+that answers a question for the user, so the next reader who notices that will
+reach for a tooltip in good faith. `test_the_longitude_dropdown_has_no_tooltip`
+and `test_the_coordinate_entry_carries_no_tooltips` assert emptiness on both
+tabs — deliberately overlapping on the shared longitude control, so that a future
+change giving the Single point tab its own instance cannot slip past a pin that
+only looks at the other tab. Both check the control still says what it is, so
+they cannot be satisfied by deleting the control itself.
+
+**Falsified**: with a tooltip seeded back on the longitude combo and on the
+hemisphere box, both tests fail. Suite 1131 → 1132 (one tooltip-content test
+retired, two emptiness pins added).
+
+**A near-miss worth recording, in the suite's own tooling rather than the
+program.** The seeding was done with PowerShell `Set-Content`, which on 5.1 reads
+as ANSI and writes UTF-8 with a BOM — it added a BOM to `controls.py` and
+`dms_entry.py` and mangled every em-dash and degree symbol in them. The suite
+stayed green throughout, because Python accepts a BOM and the corruption was
+confined to prose. Caught by reading the diff stat: two files showed roughly
+three times the churn the edit accounted for. Both were restored from HEAD and
+re-edited with a tool that preserves encoding. TOOLING.md already warns about
+this exact trap; the lesson is that it applies to throwaway seeding commands too,
+where the file is expected to be thrown away and the diff therefore goes unread.
+
 ### #33 — 2026-08-07 — The positive-west preselect: closed, not a concern
 
 Owner's ruling at the close of 0.3.0, in his words: he is **not** concerned about
@@ -463,6 +517,10 @@ words before Convert is pressed, its tooltip carries the warning in capitals, th
 job record states the convention in force, and the release notes lead with it.
 The surveyor checks it against the file in front of him, as he checks a datum or
 a unit.
+
+> **Superseded in part by #34, later the same day: the tooltip is gone**, on the
+> owner's instruction and under this same ruling. Strike it from the list above;
+> the dropdown's wording, the job record and `job.run`'s refusal all stand.
 
 **Recorded so it is not refiled.** This item has now been raised three times —
 at #29, before the release, and after it. A reviewer who reaches for it again

@@ -25,7 +25,28 @@ It deliberately does **not** do UTM, SPCS2022, NAD 83 ↔ NATRF2022
 transformation, other states, NAD 27, or two-point azimuth/distance. See
 DESIGN.md §10 for why each was deferred.
 
-## Status (2026-08-07, 0.3.0 RELEASED)
+## Status (2026-08-07, 0.3.1 RELEASED)
+
+**0.3.1 removes three tooltips and nothing else** (DESIGN.md **#34**): the
+longitude sign dropdown on **both** tabs (one shared control), the angle-format
+selector, and both hemisphere letter boxes. Owner's instruction. Text was
+removed, not information — the longitude control still names the convention, the
+job record still states it, and `job.run` still refuses a geodetic job without
+one. Suite **1132** green in both modes; all eight gates.
+
+**This withdraws the tooltip mitigation #33 listed** for the positive-west
+preselect, under #33's own ruling that verification is the user's
+responsibility. #33 is annotated in place so the record does not cite a tooltip
+that no longer exists.
+
+**Trap worth remembering, recorded in #34:** the falsification seeding used
+PowerShell `Set-Content`, which on 5.1 reads ANSI and writes UTF-8 **with a
+BOM** — it silently added a BOM and mangled every em-dash in two source files,
+and the suite stayed green because Python accepts a BOM. Caught by reading the
+diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
+commands too, where the diff usually goes unread.
+
+## Superseded status (2026-08-07, 0.3.0 RELEASED)
 
 **0.3.0 is built, gated and tagged.** The Single point tab reaches users for the
 first time, which is why the minor number moved rather than the patch one. All

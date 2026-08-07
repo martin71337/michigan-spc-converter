@@ -1817,6 +1817,40 @@ def test_the_copy_button_does_not_tower_over_the_value_it_copies(window, tab):
         assert value.text()
 
 
+def test_the_coordinate_entry_carries_no_tooltips(tab):
+    """The owner had all three removed (docs/DESIGN.md amendment #34).
+
+    The longitude sign dropdown, the angle-format dropdown and both hemisphere
+    letter boxes. Pinned rather than merely deleted for the reason #34 gives:
+    every one of these explained a control that answers a question for the user,
+    so the pressure to write the explanation back is real and will come from
+    someone acting in good faith.
+
+    The longitude assertion overlaps ``test_the_longitude_dropdown_has_no_tooltip``
+    in the file-tab suite ON PURPOSE. One shared helper builds that control for
+    both tabs, and a future change that gave the Single point tab its own
+    control would slip past a pin that only ever looked at the other tab.
+    """
+    tab.from_zone.setCurrentIndex(tab.from_zone.findData(GEODETIC))
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DMS_PAGE)
+    )
+
+    assert tab.longitude_combo.toolTip() == ""
+    assert tab.angle_format.toolTip() == ""
+    assert tab.first_dms.hemisphere.toolTip() == ""
+    assert tab.second_dms.hemisphere.toolTip() == ""
+
+    # The boxes still say what they are: this removed text, not meaning. The
+    # letters are in the control, and the format dropdown still names both
+    # formats - which is what the tooltips were explaining.
+    assert tab.first_dms.hemisphere_letter() == "N"
+    assert [
+        tab.angle_format.itemText(position)
+        for position in range(tab.angle_format.count())
+    ] == [single_point_module.ANGLE_FORMAT_DECIMAL, single_point_module.ANGLE_FORMAT_DMS]
+
+
 def test_the_hemisphere_opens_on_north_and_west(tab):
     """The owner's decision (docs/DESIGN.md amendment #28 note 3).
 

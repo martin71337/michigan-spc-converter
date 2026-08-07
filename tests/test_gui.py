@@ -973,37 +973,34 @@ def test_the_longitude_convention_reads_the_wording_the_owner_chose():
         "negative west",
     ]
 
-    # The worked example is gone from the values themselves, not merely
-    # shortened - it moved to the dropdown's tooltip, which is checked in
-    # test_the_longitude_tooltip_carries_the_worked_example.
+    # The worked example is gone from the values themselves, and since #34 it is
+    # not in a tooltip either - see test_the_longitude_dropdown_has_no_tooltip.
     for convention in LongitudeConvention:
         assert "84.37" not in convention.value
 
 
-def test_the_longitude_tooltip_carries_the_worked_example(window):
-    """The example moved out of the entries and into the tooltip (#28).
+def test_the_longitude_dropdown_has_no_tooltip(window):
+    """The owner had the tooltip removed (docs/DESIGN.md amendment #34).
 
-    It was doing real work where it was - a surveyor choosing between two
-    conventions needs to see which sign each one puts on a Michigan longitude -
-    but it rode the enum value into the job record's Longitude line as well.
-    The tooltip teaches the person making the choice without following the
-    choice into every document that reports it.
+    It is pinned rather than merely deleted because this one carried #28's
+    worked example and #29's "CHECK THIS AGAINST THE FILE" warning, and text
+    that load-bearing grows back: the next person to notice the control opens on
+    a preselected convention will reach for a tooltip to explain it. Verifying
+    the convention is the user's responsibility (#33). If that is ever reversed,
+    this test is the place the decision is recorded, and it fails loudly rather
+    than letting the warning reappear unrecorded.
+
+    ``controls.longitude_combo`` builds this control for BOTH tabs, so this
+    covers the file tab and the Single point tab from one place - which is why
+    the single-point suite asserts the same thing about its own instance.
     """
-    tip = window.longitude_combo.toolTip()
+    assert window.longitude_combo.toolTip() == ""
 
-    assert "-84.37" in tip
-    assert "84.37" in tip
-    # And the part that says why the question is being asked at all - which
-    # matters more now that the control opens on an answer (#29), because the
-    # tooltip is where the question still gets asked.
-    assert "340 miles" in tip
-    assert "opens on positive west" in tip
-    assert "CHECK THIS AGAINST THE FILE" in tip
-
-    # Anti-vacuousness: the example really is absent from the place it used to
-    # be, so the tooltip is now the only surface carrying it.
+    # And the example did not survive somewhere else on the control: not in the
+    # entries, not in the accessible description a screen reader would read.
     for position in range(window.longitude_combo.count()):
         assert "84.37" not in window.longitude_combo.itemText(position)
+    assert "84.37" not in window.longitude_combo.accessibleDescription()
 
 
 def test_the_longitude_dropdown_shows_the_enum_values_and_nothing_else(window):

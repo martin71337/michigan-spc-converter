@@ -161,26 +161,13 @@ def longitude_combo(parent, on_change) -> QComboBox:
     for convention in LongitudeConvention:
         combo.addItem(convention.value, convention)
     combo.setCurrentIndex(combo.findData(DEFAULT_LONGITUDE_CONVENTION))
-    combo.setToolTip(
-        "A Michigan longitude of 84 deg 22 min W is written -84.37 under the "
-        "negative-west convention and 84.37 under the positive-west one. The "
-        "two are indistinguishable from the numbers alone, and choosing "
-        "wrongly moves the point about 340 miles.\n\n"
-        "This opens on positive west, the NOAA Manual NOS NGS 5 convention. "
-        "Files from OPUS, NCAT, GPS receivers and GIS software are normally "
-        "negative west - CHECK THIS AGAINST THE FILE.\n\n"
-        "Degrees-minutes-seconds entry does not depend on it: a hemisphere "
-        "letter states the direction outright."
-    )
-    """The worked example moved here from the entries themselves at the owner's
-    request (docs/DESIGN.md amendment #28). It taught the person choosing, but
-    it rode the enum value into the job record's Longitude line as well, and
-    "positive west" alone names the convention completely.
-
-    The "check this against the file" sentence is #29's doing. With no default
-    the control asked the question by existing; now that it opens on an answer,
-    the tooltip is where the question still gets asked - and it names the case
-    that will actually bite, which is a downloaded OPUS or NCAT file."""
+    # NO TOOLTIP, at the owner's instruction (docs/DESIGN.md amendment #34).
+    # This carried #28's worked example and #29's "CHECK THIS AGAINST THE FILE"
+    # sentence; both are gone, from BOTH tabs, because this helper builds the
+    # control for each of them. Verifying the convention is the user's
+    # responsibility (#33), and the control still names it in words. Pinned in
+    # tests/test_gui.py and tests/test_gui_single_point.py so it does not come
+    # back by accident.
     combo.currentIndexChanged.connect(on_change)
     return combo
 

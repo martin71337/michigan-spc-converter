@@ -195,14 +195,11 @@ no minutes or seconds, so the selector is disabled and the decimal page stays
 up (see ``_update_angle_format_relevance``).
 """
 
-ANGLE_FORMAT_TOOLTIP = (
-    "How the typed latitude and longitude are written. Decimal degrees is one "
-    "box each; degrees / minutes / seconds is four, with a hemisphere letter "
-    "instead of a sign - the same notation the result panel displays, so a "
-    "reading can be typed straight back in.\n\n"
-    "This governs what is TYPED only. It changes nothing about the conversion "
-    "and nothing about what is displayed."
-)
+# The angle-format dropdown had a tooltip here explaining that the choice
+# governs what is TYPED only. Deleted at the owner's instruction (docs/DESIGN.md
+# amendment #34) along with the other two on the coordinate entry. The behaviour
+# it described is unchanged and is still pinned by the tests that switch pages
+# mid-entry; only the text is gone.
 
 
 class SinglePointTab(QWidget):
@@ -285,7 +282,6 @@ class SinglePointTab(QWidget):
         self.angle_format = QComboBox(box)
         self.angle_format.addItem(ANGLE_FORMAT_DECIMAL, DECIMAL_PAGE)
         self.angle_format.addItem(ANGLE_FORMAT_DMS, DMS_PAGE)
-        self.angle_format.setToolTip(ANGLE_FORMAT_TOOLTIP)
         self.angle_format.currentIndexChanged.connect(self._on_angle_format_changed)
 
         grid.addWidget(self.angle_format_label, 3, 0)

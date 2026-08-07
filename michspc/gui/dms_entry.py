@@ -103,12 +103,9 @@ class DmsEntry(QWidget):
         self.hemisphere.setCurrentIndex(
             self.hemisphere.findData(DEFAULT_HEMISPHERE[axis])
         )
-        self.hemisphere.setToolTip(
-            f"Which side of the {'equator' if axis == dms.LATITUDE else 'meridian'} "
-            f"this point is on. Michigan is always "
-            f"{DEFAULT_HEMISPHERE[axis]}, which is what this opens on; change it "
-            f"for a point outside Michigan."
-        )
+        # NO TOOLTIP, at the owner's instruction (docs/DESIGN.md amendment #34).
+        # The letter is its own label: the box offers N and S, or E and W, and
+        # shows which of them is selected.
 
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)

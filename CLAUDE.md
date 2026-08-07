@@ -25,10 +25,31 @@ It deliberately does **not** do UTM, SPCS2022, NAD 83 ↔ NATRF2022
 transformation, other states, NAD 27, or two-point azimuth/distance. See
 DESIGN.md §10 for why each was deferred.
 
-## Status (2026-08-07, all owner edits DONE, merged to main, unreleased)
+## Status (2026-08-07, 0.3.0 RELEASED)
 
-**Every interface edit the owner asked for is in and merged to `main`. The
-release itself is still not cut.** Four rounds: DESIGN.md **#27**, **#28**,
+**0.3.0 is built, gated and tagged.** The Single point tab reaches users for the
+first time, which is why the minor number moved rather than the patch one. All
+eight gates passed: suite **1131** green in both `pytest` and `-O`, the frozen
+bundle self-test passed, and the bundled end-to-end conversion matched NGS NCAT
+to 0.0000 ft northing and 0.0010 ft easting. Notes in
+`docs/RELEASE-NOTES-0.3.0.md`.
+
+**The build found one defect, and it was in the suite, not the program**
+(DESIGN.md **#31**). A pin from #28 measured the copy button against
+`value.fontMetrics().height()`, which under the offscreen test platform is 12 px
+for every font family — including Segoe UI asked for by name — where the real
+Windows plugin answers 16 for that same font. At 12 the pin rejected the 11 px
+glyph the owner asked for and the 14 px one it replaced alike, so it had stopped
+telling them apart. Fixed by measuring against the line height the program is
+actually drawn in; `result_panel.py` is untouched and no shipped pixel changed.
+
+**Still outstanding, and human:** install on a clean profile and run one real job
+end to end (METHOD.md §6). A self-test is not a substitute. **The positive-west
+preselect below is the thing to watch on that first job.**
+
+### Superseded status — all owner edits DONE, merged to main
+
+Four rounds: DESIGN.md **#27**, **#28**,
 **#29**, **#30**.
 
 ### Round four (DESIGN.md #30) — warnings move out; display punctuation
@@ -112,13 +133,14 @@ Every new pin was falsified by seeding the defect it catches — including one
 that had to be rewritten because the first version passed against its own
 defect (DESIGN.md #27, Verification).
 
-### Before releasing this — open with the owner
+### Shipped in 0.3.0 with these still open — raise with the owner
 
 - **The positive-west preselect is wrong for downloaded files.** OPUS, NCAT,
   GPS and GIS all write negative west. His own data is positive west, which is
   why he asked for it, but the first OPUS file through this tool will convert
   340 miles off unless the dropdown is changed. The tooltip warns; nothing
-  blocks. Worth one more thought before release.
+  blocks. **This shipped as-is**, with the warning carried into the release
+  notes' opening section rather than buried — it is the first thing they say.
 - **The job record's `Longitude` line is now shorter too** — `Longitude
   negative west`, with no `(-84.37)`. That follows #17's standing choice of one
   wording in both surfaces. If he wants the example kept in the record and out
@@ -128,12 +150,12 @@ defect (DESIGN.md #27, Verification).
   box keeps its owner-approved full-width shape on top, and the INPUT/OUTPUT
   result blocks are what split. The other reading — the whole tab splitting,
   entry form left and results right — was not built. Cheap to change.
-- **The version number is not bumped.** 0.2.0 is still the literal.
-  Recommendation is **0.3.0**: the Single point tab reaches users for the first
-  time in this release, which is a feature, not a patch.
+- ~~The version number is not bumped~~ — **closed. 0.3.0 is the literal, built
+  and tagged.**
 - **The release cannot be cut from a Linux session.** Gates 5 and 7 of
   `tools/build_release.py` are PyInstaller and Inno Setup, Windows-only. The
-  build has to be `py tools/build_release.py` on his machine.
+  build has to be `py tools/build_release.py` on his machine — which is where
+  0.3.0 was in fact built.
 
 ## Superseded status (2026-08-07, single point tab BUILT AND GATED, unreleased)
 

@@ -447,6 +447,54 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #31 — 2026-08-07 — A pin that measured the test platform, not the program
+
+Found by the 0.3.0 release build: gate 3 refused, one failing test, on a
+release whose only change was the version literal.
+
+`test_the_copy_button_does_not_tower_over_the_value_it_copies` (#28 note 1)
+compared the copy button's height against `value.fontMetrics().height()`. The
+suite runs under the **offscreen** platform plugin, which has no system font and
+no text rasteriser. It answers **12 px for every family** — including `Segoe UI`
+requested by name — where the Windows plugin answers **16** for that same font
+at the same 9 pt and the same 96 dpi. The button's height comes from the style
+rather than from the text, so it does not move with any of this: 18 px offscreen
+and 19 on Windows.
+
+Measured, per platform, glyph → button height, against the pin's allowance of
+one frame:
+
+| line height | 11 px glyph (shipped) | 14 px glyph (#28 replaced) |
+|---|---|---|
+| offscreen, this machine — 12 | 18, **fails** | 21, fails |
+| offscreen, machine of origin — 14 | 18, fails | 21, fails |
+| **Windows, as shipped — 16** | **19, passes** | 22, **fails** |
+
+So the pin was only ever discriminating by accident, and on this machine it
+rejected the fix and the defect alike. **No relative pin can work here**: to pass
+the 11 px glyph and fail the 14 px one, the allowance must be at least 6 px
+offscreen and under 6 on Windows. The two frames of reference do not correspond,
+because one of them is not rendering text.
+
+**Fixed in the test, and deliberately not in the program.** `SHIPPED_LINE_HEIGHT
+= 16` states the line of text the panel is actually drawn in — Segoe UI 9 pt,
+96 dpi, inherited, since nothing in `michspc.gui` sets a font — and the button is
+measured against that. Stating a metric is against this file's usual rule, which
+is why the constant carries the whole argument above. The alternative root fix,
+constraining the button's height in `result_panel` so the relationship holds on
+any platform by construction, was **rejected for this release**: it changes what
+the owner has already approved on screen and risks clipping the glyph under a
+larger system font or a scaled display, which is not a thing to do while cutting
+a release. Recorded as available if the pin ever needs to be relative again.
+
+The loop also gained a guard that the panel laid out any rows at all: it was
+satisfied by an empty panel, a pass that means nothing.
+
+**Falsified.** With `COPY_ICON_SIZE` seeded back to 14 the pin fails on 21 ≤ 20;
+restored to 11 it passes on 19 ≤ 20. `result_panel.py` is byte-identical to its
+committed state — no shipped pixel changed, and no coordinate was ever in reach
+of this.
+
 ### #30 — 2026-08-07 — Warnings get their own field; display punctuation
 
 Five owner directives, all interface. The third and fourth introduce the first

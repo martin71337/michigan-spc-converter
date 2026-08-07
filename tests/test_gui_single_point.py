@@ -1767,8 +1767,28 @@ The button cannot shrink to the text height: Qt adds its own frame around the
 icon, and pinning it flat would mean overriding that with a hard-coded box,
 which renders cramped under a native Windows theme. So the pin below allows the
 frame and nothing more - which is a real discriminator rather than a formality:
-the 14 px glyph this replaced measured 21 px against a 14 px line and would
-fail it, and the 11 px one measures 18 and passes.
+against the line of text the program is actually drawn in, the 14 px glyph this
+replaced measures 22 px and fails it, and the 11 px one measures 19 and passes.
+"""
+
+SHIPPED_LINE_HEIGHT = 16
+"""One line of the panel's text in the program as it ships: Segoe UI at 9 pt on
+a 96 dpi Windows desktop. Nothing in michspc.gui sets a font, so every value
+label is drawn in the system UI font.
+
+**Stated here rather than measured from the label, and that is the opposite of
+this file's usual rule.** The suite runs on the offscreen platform plugin, which
+has no system font and no text rasteriser: it answers 12 px for EVERY family,
+including Segoe UI asked for by name, where the Windows plugin answers 16 for
+that same font. The button is unmoved by any of it - its height comes from the
+style, 18 px offscreen and 19 on Windows.
+
+Measured against offscreen's 12, the comparison below rejects the 11 px glyph
+the owner asked for AND the 14 px one it replaced, so it stops telling them
+apart. That is how it came to fail on a machine whose offscreen fallback (12)
+differed from the one this pin was written on (14) - a red suite saying nothing
+about the program (docs/DESIGN.md amendment #31). What the owner sees is decided
+by the line height he sees, so that is what the button is measured against.
 """
 
 
@@ -1781,16 +1801,20 @@ def test_the_copy_button_does_not_tower_over_the_value_it_copies(window, tab):
     """
     panel = laid_out(window, tab, case_named("zone_to_zone"))
 
-    for value, button in zip(panel.value_labels, panel.copy_buttons):
-        line_height = value.fontMetrics().height()
+    # Without this the loop below is satisfied by a panel that drew no rows at
+    # all, which is a pass that means nothing.
+    assert panel.copy_buttons, "the panel laid out no copy buttons to measure"
 
-        assert button.height() <= line_height + BUTTON_FRAME_ALLOWANCE, (
+    for value, button in zip(panel.value_labels, panel.copy_buttons):
+        assert button.height() <= SHIPPED_LINE_HEIGHT + BUTTON_FRAME_ALLOWANCE, (
             f"the copy button is {button.height()} px against a "
-            f"{line_height} px line of text"
+            f"{SHIPPED_LINE_HEIGHT} px line of text"
         )
         # The glyph itself is smaller than a character, which is the part the
         # eye actually reads as the button's size.
-        assert button.iconSize().height() < line_height
+        assert button.iconSize().height() < SHIPPED_LINE_HEIGHT
+        # And it is beside a value, not beside nothing.
+        assert value.text()
 
 
 def test_the_hemisphere_opens_on_north_and_west(tab):

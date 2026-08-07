@@ -25,7 +25,98 @@ It deliberately does **not** do UTM, SPCS2022, NAD 83 ↔ NATRF2022
 transformation, other states, NAD 27, or two-point azimuth/distance. See
 DESIGN.md §10 for why each was deferred.
 
-## Status (2026-08-07, single point tab BUILT AND GATED, unreleased)
+## Status (2026-08-07, all owner edits DONE, merged to main, unreleased)
+
+**Every interface edit the owner asked for is in and merged to `main`. The
+release itself is still not cut.** Three rounds: DESIGN.md **#27**, **#28**,
+**#29**.
+
+### Round three (DESIGN.md #29) — two defaults, one of which reverses §7
+
+1. **The DMS hemisphere opens on N and W.** Cheap: the letter is a visible
+   token beside its angle, and it is correct for every point MCX can convert.
+   `dms_entry.DEFAULT_HEMISPHERE` is the one place that assumption lives.
+2. **The longitude sign dropdown opens on positive west** — the owner's own
+   convention, and a **reversal of §7's no-default rule**, on his instruction.
+   The reversal is narrow and pinned: the enum, `JobSettings` and `job.run` all
+   still refuse to assume, so only the interface opens on a value.
+   **Recorded concern:** OPUS, NCAT, GPS and GIS files are normally *negative*
+   west, so the preselect is wrong for every downloaded file — by 340 miles.
+   The tooltip carries that warning in capitals.
+
+### Round two (DESIGN.md #28)
+
+DMS entry, a smaller copy glyph, and the worked example out of the longitude
+sign entries.
+
+1. **Copy glyph 14 px → 11 px.** Pinned as a relationship — the button may
+   stand above its line of text by the frame a flat QToolButton needs and no
+   more — rather than as the number.
+2. **`LongitudeConvention` values are now `negative west` / `positive west`.**
+   The `(84.37)` example moved to the dropdown's tooltip. **This shortens the
+   job record's `Longitude` line too**, which is #17's standing choice (one
+   wording in both surfaces), not an oversight.
+3. **Lat/long can be typed as degrees / minutes / seconds** on the Single point
+   tab — four boxes per angle with the symbols already in place and a
+   hemisphere letter instead of a sign. Decimal degrees is still what the tab
+   opens on. The composition lives in `michspc/fileio/dms.py`, beside
+   the formatters that define the notation, because the GUI may not compute an
+   angle. The load-bearing pin: **the same DMS entry converts identically under
+   both longitude conventions, where the same decimal entry gives two points
+   340 miles apart.**
+4. **The input CSV takes decimal degrees only** — the owner's question,
+   answered. It always did; DMS is now refused *by name*, with a message
+   pointing at the Single point tab. Reading DMS from a file is deliberately
+   not built: packed `434759.8` is indistinguishable from an ordinary decimal
+   degree, so a file reader would have to guess.
+
+Suite **1031 → 1120** across all three rounds, green in both `pytest` and
+`-O`; frozen-bundle self-test passes. Eleven seeded defects, all caught.
+
+### Round one (DESIGN.md #27), also in
+
+All four are interface-only: no computation, no formatter, and no value on
+screen is produced differently.
+
+1. The single-point result reads in **two columns, INPUT left, OUTPUT right**,
+   with a vertical rule between. Row indices are unchanged by the split, so a
+   right-column button cannot copy a left-column value — pinned.
+2. The copy control is the **Windows 11 two-sheet glyph**, drawn with QPainter
+   in `michspc/gui/copy_icon.py` (no new asset in the build's path), sitting
+   **beside its own value** instead of pinned to the far right.
+3. The **input file box** starts empty; the `C:\jobs\24-118\pts.csv`
+   placeholder is gone. The format hint below it is untouched.
+4. The **output folder** starts empty. This reverses #16 note 3;
+   `default_output_directory` is deleted, not left dormant.
+
+Every new pin was falsified by seeding the defect it catches — including one
+that had to be rewritten because the first version passed against its own
+defect (DESIGN.md #27, Verification).
+
+### Before releasing this — open with the owner
+
+- **The positive-west preselect is wrong for downloaded files.** OPUS, NCAT,
+  GPS and GIS all write negative west. His own data is positive west, which is
+  why he asked for it, but the first OPUS file through this tool will convert
+  340 miles off unless the dropdown is changed. The tooltip warns; nothing
+  blocks. Worth one more thought before release.
+- **The job record's `Longitude` line is now shorter too** — `Longitude
+  negative west`, with no `(-84.37)`. That follows #17's standing choice of one
+  wording in both surfaces. If he wants the example kept in the record and out
+  of the dropdown only, that is a separate GUI label and #17 has to be reopened.
+- **The layout question was asked and not answered.** "Two columns, one for
+  input and one for output" was read as the **results panel**: the Conversion
+  box keeps its owner-approved full-width shape on top, and the INPUT/OUTPUT
+  result blocks are what split. The other reading — the whole tab splitting,
+  entry form left and results right — was not built. Cheap to change.
+- **The version number is not bumped.** 0.2.0 is still the literal.
+  Recommendation is **0.3.0**: the Single point tab reaches users for the first
+  time in this release, which is a feature, not a patch.
+- **The release cannot be cut from a Linux session.** Gates 5 and 7 of
+  `tools/build_release.py` are PyInstaller and Inno Setup, Windows-only. The
+  build has to be `py tools/build_release.py` on his machine.
+
+## Superseded status (2026-08-07, single point tab BUILT AND GATED, unreleased)
 
 **The Single point tab is built, reviewed and committed — not released.** The
 owner asked to pause before cutting a release; `main` carries it, 0.2.0 is still
@@ -200,7 +291,10 @@ docs/             DESIGN.md (authority), method/, the NOAA manual, reference/
 
 - Units explicit at every boundary; International feet is the default because
   Michigan legislated it, and the unit in force is stated in every output file.
-- Longitude sign convention is user-selected with **no default**.
+- Longitude sign convention: **no default in the core** — `JobSettings`
+  requires it and `job.run` refuses a geodetic job without it. The GUI dropdown
+  opens on positive-west (DESIGN.md #29, owner's instruction); that is a
+  decision, not a regression, and #29 says why.
 - Fail closed, never fabricate; refusals name the offending item.
 - Missing elevation writes `N/A` in factor columns — never `1.0`.
 - One authoritative representation per fact; derived values are never stored.

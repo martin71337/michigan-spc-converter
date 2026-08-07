@@ -134,9 +134,15 @@ failure the tier sentence exists to prevent.
 - Units are explicit at every boundary. International feet is the default
   because Michigan legislated it (manual Table 1.5, p. 9, "Michigan(I)"), but
   the unit in force is stated in every output file.
-- Longitude sign convention is **selected by the user with no default**. The
-  manual and the prior MATLAB tool use positive-west; NCAT, OPUS, GPS and GIS
-  use negative-west. A silent default here throws a Michigan point ~340 miles.
+- Longitude sign convention is **selected by the user, and the CORE has no
+  default**. The manual and the prior MATLAB tool use positive-west; NCAT,
+  OPUS, GPS and GIS use negative-west. A silent default here throws a Michigan
+  point ~340 miles, so `JobSettings` requires it and `job.run` refuses a
+  geodetic conversion that does not state one. **The GUI dropdown now opens on
+  positive-west — amendment #29, on the owner's instruction. Read it before
+  "fixing" this back.** The distinction that makes both true: the core assumes
+  nothing, while the interface shows its answer in words before Convert is
+  pressed.
 - Missing elevations produce `N/A` in factor columns — never `1.0`, never the
   grid factor alone — and every affected point is named in the report.
 - One authoritative representation per fact. Derived values are derived, never
@@ -199,7 +205,8 @@ Owner-approved decisions recorded verbatim:
 - Zone ↔ zone plus geodetic ⇄ SPC. Input PNEZD, no header row.
 - Default International feet; US survey feet and meters selectable, input and
   output independently.
-- Longitude sign convention: explicit GUI selector, no default.
+- Longitude sign convention: explicit GUI selector; no default in the core,
+  and the dropdown opens on positive-west since amendment #29.
 - GEOID18 bundled, automatic per-point lookup.
 - Missing elevation: convert, write `N/A` in factor columns, name the points in
   the report.
@@ -439,6 +446,275 @@ Not addressed, and still the owner's call: at 16 and 32 px the "COORD CONVERT"
 lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
+
+### #29 — 2026-08-07 — Owner sets two defaults, one of which reverses §7
+
+Two preselections, both asked for by name after using the built version.
+
+**1. The DMS hemisphere opens on N and W.** It was built to open unanswered, on
+the house rule that nothing answers a question for the user. He judged the two
+extra clicks per conversion not worth it for data that is always north and
+west, and he is right about his own data.
+
+This one costs little. The answer is a visible token in the box beside the
+angle it belongs to, it reads back in the result panel afterwards, and it is
+correct for every point MCX can convert — the program carries the three
+Michigan zones and nothing else. `dms_entry.DEFAULT_HEMISPHERE` is the single
+place that assumption is written down, so a zone outside the north-west
+quadrant is one edit rather than a habit to hunt.
+
+The placeholder entry went with it: a "not yet" option beside a preselected
+default is reachable only by choosing it, and choosing "not yet" is not
+something anyone does. `fileio.dms` still refuses an empty letter, which is now
+unreachable from the GUI and stays anyway — it is what stops a later change up
+in the interface from quietly acquiring a default down in the composition.
+
+**2. The longitude sign dropdown opens on positive west. This reverses §7.**
+
+§7 has said since #1 that this control has no default, and an adversarial
+review once recorded a default here as a finding (#20). The reasoning was
+sound and is unchanged: the two conventions are indistinguishable from the
+numbers in a file, and choosing wrongly moves a Michigan point about 340 miles
+onto a sealed survey.
+
+**What changed is not the risk but who carries it.** The owner works in
+positive west — the convention of NOAA Manual NOS NGS 5 and of the MATLAB tool
+this replaces — he is the only user, he is a licensed surveyor, and restating
+the same answer every run is friction he does not want. That is his call to
+make about his own instrument.
+
+The concern, recorded rather than argued: **files from OPUS, NCAT, GPS
+receivers and GIS software are normally negative west**, and those are exactly
+the files a surveyor downloads rather than writes. A preselected positive west
+is wrong for every one of them, and wrong by 340 miles. The tooltip now carries
+that sentence in capitals, because with no default the control asked the
+question by existing and now it does not.
+
+**Scope of the reversal, which is deliberately narrow.** The default is in the
+interface and nowhere else:
+
+* `LongitudeConvention` still has no default member;
+* `JobSettings.longitude_convention` is still a required field with no default,
+  so constructing one without it is a `TypeError`;
+* `job.run` still refuses a geodetic conversion whose settings state no
+  convention, with the 340-mile sentence intact;
+* a zone-to-zone job still passes `longitude_convention=None` deliberately, so
+  the record says nothing about a question never asked.
+
+All four are pinned, in
+`test_the_core_has_no_longitude_default_even_though_the_dropdown_does`. The
+distinction that makes §7 and this amendment both true: **the core assumes
+nothing; the interface shows its answer in words before Convert is pressed.**
+
+§7 and CLAUDE.md's convention list have both been amended to point here, so the
+next reviewer who reaches for "no default" finds the decision rather than
+filing it as a regression.
+
+**Verification.** Suite **1118 → 1120**, green in both modes. Four seeded
+defects, all caught: the preselected convention no longer reaching the settings,
+the dropdown opening on the other convention, the hemisphere opening on E, and
+the hemisphere dropdown becoming a dead control the composition ignores. The
+last two matter most — a preselected value that stops being read would satisfy
+every assertion about what the box shows while the conversion used something
+else.
+
+### #28 — 2026-08-07 — Owner's second pass: DMS entry, and the worked example goes
+
+Four more owner directives after looking at #27 on screen. Three are interface;
+the fourth is a question he asked, answered here and in the suite.
+
+**1. The copy glyph is smaller** — 14 px to 11. Pinned as a relationship rather
+than as the number: the button may stand above its line of text by the frame a
+flat `QToolButton` needs and no more, which the 14 px glyph failed and the 11 px
+one passes. It cannot go flat without a hard-coded box, and hard-coding one
+renders cramped under a native Windows theme.
+
+**2. The worked example leaves the longitude sign entries.**
+
+    NEGATIVE_WEST -> "negative west"
+    POSITIVE_WEST -> "positive west"
+
+This continues #16 note 2 and #17, which took the attribution tail off the same
+two strings. The sign word alone names the convention completely — "negative
+west" *is* the definition, not an abbreviation of one.
+
+**The job record's `Longitude` line moves with it, and that is the owner's
+standing choice, not an oversight.** #16 note 2 raised exactly this and #17
+settled it: one wording in both surfaces rather than a short GUI label beside a
+longer record entry, because two strings for one fact drift. The example was
+doing real work for the person *choosing*, so it moved to the dropdown's
+tooltip — which teaches at the moment of the decision without following the
+decision into every document that reports it. The record's surrounding lines
+still state the conversion direction and both zones' defining constants.
+
+**3. Latitude and longitude can be typed as degrees, minutes and seconds.**
+
+A `Lat/long entry` selector on the Single point tab, relevant only while the
+FROM selection is geodetic — a northing has no minutes, so a zone source keeps
+the decimal boxes however the selector is set. Decimal degrees is what the tab
+opens on. That is a starting state rather than a silent default: the two zone
+dropdowns and the longitude convention open unanswered because their options are
+indistinguishable from what is on screen, and these two are not — the boxes
+visibly change shape.
+
+DMS is four boxes per angle with the symbols already between them — `43 ° 48 '
+00.00000 " N` — mirroring what the results panel displays, so a reading can be
+typed straight back in. **The hemisphere opens unanswered** and gates Convert,
+like every other question this program refuses to answer for the user. Michigan
+is always N and W; a dropdown that opened there would be right until the first
+time it was not, with nothing on screen saying a choice had been made.
+
+**The architecture point.** Composing d + m/60 + s/3600 is arithmetic on a
+coordinate, so it is in `michspc/fileio/dms.py` and not in the interface (§9).
+It sits beside `formatting.latitude_dms` and `longitude_dms` because those two
+*define* the notation it reads; a parser living anywhere else would be a second,
+drifting definition of one format. `tests/test_dms.py` pins the round trip
+against the formatter in both directions.
+
+What comes back is **the text the decimal box would have held**, which then goes
+through `pnezd.parse_typed_point` — the same single gate as everything else. So
+DMS adds a step in front of the gate, not a second gate, and nothing downstream
+of `typed_coordinates` can tell the two entry modes apart. `repr` rather than a
+fixed format, because `f"{v:.8f}"` would round the typed angle to about a
+millimetre before it was ever converted.
+
+**The convention interaction, which is the subtle part.** A DMS longitude is
+convention-independent — `formatting.longitude_dms` already recorded why: the
+magnitude is the same under both conventions and the letter is a fact about the
+point. So the letter alone fixes the position, and `positive_west` only decides
+how that one position is written as a bare number. The pin: **the same DMS entry
+converts to the same coordinate under both conventions, where the same decimal
+entry gives two points 340 miles apart.** Both halves are asserted; the contrast
+is what makes the first half mean something.
+
+The convention selector stays required for geodetic jobs regardless. It still
+governs how the decimal longitude is displayed and recorded, and relaxing a
+safety gate because one entry mode happens not to need it would be a rule with
+an exception in it.
+
+**4. The input CSV takes decimal degrees only — the owner's question, answered.**
+
+`pnezd._parse_number` calls `float()`, so `43°47'59.8"N`, `43 47 59.8 N` and
+`43-47-59.8` were all refused already, as "not a number". That is the right
+behaviour and the wrong sentence: a surveyor whose data collector exported DMS
+has a *format* problem and would go looking for a corrupt row.
+
+DMS is now refused **by name**, with a message that says the reader takes
+decimal degrees, says why DMS is not read from a file, and points at the Single
+point tab, which does take it. The detection is a diagnostic and never a parse —
+nothing branches on it.
+
+**Reading DMS out of a file is deliberately not built**, and the reason is
+recorded so it is not revisited by accident: the spellings differ between
+collectors, the hemisphere is a letter in some and a sign in others, and packed
+forms are indistinguishable from ordinary numbers — `434759.8` is a perfectly
+good decimal degree, nowhere near Michigan. A reader that accepted DMS would
+have to guess between those readings, and guessing moves a point silently. In
+four separate boxes nothing is ambiguous, which is why the typed path can offer
+what the file path refuses.
+
+**Verification.** Suite **1048 → 1118**, green in both `pytest` and `-O`; the
+frozen-bundle self-test passes with `fileio.dms` and `gui.dms_entry` in its lazy
+import list. Every new pin was falsified by seeding its defect: minutes divided
+by 100, the hemisphere ignored, a blank component read as zero, the fixed
+8-place format, the convention applied to a latitude, the 14 px glyph restored,
+and a DMS spelling reaching the generic refusal.
+
+### #27 — 2026-08-07 — Owner's interface edits before the release: four changes
+
+Four owner directives, taken after looking at the built Single point tab
+(amendment #26) for the first time. All four are interface-only. **No
+computation changed, no formatter changed, and no value that reaches the screen
+is produced differently than it was** — the suite's agreement pins between the
+panel, the multi-point table and the audit CSV are untouched and still green.
+
+**1. The single-point result reads in two columns, INPUT on the left.**
+
+It was one column, INPUT stacked above OUTPUT. On a laptop screen that put the
+converted coordinate below the fold: reading the answer meant scrolling away
+from the typed point, which are the two numbers a surveyor most wants to see at
+once. Now the two sections sit side by side with a vertical rule between them.
+
+The split in `michspc.gui.result_panel` is **positional** — first section left,
+the rest right — not by matching the string `"INPUT"`. That module does not know
+what INPUT means and should not learn: `results_model.single_point_sections`
+already states the section layout, and a second statement of it in the panel is
+a second thing to keep in step. What ties the two together is a test, in all
+three directions.
+
+Row indices are unchanged by the split. `value_labels[i]`, `copy_buttons[i]`,
+`displayed_rows()[i]` and `copy_value(i)` all still mean the same row, in
+flattened section order, so a button in the right-hand column cannot copy a
+left-hand value. That is pinned, because it is the stale-value failure of #26
+arriving by a new road.
+
+**2. The copy control is the Windows 11 glyph, beside its own value.**
+
+It was the word `Copy`, in a grid column of its own — so every button landed at
+the right edge of the widest value in the panel, an inch of blank space from the
+number it copied, in a vertical row of identical-looking buttons. Now each
+button carries the two-offset-rounded-rectangles symbol the surveyor already
+knows from File Explorer, and sits immediately after the end of its own value.
+
+Drawn with `QPainter` in `michspc.gui.copy_icon`, **not** shipped as an asset.
+The alternatives were each worse for a program whose release is eight gates
+deep: a `.svg` or `.png` would put a new file in the path of the PyInstaller
+spec, the frozen-bundle self-test and the checksum gate; `QStyle.StandardPixmap`
+has no copy glyph on Windows; `QtSvg` is a Qt module the bundle does not carry.
+The module *is* added to `selftest.LAZY_IMPORTS`, so the frozen bundle proves it
+can import it — a missing one would show as a row of blank buttons, not as an
+error.
+
+The colour comes from the panel's own palette, so a dark Windows theme does not
+get black on near-black. The tooltip still names the section and the row, which
+is the disambiguation the #26 closing gate asked for and which matters *more*
+now that the caption is a picture and not a word; the accessible name is still
+"Copy", because a glyph with no accessible name is a button with no name at all
+to anything that is not a pair of eyes.
+
+**3. The input file box starts empty, with no placeholder.**
+
+The greyed-out `C:\jobs\24-118\pts.csv` is gone. It was a job number that is not
+this surveyor's, in a folder that does not exist, sitting in the field that
+names the file about to be read — and a placeholder in a path field is not
+distinguishable at a glance from a path that is really there. The format hint
+below the field is untouched: it is a correctness aid (#16 note 1), not a
+suggestion.
+
+**4. The output folder starts empty. This REVERSES #16 note 3.**
+
+The Downloads pre-fill is removed and nothing replaces it — no default, no
+placeholder. Downloads is not where a survey job's exports belong, and a
+pre-filled destination is answered by pressing Convert rather than by choosing.
+
+`default_output_directory` is **deleted**, not left unused, and the
+`QStandardPaths` import went with it. A dormant Downloads lookup sitting beside
+a field that no longer calls it is one line away from being switched back on by
+someone who reads #16 note 3 and not this. The absence is pinned by a test.
+
+What #16 note 3 said about safety still holds and is still checked: Convert is
+gated on the field being non-empty, and `exports.write_all` still refuses to
+clobber, still stages and renames, and still verifies the round trip.
+
+**One defect found by looking at it, not by a test.** With the panel halved in
+width, `QLabel`'s word-wrap sizeHint heuristic took less width than the text
+needed, and "Michigan Central 2112" arrived as two lines with the copy button
+stranded beside the first half — in a column with two inches of unused space to
+its right. The fix is a minimum width taken from the text's own advance and
+capped at `WRAP_WIDTH`, so every value stays on one line and only the Warnings
+paragraph wraps. It is stated as a width rule rather than as a rule about which
+row is which, because this module does not know that one of its rows is called
+Warnings. Pinned, and falsified.
+
+**Verification.** Suite **1031 → 1048**, green in both `pytest` and `-O`. Every
+new pin was falsified by seeding the defect it claims to catch: the stacked
+single column, the two columns in the wrong order, a rule that paints nothing, a
+button pushed back to the far right (**twice** — the first version of that pin
+measured the label widget's right edge instead of where the text ends, and
+passed against the defect; it now measures the text advance), the word in place
+of the glyph, an unpainted glyph, a filled glyph, and two sheets crossing
+instead of one sitting in front of the other. The frozen-bundle self-test passes
+from source with the new module in its list.
 
 ### #26 — 2026-08-07 — Single point: a second tab that types one coordinate
 

@@ -207,7 +207,7 @@ LAZY_IMPORTS: tuple[str, ...] = (
     "michspc.gui.icon",
     "michspc.gui.window",
     "michspc.gui.results_model",
-    # The single-point tab's three modules. They reach the frozen bundle
+    # The single-point tab's four modules. They reach the frozen bundle
     # transitively, because window.py imports them at module level - but this
     # list's stated contract is the names the bundle then PROVES it can import,
     # and satisfying it only indirectly is how a lazily imported module goes
@@ -215,6 +215,16 @@ LAZY_IMPORTS: tuple[str, ...] = (
     "michspc.gui.controls",
     "michspc.gui.single_point",
     "michspc.gui.result_panel",
+    # The copy glyph. It is drawn with QPainter rather than loaded from a file
+    # precisely so the bundle carries no new asset (amendment #27) - but the
+    # module still has to be IN the bundle, and a missing one would show as a
+    # row of buttons with no picture on them rather than as an error.
+    "michspc.gui.copy_icon",
+    # Degrees / minutes / seconds entry (amendment #28): the four boxes and the
+    # composition behind them. fileio.dms is the one that matters most here -
+    # it is the only module in the program that turns typed text into an angle.
+    "michspc.gui.dms_entry",
+    "michspc.fileio.dms",
     # Standard-library modules the shipped code paths reach for. Cheap to check
     # and they have been dropped from bundles before by an over-eager exclude.
     "csv",

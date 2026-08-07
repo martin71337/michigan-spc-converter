@@ -35,6 +35,7 @@ from pathlib import Path  # noqa: E402
 import pytest  # noqa: E402
 from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtGui import QGuiApplication  # noqa: E402
+from PySide6.QtWidgets import QFrame, QLabel  # noqa: E402
 
 from michspc.fileio import exports, formatting as fmt, pnezd  # noqa: E402
 from michspc.gui import single_point as single_point_module  # noqa: E402
@@ -387,17 +388,29 @@ def test_convert_is_enabled_with_the_elevation_blank(tab):
 # --------------------------------------------------------------------------
 
 
-def test_the_longitude_convention_has_no_default(tab):
-    """It opens unanswered. The two are indistinguishable from the numbers."""
-    assert tab.longitude_combo.currentData() == UNCHOSEN
-    assert tab.longitude_convention() is None
+def test_the_longitude_convention_opens_on_positive_west(tab):
+    """The owner's convention, preselected (docs/DESIGN.md amendment #29).
+
+    Both tabs get it from the same ``controls.longitude_combo``, so this is the
+    same control the Multi point tab carries rather than a lookalike that could
+    open on something else.
+    """
+    assert tab.longitude_combo.currentData() is LongitudeConvention.POSITIVE_WEST
+    assert tab.longitude_convention() is LongitudeConvention.POSITIVE_WEST
+    assert tab.longitude_combo.count() == len(LongitudeConvention)
 
 
 @pytest.mark.parametrize(
     "case", [case_named("zone_to_geodetic"), case_named("geodetic_to_zone")], ids=lambda c: c.name
 )
-def test_a_geodetic_direction_is_gated_on_the_convention(tab, case):
-    """Both geodetic directions refuse to enable Convert without it."""
+def test_a_geodetic_direction_runs_on_the_preselected_convention(tab, case):
+    """Neither geodetic direction waits for the convention any more - and both
+    still follow it when it is changed.
+
+    The second half is the anti-vacuousness: a preselected value that stopped
+    reaching the settings would satisfy every assertion about what the dropdown
+    shows while the conversion quietly used something else.
+    """
     tab.from_zone.setCurrentIndex(tab.from_zone.findData(case.source))
     tab.to_zone.setCurrentIndex(tab.to_zone.findData(case.target))
     tab.first_edit.setText(case.first)
@@ -405,11 +418,16 @@ def test_a_geodetic_direction_is_gated_on_the_convention(tab, case):
     tab.elevation_edit.setText(case.elevation)
 
     assert tab.longitude_combo.isEnabled() is True
-    assert tab.settings() is None
-    assert tab.convert_button.isEnabled() is False
+    assert tab.convert_button.isEnabled() is True
+    assert (
+        tab.settings().longitude_convention is LongitudeConvention.POSITIVE_WEST
+    )
 
     tab.longitude_combo.setCurrentIndex(
-        tab.longitude_combo.findData(case.convention)
+        tab.longitude_combo.findData(LongitudeConvention.NEGATIVE_WEST)
+    )
+    assert (
+        tab.settings().longitude_convention is LongitudeConvention.NEGATIVE_WEST
     )
     assert tab.convert_button.isEnabled() is True
 
@@ -1082,3 +1100,695 @@ def test_the_panel_agrees_with_the_audit_csv_the_other_tab_wrote(
     # one "Source convergence"; the panel shows whichever describes the end the
     # layout puts it under.
     assert shown["Convergence"] in (audit["Convergence"], audit["Source convergence"])
+
+
+# --------------------------------------------------------------------------
+# The panel reads in two columns, INPUT on the left
+# --------------------------------------------------------------------------
+#
+# docs/DESIGN.md amendment #27. These tests measure REAL widget geometry, which
+# means the window has to be shown and the event loop has to have laid it out -
+# an unshown widget reports zeroes and every comparison below would pass
+# vacuously. `laid_out` does that, and `test_the_measurements_are_real` proves
+# it worked before the others rely on it.
+
+
+def laid_out(window, tab, case, width=1100, height=780):
+    """Convert `case` on a shown, laid-out window and return the panel."""
+    window.resize(width, height)
+    window.show()
+    fill_single(tab, case)
+    if tab.convert() is not True:
+        raise AssertionError(f"the run failed: {tab.shown_failures}")
+    QGuiApplication.processEvents()
+    return tab.panel
+
+
+def left_edge(widget, panel) -> int:
+    """A widget's x, in the panel container's own coordinates."""
+    return widget.mapTo(panel.container, widget.rect().topLeft()).x()
+
+
+def test_the_measurements_are_real(window, tab):
+    """Anti-vacuousness for every geometry test below.
+
+    An unshown Qt widget reports a zero-sized rectangle at the origin, so every
+    "left of" comparison in this section would hold for two widgets that were
+    never laid out at all.
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone"))
+
+    assert panel.width() > 100
+    assert panel.left_column.width() > 100
+    assert panel.right_column.width() > 100
+    assert {left_edge(label, panel) for label in panel.value_labels} != {0}
+
+
+@pytest.mark.parametrize("case", DIRECTION_CASES, ids=lambda c: c.name)
+def test_the_result_reads_in_two_columns_with_input_on_the_left(window, tab, case):
+    """INPUT left, OUTPUT right, in every direction.
+
+    The single stacked column this replaced put the converted coordinate below
+    the fold on a laptop screen: reading the answer meant scrolling away from
+    the typed point, which are the two numbers a surveyor most wants to compare.
+
+    Checked in all three directions because the sections differ by direction -
+    a State-Plane-to-geodetic job carries every factor under INPUT - and a
+    layout rule that holds in one direction only is not a layout rule.
+    """
+    panel = laid_out(window, tab, case)
+
+    assert [section.title for section in panel.sections] == [INPUT_TITLE, OUTPUT_TITLE]
+
+    input_count = len(panel.sections[0].values)
+    input_rows = panel.value_labels[:input_count]
+    output_rows = panel.value_labels[input_count:]
+
+    # Anti-vacuousness: both sides really have rows in them.
+    assert input_rows and output_rows
+
+    rightmost_input = max(left_edge(label, panel) for label in input_rows)
+    leftmost_output = min(left_edge(label, panel) for label in output_rows)
+    assert rightmost_input < leftmost_output
+
+    # And the split is the columns' doing, not an accident of row widths.
+    assert panel.left_column.geometry().right() <= panel.right_column.geometry().left()
+
+
+def test_a_vertical_rule_separates_the_two_columns(window, tab):
+    """A clean bar, actually drawn, actually between them.
+
+    ``QFrame.VLine`` with Qt's default Sunken shadow draws the etched two-tone
+    groove of a 1990s dialog. This one is Plain, and it is checked by grabbing
+    it: a frame with no line width would sit in the layout, pass every geometry
+    assertion here, and paint nothing.
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone"))
+    rule = panel.separator
+
+    assert rule is not None
+    assert rule.frameShape() == QFrame.Shape.VLine
+    assert rule.frameShadow() == QFrame.Shadow.Plain
+
+    # Between the columns, horizontally.
+    assert panel.left_column.geometry().right() <= left_edge(rule, panel)
+    assert left_edge(rule, panel) <= panel.right_column.geometry().left()
+
+    # Tall enough to read as a divider rather than a tick.
+    assert rule.height() > 100
+
+    # And it paints: every pixel of the grab is opaque.
+    shot = rule.grab().toImage()
+    painted = sum(
+        1
+        for y in range(shot.height())
+        for x in range(shot.width())
+        if shot.pixelColor(x, y).alpha() > 0
+    )
+    assert painted == shot.width() * shot.height()
+
+
+def test_an_empty_panel_has_no_columns_and_no_rule(window, tab):
+    """Nothing converted, nothing drawn.
+
+    An empty panel with a bar down the middle of it is furniture describing a
+    result that does not exist - and this panel is emptied by every control
+    change, not only at startup (``_invalidate_result``).
+    """
+    panel = tab.panel
+    assert panel.sections is None
+    assert panel.separator is None
+    assert panel.left_column is None
+    assert panel.right_column is None
+
+    laid_out(window, tab, case_named("zone_to_zone"))
+    assert tab.panel.separator is not None
+
+    tab.first_edit.setText("176201.000")
+    assert tab.panel.sections is None
+    assert tab.panel.separator is None
+    assert tab.panel.left_column is None
+
+
+def test_each_copy_button_sits_beside_its_own_value(window, tab):
+    """Not pinned to the far right of the panel, an inch of blank away.
+
+    It was in a grid column of its own, so every button landed at the right
+    edge of the widest value in the panel and a row of identical buttons stood
+    in a line with nothing to say which number each belonged to.
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone"))
+    rows = panel.displayed_rows()
+
+    for index, (label, text) in enumerate(rows):
+        value = panel.value_labels[index]
+        button = panel.copy_buttons[index]
+
+        # Measured from where the TEXT ends, not from where the label widget
+        # ends. Those are the same thing only when the label is not stretched -
+        # and a label given stretch inside its cell puts the button back at the
+        # far right with the gap between widget and button still reading zero,
+        # which is the defect this test failed to see the first time it was
+        # written. The Warnings row wraps to a paragraph, so its text width is
+        # not a single advance and it is measured the widget way.
+        wrapped = value.height() > value.fontMetrics().height() * 1.5
+        if wrapped:
+            text_ends = left_edge(value, panel) + value.width()
+        else:
+            text_ends = left_edge(value, panel) + value.fontMetrics().horizontalAdvance(
+                text
+            )
+
+        gap = left_edge(button, panel) - text_ends
+        assert 0 <= gap <= 24, (
+            f"row {index} ({label} = {text!r}): the copy button is {gap} px from "
+            f"the end of its value"
+        )
+
+    # And the coordinate rows' buttons are nowhere near the panel's right edge,
+    # which is where they used to be. The Warnings row is excluded on purpose:
+    # its value is a paragraph, so its own right end IS near the edge.
+    coordinates = [
+        index for index, (label, _text) in enumerate(rows)
+        if label in (NORTHING_LABEL, EASTING_LABEL, ELEVATION_LABEL)
+    ]
+    assert coordinates  # anti-vacuousness
+    for index in coordinates:
+        button = panel.copy_buttons[index]
+        assert left_edge(button, panel) < panel.width() - 100
+
+
+def test_the_copy_button_wears_the_glyph_and_still_names_itself(window, tab):
+    """The Windows 11 two-sheet symbol, in place of the word "Copy".
+
+    A glyph with no accessible name is a button with no name at all to anything
+    that is not a pair of eyes, and the tooltip is what the closing review gate
+    asked for when it found two identical buttons beside two rows both called
+    "Northing" - which matters more now that the caption is a picture.
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone"))
+
+    for button in panel.copy_buttons:
+        assert button.icon().isNull() is False
+        assert button.text() == ""
+        assert button.accessibleName() == "Copy"
+        assert button.toolTip().startswith("Copy the ")
+
+    rows = panel.displayed_rows()
+    northings = [i for i, (label, _t) in enumerate(rows) if label == NORTHING_LABEL]
+    assert len(northings) == 2
+    assert INPUT_TITLE in panel.copy_buttons[northings[0]].toolTip()
+    assert OUTPUT_TITLE in panel.copy_buttons[northings[1]].toolTip()
+
+
+def test_the_columns_did_not_reorder_what_an_index_means(window, tab):
+    """The split is visual only.
+
+    ``copy_value(index)``, ``value_labels[index]`` and ``displayed_rows()[index]``
+    all have to keep meaning the same row, or a copy button in the right-hand
+    column copies a left-hand column value - which is precisely the stale-value
+    failure the closing gate found by another road (amendment #26).
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone"))
+    rows = panel.displayed_rows()
+
+    flattened = [
+        (value.label, value.text)
+        for section in panel.sections
+        for value in section.values
+    ]
+    assert list(rows) == flattened
+
+    for index, (_label, text) in enumerate(rows):
+        tab.copied.clear()
+        panel.copy_buttons[index].click()
+        assert tab.copied == [text], f"row {index} copied the wrong value"
+
+
+def test_no_value_wraps_except_the_one_that_has_to(window, tab):
+    """A zone name broken across two lines is a defect, not a cosmetic quibble.
+
+    ``QLabel`` with word wrap takes the width its own sizeHint heuristic picks,
+    which is narrower than the text - so "Michigan Central 2112" arrived as
+    "Michigan Central" over "2112" with the copy button beside the first half,
+    in a column with two inches of unused space to its right. Every value is a
+    coordinate, a factor or a zone name except one: Warnings is a paragraph and
+    is meant to wrap.
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone_warned"))
+    rows = panel.displayed_rows()
+
+    one_line = panel.value_labels[0].fontMetrics().height() * 1.5
+    wrapped = [
+        label
+        for (label, _text), value in zip(rows, panel.value_labels)
+        if value.height() > one_line
+    ]
+    assert wrapped == ["Warnings"], f"these values wrapped: {wrapped}"
+
+    # Anti-vacuousness: this case really does carry a warning, so the one row
+    # that is allowed to wrap is present and really is wrapping.
+    assert "Warnings" in [label for label, _text in rows]
+    assert panel.value_labels[-1].height() > one_line
+
+
+# --------------------------------------------------------------------------
+# Degrees / minutes / seconds entry
+# --------------------------------------------------------------------------
+#
+# docs/DESIGN.md amendment #28. The property that matters is that this is an
+# ENTRY mode and nothing else: the same point typed either way must convert to
+# the same coordinate, because a second way of reading a latitude is a second
+# thing that can be wrong about one.
+
+# 43.800 N and -84.367 W as degrees, minutes and seconds. Hand-derived from the
+# decimal values the cases above already use:
+#
+#   0.800 deg x 60 = 48.000 min exactly            -> 43 deg 48 min 00.00000 sec
+#   0.367 deg x 60 = 22.02 min; 0.02 x 60 = 1.2 s  -> 84 deg 22 min 01.20000 sec
+#
+# So the two spellings name one point, and every comparison below rests on that
+# arithmetic rather than on the program agreeing with itself.
+LATITUDE_DMS = ("43", "48", "00.00000", "N")
+LONGITUDE_DMS = ("84", "22", "01.20000", "W")
+
+
+def fill_dms(entry, components):
+    degrees, minutes, seconds, hemisphere = components
+    entry.degrees.setText(degrees)
+    entry.minutes.setText(minutes)
+    entry.seconds.setText(seconds)
+    entry.hemisphere.setCurrentIndex(entry.hemisphere.findData(hemisphere))
+
+
+def set_up_dms_job(tab, target=MI_CENTRAL, convention=LongitudeConvention.NEGATIVE_WEST):
+    """A geodetic-to-zone job with the two angles typed in DMS."""
+    tab.from_zone.setCurrentIndex(tab.from_zone.findData(GEODETIC))
+    tab.to_zone.setCurrentIndex(tab.to_zone.findData(target))
+    tab.longitude_combo.setCurrentIndex(tab.longitude_combo.findData(convention))
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DMS_PAGE)
+    )
+    fill_dms(tab.first_dms, LATITUDE_DMS)
+    fill_dms(tab.second_dms, LONGITUDE_DMS)
+    tab.elevation_edit.setText(CENTRAL_ELEVATION)
+
+
+def output_rows(tab):
+    """Just the OUTPUT section, as (label, value) pairs."""
+    count = len(tab.sections[0].values)
+    return tab.displayed_rows()[count:]
+
+
+def test_decimal_degrees_is_what_the_tab_opens_on(tab):
+    """A starting state, not a silent default.
+
+    Almost nothing in this program has a default, so this is worth saying: the
+    two zone dropdowns and the longitude convention open unanswered because
+    their options are indistinguishable from what is on screen. These two are
+    not - the boxes visibly change shape - so nothing is being assumed about a
+    value the user did not state.
+    """
+    assert tab.angle_format.currentData() == single_point_module.DECIMAL_PAGE
+    assert tab.entering_dms() is False
+    assert tab.first_stack.currentIndex() == single_point_module.DECIMAL_PAGE
+    assert tab.second_stack.currentIndex() == single_point_module.DECIMAL_PAGE
+
+
+def test_the_format_selector_is_dead_while_the_job_starts_from_a_zone(tab):
+    """A northing has no minutes.
+
+    The selector follows the FROM selection alone, exactly as the entry labels
+    do and for the same reason: the To selection cannot change what the typed
+    values ARE.
+    """
+    tab.from_zone.setCurrentIndex(tab.from_zone.findData(MI_CENTRAL))
+    assert tab.angle_format.isEnabled() is False
+    assert tab.angle_format_label.isEnabled() is False
+
+    # Even set to DMS, a zone source keeps the decimal boxes: entering_dms()
+    # requires both, so the dropdown cannot strand a northing in a degrees box.
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DMS_PAGE)
+    )
+    assert tab.entering_dms() is False
+    assert tab.first_stack.currentIndex() == single_point_module.DECIMAL_PAGE
+
+    tab.from_zone.setCurrentIndex(tab.from_zone.findData(GEODETIC))
+    assert tab.angle_format.isEnabled() is True
+    assert tab.entering_dms() is True
+    assert tab.first_stack.currentIndex() == single_point_module.DMS_PAGE
+
+
+def test_the_dms_row_has_four_boxes_with_the_symbols_already_in_place(tab):
+    """The owner's shape: type the numbers, not the punctuation."""
+    tab.from_zone.setCurrentIndex(tab.from_zone.findData(GEODETIC))
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DMS_PAGE)
+    )
+
+    for entry, letters in (
+        (tab.first_dms, ("N", "S")),
+        (tab.second_dms, ("E", "W")),
+    ):
+        symbols = [
+            child.text()
+            for child in entry.findChildren(QLabel)
+        ]
+        assert symbols == ["°", "'", '"']
+
+        # Both letters, and no third "not yet" entry.
+        offered = [
+            entry.hemisphere.itemData(i) for i in range(entry.hemisphere.count())
+        ]
+        assert tuple(offered) == letters
+
+
+def test_convert_waits_for_every_typed_box(tab):
+    """Any of the six typed boxes left empty holds Convert.
+
+    The hemisphere is not among them and does not need to be: it opens on a
+    real letter and has no empty state, so there is nothing to wait for.
+    """
+    set_up_dms_job(tab)
+    assert tab.convert_button.isEnabled() is True
+
+    for clear, restore in (
+        (lambda: tab.first_dms.degrees.setText(""),
+         lambda: tab.first_dms.degrees.setText(LATITUDE_DMS[0])),
+        (lambda: tab.first_dms.minutes.setText(""),
+         lambda: tab.first_dms.minutes.setText(LATITUDE_DMS[1])),
+        (lambda: tab.first_dms.seconds.setText(""),
+         lambda: tab.first_dms.seconds.setText(LATITUDE_DMS[2])),
+        (lambda: tab.second_dms.degrees.setText(""),
+         lambda: tab.second_dms.degrees.setText(LONGITUDE_DMS[0])),
+        (lambda: tab.second_dms.minutes.setText(""),
+         lambda: tab.second_dms.minutes.setText(LONGITUDE_DMS[1])),
+        (lambda: tab.second_dms.seconds.setText(""),
+         lambda: tab.second_dms.seconds.setText(LONGITUDE_DMS[2])),
+    ):
+        clear()
+        assert tab.convert_button.isEnabled() is False
+        restore()
+        assert tab.convert_button.isEnabled() is True
+
+
+def test_the_same_point_converts_the_same_typed_either_way(window, tab):
+    """The load-bearing pin of this feature.
+
+    43 deg 48 min 00 sec N is 43.800 and 84 deg 22 min 01.2 sec W is -84.367 -
+    derived above from the arithmetic, not from this program. Typing the point
+    each way must therefore produce the same converted coordinate, to the last
+    displayed digit. A DMS-specific route through the conversion would be a
+    second way of converting a latitude, and two ways of doing one thing is
+    exactly how the two TABS would come to disagree (amendment #26).
+    """
+    set_up_dms_job(tab)
+    if tab.convert() is not True:
+        raise AssertionError(f"the DMS run failed: {tab.shown_failures}")
+    from_dms = output_rows(tab)
+
+    # The identical job, typed as decimal degrees.
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DECIMAL_PAGE)
+    )
+    tab.first_edit.setText(CENTRAL_LATITUDE)
+    tab.second_edit.setText(CENTRAL_LONGITUDE)
+    if tab.convert() is not True:
+        raise AssertionError(f"the decimal run failed: {tab.shown_failures}")
+    from_decimal = output_rows(tab)
+
+    assert from_dms == from_decimal
+    # Anti-vacuousness: there is a real converted coordinate in there.
+    labels = [label for label, _text in from_dms]
+    assert NORTHING_LABEL in labels and EASTING_LABEL in labels
+
+
+def test_a_dms_entry_means_the_same_point_under_both_conventions(window, tab):
+    """The hemisphere letter fixes the position; the convention only spells it.
+
+    ``formatting.longitude_dms`` records why a DMS longitude is
+    convention-independent: the magnitude is the same number under both, and
+    the letter is a fact about the point rather than about how a file writes
+    its signs. So the two conventions must give ONE converted coordinate here -
+    where the same DECIMAL longitude gives two, 340 miles apart. That contrast
+    is the whole reason the convention selector exists, and both halves of it
+    are checked.
+    """
+    set_up_dms_job(tab, convention=LongitudeConvention.NEGATIVE_WEST)
+    assert tab.convert() is True
+    negative_west = output_rows(tab)
+
+    set_up_dms_job(tab, convention=LongitudeConvention.POSITIVE_WEST)
+    assert tab.convert() is True
+    positive_west = output_rows(tab)
+
+    assert negative_west == positive_west
+
+    # And the contrast, on the decimal page: the SAME typed text is two
+    # different points, which is what the selector is there to disambiguate.
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DECIMAL_PAGE)
+    )
+    tab.first_edit.setText(CENTRAL_LATITUDE)
+    tab.second_edit.setText(CENTRAL_LONGITUDE)
+
+    tab.longitude_combo.setCurrentIndex(
+        tab.longitude_combo.findData(LongitudeConvention.NEGATIVE_WEST)
+    )
+    assert tab.convert() is True
+    decimal_negative = output_rows(tab)
+
+    tab.longitude_combo.setCurrentIndex(
+        tab.longitude_combo.findData(LongitudeConvention.POSITIVE_WEST)
+    )
+    assert tab.convert() is True
+    decimal_positive = output_rows(tab)
+
+    assert decimal_negative != decimal_positive
+
+
+def test_a_panel_reading_can_be_typed_straight_back_in(window, tab):
+    """Screen and entry form are two views of one notation, not two notations.
+
+    Converts a zone point to geodetic, reads the two DMS strings off the panel
+    exactly as a surveyor would, types them back into the four-box entry, and
+    converts back. The northing and easting must return to where they started.
+    """
+    fill_single(tab, case_named("zone_to_geodetic"))
+    if tab.convert() is not True:
+        raise AssertionError(f"the run failed: {tab.shown_failures}")
+
+    shown = dict(tab.displayed_rows())
+    latitude_text = shown["Latitude (DMS)"]
+    longitude_text = shown["Longitude (DMS)"]
+
+    def components(text):
+        degrees, rest = text.split("°")
+        minutes, rest = rest.split("'")
+        return degrees, minutes, rest[:-2], rest[-1]
+
+    set_up_dms_job(tab, target=MI_CENTRAL)
+    fill_dms(tab.first_dms, components(latitude_text))
+    fill_dms(tab.second_dms, components(longitude_text))
+    tab.elevation_edit.setText(CENTRAL_ELEVATION)
+    if tab.convert() is not True:
+        raise AssertionError(f"the round trip failed: {tab.shown_failures}")
+
+    returned = dict(output_rows(tab))
+    # Five decimals of a second is about 0.3 mm, so the returned coordinate
+    # agrees with the original to well under a millimetre. Compared as numbers
+    # at that tolerance rather than as strings: the last displayed digit of a
+    # foot is 0.001, and a 0.3 mm difference can still move it.
+    assert float(returned[NORTHING_LABEL].replace(",", "")) == pytest.approx(
+        float(CENTRAL_NORTHING), abs=0.005
+    )
+    assert float(returned[EASTING_LABEL].replace(",", "")) == pytest.approx(
+        float(CENTRAL_EASTING), abs=0.005
+    )
+
+
+def test_an_unreadable_dms_box_refuses_by_name_and_clears_the_result(window, tab):
+    """The refusal is fileio.dms's own sentence, shown exactly as raised."""
+    set_up_dms_job(tab)
+    assert tab.convert() is True
+    assert tab.sections is not None
+
+    tab.second_dms.minutes.setText("61")
+    assert tab.convert() is False
+
+    message = str(tab.last_failure)
+    assert "60 minutes in a degree" in message
+    assert "longitude" in message
+    assert tab.result is None
+    assert tab.sections is None
+    assert tab.copy_all_button.isEnabled() is False
+    assert tab.status_label.styleSheet() == single_point_module.RED
+
+
+def test_editing_any_dms_box_discards_a_displayed_result(window, tab):
+    """The stale-value failure of amendment #26, on the new boxes.
+
+    Every one of the eight new controls has to reach _invalidate_result, or a
+    surveyor who corrected a seconds box and did not press Convert could copy
+    the previous point's coordinate straight into CAD.
+    """
+    boxes = [
+        tab.first_dms.degrees,
+        tab.first_dms.minutes,
+        tab.first_dms.seconds,
+        tab.second_dms.degrees,
+        tab.second_dms.minutes,
+        tab.second_dms.seconds,
+    ]
+    for box in boxes:
+        set_up_dms_job(tab)
+        assert tab.convert() is True
+        assert tab.sections is not None
+
+        box.setText(box.text() + "0")
+        assert tab.sections is None, f"{box} left a result on screen"
+        assert tab.result is None
+
+    # And the two hemisphere dropdowns, moved to their OTHER letter - which is
+    # the only change either one can make, and the one that matters most: it
+    # reflects the point across the equator or the meridian.
+    for entry in (tab.first_dms, tab.second_dms):
+        set_up_dms_job(tab)
+        assert tab.convert() is True
+        other = 1 - entry.hemisphere.currentIndex()
+        entry.hemisphere.setCurrentIndex(other)
+        assert tab.sections is None
+
+
+def test_switching_the_entry_format_discards_a_displayed_result(window, tab):
+    """The two pages hold different text, and nothing is translated between
+    them - so what is on screen no longer describes what is in the boxes."""
+    set_up_dms_job(tab)
+    assert tab.convert() is True
+    assert tab.sections is not None
+
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DECIMAL_PAGE)
+    )
+    assert tab.sections is None
+    assert tab.result is None
+    assert tab.status_label.text() == single_point_module.STATUS_INPUT_CHANGED
+
+
+def test_the_two_pages_do_not_leak_into_each_other(tab):
+    """Nothing is translated when the format switches, and nothing is cleared.
+
+    Carrying a decimal 43.800 into a degrees box would read as 43 degrees flat
+    - 48 minutes away - and clearing the abandoned page would lose work on a
+    mis-click. The abandoned page simply stops gating Convert.
+    """
+    tab.from_zone.setCurrentIndex(tab.from_zone.findData(GEODETIC))
+    tab.to_zone.setCurrentIndex(tab.to_zone.findData(MI_CENTRAL))
+    tab.longitude_combo.setCurrentIndex(
+        tab.longitude_combo.findData(LongitudeConvention.NEGATIVE_WEST)
+    )
+
+    tab.first_edit.setText(CENTRAL_LATITUDE)
+    tab.second_edit.setText(CENTRAL_LONGITUDE)
+    assert tab.convert_button.isEnabled() is True
+
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DMS_PAGE)
+    )
+    # The decimal text survives untouched, and no digit of it appeared in a
+    # degrees box.
+    assert tab.first_edit.text() == CENTRAL_LATITUDE
+    assert tab.first_dms.degrees.text() == ""
+    # Convert now reads the DMS page, which is empty.
+    assert tab.convert_button.isEnabled() is False
+
+
+BUTTON_FRAME_ALLOWANCE = 4
+"""How far a flat QToolButton may stand above the line of text beside it.
+
+The button cannot shrink to the text height: Qt adds its own frame around the
+icon, and pinning it flat would mean overriding that with a hard-coded box,
+which renders cramped under a native Windows theme. So the pin below allows the
+frame and nothing more - which is a real discriminator rather than a formality:
+the 14 px glyph this replaced measured 21 px against a 14 px line and would
+fail it, and the 11 px one measures 18 and passes.
+"""
+
+
+def test_the_copy_button_does_not_tower_over_the_value_it_copies(window, tab):
+    """The owner asked for a smaller glyph (docs/DESIGN.md amendment #28).
+
+    Pinned as a relationship rather than as the number 11, which would only
+    restate the constant. What he was after is a control that sits beside a
+    coordinate without dominating it, and that is a comparison against the text.
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone"))
+
+    for value, button in zip(panel.value_labels, panel.copy_buttons):
+        line_height = value.fontMetrics().height()
+
+        assert button.height() <= line_height + BUTTON_FRAME_ALLOWANCE, (
+            f"the copy button is {button.height()} px against a "
+            f"{line_height} px line of text"
+        )
+        # The glyph itself is smaller than a character, which is the part the
+        # eye actually reads as the button's size.
+        assert button.iconSize().height() < line_height
+
+
+def test_the_hemisphere_opens_on_north_and_west(tab):
+    """The owner's decision (docs/DESIGN.md amendment #28 note 3).
+
+    It was built to open unanswered, on the house rule that nothing answers a
+    question for the user. He judged the two extra clicks per conversion not
+    worth it for data that is always N and W, and this is his tool.
+
+    What makes it defensible where a longitude-convention default would not be:
+    the answer is a visible token in the box before Convert is pressed, and it
+    reads back in the result panel afterwards. It is a starting value, not a
+    hidden assumption.
+    """
+    tab.from_zone.setCurrentIndex(tab.from_zone.findData(GEODETIC))
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DMS_PAGE)
+    )
+
+    assert tab.first_dms.hemisphere_letter() == "N"
+    assert tab.second_dms.hemisphere_letter() == "W"
+
+    # There is no third "not yet" entry to fall back into.
+    assert tab.first_dms.hemisphere.count() == 2
+    assert tab.second_dms.hemisphere.count() == 2
+
+    # A freshly cleared row is in the same state a freshly built one is.
+    tab.first_dms.degrees.setText("43")
+    tab.first_dms.hemisphere.setCurrentIndex(
+        tab.first_dms.hemisphere.findData("S")
+    )
+    tab.first_dms.clear()
+    assert tab.first_dms.degrees.text() == ""
+    assert tab.first_dms.hemisphere_letter() == "N"
+
+
+def test_the_preselected_hemisphere_is_still_a_live_control(window, tab):
+    """Anti-vacuousness for the default: a preselect must not become a control
+    that is set once and then ignored.
+
+    43 deg 48 min N and 43 deg 48 min S are 6,000 miles apart, so if the letter
+    still reaches the conversion the two runs cannot agree - and if it stopped
+    reaching it, they would.
+    """
+    set_up_dms_job(tab)
+    assert tab.first_dms.hemisphere_letter() == "N"
+    assert tab.convert() is True
+    northern = dict(tab.displayed_rows())["Latitude"]
+
+    tab.first_dms.hemisphere.setCurrentIndex(
+        tab.first_dms.hemisphere.findData("S")
+    )
+    assert tab.convert() is True
+    southern = dict(tab.displayed_rows())["Latitude"]
+
+    assert northern != southern
+    assert float(southern) == pytest.approx(-float(northern), abs=1e-8)

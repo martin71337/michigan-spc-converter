@@ -31,7 +31,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QStandardPaths, QUrl, Qt
+from PySide6.QtCore import QUrl, Qt
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QApplication,
@@ -143,28 +143,15 @@ UNITS_TOOLTIP_GEODETIC_OUT = (
 )
 
 
-def default_output_directory() -> str:
-    """Where exports go unless the user says otherwise: the Downloads folder.
-
-    Resolved through Qt rather than assembled as ``~/Downloads``: Windows lets
-    the Downloads folder be relocated, and ``QStandardPaths`` reads the real
-    shell path, while a hand-built one would name a folder that may not exist
-    (docs/DESIGN.md amendment #16 note 3). If Qt returns nothing — it can, on an
-    unusual profile — the home directory is used, which always exists.
-
-    A pre-filled destination relaxes nothing. ``exports.write_all`` still
-    refuses to clobber, still stages and renames, and still verifies the PNEZD
-    round trip before committing the archive to its final name, so a default
-    folder cannot quietly destroy a previous job.
-    """
-    location = QStandardPaths.writableLocation(
-        QStandardPaths.StandardLocation.DownloadLocation
-    )
-    if not location:
-        return str(Path.home())
-    # Qt reports paths with forward slashes on every platform; show the user
-    # their own separator. Path() reads either.
-    return str(Path(location))
+# Neither the input file box nor the output folder box suggests anything: both
+# start empty, with no text and no placeholder (docs/DESIGN.md amendment #27,
+# which reverses #16 note 3). The Downloads lookup that used to live here —
+# default_output_directory, through QStandardPaths — is deleted rather than
+# left unused, so there is no dormant default for a later change to switch
+# back on. Convert is gated on both fields being non-empty
+# (_update_convert_enabled), so an empty output folder cannot reach
+# exports.write_all; and if one ever did, that function still refuses to
+# clobber, still stages and renames, and still verifies the round trip.
 
 
 class MainWindow(QMainWindow):
@@ -238,7 +225,10 @@ class MainWindow(QMainWindow):
 
         # --- input file -------------------------------------------------
         self.input_edit = QLineEdit(box)
-        self.input_edit.setPlaceholderText(r"C:\jobs\24-118\pts.csv")
+        # No placeholder path. The owner asked for the box to start empty
+        # (docs/DESIGN.md amendment #27): a greyed-out C:\jobs\24-118\pts.csv is
+        # a job number that is not his, in a folder that does not exist, sitting
+        # in the field that names the file about to be read.
         self.input_edit.textChanged.connect(self._update_convert_enabled)
         self.input_browse = QPushButton("...", box)
         self.input_browse.setToolTip("Choose the coordinate file to convert")
@@ -305,12 +295,12 @@ class MainWindow(QMainWindow):
 
         # --- output folder ----------------------------------------------
         self.output_edit = QLineEdit(box)
-        self.output_edit.setPlaceholderText(r"C:\jobs\24-118\out")
-        # Pre-filled with Downloads, and editable (docs/DESIGN.md amendment #16
-        # note 3). Unlike the longitude convention, this default cannot produce
-        # a wrong number: a job written to the wrong folder is a job in the
-        # wrong folder, and the overwrite refusal still stands in front of it.
-        self.output_edit.setText(default_output_directory())
+        # Empty, with no placeholder and no default: the owner reversed
+        # amendment #16 note 3 (docs/DESIGN.md amendment #27). Downloads is not
+        # where a survey job's exports belong, and a pre-filled destination is
+        # answered by pressing Convert rather than by choosing. Convert stays
+        # disabled until this is filled, so the empty field is a question the
+        # program refuses to answer for him rather than an obstacle.
         self.output_edit.textChanged.connect(self._update_convert_enabled)
         self.output_browse = QPushButton("...", box)
         self.output_browse.setToolTip("Choose where the output archive goes")

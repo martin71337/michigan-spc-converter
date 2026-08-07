@@ -119,22 +119,68 @@ def unit_combo(parent) -> QComboBox:
     return combo
 
 
-def longitude_combo(parent, on_change) -> QComboBox:
-    """The longitude sign convention dropdown, which opens unanswered.
+DEFAULT_LONGITUDE_CONVENTION = LongitudeConvention.POSITIVE_WEST
+"""What the longitude sign dropdown opens on (docs/DESIGN.md amendment #29).
 
-    The placeholder is the point: the two conventions are indistinguishable from
-    the numbers alone, so this control must not open on either of them
-    (docs/DESIGN.md section 7).
+**This reverses a standing rule, on the owner's explicit instruction, and the
+reversal is written down here so nobody quietly undoes it.** §7 said this
+control has no default, and an adversarial review once recorded a default here
+as a finding. The reason was real: the two conventions are indistinguishable
+from the numbers in a file, and choosing wrongly moves a Michigan point about
+340 miles.
+
+What changed is not the risk but who carries it. The owner works in
+positive-west — the convention of NOAA Manual NOS NGS 5 and of the MATLAB tool
+this replaces — and answering the same question every run is friction he does
+not want. He is the only user, he is a licensed surveyor, and it is his data.
+
+The mitigations that remain, and they are what make this survivable:
+
+* the answer is **on the screen, in the control, in words**, before Convert is
+  pressed — this is a preselected value, not a hidden assumption;
+* the job record states the convention on its own line and in the input and
+  export descriptions, so any file this program produces says which reading it
+  used;
+* the enum itself still has no default, and neither does ``JobSettings``: the
+  core will not assume a convention for a caller that does not state one. Only
+  the interface opens on a value.
+
+Anyone reviewing this and reaching for §7: read #29 first. This is a decision,
+not a regression.
+"""
+
+
+def longitude_combo(parent, on_change) -> QComboBox:
+    """The longitude sign convention dropdown, opening on the owner's own.
+
+    No placeholder. A "— choose —" entry beside a preselected default would be
+    a third option meaning "not yet", reachable only by choosing it — and
+    choosing "not yet" is not something anyone does.
     """
     combo = QComboBox(parent)
-    combo.addItem("— choose —", UNCHOSEN)
     for convention in LongitudeConvention:
         combo.addItem(convention.value, convention)
+    combo.setCurrentIndex(combo.findData(DEFAULT_LONGITUDE_CONVENTION))
     combo.setToolTip(
-        "The two conventions are indistinguishable from the numbers alone, "
-        "and choosing wrongly moves a Michigan point about 340 miles. There "
-        "is deliberately no default."
+        "A Michigan longitude of 84 deg 22 min W is written -84.37 under the "
+        "negative-west convention and 84.37 under the positive-west one. The "
+        "two are indistinguishable from the numbers alone, and choosing "
+        "wrongly moves the point about 340 miles.\n\n"
+        "This opens on positive west, the NOAA Manual NOS NGS 5 convention. "
+        "Files from OPUS, NCAT, GPS receivers and GIS software are normally "
+        "negative west - CHECK THIS AGAINST THE FILE.\n\n"
+        "Degrees-minutes-seconds entry does not depend on it: a hemisphere "
+        "letter states the direction outright."
     )
+    """The worked example moved here from the entries themselves at the owner's
+    request (docs/DESIGN.md amendment #28). It taught the person choosing, but
+    it rode the enum value into the job record's Longitude line as well, and
+    "positive west" alone names the convention completely.
+
+    The "check this against the file" sentence is #29's doing. With no default
+    the control asked the question by existing; now that it opens on an answer,
+    the tooltip is where the question still gets asked - and it names the case
+    that will actually bite, which is a downloaded OPUS or NCAT file."""
     combo.currentIndexChanged.connect(on_change)
     return combo
 

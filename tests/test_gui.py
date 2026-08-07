@@ -291,15 +291,30 @@ def test_the_longitude_selector_is_irrelevant_to_a_zone_to_zone_job(
         target=MI_SOUTH,
     )
     assert window.longitude_combo.isEnabled() is False
-    assert window.longitude_combo.currentData() == UNCHOSEN
     assert window.convert_button.isEnabled() is True
 
+    # And the selector's value does not leak into the job. The dropdown now
+    # opens on a real convention (#29), so the ONLY thing keeping a zone-to-zone
+    # job from carrying one is settings() stating None deliberately - which is
+    # what makes the job record say nothing about a question never asked.
+    assert window.settings().longitude_convention is None
 
-def test_the_longitude_selector_opens_unanswered(window):
-    """No default, ever. The two conventions are indistinguishable from the
-    numbers and choosing wrongly moves a Michigan point about 340 miles
-    (docs/DESIGN.md section 7)."""
-    assert window.longitude_combo.currentData() == UNCHOSEN
+
+def test_the_longitude_selector_opens_on_positive_west(window):
+    """docs/DESIGN.md amendment #29 - which REVERSES section 7 on this control.
+
+    The owner asked for it: he works in positive west, the NOAA Manual NOS NGS
+    5 convention, and answering the same question every run is friction he does
+    not want. What section 7's reasoning still buys is everywhere else - the
+    enum has no default, JobSettings has no default, and job.run refuses a
+    geodetic conversion that does not state one. Only the dropdown opens on a
+    value, where it is visible in words before Convert is pressed.
+    """
+    assert window.longitude_combo.currentData() == LongitudeConvention.POSITIVE_WEST
+    assert window.longitude_convention() is LongitudeConvention.POSITIVE_WEST
+
+    # No "not yet" entry to fall back into: one item per convention, no more.
+    assert window.longitude_combo.count() == len(LongitudeConvention)
 
 
 @pytest.mark.parametrize(
@@ -311,11 +326,17 @@ def test_the_longitude_selector_opens_unanswered(window):
         (MI_SOUTH, GEODETIC),
     ],
 )
-def test_a_geodetic_job_will_not_run_until_the_longitude_sign_is_chosen(
+def test_a_geodetic_job_runs_on_the_preselected_sign_and_follows_a_change(
     window, job_file, out_dir, source, target
 ):
-    from michspc.job import LongitudeConvention
+    """The default does not hold the job up, and it is not a dead control.
 
+    Anti-vacuousness for #29: a preselected value that stopped reaching the
+    conversion would pass every "it opens on positive west" assertion while
+    doing nothing. Here the run is available immediately AND the other
+    convention is still selectable and still changes the settings the job runs
+    with.
+    """
     fill_in(
         window,
         input_path=job_file,
@@ -323,14 +344,19 @@ def test_a_geodetic_job_will_not_run_until_the_longitude_sign_is_chosen(
         source=source,
         target=target,
     )
-    # Everything else is answered, so only the convention is holding it back.
     assert window.longitude_combo.isEnabled() is True
-    assert window.convert_button.isEnabled() is False
+    assert window.convert_button.isEnabled() is True
+    assert (
+        window.settings().longitude_convention is LongitudeConvention.POSITIVE_WEST
+    )
 
     window.longitude_combo.setCurrentIndex(
         window.longitude_combo.findData(LongitudeConvention.NEGATIVE_WEST)
     )
     assert window.convert_button.isEnabled() is True
+    assert (
+        window.settings().longitude_convention is LongitudeConvention.NEGATIVE_WEST
+    )
 
 
 def test_geodetic_to_geodetic_is_not_a_conversion(window, job_file, out_dir):
@@ -924,19 +950,55 @@ def test_the_hint_ignores_the_to_selection(window):
 
 
 def test_the_longitude_convention_reads_the_wording_the_owner_chose():
-    """Exactly these two strings (docs/DESIGN.md amendments #16 note 2, #17).
+    """Exactly these two strings (docs/DESIGN.md amendments #16 note 2, #17, #28).
 
-    The attribution tails - "as used by OPUS, NCAT, GPS and GIS" and "as used by
-    NOAA Manual NOS NGS 5" - were dropped. The sign and the worked example are
-    what disambiguate, and the owner chose the short form for BOTH surfaces, so
-    there is no separate GUI label to drift from this.
+    Two things have been stripped at the owner's direction: the attribution
+    tails ("as used by OPUS, NCAT, GPS and GIS" / "as used by NOAA Manual NOS
+    NGS 5") at #17, and the worked example ("(-84.37)" / "(84.37)") at #28. The
+    sign word alone names the convention completely.
+
+    He chose one wording for BOTH surfaces each time, so there is no separate
+    GUI label to drift from this - which is why the job record's line moves with
+    the dropdown's, and why that is checked below rather than assumed.
     """
-    assert LongitudeConvention.NEGATIVE_WEST.value == "negative west (-84.37)"
-    assert LongitudeConvention.POSITIVE_WEST.value == "positive west (84.37)"
+    assert LongitudeConvention.NEGATIVE_WEST.value == "negative west"
+    assert LongitudeConvention.POSITIVE_WEST.value == "positive west"
     assert [c.value for c in LongitudeConvention] == [
-        "negative west (-84.37)",
-        "positive west (84.37)",
+        "negative west",
+        "positive west",
     ]
+
+    # The worked example is gone from the values themselves, not merely
+    # shortened - it moved to the dropdown's tooltip, which is checked in
+    # test_the_longitude_tooltip_carries_the_worked_example.
+    for convention in LongitudeConvention:
+        assert "84.37" not in convention.value
+
+
+def test_the_longitude_tooltip_carries_the_worked_example(window):
+    """The example moved out of the entries and into the tooltip (#28).
+
+    It was doing real work where it was - a surveyor choosing between two
+    conventions needs to see which sign each one puts on a Michigan longitude -
+    but it rode the enum value into the job record's Longitude line as well.
+    The tooltip teaches the person making the choice without following the
+    choice into every document that reports it.
+    """
+    tip = window.longitude_combo.toolTip()
+
+    assert "-84.37" in tip
+    assert "84.37" in tip
+    # And the part that says why the question is being asked at all - which
+    # matters more now that the control opens on an answer (#29), because the
+    # tooltip is where the question still gets asked.
+    assert "340 miles" in tip
+    assert "opens on positive west" in tip
+    assert "CHECK THIS AGAINST THE FILE" in tip
+
+    # Anti-vacuousness: the example really is absent from the place it used to
+    # be, so the tooltip is now the only surface carrying it.
+    for position in range(window.longitude_combo.count()):
+        assert "84.37" not in window.longitude_combo.itemText(position)
 
 
 def test_the_longitude_dropdown_shows_the_enum_values_and_nothing_else(window):
@@ -947,45 +1009,63 @@ def test_the_longitude_dropdown_shows_the_enum_values_and_nothing_else(window):
     disagree (docs/DESIGN.md amendment #17).
     """
     combo = window.longitude_combo
-    # The placeholder plus one entry per convention, and no more.
-    assert combo.count() == 1 + len(LongitudeConvention)
-    assert combo.itemData(0) == UNCHOSEN
+    # One entry per convention and no more. The "— choose —" placeholder went
+    # with the no-default rule (#29): beside a preselected value it would be a
+    # third option meaning "not yet".
+    assert combo.count() == len(LongitudeConvention)
 
-    for position in range(1, combo.count()):
+    for position in range(combo.count()):
         convention = combo.itemData(position)
         assert isinstance(convention, LongitudeConvention)
         assert combo.itemText(position) == convention.value
         assert "as used by" not in combo.itemText(position)
 
 
-def test_the_longitude_selector_still_has_no_default(window, job_file, out_dir):
-    """Shortening the wording must not have introduced a default.
+def test_the_core_has_no_longitude_default_even_though_the_dropdown_does(
+    window, job_file, out_dir, tmp_path
+):
+    """The half of section 7 that #29 did NOT reverse, pinned where it lives.
 
-    docs/DESIGN.md section 7: the two conventions are indistinguishable from the
-    numbers and choosing wrongly throws a Michigan point about 340 miles, so the
-    user states it every run. Re-checked here beside the wording change because
-    a dropdown is exactly the kind of control that acquires a default by
-    accident.
+    The owner moved the default into the interface, and only into the
+    interface. Everything below it still refuses to assume: a JobSettings that
+    states no convention on a geodetic direction is refused by job.run, in the
+    core, with the 340-mile sentence intact. That is what stops the preselect
+    from becoming a program-wide assumption if the GUI is ever bypassed - by a
+    test, by a script, or by a later feature.
     """
-    assert window.longitude_combo.currentIndex() == 0
-    assert window.longitude_combo.currentData() == UNCHOSEN
-    assert window.longitude_convention() is None
+    from michspc.job import Direction, JobSettings, run
 
-    fill_in(
-        window,
+    settings = JobSettings(
         input_path=job_file,
         output_directory=out_dir,
-        source=GEODETIC,
-        target=MI_CENTRAL,
+        direction=Direction.GEODETIC_TO_ZONE,
+        source_zone=None,
+        target_zone=MI_CENTRAL,
+        input_unit=INTERNATIONAL_FEET,
+        output_unit=INTERNATIONAL_FEET,
+        longitude_convention=None,
+        apply_geoid=True,
     )
-    # Everything else is answered; only the convention is missing.
-    assert window.settings() is None
-    assert window.convert_button.isEnabled() is False
 
-    window.longitude_combo.setCurrentIndex(
-        window.longitude_combo.findData(LongitudeConvention.POSITIVE_WEST)
-    )
-    assert window.convert_button.isEnabled() is True
+    with pytest.raises(ValueError) as raised:
+        run(settings)
+
+    message = str(raised.value)
+    assert "has no default" in message
+    assert "340 miles" in message
+
+    # And the dataclass itself does not supply one to a caller who omits it.
+    with pytest.raises(TypeError):
+        JobSettings(
+            input_path=job_file,
+            output_directory=out_dir,
+            direction=Direction.GEODETIC_TO_ZONE,
+            source_zone=None,
+            target_zone=MI_CENTRAL,
+            input_unit=INTERNATIONAL_FEET,
+            output_unit=INTERNATIONAL_FEET,
+            apply_geoid=True,
+        )
 
 
 # A one-point geodetic file, sited by the same hand derivation as CENTRAL_POINTS
@@ -1075,95 +1155,97 @@ def test_the_job_record_prints_the_short_longitude_wording(
 
     assert len(longitude_lines) == 1
     # The line is a fixed-width label followed by the convention's own value.
-    assert longitude_lines[0].split(maxsplit=1)[1].strip() == "positive west (84.37)"
-    assert longitude_lines[0].strip() == "Longitude          positive west (84.37)"
+    assert longitude_lines[0].split(maxsplit=1)[1].strip() == "positive west"
+    assert longitude_lines[0].strip() == "Longitude          positive west"
     # The dropped attribution is gone from the whole record, not just this line.
     assert "as used by" not in record
 
 
 # --------------------------------------------------------------------------
-# The output folder defaults to Downloads
+# Neither file box suggests anything
 # --------------------------------------------------------------------------
 
 
-def test_the_output_folder_opens_pre_filled_with_downloads(window):
-    """docs/DESIGN.md amendment #16 note 3.
+def test_the_input_file_box_opens_empty_with_no_placeholder(window):
+    """docs/DESIGN.md amendment #27.
 
-    Compared against what Qt itself reports, not against a path assembled here,
-    which is the entire point of the amendment: Windows lets Downloads be
-    relocated and only the shell knows where it went.
+    The greyed-out ``C:\\jobs\\24-118\\pts.csv`` is gone. It was a job number
+    that is not this surveyor's, in a folder that does not exist, sitting in
+    the field that names the file about to be read - and a placeholder in a
+    path field is indistinguishable at a glance from a path that is there.
     """
-    reported = QStandardPaths.writableLocation(
-        QStandardPaths.StandardLocation.DownloadLocation
-    )
-    # Anti-vacuousness: this machine really does have a Downloads folder, so the
-    # comparison below is against a real path rather than against "".
-    assert reported != ""
-
-    assert window.output_edit.text() != ""
-    assert Path(window.output_edit.text()) == Path(reported)
-    assert window.output_directory == Path(reported)
+    assert window.input_edit.text() == ""
+    assert window.input_edit.placeholderText() == ""
+    assert window.input_path is None
 
 
-def test_the_default_folder_is_whatever_qt_reports_not_a_hand_built_downloads(
-    qapp, tmp_path, monkeypatch
-):
-    """Move the shell's Downloads folder and the default moves with it.
+def test_the_output_folder_box_opens_empty_with_no_placeholder(window):
+    """docs/DESIGN.md amendment #27, which REVERSES amendment #16 note 3.
 
-    This is what separates the required implementation from the forbidden one.
-    A hand-built ``~/Downloads`` would ignore the relocation and keep naming a
-    folder the user no longer uses - or one that does not exist at all.
+    The Downloads pre-fill is gone and nothing replaced it. Downloads is not
+    where a survey job's exports belong, and a pre-filled destination is
+    answered by pressing Convert rather than by choosing.
     """
-    relocated = tmp_path / "Relocated Downloads"
-    monkeypatch.setattr(
-        QStandardPaths,
-        "writableLocation",
-        staticmethod(lambda location: str(relocated)),
-    )
-
-    assert window_module.default_output_directory() == str(relocated)
-    assert Path(window_module.default_output_directory()) != Path.home() / "Downloads"
+    assert window.output_edit.text() == ""
+    assert window.output_edit.placeholderText() == ""
+    assert window.output_directory is None
 
 
-def test_the_default_folder_falls_back_to_home_when_qt_reports_nothing(
-    qapp, monkeypatch
-):
-    """Qt can return an empty string on an unusual profile.
+def test_the_downloads_default_is_gone_from_the_module_entirely(window):
+    """Deleted, not merely unused.
 
-    The fallback is the home directory, which always exists, rather than a
-    fabricated path that does not - naming a folder that is not there would
-    turn a convenience into a refusal at write time.
+    A dormant ``default_output_directory`` sitting beside a field that no
+    longer calls it is one line away from being switched back on by someone who
+    reads #16 note 3 and not #27. The absence is the pin.
     """
-    monkeypatch.setattr(
-        QStandardPaths, "writableLocation", staticmethod(lambda location: "")
+    assert not hasattr(window_module, "default_output_directory")
+
+    # And nothing else reaches for the Downloads location either: the whole
+    # QStandardPaths import went with it.
+    source = Path(window_module.__file__).read_text(encoding="utf-8")
+    assert "QStandardPaths" not in source.replace(
+        "# default_output_directory, through QStandardPaths", ""
     )
 
-    assert window_module.default_output_directory() == str(Path.home())
 
-    built = MainWindow()
-    try:
-        assert built.output_edit.text() == str(Path.home())
-        assert built.output_directory == Path.home()
-    finally:
-        built.close()
+def test_an_empty_output_folder_keeps_convert_disabled(window, job_file, out_dir):
+    """The empty box is a question, not an obstacle - but it is a real question.
+
+    With no default there is nothing to fall back on, so the gate that was
+    always there is now the only thing standing between an unanswered
+    destination and a write. Filling every OTHER field must not enable Convert.
+    """
+    fill_in(
+        window,
+        input_path=job_file,
+        output_directory=out_dir,
+        source=MI_CENTRAL,
+        target=MI_SOUTH,
+    )
+    # Anti-vacuousness: with the folder answered, Convert really is available,
+    # so what the next line proves is the folder and not some other blank.
+    assert window.convert_button.isEnabled() is True
+
+    window.output_edit.setText("")
+    assert window.convert_button.isEnabled() is False
 
 
-def test_the_pre_filled_folder_is_still_editable(window, out_dir):
-    """A default, not a decision. The user overrides it by typing."""
+def test_the_output_folder_box_is_still_editable(window, out_dir):
+    """Empty, and typed into - not read-only and not a dialog-only field."""
     assert window.output_edit.isReadOnly() is False
 
     window.output_edit.setText(str(out_dir))
     assert window.output_directory == out_dir
 
 
-def test_the_default_folder_does_not_relax_the_overwrite_refusal(
+def test_a_typed_destination_does_not_relax_the_overwrite_refusal(
     window, job_file, out_dir
 ):
-    """A pre-filled destination cannot silently clobber a previous job.
+    """The property that mattered under the old default still holds.
 
-    docs/DESIGN.md amendment #16 note 3 says so explicitly, and it is the one
-    property of this change that could actually cost someone their work, so it
-    is checked rather than assumed.
+    Amendment #16 note 3 checked this of the pre-filled folder; removing the
+    default does not remove the reason to check it, because it is the one
+    property of this field that could cost someone their work.
     """
     fill_in(
         window,

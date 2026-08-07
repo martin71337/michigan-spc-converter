@@ -40,19 +40,21 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import (
+    QComboBox,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPushButton,
+    QStackedWidget,
     QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from michspc import APP_NAME
-from michspc.fileio import pnezd
+from michspc.fileio import dms, pnezd
 from michspc.gui.controls import (
     AMBER,
     GEODETIC,
@@ -66,6 +68,7 @@ from michspc.gui.controls import (
     unit_combo,
     zone_combo,
 )
+from michspc.gui.dms_entry import DmsEntry
 from michspc.gui.result_panel import ResultPanel
 from michspc.gui.results_model import (
     ResultSection,
@@ -147,6 +150,36 @@ INCOMPLETE_FORM = (
     "coordinates are involved — choose the longitude sign convention."
 )
 
+ANGLE_FORMAT_LABEL = "Lat/long entry:"
+ANGLE_FORMAT_DECIMAL = "Decimal degrees (43.800)"
+ANGLE_FORMAT_DMS = "Degrees / minutes / seconds"
+DECIMAL_PAGE = 0
+DMS_PAGE = 1
+"""The two ways of typing a geodetic coordinate (docs/DESIGN.md amendment #28).
+
+**Decimal degrees is the default, and defaulting here is safe** — which is
+worth saying, because almost nothing else in this program has a default. The
+two zone dropdowns and the longitude convention open unanswered because their
+options are indistinguishable from the numbers on screen. These two are not: the
+boxes visibly change shape, and a decimal box holding "43.800" cannot be
+mistaken for a degrees box holding "43". Nothing is silently assumed about a
+value, so this is a starting state rather than an answer.
+
+The selector is relevant only while the FROM selection is geodetic. When the
+job starts from a zone the two boxes hold a northing and an easting, which have
+no minutes or seconds, so the selector is disabled and the decimal page stays
+up (see ``_update_angle_format_relevance``).
+"""
+
+ANGLE_FORMAT_TOOLTIP = (
+    "How the typed latitude and longitude are written. Decimal degrees is one "
+    "box each; degrees / minutes / seconds is four, with a hemisphere letter "
+    "instead of a sign - the same notation the result panel displays, so a "
+    "reading can be typed straight back in.\n\n"
+    "This governs what is TYPED only. It changes nothing about the conversion "
+    "and nothing about what is displayed."
+)
+
 
 class SinglePointTab(QWidget):
     """One typed coordinate, converted and displayed. Writes nothing."""
@@ -163,6 +196,7 @@ class SinglePointTab(QWidget):
         self._update_entry_labels()
         self._update_unit_labels()
         self._update_longitude_relevance()
+        self._update_angle_format_relevance()
         self._update_convert_enabled()
 
     # ------------------------------------------------------------------
@@ -220,11 +254,33 @@ class SinglePointTab(QWidget):
         grid.addWidget(self.longitude_label, 2, 0)
         grid.addWidget(self.longitude_combo, 2, 1, 1, 3)
 
+        # --- how a latitude and longitude are typed ----------------------
+        self.angle_format_label = QLabel(ANGLE_FORMAT_LABEL, box)
+        self.angle_format = QComboBox(box)
+        self.angle_format.addItem(ANGLE_FORMAT_DECIMAL, DECIMAL_PAGE)
+        self.angle_format.addItem(ANGLE_FORMAT_DMS, DMS_PAGE)
+        self.angle_format.setToolTip(ANGLE_FORMAT_TOOLTIP)
+        self.angle_format.currentIndexChanged.connect(self._on_angle_format_changed)
+
+        grid.addWidget(self.angle_format_label, 3, 0)
+        grid.addWidget(self.angle_format, 3, 1, 1, 3)
+
         # --- the typed coordinate ---------------------------------------
+        # Each coordinate row is a two-page stack: one decimal box, or four DMS
+        # boxes. Both pages exist at all times and neither is rebuilt when the
+        # format changes, so a switch cannot lose what is in the other one - and
+        # `first_edit` means the same widget it always did, which is what lets
+        # every existing test go on describing this tab unchanged.
         self.first_label = QLabel(FIRST_LABEL_UNCHOSEN, box)
         self.first_edit = QLineEdit(box)
+        self.first_dms = DmsEntry(dms.LATITUDE, box, on_change=self._on_entry_changed)
+        self.first_stack = self._entry_stack(box, self.first_edit, self.first_dms)
+
         self.second_label = QLabel(SECOND_LABEL_UNCHOSEN, box)
         self.second_edit = QLineEdit(box)
+        self.second_dms = DmsEntry(dms.LONGITUDE, box, on_change=self._on_entry_changed)
+        self.second_stack = self._entry_stack(box, self.second_edit, self.second_dms)
+
         self.elevation_label = QLabel(ELEVATION_LABEL, box)
         self.elevation_edit = QLineEdit(box)
         self.elevation_edit.setToolTip(ELEVATION_TOOLTIP)
@@ -233,18 +289,19 @@ class SinglePointTab(QWidget):
         # by the file reader's own convention, so it does not participate in
         # enablement - but every field, including the elevation, invalidates a
         # displayed result, which is a separate concern (see _invalidate_result).
+        # The DMS boxes reach the same two methods through _on_entry_changed.
         self.first_edit.textChanged.connect(self._update_convert_enabled)
         self.second_edit.textChanged.connect(self._update_convert_enabled)
         self.first_edit.textChanged.connect(self._invalidate_result)
         self.second_edit.textChanged.connect(self._invalidate_result)
         self.elevation_edit.textChanged.connect(self._invalidate_result)
 
-        grid.addWidget(self.first_label, 3, 0)
-        grid.addWidget(self.first_edit, 3, 1, 1, 3)
-        grid.addWidget(self.second_label, 4, 0)
-        grid.addWidget(self.second_edit, 4, 1, 1, 3)
-        grid.addWidget(self.elevation_label, 5, 0)
-        grid.addWidget(self.elevation_edit, 5, 1, 1, 3)
+        grid.addWidget(self.first_label, 4, 0)
+        grid.addWidget(self.first_stack, 4, 1, 1, 3)
+        grid.addWidget(self.second_label, 5, 0)
+        grid.addWidget(self.second_stack, 5, 1, 1, 3)
+        grid.addWidget(self.elevation_label, 6, 0)
+        grid.addWidget(self.elevation_edit, 6, 1, 1, 3)
 
         # --- convert ----------------------------------------------------
         self.convert_button = QPushButton("Convert", box)
@@ -252,11 +309,25 @@ class SinglePointTab(QWidget):
         buttons.addStretch(1)
         buttons.addWidget(self.convert_button)
         self.convert_button.clicked.connect(self.convert)
-        grid.addLayout(buttons, 6, 0, 1, 4)
+        grid.addLayout(buttons, 7, 0, 1, 4)
 
         grid.setColumnStretch(1, 3)
         grid.setColumnStretch(3, 2)
         return box
+
+    @staticmethod
+    def _entry_stack(box: QWidget, decimal: QWidget, degrees: QWidget) -> QStackedWidget:
+        """One coordinate row's two pages, decimal first.
+
+        ``QStackedWidget`` sizes itself to its tallest page, so the row does not
+        change height when the format switches - a form that jumps about as a
+        dropdown moves reads as a glitch.
+        """
+        stack = QStackedWidget(box)
+        stack.addWidget(decimal)
+        stack.addWidget(degrees)
+        stack.setCurrentIndex(DECIMAL_PAGE)
+        return stack
 
     def _build_results_panel(self) -> ResultPanel:
         """An empty scrolling panel, rebuilt wholesale on each conversion.
@@ -355,6 +426,39 @@ class SinglePointTab(QWidget):
             return pnezd.TYPED_POINT_SOURCE_GEODETIC
         return pnezd.TYPED_POINT_SOURCE_GRID
 
+    def typed_coordinates(self, settings: JobSettings) -> tuple[str, str]:
+        """The two coordinate values as text, whichever way they were typed.
+
+        On the decimal page this is what is in the two boxes, verbatim. On the
+        DMS page it is what ``fileio.dms`` composes from the four boxes: the
+        text the decimal box WOULD have held, so everything downstream of this
+        line — the reader, the conversion, the panel, the warnings — cannot
+        tell the two entry modes apart. That is the point. A DMS-specific path
+        through the conversion would be a second way of converting a latitude,
+        and two ways of doing one thing is how the two tabs would come to
+        disagree (docs/DESIGN.md amendment #26).
+
+        ``settings`` is passed in rather than re-derived so this uses the very
+        object the job will run with, and its convention rather than a second
+        reading of the dropdown.
+
+        Raises ``dms.DmsError`` if any box is unreadable. ``convert`` shows it
+        exactly as raised, like every other refusal.
+        """
+        if not self.entering_dms():
+            return self.first_edit.text(), self.second_edit.text()
+
+        # A geodetic SOURCE always has a convention by this point: settings()
+        # returns None without one for both geodetic directions, and convert()
+        # has already refused on that. Latitude ignores it either way.
+        positive_west = (
+            settings.longitude_convention is LongitudeConvention.POSITIVE_WEST
+        )
+        return (
+            self.first_dms.decimal_degrees_text(positive_west=positive_west),
+            self.second_dms.decimal_degrees_text(positive_west=positive_west),
+        )
+
     # ------------------------------------------------------------------
     # Enablement and labelling
     # ------------------------------------------------------------------
@@ -363,8 +467,52 @@ class SinglePointTab(QWidget):
         self._update_entry_labels()
         self._update_unit_labels()
         self._update_longitude_relevance()
+        self._update_angle_format_relevance()
         self._update_convert_enabled()
         self._invalidate_result()
+
+    def _on_angle_format_changed(self) -> None:
+        """The typed point is discarded when the format changes, deliberately.
+
+        The two pages hold different text, and carrying a decimal 43.800 over
+        into a degrees box would read as 43 degrees flat - the same number
+        meaning a different point, 48 minutes away, with nothing said. Nothing
+        is translated between the pages: the abandoned page keeps whatever was
+        in it and stops gating Convert, and ``_update_convert_enabled`` reads
+        only the page now showing.
+        """
+        self._update_entry_pages()
+        self._update_convert_enabled()
+        self._invalidate_result()
+
+    def _on_entry_changed(self) -> None:
+        """What every DMS box is wired to: the same pair the decimal box uses."""
+        self._update_convert_enabled()
+        self._invalidate_result()
+
+    def entering_dms(self) -> bool:
+        """True when the two coordinate rows are showing their four-box page.
+
+        Both conditions, not just the dropdown: a northing has no minutes, so
+        the DMS page is never shown while the job starts from a zone however
+        the selector happens to be set.
+        """
+        return (
+            self.from_zone.currentData() == GEODETIC
+            and self.angle_format.currentData() == DMS_PAGE
+        )
+
+    def _update_entry_pages(self) -> None:
+        page = DMS_PAGE if self.entering_dms() else DECIMAL_PAGE
+        self.first_stack.setCurrentIndex(page)
+        self.second_stack.setCurrentIndex(page)
+
+    def _update_angle_format_relevance(self) -> None:
+        """The selector matters only when the typed values are angles."""
+        relevant = self.from_zone.currentData() == GEODETIC
+        self.angle_format_label.setEnabled(relevant)
+        self.angle_format.setEnabled(relevant)
+        self._update_entry_pages()
 
     def _invalidate_result(self) -> None:
         """Discard a displayed result the controls no longer describe.
@@ -415,9 +563,9 @@ class SinglePointTab(QWidget):
             self.from_zone.currentData(), Zone
         )
         self.first_label.setEnabled(known)
-        self.first_edit.setEnabled(known)
+        self.first_stack.setEnabled(known)
         self.second_label.setEnabled(known)
-        self.second_edit.setEnabled(known)
+        self.second_stack.setEnabled(known)
 
     def _update_unit_labels(self) -> None:
         """Say what each unit selector governs, given From and To.
@@ -449,6 +597,21 @@ class SinglePointTab(QWidget):
         self.longitude_label.setEnabled(relevant)
         self.longitude_combo.setEnabled(relevant)
 
+    def coordinates_are_typed(self) -> bool:
+        """Both coordinate rows answered, on whichever page is showing.
+
+        "Answered" means every box has something in it — not that what is in
+        them is readable. Whether 61 minutes is an angle is ``fileio.dms``'s
+        question and it answers it with a sentence; deciding it here as well
+        would put a second rule about angles in the interface, and the two
+        would eventually disagree.
+        """
+        if self.entering_dms():
+            return self.first_dms.is_complete() and self.second_dms.is_complete()
+        return bool(self.first_edit.text().strip()) and bool(
+            self.second_edit.text().strip()
+        )
+
     def form_is_complete(self) -> bool:
         """Everything ``convert`` needs, and nothing it does not.
 
@@ -458,9 +621,7 @@ class SinglePointTab(QWidget):
         """
         if self.settings() is None:
             return False
-        return bool(self.first_edit.text().strip()) and bool(
-            self.second_edit.text().strip()
-        )
+        return self.coordinates_are_typed()
 
     def _update_convert_enabled(self) -> None:
         self.convert_button.setEnabled(self.form_is_complete())
@@ -495,9 +656,10 @@ class SinglePointTab(QWidget):
         self._render_sections(None)
 
         try:
+            first, second = self.typed_coordinates(settings)
             parsed = pnezd.parse_typed_point(
-                self.first_edit.text(),
-                self.second_edit.text(),
+                first,
+                second,
                 self.elevation_edit.text(),
                 source=self.typed_point_source(),
             )

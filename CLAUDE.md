@@ -25,7 +25,39 @@ It deliberately does **not** do UTM, SPCS2022, NAD 83 ↔ NATRF2022
 transformation, other states, NAD 27, or two-point azimuth/distance. See
 DESIGN.md §10 for why each was deferred.
 
-## Status (2026-08-07, 0.2.0 RELEASED)
+## Status (2026-08-07, single point tab BUILT AND GATED, unreleased)
+
+**The Single point tab is built, reviewed and committed — not released.** The
+owner asked to pause before cutting a release; `main` carries it, 0.2.0 is still
+the released version, and the version literal has not moved.
+
+A second tab beside the file tool: one typed coordinate, converted, displayed.
+No file, no output folder, nothing written. Elevation optional. Input is either
+N/E/Z or geodetic. Lat/lon in decimal degrees and DMS (magnitude plus hemisphere
+letter, five decimals of a second). A copy button per value plus Copy all.
+
+**The property that shaped it:** the two tabs are incapable of disagreeing about
+the same point — same validation gate, same conversion function. Two reviewers
+running blind could not construct a disagreement; one drove both real GUIs over
+378 configurations and compared the panel against the audit CSV the other tab
+wrote, section by section.
+
+**The closing gate found a CRITICAL both reviewers hit independently:** a stale
+result survived every control change with both copy paths armed — a reading
+100,001 ft out, one click from the clipboard. Fixed, seven pins, all falsified.
+Five more findings fixed and two test gaps closed, each found by seeding a
+defect the suite passed. Full account: DESIGN.md **#26**.
+
+Suite **1031**, green in both modes; the frozen-bundle self-test still passes.
+
+### Before releasing this
+
+1. Look at the tab — the layout, the copy buttons, the wording — it has not been
+   seen on a real screen by its owner.
+2. Then the usual: bump the version, `py tools/build_release.py`, tag, GitHub
+   Release.
+
+## Superseded status (2026-08-07, 0.2.0 RELEASED)
 
 **Closing adversarial gate is done and every finding is fixed.** Three
 independent tracks ran blind to each other — Codex CLI, an Opus reviewer, and a

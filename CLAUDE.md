@@ -44,8 +44,12 @@ telling them apart. Fixed by measuring against the line height the program is
 actually drawn in; `result_panel.py` is untouched and no shipped pixel changed.
 
 **Still outstanding, and human:** install on a clean profile and run one real job
-end to end (METHOD.md §6). A self-test is not a substitute. **The positive-west
-preselect below is the thing to watch on that first job.**
+end to end (METHOD.md §6). A self-test is not a substitute.
+
+**Next build is NGVD 29 → NAVD 88** — the owner's decision at the close of this
+release (DESIGN.md **#32**), with NAPGD2022 after it and backwards compatibility
+required rather than assumed. The positive-west question is **closed** and is not
+to be refiled (**#33**).
 
 ### Superseded status — all owner edits DONE, merged to main
 
@@ -135,12 +139,13 @@ defect (DESIGN.md #27, Verification).
 
 ### Shipped in 0.3.0 with these still open — raise with the owner
 
-- **The positive-west preselect is wrong for downloaded files.** OPUS, NCAT,
-  GPS and GIS all write negative west. His own data is positive west, which is
-  why he asked for it, but the first OPUS file through this tool will convert
-  340 miles off unless the dropdown is changed. The tooltip warns; nothing
-  blocks. **This shipped as-is**, with the warning carried into the release
-  notes' opening section rather than buried — it is the first thing they say.
+- ~~The positive-west preselect~~ — **CLOSED by the owner (DESIGN.md #33). Not
+  a concern; verifying the convention is the user's responsibility.** The facts
+  are unchanged — OPUS, NCAT, GPS and GIS write negative west, and the wrong one
+  moves a point 340 miles — and the program informs rather than decides: the
+  dropdown names the convention, the tooltip warns in capitals, the job record
+  states it, and the release notes lead with it. **Do not refile this.** It has
+  been raised three times; reopening needs new evidence, not the same argument.
 - **The job record's `Longitude` line is now shorter too** — `Longitude
   negative west`, with no `(-84.37)`. That follows #17's standing choice of one
   wording in both surfaces. If he wants the example kept in the record and out
@@ -259,12 +264,23 @@ failure mode is an absent archive, never a corrupt one.
 
 ### Next build, when it comes
 
-- **SPCS2022** — spec is DESIGN.md #21. Blocked on NATRF2022 and its
+- **NGVD 29 → NAVD 88 — THIS IS THE NEXT BUILD.** Owner's decision at the close
+  of 0.3.0 (DESIGN.md **#32**); sizing is #22 and stands as written. MEDIUM, two
+  work packages, every input available today. Build the **vertical-transformation
+  registry keyed by (source, target)** rather than one hard-wired path, because
+  that registry is how NAPGD2022 later arrives as data. Two risks, neither about
+  effort: disclosing a *modeled* shift inside a number that looks exact, and the
+  `trn` grid's sign/direction semantics — the defect class this project has
+  already been burned by.
+- **NAPGD2022, after it** — blocked on NGS, not on us (#22). **Backwards
+  compatibility is a requirement, not an assumption:** it does not retire
+  NAVD 88 or NGVD 29. A job converted in 2026 must still convert and still
+  reproduce afterwards, so the registry keeps every pair it has carried,
+  elevations stay datum-tagged, the datum in force is named in every output, and
+  an unestablished datum refuses rather than assuming the newest.
+- **SPCS2022 — not next.** Spec is #21. Blocked on NATRF2022 and its
   transformation, not on effort. Michigan is 19 zones, needing transverse and
   oblique Mercator engines this program does not have.
-- **NGVD 29 → NAVD 88** — sizing is DESIGN.md #22. MEDIUM, two work packages,
-  buildable today; design the vertical-transformation registry so NAPGD2022 is
-  later a data change.
 - **Rename durability** (#23) — if it is ever worth it, `MoveFileEx` with
   `MOVEFILE_WRITE_THROUGH` via `ctypes`.
 

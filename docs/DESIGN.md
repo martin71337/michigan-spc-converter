@@ -447,6 +447,67 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #33 — 2026-08-07 — The positive-west preselect: closed, not a concern
+
+Owner's ruling at the close of 0.3.0, in his words: he is **not** concerned about
+the positive-west preselect, and **verifying the convention is the user's
+responsibility.**
+
+This closes the standing item raised at #29 and carried through the 0.3.0
+release. The facts behind the concern are unchanged and are not being disputed
+away: OPUS, NCAT, GPS and GIS files are normally negative west, the two
+conventions are indistinguishable from the number alone, and the wrong one moves
+a Michigan point about 340 miles. What is settled is what this program does about
+it — **it informs, and it does not decide.** The dropdown names the convention in
+words before Convert is pressed, its tooltip carries the warning in capitals, the
+job record states the convention in force, and the release notes lead with it.
+The surveyor checks it against the file in front of him, as he checks a datum or
+a unit.
+
+**Recorded so it is not refiled.** This item has now been raised three times —
+at #29, before the release, and after it. A reviewer who reaches for it again
+should find this decision rather than open it a fourth time. Reopening needs new
+evidence, not the same argument: a wrong conversion that actually reached a
+drawing would be that evidence.
+
+Nothing changed in the program. This amendment is the decision only.
+
+### #32 — 2026-08-07 — Roadmap: vertical datums are the next build
+
+Owner's decision at the close of the 0.3.0 release. Recorded here because it
+settles an ordering that #21 and #22 left open — both were sized and neither was
+chosen.
+
+**Next: elevation conversion, NGVD 29 → NAVD 88.** The sizing stands as written
+in **#22** and does not need redoing: MEDIUM, two work packages, every input
+available today (VERTCON 3.0 grids in the same NGS `.b` family as the GEOID18
+tile already read here, NCAT carrying the transformation for frozen anchors).
+Its two risks stand too, and neither is about effort — the disclosure of a
+*modeled* shift into a number that looks exact, and the sign/direction semantics
+of the `trn` grid, which is the defect class this project has already been burned
+by (#1, MATLAB defect 2).
+
+**After it: NAPGD2022,** which #22 established is blocked on NGS rather than on
+us. It arrives through the vertical-transformation registry as a record plus
+grids plus a citation — which is the reason to build that registry rather than a
+single hard-wired NGVD-to-NAVD path, even though only one pair exists today.
+
+**And with it, backwards compatibility, stated as a requirement rather than
+assumed.** NAPGD2022 support does not retire NAVD 88 or NGVD 29. A job converted
+under this program in 2026 must still convert, and still reproduce, after the new
+datum lands — a surveyor's older work does not stop existing because NGS
+published something. Practically that means the registry keeps every published
+pair it has ever carried, elevations stay datum-tagged so an old file says what
+it meant, and the datum in force is named in every output. A conversion whose
+datum cannot be established refuses; it does not assume the newest.
+
+**SPCS2022 (#21) is not next**, and its blocker is unchanged: NATRF2022 and its
+transformation are unreleased, and Michigan's 19-zone design needs transverse and
+oblique Mercator engines this program does not have.
+
+Nothing is built here. This is an ordering, and the two sizings it points at are
+#21 and #22.
+
 ### #31 — 2026-08-07 — A pin that measured the test platform, not the program
 
 Found by the 0.3.0 release build: gate 3 refused, one failing test, on a

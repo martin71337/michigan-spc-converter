@@ -19,6 +19,7 @@ import dataclasses
 import io
 import hashlib
 import math
+import zipfile
 from enum import Enum
 from pathlib import Path
 
@@ -29,7 +30,12 @@ from tests.conftest import archive_members, extract_member, member_text
 from michspc import job as jobmod
 from michspc.fileio import exports, pnezd, report
 from michspc.fileio import formatting as fmt
-from michspc.fileio.writers import WriteError, atomic_write_text, write_csv_rows
+from michspc.fileio.writers import (
+    WriteError,
+    atomic_write_text,
+    staged_write,
+    write_csv_rows,
+)
 from michspc.job import (
     Direction,
     JobSettings,
@@ -1614,6 +1620,7 @@ def test_a_zone_to_zone_job_with_no_zones_is_refused_with_a_useful_message(
         target_zone=None,
         input_unit=INTERNATIONAL_FEET,
         output_unit=INTERNATIONAL_FEET,
+        longitude_convention=None,
     )
 
     with pytest.raises(ValueError) as caught:
@@ -1635,6 +1642,7 @@ def test_a_zone_to_zone_job_missing_only_the_target_is_still_refused(tmp_path):
         target_zone=None,
         input_unit=INTERNATIONAL_FEET,
         output_unit=INTERNATIONAL_FEET,
+        longitude_convention=None,
     )
 
     with pytest.raises(ValueError):
@@ -1650,6 +1658,7 @@ def test_a_geodetic_to_zone_job_needs_a_target_zone(tmp_path):
         target_zone=None,
         input_unit=INTERNATIONAL_FEET,
         output_unit=INTERNATIONAL_FEET,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
     )
 
     with pytest.raises(ValueError) as caught:
@@ -1667,6 +1676,7 @@ def test_a_zone_to_geodetic_job_needs_the_source_zone(tmp_path):
         target_zone=None,
         input_unit=INTERNATIONAL_FEET,
         output_unit=INTERNATIONAL_FEET,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
     )
 
     with pytest.raises(ValueError) as caught:
@@ -1706,17 +1716,70 @@ def test_positive_west_flips_the_sign_and_negative_west_does_not():
     assert LongitudeConvention.NEGATIVE_WEST.from_signed(signed) == signed
 
 
-def test_longitude_convention_has_no_default_value():
+def test_longitude_convention_has_no_default_value(tmp_path):
     """DESIGN.md section 7: "selected by the user with no default".
 
-    An Enum with no member designated as default is the enforcement; this pins
-    that nobody has added one, and that both members remain distinguishable.
-    """
-    members = list(LongitudeConvention)
+    The enforcement is on ``JobSettings``, which is what a caller actually
+    constructs; the enum having no designated default member proves nothing on
+    its own, which is what the predecessor of this test asserted. Until this
+    was fixed ``JobSettings`` silently supplied NEGATIVE_WEST, and the closing
+    gate measured the consequence: a geodetic input file holding a positive-west
+    84.5555 converted as though it read -84.5555 landed 11,634,618.748 m from
+    the true position, carrying nothing louder than an outside-zone-extent
+    warning.
 
-    # Hand-derived: exactly the two conventions in the docstring.
-    assert len(members) == 2
+    Omitting a field with no default is a TypeError from the generated
+    ``__init__`` - the dataclass machinery is the enforcement, so this asserts
+    on the omitted field's name rather than on any message we wrote.
+    """
+    with pytest.raises(TypeError) as caught:
+        JobSettings(
+            input_path=tmp_path / "in.txt",
+            output_directory=tmp_path / "out",
+            direction=Direction.GEODETIC_TO_ZONE,
+            source_zone=None,
+            target_zone=MI_SOUTH,
+            input_unit=INTERNATIONAL_FEET,
+            output_unit=INTERNATIONAL_FEET,
+        )
+
+    assert "longitude_convention" in str(caught.value)
+
+    # Hand-derived: exactly the two conventions in the enum's docstring, and
+    # neither of them is reachable without being named.
+    assert len(list(LongitudeConvention)) == 2
     assert LongitudeConvention.POSITIVE_WEST is not LongitudeConvention.NEGATIVE_WEST
+
+
+def test_a_geodetic_job_refuses_a_settings_object_that_never_stated_the_convention(
+    tmp_path,
+):
+    """``None`` is only sayable by a job that never consults the convention.
+
+    A pure zone-to-zone job has grid coordinates on both ends and no longitude
+    anywhere, so it states None (michspc.gui.window builds it that way). Any
+    direction with geodetic coordinates on either end that arrives with None is
+    refused rather than defaulted - the same rule as the field itself, at the
+    only layer that can tell the directions apart.
+    """
+    settings = JobSettings(
+        input_path=_write_sample(tmp_path),
+        output_directory=tmp_path / "out",
+        direction=Direction.ZONE_TO_GEODETIC,
+        source_zone=MI_SOUTH,
+        target_zone=None,
+        input_unit=INTERNATIONAL_FEET,
+        output_unit=INTERNATIONAL_FEET,
+        longitude_convention=None,
+    )
+
+    with pytest.raises(ValueError) as caught:
+        run(settings)
+
+    message = str(caught.value)
+    assert "longitude sign convention" in message
+    assert "no default" in message
+    assert "340 miles" in message
 
 
 def test_elevation_passes_through_unchanged_when_the_units_match(tmp_path):
@@ -2194,3 +2257,1245 @@ def test_a_zone_to_zone_record_does_not_claim_a_geodetic_frame(tmp_path):
     for line in indented:
         assert line.startswith("  ")
         assert "NAD83(2011)" in line
+
+
+# ==========================================================================
+# WP-R2 regression pins.
+#
+# Each test below is the reviewer's own counterexample, held against the fix
+# that closed it. The counterexample position is Lansing, 42.73250000 N,
+# -84.55550000 W - the same one the interim gate used - which in Michigan South
+# is N = 136920.027586723 m, E = 3984537.119005890 m, i.e.
+#     136920.027586723 / 0.3048 = 449212.6889 ift
+#     3984537.119005890 / 0.3048 = 13072628.3432 ift
+# ==========================================================================
+
+
+ZONE_TO_GEODETIC_INPUT = "101,449212.689,13072628.343,900.000,IRON PIPE\n"
+"""The reviewer's row for fix A: Michigan South in International feet, with a
+900.000 ift elevation, converted back to the geodetic position above."""
+
+
+def _zone_to_geodetic_job(tmp_path: Path, **overrides) -> JobSettings:
+    """MI South 2113 -> geodetic, feet in, metres out, negative west."""
+    path = overrides.pop("input_path", None)
+    if path is None:
+        path = tmp_path / "spc.txt"
+        path.write_text(ZONE_TO_GEODETIC_INPUT, encoding="utf-8", newline="")
+    return JobSettings(
+        input_path=path,
+        output_directory=overrides.pop("output_directory", tmp_path / "out"),
+        direction=Direction.ZONE_TO_GEODETIC,
+        source_zone=MI_SOUTH,
+        target_zone=None,
+        input_unit=overrides.pop("input_unit", INTERNATIONAL_FEET),
+        output_unit=overrides.pop("output_unit", METERS),
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        **overrides,
+    )
+
+
+# --------------------------------------------------------------------------
+# Fix A - the elevation of a geodetic export is in the OUTPUT unit
+# --------------------------------------------------------------------------
+
+
+def test_fix_a_the_clean_geodetic_export_writes_the_elevation_in_metres(tmp_path):
+    """The reviewer's counterexample, whole.
+
+    Hand-derived. units.py fixes the International foot at 0.3048 m exactly, so
+
+        900.000 ift x 0.3048 m/ift = 274.32 m exactly
+
+    (900 x 0.3048: 900 x 0.3 = 270, 900 x 0.0048 = 4.32, sum 274.32.) The
+    output unit is metres, whose declared precision is 4 decimal places
+    (michspc/spc/units.py), so the cell reads "274.3200".
+
+    Columns two and three are the geodetic position the input row projects back
+    to, formatted to 8 places by fmt.latitude / fmt.longitude: the interim
+    gate's own figures for this point are 42.73250000 N, -84.55550000 W.
+
+    Before the fix this cell read "900.000" - the input number, at the input
+    unit's precision - under a job record whose "Units out" line said metres. A
+    reader who did as the record instructs was 625.680 m out on Z.
+    """
+    result = run(_zone_to_geodetic_job(tmp_path))
+
+    assert exports.clean_pnezd_rows(result) == [
+        ["101", "42.73250000", "-84.55550000", "274.3200", "IRON PIPE"]
+    ]
+
+
+def test_fix_a_the_audit_csv_elevation_cell_agrees_with_the_clean_export(tmp_path):
+    """The same 274.3200, in the file that exists to say how it was derived.
+
+    The Elevation column is index 7 of AUDIT_COLUMNS, counted from the list in
+    exports.py: Point(0), Source zone(1), Source northing(2), Source easting(3),
+    Target zone(4), Target northing(5), Target easting(6), Elevation(7).
+    """
+    result = run(_zone_to_geodetic_job(tmp_path))
+
+    header, row = exports.audit_rows(result)
+    assert header[7] == "Elevation"
+    # Hand-derived above: 900 ift x 0.3048 = 274.32 m exactly, 4 dp in metres.
+    assert row[7] == "274.3200"
+    # And the two files say the same thing about the same point.
+    assert row[7] == exports.clean_pnezd_rows(result)[0][3]
+    # The unit label states the pair, so the cell is not ambiguous.
+    assert row[8] == "in ift, out m"
+
+
+def test_fix_a_the_written_archive_carries_the_metre_elevation(tmp_path):
+    """Not just the row builders - the bytes that reach the disk.
+
+    Reads the clean export out of the ZIP that was actually written, because
+    that is the file the surveyor unzips and imports.
+    """
+    result = run(_zone_to_geodetic_job(tmp_path))
+    written = exports.write_all(result)
+
+    text = member_text(written["archive"], "GEODETIC.csv")
+    # Hand-derived above. The clean export has no header row, so the single
+    # data line is the whole file.
+    assert text.strip() == "101,42.73250000,-84.55550000,274.3200,IRON PIPE"
+
+
+def test_fix_a_the_elevation_is_untouched_when_the_units_are_the_same(tmp_path):
+    """The fix re-expresses; it must not shift.
+
+    Feet in, feet out: 900.000 ift -> 274.32 m -> 900.000 ift, and the
+    International foot's declared precision is 3 places, so "900.000".
+    """
+    result = run(_zone_to_geodetic_job(tmp_path, output_unit=INTERNATIONAL_FEET))
+
+    assert exports.clean_pnezd_rows(result)[0][3] == "900.000"
+
+
+# --------------------------------------------------------------------------
+# Fix B - the job record describes the file that was actually read, and the
+# file that was actually written, per direction
+# --------------------------------------------------------------------------
+
+
+def _section(text: str, start: str, end: str) -> str:
+    """The slice of the record between two headings, for line-level asserts."""
+    return text[text.index(start) : text.index(end)]
+
+
+def test_fix_b_a_geodetic_input_is_not_described_as_pnezd(tmp_path):
+    """Converting FROM geodetic: the INPUT block must say what the file held.
+
+    The columns are a latitude and a longitude in decimal degrees, and the two
+    layouts are indistinguishable from the numbers - a geodetic file read as
+    PNEZD yields a plausible coordinate rather than an error - so the record
+    describing it as "PNEZD, no header row / point, northing, easting" was a
+    wrong statement in a document that is filed and believed.
+    """
+    text = report.build_report(run(_geodetic_job(tmp_path)))
+    block = _section(text, "INPUT", "OUTPUT")
+
+    # What the columns are.
+    assert "Format             Comma separated, no header row - NOT PNEZD" in block
+    assert "point, latitude, longitude, elevation, description" in block
+    assert "Columns two and three are DECIMAL DEGREES, read" in block
+    # ... and which way west is signed, without which the description of the
+    # file cannot be read at all (docs/DESIGN.md section 7).
+    assert "as negative west (-84.37)." in block
+
+    # What it must NOT say.
+    assert "PNEZD, no header row" not in block
+    assert "point, northing, easting, elevation, description" not in block
+
+
+def test_fix_b_a_geodetic_inputs_linear_unit_governs_only_the_elevation(tmp_path):
+    """"Units in <foot>" must not be claimed over columns two and three.
+
+    Degrees carry no linear unit. The elevation column does, and it is the one
+    the elevation factor and the combined factor are computed from, so the unit
+    is still stated - qualified to the column it actually governs.
+    """
+    text = report.build_report(run(_geodetic_job(tmp_path)))
+    block = _section(text, "INPUT", "OUTPUT")
+
+    assert (
+        "Units in           International feet (ift) - the ELEVATION column only"
+        in block
+    )
+    assert "Columns two and three are degrees and carry no" in block
+    assert "linear unit." in block
+    # The unqualified claim is gone.
+    assert "- northing, easting and elevation" not in block
+
+
+def test_fix_b_a_geodetic_export_is_not_described_as_pnezd(tmp_path):
+    """Converting TO geodetic: the CLEAN EXPORT block, in FILES WRITTEN.
+
+    "in the same PNEZD layout as the input" is true only of a zone-to-zone job.
+    This export's columns two and three are degrees, and its one linear column
+    is the elevation - which fix A now writes in the output unit, so the record
+    naming that unit is the same statement the file makes.
+    """
+    result = run(_zone_to_geodetic_job(tmp_path))
+    block = _section(report.build_report(result), "FILES WRITTEN", "END OF JOB RECORD")
+
+    assert "The converted positions - NOT PNEZD, and NOT the same layout as" in block
+    assert "the input: point, latitude, longitude, elevation, description," in block
+    assert "Columns two and three are DECIMAL DEGREES to 8 places, written" in block
+    assert "negative west (-84.37)." in block
+    # The elevation, named as the one linear column and in the OUTPUT unit.
+    assert "The elevation column is meters (m)." in block
+
+    # The linear sentence belongs to the other directions only.
+    assert "Northing, easting and elevation are" not in block
+    assert "in the same PNEZD layout as the input" not in block
+
+
+def test_fix_b_a_pnezd_export_out_of_a_geodetic_input_says_so(tmp_path):
+    """The other geodetic direction writes PNEZD out of a file that was not.
+
+    Saying "the same layout as the input" here would be exactly backwards.
+    """
+    block = _section(
+        report.build_report(run(_geodetic_job(tmp_path))),
+        "FILES WRITTEN",
+        "END OF JOB RECORD",
+    )
+
+    assert "The converted coordinates in PNEZD layout - which the INPUT file" in block
+    assert "was not: point, northing, easting, elevation, description, no" in block
+    assert "Northing, easting and elevation are International feet (ift)." in block
+    assert "in the same PNEZD layout as the input" not in block
+
+
+def test_fix_b_a_zone_to_zone_record_still_reads_the_way_it_always_did(tmp_path):
+    """The direction-aware wording must not have disturbed the ordinary job.
+
+    A zone-to-zone job reads PNEZD and writes PNEZD, and both blocks say so.
+    """
+    text = report.build_report(_south_to_central(tmp_path))
+    input_block = _section(text, "INPUT", "OUTPUT")
+    files_block = _section(text, "FILES WRITTEN", "END OF JOB RECORD")
+
+    assert "Format             PNEZD, no header row" in input_block
+    assert "point, northing, easting, elevation, description" in input_block
+    assert (
+        "Units in           International feet (ift) - northing, easting and elevation"
+        in input_block
+    )
+    assert "NOT PNEZD" not in input_block
+
+    assert (
+        "The converted coordinates, in the same PNEZD layout as the input:"
+        in files_block
+    )
+    assert "Northing, easting and elevation are International feet (ift)." in files_block
+    assert "NOT PNEZD" not in files_block
+
+
+# --------------------------------------------------------------------------
+# Fix C - a geoid miss is a warning, not a blank elevation field
+# --------------------------------------------------------------------------
+
+
+GEOID_MISS_INPUT = "OUT1,39.0,-84.0,800.0,OBS\n"
+"""The reviewer's counterexample: a point with a perfectly good Z column at a
+position the shipped GEOID18 tile does not cover.
+
+Hand-derived from the tile's own header: g2018u3.bin spans 40.0 to 58.0 N and
+-96.0 to -77.0 E. Latitude 39.0 is one degree south of its southern edge, so
+the lookup must miss - while the horizontal conversion, which does not consult
+the geoid at all, still succeeds."""
+
+
+def _geoid_miss_job(tmp_path: Path) -> JobSettings:
+    path = tmp_path / "outside.txt"
+    path.write_text(GEOID_MISS_INPUT, encoding="utf-8", newline="")
+    return JobSettings(
+        input_path=path,
+        output_directory=tmp_path / "out",
+        direction=Direction.GEODETIC_TO_ZONE,
+        source_zone=None,
+        target_zone=MI_SOUTH,
+        input_unit=INTERNATIONAL_FEET,
+        output_unit=INTERNATIONAL_FEET,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+    )
+
+
+def test_fix_c_a_geoid_miss_raises_its_own_warning_naming_the_point(tmp_path):
+    """Silence here is indistinguishable from a blank Z column.
+
+    The point converts, the elevation is present, and only the two
+    elevation-dependent factors are absent. Without a warning the audit CSV,
+    the report and the screen all show exactly what they show for a point that
+    carried no elevation at all.
+    """
+    result = run(_geoid_miss_job(tmp_path))
+    point = result.points[0]
+
+    raised = result.warnings_of(WarningCode.GEOID_UNAVAILABLE)
+    assert len(raised) == 1
+    point_id, warning = raised[0]
+    assert point_id == "OUT1"
+    assert "point OUT1" in warning.message
+    # It says the elevation WAS read, which is the whole distinction.
+    assert "was read from the file" in warning.message
+    assert "GEOID18" in warning.message
+
+    # The elevation survives: 800.0 ift in, 800.0 ift out (units unchanged).
+    assert point.row.elevation == 800.0
+    assert abs(point.output_elevation - 800.0) < 1e-9
+    # The factors that need a geoid height are absent, never 1.0.
+    assert point.factors.elevation_factor is None
+    assert point.factors.combined_factor is None
+    # ... and the one that does not need it survives.
+    assert point.factors.grid_scale_factor is not None
+    # The height itself was read and is on the record, which is what separates
+    # this point from one whose Z field was blank.
+    assert point.factors.orthometric_height is not None
+
+
+def test_fix_c_the_warning_reaches_the_audit_csv_warnings_cell(tmp_path):
+    """The machine-readable code, in the column that carries codes.
+
+    AUDIT_COLUMNS ends Warnings(-2), Description(-1).
+    """
+    result = run(_geoid_miss_job(tmp_path))
+
+    header, row = exports.audit_rows(result)
+    assert header[-2] == "Warnings"
+    codes = row[-2].split("; ")
+    assert "geoid-unavailable" in codes
+
+
+def test_fix_c_the_report_names_the_point_and_never_calls_its_z_blank(tmp_path):
+    """The false statement this fix removed, pinned by its own words.
+
+    The ELEVATIONS section used to file this point under "Blank elevation
+    field" - a claim about a Z column that was read perfectly well.
+    """
+    text = report.build_report(run(_geoid_miss_job(tmp_path)))
+    elevations = _section(text, "ELEVATIONS", "WARNINGS")
+
+    # The third category, in its own words.
+    assert "carried an elevation the GEOID18 grid does not reach" in elevations
+    assert (
+        "Elevation recorded, but no GEOID18 geoid height at this position (1):"
+        in elevations
+    )
+    assert "OUT1" in elevations
+    assert "NOT blank and they are NOT zero" in elevations
+
+    # And the two statements it must not make.
+    assert "Blank elevation field" not in elevations
+    assert "had NO usable elevation" not in elevations
+
+    # The WARNINGS section carries it too, under its own heading.
+    warnings_section = text[text.index("WARNINGS") :]
+    assert (
+        "ELEVATION RECORDED, BUT NO GEOID HEIGHT AT THIS POSITION" in warnings_section
+    )
+    assert "point OUT1: the elevation" in warnings_section
+
+
+def test_fix_c_a_genuinely_blank_z_field_is_still_called_blank(tmp_path):
+    """The new category must not have swallowed the old one.
+
+    SAMPLE_PNEZD's CP-4 has an empty Z field and 007 holds exactly 0.00, and
+    both sit inside the GEOID18 tile, so this job exercises the two original
+    causes with the third absent.
+    """
+    elevations = _section(
+        report.build_report(_south_to_central(tmp_path)), "ELEVATIONS", "WARNINGS"
+    )
+
+    # Two of the four sample points have no usable elevation: CP-4 (blank) and
+    # 007 (exactly 0.00), counted from SAMPLE_PNEZD by eye.
+    assert "2 of 4 points had NO usable elevation." in elevations
+    assert "Blank elevation field (1):" in elevations
+    assert "CP-4" in elevations
+    assert "Elevation field held exactly 0.00 (1):" in elevations
+    assert "007" in elevations
+    # The third category does not appear when nothing triggered it.
+    assert "does not reach" not in elevations
+
+
+# --------------------------------------------------------------------------
+# Fix D - duplicate point identifiers are refused
+# --------------------------------------------------------------------------
+
+
+def test_fix_d_two_rows_sharing_an_identifier_are_refused():
+    """The reviewer's counterexample, verbatim.
+
+    Both rows parse, both would convert, and both would be written out as point
+    101 - after which the job record names a point that could be either and a
+    CAD import overwrites or fails, with nothing in the export saying which row
+    was which.
+    """
+    with pytest.raises(pnezd.PnezdError) as raised:
+        pnezd.parse_lines(["101,1,2,3,FIRST", "101,4,5,6,SECOND"])
+
+    message = str(raised.value)
+    # The refusal names the identifier ...
+    assert "'101'" in message
+    # ... and BOTH line numbers, so the file can be corrected without a search.
+    assert "line 2" in message
+    assert "already used on line 1" in message
+
+
+def test_fix_d_the_refusal_names_whichever_lines_actually_collided():
+    """Not a fixed pair of numbers: the line numbers are the file's own.
+
+    Rows 1 and 4 here, with two other identifiers in between.
+    """
+    with pytest.raises(pnezd.PnezdError) as raised:
+        pnezd.parse_lines(
+            [
+                "CP-4,1,2,3,FIRST",
+                "102,1,2,3,B",
+                "103,1,2,3,C",
+                "CP-4,9,9,9,SECOND",
+            ]
+        )
+
+    message = str(raised.value)
+    assert "'CP-4'" in message
+    assert "line 4" in message
+    assert "already used on line 1" in message
+
+
+def test_fix_d_surrounding_whitespace_does_not_make_a_new_point():
+    """"101" and "101 " are one point written untidily.
+
+    The identifier is compared after stripping, because that is how it is
+    stored - a file whose second row merely has a trailing space would
+    otherwise pass the check and then collide inside the export.
+    """
+    with pytest.raises(pnezd.PnezdError, match="already used on line 1"):
+        pnezd.parse_lines(["101,1,2,3,FIRST", " 101 ,4,5,6,SECOND"])
+
+
+def test_fix_d_case_is_not_folded_because_this_program_has_no_authority_to():
+    """"CP4" and "cp4" are two identifiers, not one.
+
+    Folding case would refuse a legitimate file. The reader states what it
+    compares and compares only that (pnezd.py module docstring).
+    """
+    parsed = pnezd.parse_lines(["CP4,1,2,3,FIRST", "cp4,4,5,6,SECOND"])
+
+    assert [row.point_id for row in parsed.rows] == ["CP4", "cp4"]
+
+
+def test_fix_d_distinct_identifiers_are_still_read(tmp_path):
+    """The ordinary file must be unaffected.
+
+    SAMPLE_PNEZD's four identifiers are all distinct, counted by eye:
+    101, CP-4, 007, TBM1.
+    """
+    parsed = pnezd.read(_write_sample(tmp_path))
+
+    assert [row.point_id for row in parsed.rows] == ["101", "CP-4", "007", "TBM1"]
+
+
+# --------------------------------------------------------------------------
+# Fix E - malformed quoting is refused, not repaired
+# --------------------------------------------------------------------------
+
+
+def test_fix_e_an_unterminated_quote_is_refused_not_repaired():
+    """csv's default leniency turned '"UNTERMINATED' into UNTERMINATED.
+
+    The parsed text then no longer represents the file, with no refusal
+    anywhere - for a description field, a survey note silently rewritten.
+    """
+    with pytest.raises(pnezd.PnezdError) as raised:
+        pnezd.parse_lines(['101,1,2,3,"UNTERMINATED'])
+
+    message = str(raised.value)
+    assert "line 1" in message
+    assert "malformed" in message
+    assert "refused rather than repaired" in message
+    # The reader's own refusal, not a bare csv.Error reaching the surveyor.
+    assert "The CSV reader reported:" in message
+
+
+def test_fix_e_data_after_a_closing_quote_is_refused_not_repaired():
+    """The second counterexample: '"A"junk' silently became Ajunk."""
+    with pytest.raises(pnezd.PnezdError) as raised:
+        pnezd.parse_lines(['101,1,2,3,"A"junk'])
+
+    message = str(raised.value)
+    assert "line 1" in message
+    assert "refused rather than repaired" in message
+
+
+def test_fix_e_a_legitimate_quoted_description_still_parses():
+    """Strictness must not cost the format its documented convention.
+
+    A quoted field containing a comma is exactly what the module docstring
+    promises to honour: "IRON PIPE, BENT" is one description, not two fields.
+    """
+    parsed = pnezd.parse_lines(['101,1,2,3,"IRON PIPE, BENT"'])
+
+    assert parsed.rows[0].description == "IRON PIPE, BENT"
+
+
+def test_fix_e_an_escaped_inner_quote_still_parses():
+    """A double quote inside a quoted field is written twice.
+
+    '"6"" PIPE"' is the CSV spelling of the description 6" PIPE - a six-inch
+    pipe, which is a monument description a surveyor really writes.
+    """
+    parsed = pnezd.parse_lines(['101,1,2,3,"6"" PIPE"'])
+
+    assert parsed.rows[0].description == '6" PIPE'
+
+
+def test_fix_e_the_written_export_still_round_trips_through_the_strict_reader(
+    tmp_path,
+):
+    """The writer quotes; the strict reader must accept what the writer quotes.
+
+    SAMPLE_PNEZD carries both awkward descriptions - "IRON PIPE, BENT" written
+    with a bare comma and "BENCH, MARK" written quoted - so a quoting rule the
+    strict reader rejects would surface here rather than on a surveyor's disk.
+    """
+    result = _south_to_central(tmp_path)
+    written = exports.write_all(result)
+    exported = extract_member(written["archive"], "MI-C.csv", tmp_path / "unzipped")
+
+    reparsed = pnezd.read(exported)
+
+    assert [row.description for row in reparsed.rows] == [
+        point.row.description for point in result.points
+    ]
+
+
+# --------------------------------------------------------------------------
+# Fix F - a geodetic input's source columns keep their precision and their name
+# --------------------------------------------------------------------------
+
+
+def test_fix_f_the_audit_csv_records_a_geodetic_source_at_full_precision(tmp_path):
+    """The reviewer's counterexample: 42.73250000 recorded as 42.733.
+
+    Hand-derived cost of the rounding that was there. One degree of latitude is
+    about 111,132 m, so
+
+        42.73250000 - 42.733 = -0.00050000 deg
+        0.0005 x 111,132 = 55.6 m
+
+    and one degree of longitude at 42.73 N is about 111,320 x cos(42.73 deg) =
+    111,320 x 0.7345 = 81,764 m, so
+
+        -84.55550000 - (-84.555) = -0.00050000 deg
+        0.0005 x 81,764 = 40.9 m
+
+    - roughly 55 m of latitude and 40 m of longitude, invented by a formatter,
+    in the one file that exists to say how the number was derived.
+
+    Columns 2 and 3 are the source pair in AUDIT_COLUMNS, counted from the list
+    in exports.py.
+    """
+    result = run(_geodetic_job(tmp_path))
+    header, row = exports.audit_rows(result)
+
+    # The values, at the 8 places fmt.latitude and fmt.longitude write.
+    assert row[2] == "42.73250000"
+    assert row[3] == "-84.55550000"
+    # The rounded strings are gone from the row entirely, not merely moved.
+    assert "42.733" not in row
+    assert "-84.555" not in row
+    # Header sanity for the indices asserted above.
+    assert header[2].startswith("Source ")
+    assert header[3].startswith("Source ")
+
+
+def test_fix_f_a_geodetic_source_column_is_named_for_what_it_holds(tmp_path):
+    """"Source northing: 42.733" is not a shortened number, it is a wrong name."""
+    columns = exports.audit_columns(run(_geodetic_job(tmp_path)))
+
+    assert columns[2] == "Source latitude"
+    assert columns[3] == "Source longitude (as in file)"
+    # The converted end of this job is grid, and keeps its linear headings.
+    assert columns[5] == "Target northing"
+    assert columns[6] == "Target easting"
+
+
+def test_fix_f_a_geodetic_target_column_is_named_for_what_it_holds(tmp_path):
+    """The other direction, and the reviewer's verified headers.
+
+    A State-Plane-to-geodetic job has always written degrees into columns 5 and
+    6 - the values were never wrong - under headings that called them a
+    northing and an easting.
+    """
+    result = run(_zone_to_geodetic_job(tmp_path))
+    columns = exports.audit_columns(result)
+
+    assert columns[5] == "Target latitude"
+    assert columns[6] == "Target longitude (as written)"
+    # The source end of this job is grid, and keeps its linear headings.
+    assert columns[2] == "Source northing"
+    assert columns[3] == "Source easting"
+
+    # ... and the header row the file actually carries is that same list.
+    assert exports.audit_rows(result)[0] == columns
+
+
+def test_fix_f_a_zone_to_zone_audit_header_is_unchanged(tmp_path):
+    """Neither end is geodetic, so nothing moves.
+
+    Pinned because renaming per direction is exactly the kind of change that
+    leaks into the direction it was not meant for.
+    """
+    result = _south_to_central(tmp_path)
+
+    assert exports.audit_columns(result) == exports.AUDIT_COLUMNS
+    assert exports.audit_columns(result)[2:4] == ["Source northing", "Source easting"]
+    assert exports.audit_columns(result)[5:7] == ["Target northing", "Target easting"]
+
+
+def test_fix_f_the_written_audit_csv_carries_the_direction_specific_header(tmp_path):
+    """Read out of the archive, not out of the row builder."""
+    result = run(_geodetic_job(tmp_path))
+    written = exports.write_all(result)
+
+    text = member_text(written["archive"], "_full.csv")
+    header = next(csv.reader(io.StringIO(text)))
+
+    assert header[2] == "Source latitude"
+    assert header[3] == "Source longitude (as in file)"
+
+
+# --------------------------------------------------------------------------
+# Fix G - a byte order mark never becomes part of a point identifier
+# --------------------------------------------------------------------------
+
+# U+FEFF written as an escape rather than as the character itself, for the
+# reason pnezd.py gives: an invisible mark in a source file is what this fix is
+# about, and a literal one here would be exactly that.
+_BOM = "﻿"
+
+
+def test_fix_g_a_byte_order_mark_is_stripped_in_parse_lines():
+    """Not only on the utf-8-sig path through ``read``.
+
+    ``read``'s cp1252 fallback delivers the mark, and so does any caller
+    handing this function text it decoded itself. Point "101" would then arrive
+    as "\\ufeff101" and match nothing on the way back.
+    """
+    parsed = pnezd.parse_lines([_BOM + "101,1,2,3,A"])
+
+    assert parsed.rows[0].point_id == "101"
+    # Stated as an inequality too, because the two render identically.
+    assert parsed.rows[0].point_id != _BOM + "101"
+    assert _BOM not in parsed.rows[0].point_id
+
+
+def test_fix_g_only_the_first_line_can_carry_one():
+    """A mark is a file-level prefix, so a later line's is data, not a prefix.
+
+    Stripping every line would quietly alter text on line 40 of a real file.
+    This row's identifier is therefore left exactly as the file wrote it.
+    """
+    parsed = pnezd.parse_lines(["101,1,2,3,A", _BOM + "102,4,5,6,B"])
+
+    assert parsed.rows[0].point_id == "101"
+    assert parsed.rows[1].point_id == _BOM + "102"
+
+
+def test_fix_g_a_marked_line_still_parses_all_five_fields():
+    """The strip happens before the split, so nothing downstream sees it."""
+    row = pnezd.parse_lines(
+        [_BOM + "101,780000.000,13123359.580,800.00,IRON PIPE"]
+    ).rows[0]
+
+    assert row.point_id == "101"
+    # Hand-derived: the fields are the literal numbers in the line above.
+    assert row.northing == 780000.0
+    assert row.easting == 13123359.58
+    assert row.elevation == 800.0
+    assert row.description == "IRON PIPE"
+
+
+# ==========================================================================
+# WP-R3 - the write path.
+# ==========================================================================
+
+# The reviewer's probe row for fix R3-1, in Michigan South International feet
+# with no elevation recorded. Same Lansing position as above:
+#     136920.027586723 / 0.3048 = 449212.6889 ift
+#     3984537.119005890 / 0.3048 = 13072628.3432 ift
+PROBE_INPUT = "101,449212.689,13072628.343,,IP\n"
+
+CORRUPT_ROW = ["101", "999999.999", "888888.888", "777.777", "WRONG DESCRIPTION"]
+"""The row the reviewer substituted wholesale for the expected one.
+
+Every field but the identifier is wrong - the northing by about 550,000 ft, the
+easting by more than 4,000,000 ft, an elevation invented for a point that never
+had one, and a description that is not the surveyor's - and the program's own
+round-trip gate passed it, because the gate compared the identifier and nothing
+else."""
+
+
+def _probe_job(tmp_path: Path, **overrides) -> jobmod.JobResult:
+    """A one-point Michigan South -> Michigan South job over PROBE_INPUT.
+
+    The identity re-projection is deliberate: the export's coordinates are then
+    the input's own numbers, so a corrupted cell is visibly a different place
+    rather than a plausible one.
+    """
+    path = tmp_path / "probe.txt"
+    path.write_text(PROBE_INPUT, encoding="utf-8", newline="")
+    settings = JobSettings(
+        input_path=path,
+        output_directory=tmp_path / "out",
+        direction=Direction.ZONE_TO_ZONE,
+        source_zone=MI_SOUTH,
+        target_zone=MI_SOUTH,
+        input_unit=INTERNATIONAL_FEET,
+        output_unit=overrides.pop("output_unit", INTERNATIONAL_FEET),
+        longitude_convention=None,
+        **overrides,
+    )
+    return run(settings)
+
+
+# --------------------------------------------------------------------------
+# R3-1 - the round-trip check compares every field, not just the identifier
+# --------------------------------------------------------------------------
+
+
+def test_r3_1_the_round_trip_check_passes_on_the_export_the_program_builds(tmp_path):
+    """Anti-vacuousness for every refusal below.
+
+    A gate that refuses everything proves as little as one that refuses
+    nothing, so the honest export must go through untouched.
+    """
+    result = _probe_job(tmp_path)
+
+    # Must not raise.
+    exports.verify_round_trip(exports.clean_pnezd_rows(result), result)
+
+
+def test_r3_1_the_reviewers_wholesale_corruption_is_refused(tmp_path):
+    """The probe, exactly as the reviewer ran it.
+
+    The expected row 101,449212.689,13072628.343,N/A,IP replaced by
+    101,999999.999,888888.888,777.777,WRONG DESCRIPTION - a writer regression
+    corrupting every coordinate, the elevation and the description - used to
+    sail through this gate untouched.
+    """
+    result = _probe_job(tmp_path)
+
+    # The row the program really builds, so the substitution below is the only
+    # difference between passing and failing.
+    built = exports.clean_pnezd_rows(result)
+    assert built[0][0] == "101"
+    assert built[0][3] == fmt.NOT_AVAILABLE
+    assert built[0][4] == "IP"
+
+    with pytest.raises(WriteError) as raised:
+        exports.verify_round_trip([list(CORRUPT_ROW)], result)
+
+    message = str(raised.value)
+    assert "101" in message
+    assert "Nothing was written" in message
+
+
+@pytest.mark.parametrize(
+    "index, replacement, field",
+    [
+        # Hand-derived from clean_pnezd_rows: point(0), northing(1), easting(2),
+        # elevation(3), description(4). Each value is the reviewer's own from
+        # CORRUPT_ROW, substituted one at a time so each field is shown to be
+        # checked on its own rather than shielded by a neighbour.
+        (1, "999999.999", "northing"),
+        (2, "888888.888", "easting"),
+        (3, "777.777", "elevation"),
+        (4, "WRONG DESCRIPTION", "description"),
+    ],
+)
+def test_r3_1_each_corrupted_field_is_caught_on_its_own(
+    tmp_path, index, replacement, field
+):
+    """One field at a time, and the refusal names which one."""
+    result = _probe_job(tmp_path)
+    rows = exports.clean_pnezd_rows(result)
+    rows[0][index] = replacement
+
+    with pytest.raises(WriteError) as raised:
+        exports.verify_round_trip(rows, result)
+
+    message = str(raised.value)
+    assert field in message
+    # It names the point, so a 3,000-point file can be corrected.
+    assert "'101'" in message
+
+
+def test_r3_1_a_dropped_elevation_is_caught_as_well_as_an_invented_one(tmp_path):
+    """The absence is a value, and it is compared in both directions.
+
+    The reader maps a blank field, "N/A" and an exact 0.00 alike to None, so
+    the check compares the two states before it compares two numbers. Here the
+    job HAS an elevation and the export claims it has none - the mirror image
+    of the reviewer's 777.777, and equally a file that does not carry what was
+    converted.
+    """
+    path = tmp_path / "withz.txt"
+    path.write_text("101,449212.689,13072628.343,900.000,IP\n", encoding="utf-8")
+    result = run(
+        JobSettings(
+            input_path=path,
+            output_directory=tmp_path / "out",
+            direction=Direction.ZONE_TO_ZONE,
+            source_zone=MI_SOUTH,
+            target_zone=MI_SOUTH,
+            input_unit=INTERNATIONAL_FEET,
+            output_unit=INTERNATIONAL_FEET,
+            longitude_convention=None,
+        )
+    )
+
+    rows = exports.clean_pnezd_rows(result)
+    # Hand-derived: 900.000 ift in, feet out, so the cell reads "900.000".
+    assert rows[0][3] == "900.000"
+
+    rows[0][3] = fmt.NOT_AVAILABLE
+    with pytest.raises(WriteError, match="elevation"):
+        exports.verify_round_trip(rows, result)
+
+    # An exact zero is the same absence to the reader, and equally refused.
+    rows[0][3] = "0.000"
+    with pytest.raises(WriteError, match="elevation"):
+        exports.verify_round_trip(rows, result)
+
+
+def test_r3_1_a_shift_of_two_thousandths_of_a_foot_is_caught(tmp_path):
+    """The tolerance is the formatter's rounding and not one bit more.
+
+    Hand-derived. A northing is written to 3 decimal places in feet, so the
+    written cell sits within 0.0005 ft of the value the job computed. Adding
+    0.002 ft to the cell therefore puts it at least 0.0015 ft away - three
+    times the whole budget - so it must be refused, while an honest export
+    (above) passes.
+    """
+    result = _probe_job(tmp_path)
+    rows = exports.clean_pnezd_rows(result)
+
+    written = float(rows[0][1])
+    rows[0][1] = f"{written + 0.002:.3f}"
+
+    with pytest.raises(WriteError, match="northing"):
+        exports.verify_round_trip(rows, result)
+
+
+def test_r3_1_re_rendering_the_same_number_more_widely_is_accepted(tmp_path):
+    """Not a text comparison: the same value written differently still passes.
+
+    "449212.689" and "449212.68900" are the same number, and the reader returns
+    the same float for both. A check that compared characters would refuse a
+    correct file here.
+    """
+    result = _probe_job(tmp_path)
+    rows = exports.clean_pnezd_rows(result)
+    rows[0][1] = f"{float(rows[0][1]):.5f}"
+    rows[0][2] = f" {rows[0][2]} "
+
+    # Must not raise: the reader trims, and the numbers are unchanged.
+    exports.verify_round_trip(rows, result)
+
+
+def test_r3_1_a_geodetic_export_is_checked_in_degrees(tmp_path):
+    """The columns are latitude and longitude on this branch, at 8 places.
+
+    Hand-derived tolerance: 8 decimal places of a degree is 0.5e-8 deg, about
+    half a millimetre. A shift of 0.00001 deg is roughly 1.1 m of latitude -
+    a thousand times the budget - so it must be refused.
+    """
+    result = run(_zone_to_geodetic_job(tmp_path))
+    rows = exports.clean_pnezd_rows(result)
+
+    # Must not raise on the honest rows.
+    exports.verify_round_trip(rows, result)
+
+    rows[0][1] = f"{float(rows[0][1]) + 0.00001:.8f}"
+    with pytest.raises(WriteError, match="latitude"):
+        exports.verify_round_trip(rows, result)
+
+
+def test_r3_1_a_geodetic_longitude_is_named_as_a_longitude(tmp_path):
+    """The refusal must say which column, in the words of that direction."""
+    result = run(_zone_to_geodetic_job(tmp_path))
+    rows = exports.clean_pnezd_rows(result)
+    rows[0][2] = f"{float(rows[0][2]) + 0.00001:.8f}"
+
+    with pytest.raises(WriteError) as raised:
+        exports.verify_round_trip(rows, result)
+
+    assert "longitude" in str(raised.value)
+    assert "easting" not in str(raised.value)
+
+
+def test_r3_1_write_all_refuses_and_writes_nothing_when_the_check_fails(
+    tmp_path, monkeypatch
+):
+    """The gate is upstream of the archive, so a failure leaves no file.
+
+    ``clean_pnezd_rows`` is replaced with the reviewer's corrupted row, which is
+    what a writer regression would amount to.
+    """
+    result = _probe_job(tmp_path)
+    monkeypatch.setattr(exports, "clean_pnezd_rows", lambda _r: [list(CORRUPT_ROW)])
+
+    with pytest.raises(WriteError):
+        exports.write_all(result)
+
+    destination = exports.archive_path(result)
+    assert not destination.exists()
+    assert not destination.parent.exists() or list(destination.parent.iterdir()) == []
+
+
+# --------------------------------------------------------------------------
+# R3-2 - the record can only certify the bytes that were converted
+# --------------------------------------------------------------------------
+
+
+def test_r3_2_the_digest_travels_with_the_rows_the_reader_parsed(tmp_path):
+    """One read, one decode, one digest.
+
+    Independently recomputed here from the bytes on disk; the reader is
+    required to have hashed those same bytes rather than to have been asked
+    again afterwards.
+    """
+    path = _write_sample(tmp_path)
+    parsed = pnezd.read(path)
+
+    assert parsed.sha256 == hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_r3_2_a_parsed_source_carries_no_digest_because_it_read_no_bytes():
+    """``parse_lines`` is handed text, so it has nothing to certify.
+
+    None is a statement - "these rows did not come from bytes this program
+    read" - and it must not be filled in downstream.
+    """
+    parsed = pnezd.parse_lines(["101,780000.000,13123359.580,800.00,IRON PIPE"])
+
+    assert parsed.sha256 is None
+
+
+def test_r3_2_an_in_memory_source_never_borrows_the_named_files_hash(tmp_path):
+    """The reviewer's counterexample, whole.
+
+    An in-memory Lansing coordinate is converted while ``input_path`` points at
+    a README. The record used to state "File README.md", the SHA-256 of the
+    actual README, and "Format PNEZD, no header row" - certifying bytes that
+    were never converted, and never even read as coordinates.
+    """
+    readme = tmp_path / "README.md"
+    readme.write_text("# not a coordinate file\n", encoding="utf-8")
+    readme_digest = hashlib.sha256(readme.read_bytes()).hexdigest()
+
+    source = pnezd.parse_lines(["101,780000.000,13123359.580,800.00,IRON PIPE"])
+    settings = JobSettings(
+        input_path=readme,
+        output_directory=tmp_path / "out",
+        direction=Direction.ZONE_TO_ZONE,
+        source_zone=MI_SOUTH,
+        target_zone=MI_CENTRAL,
+        input_unit=INTERNATIONAL_FEET,
+        output_unit=INTERNATIONAL_FEET,
+        longitude_convention=None,
+    )
+    result = run(settings, source=source)
+
+    # The job ran on the supplied rows ...
+    assert result.input_row_count == 1
+    # ... and certifies nothing, rather than certifying the README.
+    assert result.input_sha256 is None
+
+    text = report.build_report(result)
+    assert readme_digest not in text
+    assert "SHA-256            not available" in text
+    assert "already parsed, so it never read the file named" in text
+
+
+def test_r3_2_editing_the_file_after_the_parse_cannot_change_the_record(tmp_path):
+    """The same shape on the ordinary path, and the reason the digest moved.
+
+    The hash used to be taken from the path at the end of the run, so anything
+    that touched the file between the parse and the hash produced a record
+    certifying bytes the job never saw. Here the file is rewritten wholesale
+    after it was read, which is the largest version of that race.
+    """
+    path = _write_sample(tmp_path)
+    original_digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    parsed = pnezd.read(path)
+
+    replacement = "999,1.000,2.000,3.000,SOMETHING ELSE ENTIRELY\n"
+    path.write_text(replacement, encoding="utf-8", newline="")
+    replaced_digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    assert replaced_digest != original_digest
+
+    settings = JobSettings(
+        input_path=path,
+        output_directory=tmp_path / "out",
+        direction=Direction.ZONE_TO_ZONE,
+        source_zone=MI_SOUTH,
+        target_zone=MI_CENTRAL,
+        input_unit=INTERNATIONAL_FEET,
+        output_unit=INTERNATIONAL_FEET,
+        longitude_convention=None,
+    )
+    result = run(settings, source=parsed)
+
+    # The four points of SAMPLE_PNEZD were converted, not the one-line file
+    # that is on the disk now.
+    assert result.input_row_count == 4
+    assert result.input_sha256 == original_digest
+    assert result.input_sha256 != replaced_digest
+    assert replaced_digest not in report.build_report(result)
+
+
+def test_r3_2_the_ordinary_path_still_certifies_the_file_it_read(tmp_path):
+    """Anti-vacuousness: the honest case must still print a real digest."""
+    result = _south_to_central(tmp_path)
+
+    expected = hashlib.sha256(result.settings.input_path.read_bytes()).hexdigest()
+    assert result.input_sha256 == expected
+    text = report.build_report(result)
+    assert f"SHA-256            {expected}" in text
+    assert "not available" not in text
+
+
+# --------------------------------------------------------------------------
+# R3-3 - the commit refuses a destination that appeared during the write
+# --------------------------------------------------------------------------
+
+
+PRIOR_EXPORT = b"101,1.000,2.000,3.000,THE FILE THAT WAS ALREADY THERE\r\n"
+"""Stand-in for a previous job's export, compared byte for byte afterwards."""
+
+
+def test_r3_3_a_destination_created_during_the_write_is_not_clobbered(tmp_path):
+    """The race the existence check cannot close, closed at the commit.
+
+    ``staged_write`` checks ``path.exists()`` before the body runs and then
+    committed with an unconditional ``os.replace``. Building an archive takes
+    time; another process - or the surveyor working in a second window - can
+    create the destination in that gap, and the commit destroyed it silently.
+    """
+    destination = tmp_path / "job_MI-C.zip"
+
+    with pytest.raises(WriteError) as raised:
+        with staged_write(destination, overwrite=False) as staged:
+            staged.write_bytes(b"the export this job built")
+            # Someone else wins the race, after the existence check.
+            destination.write_bytes(PRIOR_EXPORT)
+
+    assert str(destination) in str(raised.value)
+    assert "Nothing was written" in str(raised.value)
+    # The other file survives, byte for byte.
+    assert destination.read_bytes() == PRIOR_EXPORT
+
+
+def test_r3_3_the_staged_file_is_removed_when_the_commit_is_refused(tmp_path):
+    """A refusal must not leave a .partial beside the surveyor's export."""
+    destination = tmp_path / "job_MI-C.zip"
+
+    with pytest.raises(WriteError):
+        with staged_write(destination, overwrite=False) as staged:
+            staged.write_bytes(b"the export this job built")
+            destination.write_bytes(PRIOR_EXPORT)
+
+    assert [p.name for p in tmp_path.iterdir()] == [destination.name]
+
+
+def test_r3_3_an_overwrite_that_was_granted_still_replaces(tmp_path):
+    """The other half of the rule: when the user confirmed, the write lands.
+
+    Including the same race - a destination appearing mid-write is exactly what
+    the user agreed could be replaced.
+    """
+    destination = tmp_path / "job_MI-C.zip"
+
+    with staged_write(destination, overwrite=True) as staged:
+        staged.write_bytes(b"the new export")
+        destination.write_bytes(PRIOR_EXPORT)
+
+    assert destination.read_bytes() == b"the new export"
+    assert [p.name for p in tmp_path.iterdir()] == [destination.name]
+
+
+def test_r3_3_write_all_leaves_a_file_that_appeared_mid_write_alone(
+    tmp_path, monkeypatch
+):
+    """End to end, through the function the GUI calls.
+
+    The destination is created from inside ``_verify_archive`` - the last thing
+    that happens before the commit - which is as close to the rename as this
+    race can be staged.
+    """
+    result = _south_to_central(tmp_path)
+    destination = exports.archive_path(result)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+
+    real_verify = exports._verify_archive
+
+    def verify_then_lose_the_race(staged, expected_members):
+        real_verify(staged, expected_members)
+        destination.write_bytes(PRIOR_EXPORT)
+
+    monkeypatch.setattr(exports, "_verify_archive", verify_then_lose_the_race)
+
+    with pytest.raises(WriteError):
+        exports.write_all(result)
+
+    assert destination.read_bytes() == PRIOR_EXPORT
+    assert [p.name for p in destination.parent.iterdir()] == [destination.name]
+
+
+# --------------------------------------------------------------------------
+# R3-4 - the archive is flushed and read back before it takes its final name
+# --------------------------------------------------------------------------
+
+
+def test_r3_4_the_staged_archive_is_fsynced_before_the_rename(tmp_path, monkeypatch):
+    """A rename is atomic for the name, not for the bytes behind it.
+
+    ``atomic_write_text`` in the same package has always fsynced; the ZIP path -
+    the only deliverable this program produces - never did.
+    """
+    calls = []
+    real_fsync = exports.os.fsync
+
+    def recording_fsync(descriptor):
+        calls.append(descriptor)
+        return real_fsync(descriptor)
+
+    monkeypatch.setattr(exports.os, "fsync", recording_fsync)
+
+    result = _south_to_central(tmp_path)
+    exports.write_all(result)
+
+    assert calls, "the staged archive was never flushed to the disk"
+
+
+def test_r3_4_the_real_archive_passes_its_own_verification(tmp_path):
+    """Anti-vacuousness: the honest archive must go through.
+
+    All three members present, all three non-empty, every checksum matching.
+    """
+    result = _south_to_central(tmp_path)
+    written = exports.write_all(result)
+
+    names = tuple(exports.member_names(result).values())
+    # Must not raise on the archive that was actually committed.
+    exports._verify_archive(written["archive"], names)
+
+
+def test_r3_4_a_member_whose_checksum_does_not_match_is_refused(tmp_path):
+    """``testzip``'s branch, on an archive built to fail it deterministically.
+
+    Stored rather than deflated so the member's bytes sit verbatim in the file
+    and one of them can be flipped, leaving the recorded CRC describing text
+    that is no longer there - which is what a bad sector or a half-written
+    buffer looks like from the outside.
+    """
+    archive_file = tmp_path / "staged.zip"
+    payload = b"AAAAAAAAAAAAAAAAAAAA"
+    with zipfile.ZipFile(archive_file, "w", compression=zipfile.ZIP_STORED) as handle:
+        handle.writestr("job.csv", payload)
+
+    raw = bytearray(archive_file.read_bytes())
+    start = raw.index(payload)
+    raw[start] = ord("B")
+    archive_file.write_bytes(bytes(raw))
+
+    with pytest.raises(WriteError) as raised:
+        exports._verify_archive(archive_file, ("job.csv",))
+
+    assert "job.csv" in str(raised.value)
+    assert "checksum" in str(raised.value)
+
+
+def test_r3_4_a_missing_member_is_refused(tmp_path):
+    """The three files travel together or not at all."""
+    archive_file = tmp_path / "staged.zip"
+    with zipfile.ZipFile(archive_file, "w") as handle:
+        handle.writestr("job.csv", "101,1,2,3,IP\r\n")
+
+    with pytest.raises(WriteError) as raised:
+        exports._verify_archive(archive_file, ("job.csv", "job_README.txt"))
+
+    assert "job_README.txt" in str(raised.value)
+    assert "travel together" in str(raised.value)
+
+
+def test_r3_4_an_empty_member_is_refused(tmp_path):
+    """Every member is non-empty by construction, so zero length is a failure.
+
+    The clean export has one line per point, the audit CSV has a header row at
+    minimum, and the job record runs to several pages.
+    """
+    archive_file = tmp_path / "staged.zip"
+    with zipfile.ZipFile(archive_file, "w") as handle:
+        handle.writestr("job.csv", "")
+
+    with pytest.raises(WriteError, match="empty file"):
+        exports._verify_archive(archive_file, ("job.csv",))
+
+
+def test_r3_4_a_corrupt_staged_archive_never_reaches_the_deliverable_name(
+    tmp_path, monkeypatch
+):
+    """The whole point: the destination is left exactly as it was.
+
+    The staged archive is truncated in the hook that runs immediately before the
+    verification, standing in for an interrupted write or a bad sector. There is
+    a previous export already at the destination, and the user granted the
+    overwrite - so nothing but the verification stands between the corrupt bytes
+    and the file a surveyor would open.
+    """
+    result = _south_to_central(tmp_path)
+    destination = exports.archive_path(result)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_bytes(PRIOR_EXPORT)
+
+    def truncate_instead_of_flushing(path):
+        path.write_bytes(path.read_bytes()[:40])
+
+    monkeypatch.setattr(exports, "_flush_to_disk", truncate_instead_of_flushing)
+
+    with pytest.raises(WriteError) as raised:
+        exports.write_all(result, overwrite=True)
+
+    assert "not written" in str(raised.value)
+    # The previous export is untouched, byte for byte ...
+    assert destination.read_bytes() == PRIOR_EXPORT
+    # ... and no .partial was left beside it.
+    assert [p.name for p in destination.parent.iterdir()] == [destination.name]
+
+
+def test_r3_4_a_corrupt_staged_archive_creates_no_file_at_all(tmp_path, monkeypatch):
+    """The same, with nothing at the destination to begin with.
+
+    A half-written archive under the deliverable name would be worse than no
+    archive: the job reports failure and the folder holds a file named as
+    though it succeeded.
+    """
+    result = _south_to_central(tmp_path)
+    destination = exports.archive_path(result)
+
+    def truncate_instead_of_flushing(path):
+        path.write_bytes(path.read_bytes()[:40])
+
+    monkeypatch.setattr(exports, "_flush_to_disk", truncate_instead_of_flushing)
+
+    with pytest.raises(WriteError):
+        exports.write_all(result)
+
+    assert not destination.exists()
+    assert list(destination.parent.iterdir()) == []

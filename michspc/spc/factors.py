@@ -1,6 +1,7 @@
 """Elevation factor and combined factor.
 
-NOAA Manual NOS NGS 5, section 4.1 (PDF pp. 66-69).
+NOAA Manual NOS NGS 5, section 4.1 "Reduction of Observed Distances to the
+Ellipsoid" (PDF pp. 56-59; section 4.2 begins partway down PDF p. 59).
 
 A measured horizontal distance on the ground is reduced to the ellipsoid by the
 **elevation factor**, and from the ellipsoid to the grid by the **grid scale
@@ -11,7 +12,7 @@ distance straight to a grid distance:
     combined factor   =  k * elevation factor
 
 with H the orthometric height, N the geoid height (negative in Michigan), and
-R a mean radius of the earth. h = H + N is the ellipsoid height (manual p. 57).
+R a mean radius of the earth. h = H + N is the ellipsoid height (PDF p. 57).
 
 This module takes the geoid height as a **parameter** rather than looking it up.
 The computation core does no file I/O, and the GEOID18 grid is a file; the

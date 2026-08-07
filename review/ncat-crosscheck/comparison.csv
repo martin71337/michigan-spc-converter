@@ -1,0 +1,667 @@
+point,pipeline,unit,quantity,program_value,truth_value,delta,delta_m_equiv,tolerance,status,truth_source
+N1,geodetic->SPC 2111,m,northing,35935.0149,35935.015,-9.999999747e-05,-9.999999747e-05,0.002,PASS,llh_N1_2111.json
+N1,geodetic->SPC 2111,m,easting,7952379.9603,7952379.96,0.0003000004217,0.0003000004217,0.002,PASS,llh_N1_2111.json
+N1,geodetic->SPC 2111,m,grid_scale_factor,1.00011284,1.00011284,0,,2e-08,PASS,llh_N1_2111.json
+N1,geodetic->SPC 2111,m,convergence_arcsec,-1574.24,-1574.24,0,,0.02,PASS,llh_N1_2111.json
+N1,geodetic->SPC 2111,m,geoid_height_m,-36.994,-36.994,0,,0.002,PASS,geoid_N1.json
+N1,geodetic->SPC 2111,m,elevation_factor,0.99997756,0.9999775576285929,2.371407182e-09,,2e-08,PASS,geoid_N1.json + derivation R/(R+H+N)
+N1,geodetic->SPC 2111,m,combined_factor,1.0000904,1.0000903950961955,4.903804474e-09,,2e-08,PASS,llh_N1_2111.json k * derived EF
+N2,geodetic->SPC 2111,m,northing,364265.841,364265.841,0,0,0.002,PASS,llh_N2_2111.json
+N2,geodetic->SPC 2111,m,easting,7884405.8493,7884405.849,0.0002999994904,0.0002999994904,0.002,PASS,llh_N2_2111.json
+N2,geodetic->SPC 2111,m,grid_scale_factor,1.00038104,1.00038104,0,,2e-08,PASS,llh_N2_2111.json
+N2,geodetic->SPC 2111,m,convergence_arcsec,-4033.17,-4033.17,0,,0.02,PASS,llh_N2_2111.json
+N2,geodetic->SPC 2111,m,geoid_height_m,-34.777,-34.777,0,,0.002,PASS,geoid_N2.json
+N2,geodetic->SPC 2111,m,elevation_factor,0.99997564,0.9999756404239118,-4.239117946e-10,,2e-08,PASS,geoid_N2.json + derivation R/(R+H+N)
+N2,geodetic->SPC 2111,m,combined_factor,1.00035667,1.000356671141939,-1.141938988e-09,,2e-08,PASS,llh_N2_2111.json k * derived EF
+N3,geodetic->SPC 2111,m,northing,193687.687,193687.687,0,0,0.002,PASS,llh_N3_2111.json
+N3,geodetic->SPC 2111,m,easting,8203742.6896,8203742.69,-0.0004000002518,-0.0004000002518,0.002,PASS,llh_N3_2111.json
+N3,geodetic->SPC 2111,m,grid_scale_factor,0.99990954,0.99990954,0,,2e-08,PASS,llh_N3_2111.json
+N3,geodetic->SPC 2111,m,convergence_arcsec,6907.65,6907.65,0,,0.02,PASS,llh_N3_2111.json
+N3,geodetic->SPC 2111,m,geoid_height_m,-36.636,-36.636,0,,0.002,PASS,geoid_N3.json
+N3,geodetic->SPC 2111,m,elevation_factor,0.99997703,0.9999770306594294,-6.594294e-10,,2e-08,PASS,geoid_N3.json + derivation R/(R+H+N)
+N3,geodetic->SPC 2111,m,combined_factor,0.99988657,0.999886572737236,-2.737235993e-09,,2e-08,PASS,llh_N3_2111.json k * derived EF
+N4,geodetic->SPC 2111,m,northing,261019.5056,261019.506,-0.0003999999899,-0.0003999999899,0.002,PASS,llh_N4_2111.json
+N4,geodetic->SPC 2111,m,easting,7880914.3357,7880914.336,-0.0003000004217,-0.0003000004217,0.002,PASS,llh_N4_2111.json
+N4,geodetic->SPC 2111,m,grid_scale_factor,1.00000944,1.00000944,0,,2e-08,PASS,llh_N4_2111.json
+N4,geodetic->SPC 2111,m,convergence_arcsec,-4083.65,-4083.65,0,,0.02,PASS,llh_N4_2111.json
+N4,geodetic->SPC 2111,m,geoid_height_m,-33.796,-33.796,0,,0.002,PASS,geoid_N4.json
+N4,geodetic->SPC 2111,m,elevation_factor,0.99996215,0.99996214769776,2.302239954e-09,,2e-08,PASS,geoid_N4.json + derivation R/(R+H+N)
+N4,geodetic->SPC 2111,m,combined_factor,0.99997159,0.9999715873404342,2.65956579e-09,,2e-08,PASS,llh_N4_2111.json k * derived EF
+N1,geodetic->SPC 2111,ift,northing,117897.031,117897.031,0,0,0.006561679790026247,PASS,llh_N1_2111.json
+N1,geodetic->SPC 2111,ift,easting,26090485.434,26090485.434,0,0,0.006561679790026247,PASS,llh_N1_2111.json
+N1,geodetic->SPC 2111,ift,grid_scale_factor,1.00011284,1.00011284,0,,2e-08,PASS,llh_N1_2111.json
+N1,geodetic->SPC 2111,ift,convergence_arcsec,-1574.24,-1574.24,0,,0.02,PASS,llh_N1_2111.json
+N1,geodetic->SPC 2111,ift,geoid_height_m,-36.994,-36.994,0,,0.002,PASS,geoid_N1.json
+N1,geodetic->SPC 2111,ift,elevation_factor,0.99997756,0.9999775576285929,2.371407182e-09,,2e-08,PASS,geoid_N1.json + derivation R/(R+H+N)
+N1,geodetic->SPC 2111,ift,combined_factor,1.0000904,1.0000903950961955,4.903804474e-09,,2e-08,PASS,llh_N1_2111.json k * derived EF
+N2,geodetic->SPC 2111,ift,northing,1195097.904,1195097.904,0,0,0.006561679790026247,PASS,llh_N2_2111.json
+N2,geodetic->SPC 2111,ift,easting,25867473.259,25867473.259,0,0,0.006561679790026247,PASS,llh_N2_2111.json
+N2,geodetic->SPC 2111,ift,grid_scale_factor,1.00038104,1.00038104,0,,2e-08,PASS,llh_N2_2111.json
+N2,geodetic->SPC 2111,ift,convergence_arcsec,-4033.17,-4033.17,0,,0.02,PASS,llh_N2_2111.json
+N2,geodetic->SPC 2111,ift,geoid_height_m,-34.777,-34.777,0,,0.002,PASS,geoid_N2.json
+N2,geodetic->SPC 2111,ift,elevation_factor,0.99997564,0.9999756404239118,-4.239117946e-10,,2e-08,PASS,geoid_N2.json + derivation R/(R+H+N)
+N2,geodetic->SPC 2111,ift,combined_factor,1.00035667,1.000356671141939,-1.141938988e-09,,2e-08,PASS,llh_N2_2111.json k * derived EF
+N3,geodetic->SPC 2111,ift,northing,635458.291,635458.291,0,0,0.006561679790026247,PASS,llh_N3_2111.json
+N3,geodetic->SPC 2111,ift,easting,26915166.305,26915166.305,0,0,0.006561679790026247,PASS,llh_N3_2111.json
+N3,geodetic->SPC 2111,ift,grid_scale_factor,0.99990954,0.99990954,0,,2e-08,PASS,llh_N3_2111.json
+N3,geodetic->SPC 2111,ift,convergence_arcsec,6907.65,6907.65,0,,0.02,PASS,llh_N3_2111.json
+N3,geodetic->SPC 2111,ift,geoid_height_m,-36.636,-36.636,0,,0.002,PASS,geoid_N3.json
+N3,geodetic->SPC 2111,ift,elevation_factor,0.99997703,0.9999770306594294,-6.594294e-10,,2e-08,PASS,geoid_N3.json + derivation R/(R+H+N)
+N3,geodetic->SPC 2111,ift,combined_factor,0.99988657,0.999886572737236,-2.737235993e-09,,2e-08,PASS,llh_N3_2111.json k * derived EF
+N4,geodetic->SPC 2111,ift,northing,856363.207,856363.207,0,0,0.006561679790026247,PASS,llh_N4_2111.json
+N4,geodetic->SPC 2111,ift,easting,25856018.162,25856018.162,0,0,0.006561679790026247,PASS,llh_N4_2111.json
+N4,geodetic->SPC 2111,ift,grid_scale_factor,1.00000944,1.00000944,0,,2e-08,PASS,llh_N4_2111.json
+N4,geodetic->SPC 2111,ift,convergence_arcsec,-4083.65,-4083.65,0,,0.02,PASS,llh_N4_2111.json
+N4,geodetic->SPC 2111,ift,geoid_height_m,-33.796,-33.796,0,,0.002,PASS,geoid_N4.json
+N4,geodetic->SPC 2111,ift,elevation_factor,0.99996215,0.99996214769776,2.302239954e-09,,2e-08,PASS,geoid_N4.json + derivation R/(R+H+N)
+N4,geodetic->SPC 2111,ift,combined_factor,0.99997159,0.9999715873404342,2.65956579e-09,,2e-08,PASS,llh_N4_2111.json k * derived EF
+N1,geodetic->SPC 2111,usft,northing,117896.795,117896.795,0,0,0.006561666666666667,PASS,llh_N1_2111.json
+N1,geodetic->SPC 2111,usft,easting,26090433.253,26090433.253,0,0,0.006561666666666667,PASS,llh_N1_2111.json
+N1,geodetic->SPC 2111,usft,grid_scale_factor,1.00011284,1.00011284,0,,2e-08,PASS,llh_N1_2111.json
+N1,geodetic->SPC 2111,usft,convergence_arcsec,-1574.24,-1574.24,0,,0.02,PASS,llh_N1_2111.json
+N1,geodetic->SPC 2111,usft,geoid_height_m,-36.994,-36.994,0,,0.002,PASS,geoid_N1.json
+N1,geodetic->SPC 2111,usft,elevation_factor,0.99997756,0.9999775576285929,2.371407182e-09,,2e-08,PASS,geoid_N1.json + derivation R/(R+H+N)
+N1,geodetic->SPC 2111,usft,combined_factor,1.0000904,1.0000903950961955,4.903804474e-09,,2e-08,PASS,llh_N1_2111.json k * derived EF
+N2,geodetic->SPC 2111,usft,northing,1195095.513,1195095.513,0,0,0.006561666666666667,PASS,llh_N2_2111.json
+N2,geodetic->SPC 2111,usft,easting,25867421.524,25867421.524,0,0,0.006561666666666667,PASS,llh_N2_2111.json
+N2,geodetic->SPC 2111,usft,grid_scale_factor,1.00038104,1.00038104,0,,2e-08,PASS,llh_N2_2111.json
+N2,geodetic->SPC 2111,usft,convergence_arcsec,-4033.17,-4033.17,0,,0.02,PASS,llh_N2_2111.json
+N2,geodetic->SPC 2111,usft,geoid_height_m,-34.777,-34.777,0,,0.002,PASS,geoid_N2.json
+N2,geodetic->SPC 2111,usft,elevation_factor,0.99997564,0.9999756404239118,-4.239117946e-10,,2e-08,PASS,geoid_N2.json + derivation R/(R+H+N)
+N2,geodetic->SPC 2111,usft,combined_factor,1.00035667,1.000356671141939,-1.141938988e-09,,2e-08,PASS,llh_N2_2111.json k * derived EF
+N3,geodetic->SPC 2111,usft,northing,635457.02,635457.02,0,0,0.006561666666666667,PASS,llh_N3_2111.json
+N3,geodetic->SPC 2111,usft,easting,26915112.474,26915112.474,0,0,0.006561666666666667,PASS,llh_N3_2111.json
+N3,geodetic->SPC 2111,usft,grid_scale_factor,0.99990954,0.99990954,0,,2e-08,PASS,llh_N3_2111.json
+N3,geodetic->SPC 2111,usft,convergence_arcsec,6907.65,6907.65,0,,0.02,PASS,llh_N3_2111.json
+N3,geodetic->SPC 2111,usft,geoid_height_m,-36.636,-36.636,0,,0.002,PASS,geoid_N3.json
+N3,geodetic->SPC 2111,usft,elevation_factor,0.99997703,0.9999770306594294,-6.594294e-10,,2e-08,PASS,geoid_N3.json + derivation R/(R+H+N)
+N3,geodetic->SPC 2111,usft,combined_factor,0.99988657,0.999886572737236,-2.737235993e-09,,2e-08,PASS,llh_N3_2111.json k * derived EF
+N4,geodetic->SPC 2111,usft,northing,856361.494,856361.494,0,0,0.006561666666666667,PASS,llh_N4_2111.json
+N4,geodetic->SPC 2111,usft,easting,25855966.45,25855966.45,0,0,0.006561666666666667,PASS,llh_N4_2111.json
+N4,geodetic->SPC 2111,usft,grid_scale_factor,1.00000944,1.00000944,0,,2e-08,PASS,llh_N4_2111.json
+N4,geodetic->SPC 2111,usft,convergence_arcsec,-4083.65,-4083.65,0,,0.02,PASS,llh_N4_2111.json
+N4,geodetic->SPC 2111,usft,geoid_height_m,-33.796,-33.796,0,,0.002,PASS,geoid_N4.json
+N4,geodetic->SPC 2111,usft,elevation_factor,0.99996215,0.99996214769776,2.302239954e-09,,2e-08,PASS,geoid_N4.json + derivation R/(R+H+N)
+N4,geodetic->SPC 2111,usft,combined_factor,0.99997159,0.9999715873404342,2.65956579e-09,,2e-08,PASS,llh_N4_2111.json k * derived EF
+C1,geodetic->SPC 2112,m,northing,33647.1759,33647.176,-9.999999747e-05,-9.999999747e-05,0.002,PASS,llh_C1_2112.json
+C1,geodetic->SPC 2112,m,easting,5831772.7153,5831772.715,0.0003000004217,0.0003000004217,0.002,PASS,llh_C1_2112.json
+C1,geodetic->SPC 2112,m,grid_scale_factor,1.00018455,1.00018455,0,,2e-08,PASS,llh_C1_2112.json
+C1,geodetic->SPC 2112,m,convergence_arcsec,-5298.06,-5298.06,0,,0.02,PASS,llh_C1_2112.json
+C1,geodetic->SPC 2112,m,geoid_height_m,-34.731,-34.731,0,,0.002,PASS,geoid_C1.json
+C1,geodetic->SPC 2112,m,elevation_factor,0.99997406,0.9999740639181466,-3.918146585e-09,,2e-08,PASS,geoid_C1.json + derivation R/(R+H+N)
+C1,geodetic->SPC 2112,m,combined_factor,1.00015861,1.0001586091316426,8.68357386e-10,,2e-08,PASS,llh_C1_2112.json k * derived EF
+C2,geodetic->SPC 2112,m,northing,287134.3074,287134.307,0.000400000019,0.000400000019,0.002,PASS,llh_C2_2112.json
+C2,geodetic->SPC 2112,m,easting,5972579.0185,5972579.018,0.000500000082,0.000500000082,0.002,PASS,llh_C2_2112.json
+C2,geodetic->SPC 2112,m,grid_scale_factor,1.00005242,1.00005242,0,,2e-08,PASS,llh_C2_2112.json
+C2,geodetic->SPC 2112,m,convergence_arcsec,-898.55,-898.55,0,,0.02,PASS,llh_C2_2112.json
+C2,geodetic->SPC 2112,m,geoid_height_m,-35.396,-35.396,0,,0.002,PASS,geoid_C2.json
+C2,geodetic->SPC 2112,m,elevation_factor,0.99997574,0.9999757375629424,2.437057556e-09,,2e-08,PASS,geoid_C2.json + derivation R/(R+H+N)
+C2,geodetic->SPC 2112,m,combined_factor,1.00002816,1.0000281562911055,3.708894525e-09,,2e-08,PASS,llh_C2_2112.json k * derived EF
+C3,geodetic->SPC 2112,m,northing,161494.8637,161494.864,-0.0003000000142,-0.0003000000142,0.002,PASS,llh_C3_2112.json
+C3,geodetic->SPC 2112,m,easting,5900736.8905,5900736.89,0.000500000082,0.000500000082,0.002,PASS,llh_C3_2112.json
+C3,geodetic->SPC 2112,m,grid_scale_factor,0.99991763,0.99991763,0,,2e-08,PASS,llh_C3_2112.json
+C3,geodetic->SPC 2112,m,convergence_arcsec,-3188.84,-3188.84,0,,0.02,PASS,llh_C3_2112.json
+C3,geodetic->SPC 2112,m,geoid_height_m,-34.67,-34.67,0,,0.002,PASS,geoid_C3.json
+C3,geodetic->SPC 2112,m,elevation_factor,0.99997609,0.9999760944195758,-4.419575816e-09,,2e-08,PASS,geoid_C3.json + derivation R/(R+H+N)
+C3,geodetic->SPC 2112,m,combined_factor,0.99989373,0.9998937263886785,3.611321575e-09,,2e-08,PASS,llh_C3_2112.json k * derived EF
+C4,geodetic->SPC 2112,m,northing,109639.1815,109639.182,-0.0004999999946,-0.0004999999946,0.002,PASS,llh_C4_2112.json
+C4,geodetic->SPC 2112,m,easting,6069157.7977,6069157.798,-0.0003000004217,-0.0003000004217,0.002,PASS,llh_C4_2112.json
+C4,geodetic->SPC 2112,m,grid_scale_factor,0.9999753,0.9999753,0,,2e-08,PASS,llh_C4_2112.json
+C4,geodetic->SPC 2112,m,convergence_arcsec,2203.99,2203.99,0,,0.02,PASS,llh_C4_2112.json
+C4,geodetic->SPC 2112,m,geoid_height_m,-35.254,-35.254,0,,0.002,PASS,geoid_C4.json
+C4,geodetic->SPC 2112,m,elevation_factor,0.99997713,0.9999771276418008,2.358199191e-09,,2e-08,PASS,geoid_C4.json + derivation R/(R+H+N)
+C4,geodetic->SPC 2112,m,combined_factor,0.99995243,0.999952428206748,1.793251991e-09,,2e-08,PASS,llh_C4_2112.json k * derived EF
+C1,geodetic->SPC 2112,ift,northing,110390.997,110390.997,0,0,0.006561679790026247,PASS,llh_C1_2112.json
+C1,geodetic->SPC 2112,ift,easting,19133112.583,19133112.583,0,0,0.006561679790026247,PASS,llh_C1_2112.json
+C1,geodetic->SPC 2112,ift,grid_scale_factor,1.00018455,1.00018455,0,,2e-08,PASS,llh_C1_2112.json
+C1,geodetic->SPC 2112,ift,convergence_arcsec,-5298.06,-5298.06,0,,0.02,PASS,llh_C1_2112.json
+C1,geodetic->SPC 2112,ift,geoid_height_m,-34.731,-34.731,0,,0.002,PASS,geoid_C1.json
+C1,geodetic->SPC 2112,ift,elevation_factor,0.99997406,0.9999740639181466,-3.918146585e-09,,2e-08,PASS,geoid_C1.json + derivation R/(R+H+N)
+C1,geodetic->SPC 2112,ift,combined_factor,1.00015861,1.0001586091316426,8.68357386e-10,,2e-08,PASS,llh_C1_2112.json k * derived EF
+C2,geodetic->SPC 2112,ift,northing,942041.691,942041.691,0,0,0.006561679790026247,PASS,llh_C2_2112.json
+C2,geodetic->SPC 2112,ift,easting,19595075.52,19595075.52,0,0,0.006561679790026247,PASS,llh_C2_2112.json
+C2,geodetic->SPC 2112,ift,grid_scale_factor,1.00005242,1.00005242,0,,2e-08,PASS,llh_C2_2112.json
+C2,geodetic->SPC 2112,ift,convergence_arcsec,-898.55,-898.55,0,,0.02,PASS,llh_C2_2112.json
+C2,geodetic->SPC 2112,ift,geoid_height_m,-35.396,-35.396,0,,0.002,PASS,geoid_C2.json
+C2,geodetic->SPC 2112,ift,elevation_factor,0.99997574,0.9999757375629424,2.437057556e-09,,2e-08,PASS,geoid_C2.json + derivation R/(R+H+N)
+C2,geodetic->SPC 2112,ift,combined_factor,1.00002816,1.0000281562911055,3.708894525e-09,,2e-08,PASS,llh_C2_2112.json k * derived EF
+C3,geodetic->SPC 2112,ift,northing,529838.792,529838.792,0,0,0.006561679790026247,PASS,llh_C3_2112.json
+C3,geodetic->SPC 2112,ift,easting,19359373.0,19359373.0,0,0,0.006561679790026247,PASS,llh_C3_2112.json
+C3,geodetic->SPC 2112,ift,grid_scale_factor,0.99991763,0.99991763,0,,2e-08,PASS,llh_C3_2112.json
+C3,geodetic->SPC 2112,ift,convergence_arcsec,-3188.84,-3188.84,0,,0.02,PASS,llh_C3_2112.json
+C3,geodetic->SPC 2112,ift,geoid_height_m,-34.67,-34.67,0,,0.002,PASS,geoid_C3.json
+C3,geodetic->SPC 2112,ift,elevation_factor,0.99997609,0.9999760944195758,-4.419575816e-09,,2e-08,PASS,geoid_C3.json + derivation R/(R+H+N)
+C3,geodetic->SPC 2112,ift,combined_factor,0.99989373,0.9998937263886785,3.611321575e-09,,2e-08,PASS,llh_C3_2112.json k * derived EF
+C4,geodetic->SPC 2112,ift,northing,359708.601,359708.601,0,0,0.006561679790026247,PASS,llh_C4_2112.json
+C4,geodetic->SPC 2112,ift,easting,19911935.032,19911935.032,0,0,0.006561679790026247,PASS,llh_C4_2112.json
+C4,geodetic->SPC 2112,ift,grid_scale_factor,0.9999753,0.9999753,0,,2e-08,PASS,llh_C4_2112.json
+C4,geodetic->SPC 2112,ift,convergence_arcsec,2203.99,2203.99,0,,0.02,PASS,llh_C4_2112.json
+C4,geodetic->SPC 2112,ift,geoid_height_m,-35.254,-35.254,0,,0.002,PASS,geoid_C4.json
+C4,geodetic->SPC 2112,ift,elevation_factor,0.99997713,0.9999771276418008,2.358199191e-09,,2e-08,PASS,geoid_C4.json + derivation R/(R+H+N)
+C4,geodetic->SPC 2112,ift,combined_factor,0.99995243,0.999952428206748,1.793251991e-09,,2e-08,PASS,llh_C4_2112.json k * derived EF
+C1,geodetic->SPC 2112,usft,northing,110390.776,110390.776,0,0,0.006561666666666667,PASS,llh_C1_2112.json
+C1,geodetic->SPC 2112,usft,easting,19133074.317,19133074.317,0,0,0.006561666666666667,PASS,llh_C1_2112.json
+C1,geodetic->SPC 2112,usft,grid_scale_factor,1.00018455,1.00018455,0,,2e-08,PASS,llh_C1_2112.json
+C1,geodetic->SPC 2112,usft,convergence_arcsec,-5298.06,-5298.06,0,,0.02,PASS,llh_C1_2112.json
+C1,geodetic->SPC 2112,usft,geoid_height_m,-34.731,-34.731,0,,0.002,PASS,geoid_C1.json
+C1,geodetic->SPC 2112,usft,elevation_factor,0.99997406,0.9999740639181466,-3.918146585e-09,,2e-08,PASS,geoid_C1.json + derivation R/(R+H+N)
+C1,geodetic->SPC 2112,usft,combined_factor,1.00015861,1.0001586091316426,8.68357386e-10,,2e-08,PASS,llh_C1_2112.json k * derived EF
+C2,geodetic->SPC 2112,usft,northing,942039.807,942039.807,0,0,0.006561666666666667,PASS,llh_C2_2112.json
+C2,geodetic->SPC 2112,usft,easting,19595036.33,19595036.33,0,0,0.006561666666666667,PASS,llh_C2_2112.json
+C2,geodetic->SPC 2112,usft,grid_scale_factor,1.00005242,1.00005242,0,,2e-08,PASS,llh_C2_2112.json
+C2,geodetic->SPC 2112,usft,convergence_arcsec,-898.55,-898.55,0,,0.02,PASS,llh_C2_2112.json
+C2,geodetic->SPC 2112,usft,geoid_height_m,-35.396,-35.396,0,,0.002,PASS,geoid_C2.json
+C2,geodetic->SPC 2112,usft,elevation_factor,0.99997574,0.9999757375629424,2.437057556e-09,,2e-08,PASS,geoid_C2.json + derivation R/(R+H+N)
+C2,geodetic->SPC 2112,usft,combined_factor,1.00002816,1.0000281562911055,3.708894525e-09,,2e-08,PASS,llh_C2_2112.json k * derived EF
+C3,geodetic->SPC 2112,usft,northing,529837.732,529837.732,0,0,0.006561666666666667,PASS,llh_C3_2112.json
+C3,geodetic->SPC 2112,usft,easting,19359334.281,19359334.281,0,0,0.006561666666666667,PASS,llh_C3_2112.json
+C3,geodetic->SPC 2112,usft,grid_scale_factor,0.99991763,0.99991763,0,,2e-08,PASS,llh_C3_2112.json
+C3,geodetic->SPC 2112,usft,convergence_arcsec,-3188.84,-3188.84,0,,0.02,PASS,llh_C3_2112.json
+C3,geodetic->SPC 2112,usft,geoid_height_m,-34.67,-34.67,0,,0.002,PASS,geoid_C3.json
+C3,geodetic->SPC 2112,usft,elevation_factor,0.99997609,0.9999760944195758,-4.419575816e-09,,2e-08,PASS,geoid_C3.json + derivation R/(R+H+N)
+C3,geodetic->SPC 2112,usft,combined_factor,0.99989373,0.9998937263886785,3.611321575e-09,,2e-08,PASS,llh_C3_2112.json k * derived EF
+C4,geodetic->SPC 2112,usft,northing,359707.881,359707.881,0,0,0.006561666666666667,PASS,llh_C4_2112.json
+C4,geodetic->SPC 2112,usft,easting,19911895.208,19911895.208,0,0,0.006561666666666667,PASS,llh_C4_2112.json
+C4,geodetic->SPC 2112,usft,grid_scale_factor,0.9999753,0.9999753,0,,2e-08,PASS,llh_C4_2112.json
+C4,geodetic->SPC 2112,usft,convergence_arcsec,2203.99,2203.99,0,,0.02,PASS,llh_C4_2112.json
+C4,geodetic->SPC 2112,usft,geoid_height_m,-35.254,-35.254,0,,0.002,PASS,geoid_C4.json
+C4,geodetic->SPC 2112,usft,elevation_factor,0.99997713,0.9999771276418008,2.358199191e-09,,2e-08,PASS,geoid_C4.json + derivation R/(R+H+N)
+C4,geodetic->SPC 2112,usft,combined_factor,0.99995243,0.999952428206748,1.793251991e-09,,2e-08,PASS,llh_C4_2112.json k * derived EF
+S1,geodetic->SPC 2113,m,northing,46781.4811,46781.481,9.999999747e-05,9.999999747e-05,0.002,PASS,llh_S1_2113.json
+S1,geodetic->SPC 2113,m,easting,3818836.8741,3818836.874,0.0001000002958,0.0001000002958,0.002,PASS,llh_S1_2113.json
+S1,geodetic->SPC 2113,m,grid_scale_factor,1.00005334,1.00005334,0,,2e-08,PASS,llh_S1_2113.json
+S1,geodetic->SPC 2113,m,convergence_arcsec,-5348.96,-5348.96,0,,0.02,PASS,llh_S1_2113.json
+S1,geodetic->SPC 2113,m,geoid_height_m,-33.937,-33.937,0,,0.002,PASS,geoid_S1.json
+S1,geodetic->SPC 2113,m,elevation_factor,0.9999708,0.9999708007584587,-7.584586292e-10,,2e-08,PASS,geoid_S1.json + derivation R/(R+H+N)
+S1,geodetic->SPC 2113,m,combined_factor,1.00002414,1.0000241392009712,7.990288431e-10,,2e-08,PASS,llh_S1_2113.json k * derived EF
+S2,geodetic->SPC 2113,m,northing,306229.1454,306229.145,0.0003999999608,0.0003999999608,0.002,PASS,llh_S2_2113.json
+S2,geodetic->SPC 2113,m,easting,3917362.1877,3917362.188,-0.000299999956,-0.000299999956,0.002,PASS,llh_S2_2113.json
+S2,geodetic->SPC 2113,m,grid_scale_factor,1.00019267,1.00019267,0,,2e-08,PASS,llh_S2_2113.json
+S2,geodetic->SPC 2113,m,convergence_arcsec,-2534.51,-2534.51,0,,0.02,PASS,llh_S2_2113.json
+S2,geodetic->SPC 2113,m,geoid_height_m,-33.279,-33.28,0.001,,0.002,PASS,geoid_S2.json
+S2,geodetic->SPC 2113,m,elevation_factor,0.99994292,0.9999429222787679,-2.278767952e-09,,2e-08,PASS,geoid_S2.json + derivation R/(R+H+N)
+S2,geodetic->SPC 2113,m,combined_factor,1.00013558,1.0001355812816033,-1.281603268e-09,,2e-08,PASS,llh_S2_2113.json k * derived EF
+S3,geodetic->SPC 2113,m,northing,93204.1747,93204.175,-0.0002999999997,-0.0002999999997,0.002,PASS,llh_S3_2113.json
+S3,geodetic->SPC 2113,m,easting,4108855.5987,4108855.599,-0.000299999956,-0.000299999956,0.002,PASS,llh_S3_2113.json
+S3,geodetic->SPC 2113,m,grid_scale_factor,0.99995325,0.99995325,0,,2e-08,PASS,llh_S3_2113.json
+S3,geodetic->SPC 2113,m,convergence_arcsec,3236.0,3236.0,0,,0.02,PASS,llh_S3_2113.json
+S3,geodetic->SPC 2113,m,geoid_height_m,-34.547,-34.547,0,,0.002,PASS,geoid_S3.json
+S3,geodetic->SPC 2113,m,elevation_factor,0.9999767,0.9999767028340449,-2.834044888e-09,,2e-08,PASS,geoid_S3.json + derivation R/(R+H+N)
+S3,geodetic->SPC 2113,m,combined_factor,0.99992995,0.9999299539231875,-3.923187553e-09,,2e-08,PASS,llh_S3_2113.json k * derived EF
+S4,geodetic->SPC 2113,m,northing,143555.7796,143555.78,-0.0003999999899,-0.0003999999899,0.002,PASS,llh_S4_2113.json
+S4,geodetic->SPC 2113,m,easting,3862272.4531,3862272.453,9.999983013e-05,9.999983013e-05,0.002,PASS,llh_S4_2113.json
+S4,geodetic->SPC 2113,m,grid_scale_factor,0.99990855,0.99990855,0,,2e-08,PASS,llh_S4_2113.json
+S4,geodetic->SPC 2113,m,convergence_arcsec,-4124.01,-4124.01,0,,0.02,PASS,llh_S4_2113.json
+S4,geodetic->SPC 2113,m,geoid_height_m,-33.399,-33.399,0,,0.002,PASS,geoid_S4.json
+S4,geodetic->SPC 2113,m,elevation_factor,0.99997542,0.9999754241758629,-4.175862989e-09,,2e-08,PASS,geoid_S4.json + derivation R/(R+H+N)
+S4,geodetic->SPC 2113,m,combined_factor,0.99988398,0.999883976423322,3.576677954e-09,,2e-08,PASS,llh_S4_2113.json k * derived EF
+S1,geodetic->SPC 2113,ift,northing,153482.55,153482.55,0,0,0.006561679790026247,PASS,llh_S1_2113.json
+S1,geodetic->SPC 2113,ift,easting,12528992.369,12528992.369,0,0,0.006561679790026247,PASS,llh_S1_2113.json
+S1,geodetic->SPC 2113,ift,grid_scale_factor,1.00005334,1.00005334,0,,2e-08,PASS,llh_S1_2113.json
+S1,geodetic->SPC 2113,ift,convergence_arcsec,-5348.96,-5348.96,0,,0.02,PASS,llh_S1_2113.json
+S1,geodetic->SPC 2113,ift,geoid_height_m,-33.937,-33.937,0,,0.002,PASS,geoid_S1.json
+S1,geodetic->SPC 2113,ift,elevation_factor,0.9999708,0.9999708007584587,-7.584586292e-10,,2e-08,PASS,geoid_S1.json + derivation R/(R+H+N)
+S1,geodetic->SPC 2113,ift,combined_factor,1.00002414,1.0000241392009712,7.990288431e-10,,2e-08,PASS,llh_S1_2113.json k * derived EF
+S2,geodetic->SPC 2113,ift,northing,1004688.797,1004688.797,0,0,0.006561679790026247,PASS,llh_S2_2113.json
+S2,geodetic->SPC 2113,ift,easting,12852238.149,12852238.149,0,0,0.006561679790026247,PASS,llh_S2_2113.json
+S2,geodetic->SPC 2113,ift,grid_scale_factor,1.00019267,1.00019267,0,,2e-08,PASS,llh_S2_2113.json
+S2,geodetic->SPC 2113,ift,convergence_arcsec,-2534.51,-2534.51,0,,0.02,PASS,llh_S2_2113.json
+S2,geodetic->SPC 2113,ift,geoid_height_m,-33.279,-33.28,0.001,,0.002,PASS,geoid_S2.json
+S2,geodetic->SPC 2113,ift,elevation_factor,0.99994292,0.9999429222787679,-2.278767952e-09,,2e-08,PASS,geoid_S2.json + derivation R/(R+H+N)
+S2,geodetic->SPC 2113,ift,combined_factor,1.00013558,1.0001355812816033,-1.281603268e-09,,2e-08,PASS,llh_S2_2113.json k * derived EF
+S3,geodetic->SPC 2113,ift,northing,305787.975,305787.975,0,0,0.006561679790026247,PASS,llh_S3_2113.json
+S3,geodetic->SPC 2113,ift,easting,13480497.371,13480497.371,0,0,0.006561679790026247,PASS,llh_S3_2113.json
+S3,geodetic->SPC 2113,ift,grid_scale_factor,0.99995325,0.99995325,0,,2e-08,PASS,llh_S3_2113.json
+S3,geodetic->SPC 2113,ift,convergence_arcsec,3236.0,3236.0,0,,0.02,PASS,llh_S3_2113.json
+S3,geodetic->SPC 2113,ift,geoid_height_m,-34.547,-34.547,0,,0.002,PASS,geoid_S3.json
+S3,geodetic->SPC 2113,ift,elevation_factor,0.9999767,0.9999767028340449,-2.834044888e-09,,2e-08,PASS,geoid_S3.json + derivation R/(R+H+N)
+S3,geodetic->SPC 2113,ift,combined_factor,0.99992995,0.9999299539231875,-3.923187553e-09,,2e-08,PASS,llh_S3_2113.json k * derived EF
+S4,geodetic->SPC 2113,ift,northing,470983.529,470983.529,0,0,0.006561679790026247,PASS,llh_S4_2113.json
+S4,geodetic->SPC 2113,ift,easting,12671497.55,12671497.55,0,0,0.006561679790026247,PASS,llh_S4_2113.json
+S4,geodetic->SPC 2113,ift,grid_scale_factor,0.99990855,0.99990855,0,,2e-08,PASS,llh_S4_2113.json
+S4,geodetic->SPC 2113,ift,convergence_arcsec,-4124.01,-4124.01,0,,0.02,PASS,llh_S4_2113.json
+S4,geodetic->SPC 2113,ift,geoid_height_m,-33.399,-33.399,0,,0.002,PASS,geoid_S4.json
+S4,geodetic->SPC 2113,ift,elevation_factor,0.99997542,0.9999754241758629,-4.175862989e-09,,2e-08,PASS,geoid_S4.json + derivation R/(R+H+N)
+S4,geodetic->SPC 2113,ift,combined_factor,0.99988398,0.999883976423322,3.576677954e-09,,2e-08,PASS,llh_S4_2113.json k * derived EF
+S1,geodetic->SPC 2113,usft,northing,153482.243,153482.243,0,0,0.006561666666666667,PASS,llh_S1_2113.json
+S1,geodetic->SPC 2113,usft,easting,12528967.311,12528967.311,0,0,0.006561666666666667,PASS,llh_S1_2113.json
+S1,geodetic->SPC 2113,usft,grid_scale_factor,1.00005334,1.00005334,0,,2e-08,PASS,llh_S1_2113.json
+S1,geodetic->SPC 2113,usft,convergence_arcsec,-5348.96,-5348.96,0,,0.02,PASS,llh_S1_2113.json
+S1,geodetic->SPC 2113,usft,geoid_height_m,-33.937,-33.937,0,,0.002,PASS,geoid_S1.json
+S1,geodetic->SPC 2113,usft,elevation_factor,0.9999708,0.9999708007584587,-7.584586292e-10,,2e-08,PASS,geoid_S1.json + derivation R/(R+H+N)
+S1,geodetic->SPC 2113,usft,combined_factor,1.00002414,1.0000241392009712,7.990288431e-10,,2e-08,PASS,llh_S1_2113.json k * derived EF
+S2,geodetic->SPC 2113,usft,northing,1004686.788,1004686.788,0,0,0.006561666666666667,PASS,llh_S2_2113.json
+S2,geodetic->SPC 2113,usft,easting,12852212.444,12852212.444,0,0,0.006561666666666667,PASS,llh_S2_2113.json
+S2,geodetic->SPC 2113,usft,grid_scale_factor,1.00019267,1.00019267,0,,2e-08,PASS,llh_S2_2113.json
+S2,geodetic->SPC 2113,usft,convergence_arcsec,-2534.51,-2534.51,0,,0.02,PASS,llh_S2_2113.json
+S2,geodetic->SPC 2113,usft,geoid_height_m,-33.279,-33.28,0.001,,0.002,PASS,geoid_S2.json
+S2,geodetic->SPC 2113,usft,elevation_factor,0.99994292,0.9999429222787679,-2.278767952e-09,,2e-08,PASS,geoid_S2.json + derivation R/(R+H+N)
+S2,geodetic->SPC 2113,usft,combined_factor,1.00013558,1.0001355812816033,-1.281603268e-09,,2e-08,PASS,llh_S2_2113.json k * derived EF
+S3,geodetic->SPC 2113,usft,northing,305787.363,305787.363,0,0,0.006561666666666667,PASS,llh_S3_2113.json
+S3,geodetic->SPC 2113,usft,easting,13480470.41,13480470.41,0,0,0.006561666666666667,PASS,llh_S3_2113.json
+S3,geodetic->SPC 2113,usft,grid_scale_factor,0.99995325,0.99995325,0,,2e-08,PASS,llh_S3_2113.json
+S3,geodetic->SPC 2113,usft,convergence_arcsec,3236.0,3236.0,0,,0.02,PASS,llh_S3_2113.json
+S3,geodetic->SPC 2113,usft,geoid_height_m,-34.547,-34.547,0,,0.002,PASS,geoid_S3.json
+S3,geodetic->SPC 2113,usft,elevation_factor,0.9999767,0.9999767028340449,-2.834044888e-09,,2e-08,PASS,geoid_S3.json + derivation R/(R+H+N)
+S3,geodetic->SPC 2113,usft,combined_factor,0.99992995,0.9999299539231875,-3.923187553e-09,,2e-08,PASS,llh_S3_2113.json k * derived EF
+S4,geodetic->SPC 2113,usft,northing,470982.587,470982.587,0,0,0.006561666666666667,PASS,llh_S4_2113.json
+S4,geodetic->SPC 2113,usft,easting,12671472.207,12671472.207,0,0,0.006561666666666667,PASS,llh_S4_2113.json
+S4,geodetic->SPC 2113,usft,grid_scale_factor,0.99990855,0.99990855,0,,2e-08,PASS,llh_S4_2113.json
+S4,geodetic->SPC 2113,usft,convergence_arcsec,-4124.01,-4124.01,0,,0.02,PASS,llh_S4_2113.json
+S4,geodetic->SPC 2113,usft,geoid_height_m,-33.399,-33.399,0,,0.002,PASS,geoid_S4.json
+S4,geodetic->SPC 2113,usft,elevation_factor,0.99997542,0.9999754241758629,-4.175862989e-09,,2e-08,PASS,geoid_S4.json + derivation R/(R+H+N)
+S4,geodetic->SPC 2113,usft,combined_factor,0.99988398,0.999883976423322,3.576677954e-09,,2e-08,PASS,llh_S4_2113.json k * derived EF
+N1,SPC->geodetic 2111,m,latitude_deg,45.105,45.1050000005,-5.000018177e-10,-5.556667701e-05,1.7996462795237597e-08,PASS,spc_N1_2111_m.json
+N1,SPC->geodetic 2111,m,longitude_deg,-87.605,-87.6050000034,3.399989623e-09,0.0002671384829,2.5454884573031846e-08,PASS,spc_N1_2111_m.json
+N1,SPC->geodetic 2111,m,grid_scale_factor,1.00011284,1.00011284,0,,2e-08,PASS,llh_N1_2111.json
+N1,SPC->geodetic 2111,m,convergence_arcsec,-1574.24,-1574.24,0,,0.02,PASS,llh_N1_2111.json
+N1,SPC->geodetic 2111,m,geoid_height_m,-36.994,-36.994,0,,0.002,PASS,geoid_N1.json
+N1,SPC->geodetic 2111,m,elevation_factor,0.99997756,0.9999775576285929,2.371407182e-09,,2e-08,PASS,geoid_N1.json + derivation R/(R+H+N)
+N1,SPC->geodetic 2111,m,combined_factor,1.0000904,1.0000903950961955,4.903804474e-09,,2e-08,PASS,llh_N1_2111.json k * derived EF
+N2,SPC->geodetic 2111,m,latitude_deg,48.05,48.05,0,0,1.7996462795237597e-08,PASS,spc_N2_2111_m.json
+N2,SPC->geodetic 2111,m,longitude_deg,-88.55,-88.5500000042,4.2000039e-09,0.0003125435296,2.6876281235404937e-08,PASS,spc_N2_2111_m.json
+N2,SPC->geodetic 2111,m,grid_scale_factor,1.00038104,1.00038104,0,,2e-08,PASS,llh_N2_2111.json
+N2,SPC->geodetic 2111,m,convergence_arcsec,-4033.17,-4033.17,0,,0.02,PASS,llh_N2_2111.json
+N2,SPC->geodetic 2111,m,geoid_height_m,-34.777,-34.777,0,,0.002,PASS,geoid_N2.json
+N2,SPC->geodetic 2111,m,elevation_factor,0.99997564,0.9999756404239118,-4.239117946e-10,,2e-08,PASS,geoid_N2.json + derivation R/(R+H+N)
+N2,SPC->geodetic 2111,m,combined_factor,1.00035667,1.000356671141939,-1.141938988e-09,,2e-08,PASS,llh_N2_2111.json k * derived EF
+N3,SPC->geodetic 2111,m,latitude_deg,46.4953,46.4952999999,1.000017846e-10,1.111349333e-05,1.7996462795237597e-08,PASS,spc_N3_2111_m.json
+N3,SPC->geodetic 2111,m,longitude_deg,-84.3453,-84.3452999954,-4.599996828e-09,-0.0003525157147,2.6098109309541664e-08,PASS,spc_N3_2111_m.json
+N3,SPC->geodetic 2111,m,grid_scale_factor,0.99990954,0.99990954,0,,2e-08,PASS,llh_N3_2111.json
+N3,SPC->geodetic 2111,m,convergence_arcsec,6907.65,6907.65,0,,0.02,PASS,llh_N3_2111.json
+N3,SPC->geodetic 2111,m,geoid_height_m,-36.636,-36.636,0,,0.002,PASS,geoid_N3.json
+N3,SPC->geodetic 2111,m,elevation_factor,0.99997703,0.9999770306594294,-6.594294e-10,,2e-08,PASS,geoid_N3.json + derivation R/(R+H+N)
+N3,SPC->geodetic 2111,m,combined_factor,0.99988657,0.999886572737236,-2.737235993e-09,,2e-08,PASS,llh_N3_2111.json k * derived EF
+N4,SPC->geodetic 2111,m,latitude_deg,47.1211,47.121100004,-4.000000331e-09,-0.0004445318368,1.7996462795237597e-08,PASS,spc_N4_2111_m.json
+N4,SPC->geodetic 2111,m,longitude_deg,-88.5694,-88.5693999965,-3.500005619e-09,-0.0002651165504,2.6403524138538505e-08,PASS,spc_N4_2111_m.json
+N4,SPC->geodetic 2111,m,grid_scale_factor,1.00000944,1.00000944,0,,2e-08,PASS,llh_N4_2111.json
+N4,SPC->geodetic 2111,m,convergence_arcsec,-4083.65,-4083.65,0,,0.02,PASS,llh_N4_2111.json
+N4,SPC->geodetic 2111,m,geoid_height_m,-33.796,-33.796,0,,0.002,PASS,geoid_N4.json
+N4,SPC->geodetic 2111,m,elevation_factor,0.99996215,0.99996214769776,2.302239954e-09,,2e-08,PASS,geoid_N4.json + derivation R/(R+H+N)
+N4,SPC->geodetic 2111,m,combined_factor,0.99997159,0.9999715873404342,2.65956579e-09,,2e-08,PASS,llh_N4_2111.json k * derived EF
+N1,SPC->geodetic 2111,ift,latitude_deg,45.105,45.105000001,-1.000003635e-09,-0.000111133354,1.7996462795237597e-08,PASS,spc_N1_2111_ift.json
+N1,SPC->geodetic 2111,ift,longitude_deg,-87.605,-87.6049999998,-2.000035693e-10,-1.57143568e-05,2.5454884573031846e-08,PASS,spc_N1_2111_ift.json
+N1,SPC->geodetic 2111,ift,grid_scale_factor,1.00011284,1.00011284,0,,2e-08,PASS,llh_N1_2111.json
+N1,SPC->geodetic 2111,ift,convergence_arcsec,-1574.24,-1574.24,0,,0.02,PASS,llh_N1_2111.json
+N1,SPC->geodetic 2111,ift,geoid_height_m,-36.994,-36.994,0,,0.002,PASS,geoid_N1.json
+N1,SPC->geodetic 2111,ift,elevation_factor,0.99997756,0.9999775576285929,2.371407182e-09,,2e-08,PASS,geoid_N1.json + derivation R/(R+H+N)
+N1,SPC->geodetic 2111,ift,combined_factor,1.0000904,1.0000903950961955,4.903804474e-09,,2e-08,PASS,llh_N1_2111.json k * derived EF
+N2,SPC->geodetic 2111,ift,latitude_deg,48.05,48.0500000013,-1.300001884e-09,-0.0001444730444,1.7996462795237597e-08,PASS,spc_N2_2111_ift.json
+N2,SPC->geodetic 2111,ift,longitude_deg,-88.55,-88.5499999996,-3.999929277e-10,-2.976549651e-05,2.6876281235404937e-08,PASS,spc_N2_2111_ift.json
+N2,SPC->geodetic 2111,ift,grid_scale_factor,1.00038104,1.00038104,0,,2e-08,PASS,llh_N2_2111.json
+N2,SPC->geodetic 2111,ift,convergence_arcsec,-4033.17,-4033.17,0,,0.02,PASS,llh_N2_2111.json
+N2,SPC->geodetic 2111,ift,geoid_height_m,-34.777,-34.777,0,,0.002,PASS,geoid_N2.json
+N2,SPC->geodetic 2111,ift,elevation_factor,0.99997564,0.9999756404239118,-4.239117946e-10,,2e-08,PASS,geoid_N2.json + derivation R/(R+H+N)
+N2,SPC->geodetic 2111,ift,combined_factor,1.00035667,1.000356671141939,-1.141938988e-09,,2e-08,PASS,llh_N2_2111.json k * derived EF
+N3,SPC->geodetic 2111,ift,latitude_deg,46.4953,46.4953000008,-8.000000662e-10,-8.890636736e-05,1.7996462795237597e-08,PASS,spc_N3_2111_ift.json
+N3,SPC->geodetic 2111,ift,longitude_deg,-84.3453,-84.3452999984,-1.600000132e-09,-0.0001226142563,2.6098109309541664e-08,PASS,spc_N3_2111_ift.json
+N3,SPC->geodetic 2111,ift,grid_scale_factor,0.99990954,0.99990954,0,,2e-08,PASS,llh_N3_2111.json
+N3,SPC->geodetic 2111,ift,convergence_arcsec,6907.65,6907.65,0,,0.02,PASS,llh_N3_2111.json
+N3,SPC->geodetic 2111,ift,geoid_height_m,-36.636,-36.636,0,,0.002,PASS,geoid_N3.json
+N3,SPC->geodetic 2111,ift,elevation_factor,0.99997703,0.9999770306594294,-6.594294e-10,,2e-08,PASS,geoid_N3.json + derivation R/(R+H+N)
+N3,SPC->geodetic 2111,ift,combined_factor,0.99988657,0.999886572737236,-2.737235993e-09,,2e-08,PASS,llh_N3_2111.json k * derived EF
+N4,SPC->geodetic 2111,ift,latitude_deg,47.1211,47.1210999995,5.000018177e-10,5.556667701e-05,1.7996462795237597e-08,PASS,spc_N4_2111_ift.json
+N4,SPC->geodetic 2111,ift,longitude_deg,-88.5694,-88.5693999993,-6.999982816e-10,-5.302309479e-05,2.6403524138538505e-08,PASS,spc_N4_2111_ift.json
+N4,SPC->geodetic 2111,ift,grid_scale_factor,1.00000944,1.00000944,0,,2e-08,PASS,llh_N4_2111.json
+N4,SPC->geodetic 2111,ift,convergence_arcsec,-4083.65,-4083.65,0,,0.02,PASS,llh_N4_2111.json
+N4,SPC->geodetic 2111,ift,geoid_height_m,-33.796,-33.796,0,,0.002,PASS,geoid_N4.json
+N4,SPC->geodetic 2111,ift,elevation_factor,0.99996215,0.99996214769776,2.302239954e-09,,2e-08,PASS,geoid_N4.json + derivation R/(R+H+N)
+N4,SPC->geodetic 2111,ift,combined_factor,0.99997159,0.9999715873404342,2.65956579e-09,,2e-08,PASS,llh_N4_2111.json k * derived EF
+N1,SPC->geodetic 2111,usft,latitude_deg,45.105,45.1050000004,-4.000000331e-10,-4.445318368e-05,1.7996462795237597e-08,PASS,spc_N1_2111_usft.json
+N1,SPC->geodetic 2111,usft,longitude_deg,-87.605,-87.6049999999,-1.000017846e-10,-7.857178401e-06,2.5454884573031846e-08,PASS,spc_N1_2111_usft.json
+N1,SPC->geodetic 2111,usft,grid_scale_factor,1.00011284,1.00011284,0,,2e-08,PASS,llh_N1_2111.json
+N1,SPC->geodetic 2111,usft,convergence_arcsec,-1574.24,-1574.24,0,,0.02,PASS,llh_N1_2111.json
+N1,SPC->geodetic 2111,usft,geoid_height_m,-36.994,-36.994,0,,0.002,PASS,geoid_N1.json
+N1,SPC->geodetic 2111,usft,elevation_factor,0.99997756,0.9999775576285929,2.371407182e-09,,2e-08,PASS,geoid_N1.json + derivation R/(R+H+N)
+N1,SPC->geodetic 2111,usft,combined_factor,1.0000904,1.0000903950961955,4.903804474e-09,,2e-08,PASS,llh_N1_2111.json k * derived EF
+N2,SPC->geodetic 2111,usft,latitude_deg,48.05,48.0499999991,8.999947454e-10,0.000100019071,1.7996462795237597e-08,PASS,spc_N2_2111_usft.json
+N2,SPC->geodetic 2111,usft,longitude_deg,-88.55,-88.5499999998,-2.000035693e-10,-1.488327701e-05,2.6876281235404937e-08,PASS,spc_N2_2111_usft.json
+N2,SPC->geodetic 2111,usft,grid_scale_factor,1.00038104,1.00038104,0,,2e-08,PASS,llh_N2_2111.json
+N2,SPC->geodetic 2111,usft,convergence_arcsec,-4033.17,-4033.17,0,,0.02,PASS,llh_N2_2111.json
+N2,SPC->geodetic 2111,usft,geoid_height_m,-34.777,-34.777,0,,0.002,PASS,geoid_N2.json
+N2,SPC->geodetic 2111,usft,elevation_factor,0.99997564,0.9999756404239118,-4.239117946e-10,,2e-08,PASS,geoid_N2.json + derivation R/(R+H+N)
+N2,SPC->geodetic 2111,usft,combined_factor,1.00035667,1.000356671141939,-1.141938988e-09,,2e-08,PASS,llh_N2_2111.json k * derived EF
+N3,SPC->geodetic 2111,usft,latitude_deg,46.4953,46.4953000007,-6.999982816e-10,-7.779287402e-05,1.7996462795237597e-08,PASS,spc_N3_2111_usft.json
+N3,SPC->geodetic 2111,usft,longitude_deg,-84.3453,-84.3453000011,1.10000542e-09,8.429770962e-05,2.6098109309541664e-08,PASS,spc_N3_2111_usft.json
+N3,SPC->geodetic 2111,usft,grid_scale_factor,0.99990954,0.99990954,0,,2e-08,PASS,llh_N3_2111.json
+N3,SPC->geodetic 2111,usft,convergence_arcsec,6907.65,6907.65,0,,0.02,PASS,llh_N3_2111.json
+N3,SPC->geodetic 2111,usft,geoid_height_m,-36.636,-36.636,0,,0.002,PASS,geoid_N3.json
+N3,SPC->geodetic 2111,usft,elevation_factor,0.99997703,0.9999770306594294,-6.594294e-10,,2e-08,PASS,geoid_N3.json + derivation R/(R+H+N)
+N3,SPC->geodetic 2111,usft,combined_factor,0.99988657,0.999886572737236,-2.737235993e-09,,2e-08,PASS,llh_N3_2111.json k * derived EF
+N4,SPC->geodetic 2111,usft,latitude_deg,47.1211,47.1210999987,1.300001884e-09,0.0001444730444,1.7996462795237597e-08,PASS,spc_N4_2111_usft.json
+N4,SPC->geodetic 2111,usft,longitude_deg,-88.5694,-88.5693999991,-9.000018508e-10,-6.817285799e-05,2.6403524138538505e-08,PASS,spc_N4_2111_usft.json
+N4,SPC->geodetic 2111,usft,grid_scale_factor,1.00000944,1.00000944,0,,2e-08,PASS,llh_N4_2111.json
+N4,SPC->geodetic 2111,usft,convergence_arcsec,-4083.65,-4083.65,0,,0.02,PASS,llh_N4_2111.json
+N4,SPC->geodetic 2111,usft,geoid_height_m,-33.796,-33.796,0,,0.002,PASS,geoid_N4.json
+N4,SPC->geodetic 2111,usft,elevation_factor,0.99996215,0.99996214769776,2.302239954e-09,,2e-08,PASS,geoid_N4.json + derivation R/(R+H+N)
+N4,SPC->geodetic 2111,usft,combined_factor,0.99997159,0.9999715873404342,2.65956579e-09,,2e-08,PASS,llh_N4_2111.json k * derived EF
+C1,SPC->geodetic 2112,m,latitude_deg,43.6,43.6000000005,-5.000018177e-10,-5.556667701e-05,1.7996462795237597e-08,PASS,spc_C1_2112_m.json
+C1,SPC->geodetic 2112,m,longitude_deg,-86.45,-86.4500000035,3.499991408e-09,0.0002821498554,2.4809450307496487e-08,PASS,spc_C1_2112_m.json
+C1,SPC->geodetic 2112,m,grid_scale_factor,1.00018455,1.00018455,0,,2e-08,PASS,llh_C1_2112.json
+C1,SPC->geodetic 2112,m,convergence_arcsec,-5298.06,-5298.06,0,,0.02,PASS,llh_C1_2112.json
+C1,SPC->geodetic 2112,m,geoid_height_m,-34.731,-34.731,0,,0.002,PASS,geoid_C1.json
+C1,SPC->geodetic 2112,m,elevation_factor,0.99997406,0.9999740639181466,-3.918146585e-09,,2e-08,PASS,geoid_C1.json + derivation R/(R+H+N)
+C1,SPC->geodetic 2112,m,combined_factor,1.00015861,1.0001586091316426,8.68357386e-10,,2e-08,PASS,llh_C1_2112.json k * derived EF
+C2,SPC->geodetic 2112,m,latitude_deg,45.9,45.8999999963,3.700002082e-09,0.0004111921464,1.7996462795237597e-08,PASS,spc_C2_2112_m.json
+C2,SPC->geodetic 2112,m,longitude_deg,-84.72000001,-84.720000006,-4.000000331e-09,-0.000309874656,2.5816892430195184e-08,PASS,spc_C2_2112_m.json
+C2,SPC->geodetic 2112,m,grid_scale_factor,1.00005242,1.00005242,0,,2e-08,PASS,llh_C2_2112.json
+C2,SPC->geodetic 2112,m,convergence_arcsec,-898.55,-898.55,0,,0.02,PASS,llh_C2_2112.json
+C2,SPC->geodetic 2112,m,geoid_height_m,-35.396,-35.396,0,,0.002,PASS,geoid_C2.json
+C2,SPC->geodetic 2112,m,elevation_factor,0.99997574,0.9999757375629424,2.437057556e-09,,2e-08,PASS,geoid_C2.json + derivation R/(R+H+N)
+C2,SPC->geodetic 2112,m,combined_factor,1.00002816,1.0000281562911055,3.708894525e-09,,2e-08,PASS,llh_C2_2112.json k * derived EF
+C3,SPC->geodetic 2112,m,latitude_deg,44.7631,44.7631000028,-2.800000232e-09,-0.0003111722857,1.7996462795237597e-08,PASS,spc_C3_2112_m.json
+C3,SPC->geodetic 2112,m,longitude_deg,-85.62060001,-85.6206000058,-4.2000039e-09,-0.0003319664319,2.530378674514463e-08,PASS,spc_C3_2112_m.json
+C3,SPC->geodetic 2112,m,grid_scale_factor,0.99991763,0.99991763,0,,2e-08,PASS,llh_C3_2112.json
+C3,SPC->geodetic 2112,m,convergence_arcsec,-3188.84,-3188.84,0,,0.02,PASS,llh_C3_2112.json
+C3,SPC->geodetic 2112,m,geoid_height_m,-34.67,-34.67,0,,0.002,PASS,geoid_C3.json
+C3,SPC->geodetic 2112,m,elevation_factor,0.99997609,0.9999760944195758,-4.419575816e-09,,2e-08,PASS,geoid_C3.json + derivation R/(R+H+N)
+C3,SPC->geodetic 2112,m,combined_factor,0.99989373,0.9998937263886785,3.611321575e-09,,2e-08,PASS,llh_C3_2112.json k * derived EF
+C4,SPC->geodetic 2112,m,latitude_deg,44.3,44.3000000042,-4.2000039e-09,-0.0004667588234,1.7996462795237597e-08,PASS,spc_C4_2112_m.json
+C4,SPC->geodetic 2112,m,longitude_deg,-83.5,-83.4999999968,-3.200000265e-09,-0.0002549457815,2.5103378816554132e-08,PASS,spc_C4_2112_m.json
+C4,SPC->geodetic 2112,m,grid_scale_factor,0.9999753,0.9999753,0,,2e-08,PASS,llh_C4_2112.json
+C4,SPC->geodetic 2112,m,convergence_arcsec,2203.99,2203.99,0,,0.02,PASS,llh_C4_2112.json
+C4,SPC->geodetic 2112,m,geoid_height_m,-35.254,-35.254,0,,0.002,PASS,geoid_C4.json
+C4,SPC->geodetic 2112,m,elevation_factor,0.99997713,0.9999771276418008,2.358199191e-09,,2e-08,PASS,geoid_C4.json + derivation R/(R+H+N)
+C4,SPC->geodetic 2112,m,combined_factor,0.99995243,0.999952428206748,1.793251991e-09,,2e-08,PASS,llh_C4_2112.json k * derived EF
+C1,SPC->geodetic 2112,ift,latitude_deg,43.6,43.5999999995,5.000018177e-10,5.556667701e-05,1.7996462795237597e-08,PASS,spc_C1_2112_ift.json
+C1,SPC->geodetic 2112,ift,longitude_deg,-86.45,-86.4499999998,-2.000035693e-10,-1.612317619e-05,2.4809450307496487e-08,PASS,spc_C1_2112_ift.json
+C1,SPC->geodetic 2112,ift,grid_scale_factor,1.00018455,1.00018455,0,,2e-08,PASS,llh_C1_2112.json
+C1,SPC->geodetic 2112,ift,convergence_arcsec,-5298.06,-5298.06,0,,0.02,PASS,llh_C1_2112.json
+C1,SPC->geodetic 2112,ift,geoid_height_m,-34.731,-34.731,0,,0.002,PASS,geoid_C1.json
+C1,SPC->geodetic 2112,ift,elevation_factor,0.99997406,0.9999740639181466,-3.918146585e-09,,2e-08,PASS,geoid_C1.json + derivation R/(R+H+N)
+C1,SPC->geodetic 2112,ift,combined_factor,1.00015861,1.0001586091316426,8.68357386e-10,,2e-08,PASS,llh_C1_2112.json k * derived EF
+C2,SPC->geodetic 2112,ift,latitude_deg,45.9,45.9000000001,-1.000017846e-10,-1.111349333e-05,1.7996462795237597e-08,PASS,spc_C2_2112_ift.json
+C2,SPC->geodetic 2112,ift,longitude_deg,-84.72,-84.7199999997,-3.000053539e-10,-2.324101204e-05,2.5816892430195184e-08,PASS,spc_C2_2112_ift.json
+C2,SPC->geodetic 2112,ift,grid_scale_factor,1.00005242,1.00005242,0,,2e-08,PASS,llh_C2_2112.json
+C2,SPC->geodetic 2112,ift,convergence_arcsec,-898.55,-898.55,0,,0.02,PASS,llh_C2_2112.json
+C2,SPC->geodetic 2112,ift,geoid_height_m,-35.396,-35.396,0,,0.002,PASS,geoid_C2.json
+C2,SPC->geodetic 2112,ift,elevation_factor,0.99997574,0.9999757375629424,2.437057556e-09,,2e-08,PASS,geoid_C2.json + derivation R/(R+H+N)
+C2,SPC->geodetic 2112,ift,combined_factor,1.00002816,1.0000281562911055,3.708894525e-09,,2e-08,PASS,llh_C2_2112.json k * derived EF
+C3,SPC->geodetic 2112,ift,latitude_deg,44.7631,44.7631000011,-1.099998315e-09,-0.0001222460577,1.7996462795237597e-08,PASS,spc_C3_2112_ift.json
+C3,SPC->geodetic 2112,ift,longitude_deg,-85.6206,-85.6206000007,6.999982816e-10,5.532755145e-05,2.530378674514463e-08,PASS,spc_C3_2112_ift.json
+C3,SPC->geodetic 2112,ift,grid_scale_factor,0.99991763,0.99991763,0,,2e-08,PASS,llh_C3_2112.json
+C3,SPC->geodetic 2112,ift,convergence_arcsec,-3188.84,-3188.84,0,,0.02,PASS,llh_C3_2112.json
+C3,SPC->geodetic 2112,ift,geoid_height_m,-34.67,-34.67,0,,0.002,PASS,geoid_C3.json
+C3,SPC->geodetic 2112,ift,elevation_factor,0.99997609,0.9999760944195758,-4.419575816e-09,,2e-08,PASS,geoid_C3.json + derivation R/(R+H+N)
+C3,SPC->geodetic 2112,ift,combined_factor,0.99989373,0.9998937263886785,3.611321575e-09,,2e-08,PASS,llh_C3_2112.json k * derived EF
+C4,SPC->geodetic 2112,ift,latitude_deg,44.3,44.3000000005,-5.000018177e-10,-5.556667701e-05,1.7996462795237597e-08,PASS,spc_C4_2112_ift.json
+C4,SPC->geodetic 2112,ift,longitude_deg,-83.5,-83.4999999999,-1.000017846e-10,-7.967197194e-06,2.5103378816554132e-08,PASS,spc_C4_2112_ift.json
+C4,SPC->geodetic 2112,ift,grid_scale_factor,0.9999753,0.9999753,0,,2e-08,PASS,llh_C4_2112.json
+C4,SPC->geodetic 2112,ift,convergence_arcsec,2203.99,2203.99,0,,0.02,PASS,llh_C4_2112.json
+C4,SPC->geodetic 2112,ift,geoid_height_m,-35.254,-35.254,0,,0.002,PASS,geoid_C4.json
+C4,SPC->geodetic 2112,ift,elevation_factor,0.99997713,0.9999771276418008,2.358199191e-09,,2e-08,PASS,geoid_C4.json + derivation R/(R+H+N)
+C4,SPC->geodetic 2112,ift,combined_factor,0.99995243,0.999952428206748,1.793251991e-09,,2e-08,PASS,llh_C4_2112.json k * derived EF
+C1,SPC->geodetic 2112,usft,latitude_deg,43.6,43.5999999989,1.099998315e-09,0.0001222460577,1.7996462795237597e-08,PASS,spc_C1_2112_usft.json
+C1,SPC->geodetic 2112,usft,longitude_deg,-86.45,-86.4499999989,-1.10000542e-09,-8.867632345e-05,2.4809450307496487e-08,PASS,spc_C1_2112_usft.json
+C1,SPC->geodetic 2112,usft,grid_scale_factor,1.00018455,1.00018455,0,,2e-08,PASS,llh_C1_2112.json
+C1,SPC->geodetic 2112,usft,convergence_arcsec,-5298.06,-5298.06,0,,0.02,PASS,llh_C1_2112.json
+C1,SPC->geodetic 2112,usft,geoid_height_m,-34.731,-34.731,0,,0.002,PASS,geoid_C1.json
+C1,SPC->geodetic 2112,usft,elevation_factor,0.99997406,0.9999740639181466,-3.918146585e-09,,2e-08,PASS,geoid_C1.json + derivation R/(R+H+N)
+C1,SPC->geodetic 2112,usft,combined_factor,1.00015861,1.0001586091316426,8.68357386e-10,,2e-08,PASS,llh_C1_2112.json k * derived EF
+C2,SPC->geodetic 2112,usft,latitude_deg,45.9,45.9000000003,-2.999982485e-10,-3.333969035e-05,1.7996462795237597e-08,PASS,spc_C2_2112_usft.json
+C2,SPC->geodetic 2112,usft,longitude_deg,-84.72,-84.7199999991,-9.000018508e-10,-6.972193522e-05,2.5816892430195184e-08,PASS,spc_C2_2112_usft.json
+C2,SPC->geodetic 2112,usft,grid_scale_factor,1.00005242,1.00005242,0,,2e-08,PASS,llh_C2_2112.json
+C2,SPC->geodetic 2112,usft,convergence_arcsec,-898.55,-898.55,0,,0.02,PASS,llh_C2_2112.json
+C2,SPC->geodetic 2112,usft,geoid_height_m,-35.396,-35.396,0,,0.002,PASS,geoid_C2.json
+C2,SPC->geodetic 2112,usft,elevation_factor,0.99997574,0.9999757375629424,2.437057556e-09,,2e-08,PASS,geoid_C2.json + derivation R/(R+H+N)
+C2,SPC->geodetic 2112,usft,combined_factor,1.00002816,1.0000281562911055,3.708894525e-09,,2e-08,PASS,llh_C2_2112.json k * derived EF
+C3,SPC->geodetic 2112,usft,latitude_deg,44.7631,44.7631000002,-1.999964638e-10,-2.222619702e-05,1.7996462795237597e-08,PASS,spc_C3_2112_usft.json
+C3,SPC->geodetic 2112,usft,longitude_deg,-85.6206,-85.6206000017,1.700001917e-09,0.0001343673921,2.530378674514463e-08,PASS,spc_C3_2112_usft.json
+C3,SPC->geodetic 2112,usft,grid_scale_factor,0.99991763,0.99991763,0,,2e-08,PASS,llh_C3_2112.json
+C3,SPC->geodetic 2112,usft,convergence_arcsec,-3188.84,-3188.84,0,,0.02,PASS,llh_C3_2112.json
+C3,SPC->geodetic 2112,usft,geoid_height_m,-34.67,-34.67,0,,0.002,PASS,geoid_C3.json
+C3,SPC->geodetic 2112,usft,elevation_factor,0.99997609,0.9999760944195758,-4.419575816e-09,,2e-08,PASS,geoid_C3.json + derivation R/(R+H+N)
+C3,SPC->geodetic 2112,usft,combined_factor,0.99989373,0.9998937263886785,3.611321575e-09,,2e-08,PASS,llh_C3_2112.json k * derived EF
+C4,SPC->geodetic 2112,usft,latitude_deg,44.3,44.2999999989,1.099998315e-09,0.0001222460577,1.7996462795237597e-08,PASS,spc_C4_2112_usft.json
+C4,SPC->geodetic 2112,usft,longitude_deg,-83.5,-83.5000000004,3.999929277e-10,3.186765659e-05,2.5103378816554132e-08,PASS,spc_C4_2112_usft.json
+C4,SPC->geodetic 2112,usft,grid_scale_factor,0.9999753,0.9999753,0,,2e-08,PASS,llh_C4_2112.json
+C4,SPC->geodetic 2112,usft,convergence_arcsec,2203.99,2203.99,0,,0.02,PASS,llh_C4_2112.json
+C4,SPC->geodetic 2112,usft,geoid_height_m,-35.254,-35.254,0,,0.002,PASS,geoid_C4.json
+C4,SPC->geodetic 2112,usft,elevation_factor,0.99997713,0.9999771276418008,2.358199191e-09,,2e-08,PASS,geoid_C4.json + derivation R/(R+H+N)
+C4,SPC->geodetic 2112,usft,combined_factor,0.99995243,0.999952428206748,1.793251991e-09,,2e-08,PASS,llh_C4_2112.json k * derived EF
+S1,SPC->geodetic 2113,m,latitude_deg,41.9,41.8999999987,1.300001884e-09,0.0001444730444,1.7996462795237597e-08,PASS,spc_S1_2113_m.json
+S1,SPC->geodetic 2113,m,longitude_deg,-86.55,-86.5500000009,9.000018508e-10,7.457089691e-05,2.4138152768680077e-08,PASS,spc_S1_2113_m.json
+S1,SPC->geodetic 2113,m,grid_scale_factor,1.00005334,1.00005334,0,,2e-08,PASS,llh_S1_2113.json
+S1,SPC->geodetic 2113,m,convergence_arcsec,-5348.96,-5348.96,0,,0.02,PASS,llh_S1_2113.json
+S1,SPC->geodetic 2113,m,geoid_height_m,-33.937,-33.937,0,,0.002,PASS,geoid_S1.json
+S1,SPC->geodetic 2113,m,elevation_factor,0.9999708,0.9999708007584587,-7.584586292e-10,,2e-08,PASS,geoid_S1.json + derivation R/(R+H+N)
+S1,SPC->geodetic 2113,m,combined_factor,1.00002414,1.0000241392009712,7.990288431e-10,,2e-08,PASS,llh_S1_2113.json k * derived EF
+S2,SPC->geodetic 2113,m,latitude_deg,44.252,44.2519999966,3.400003834e-09,0.0003778524561,1.7996462795237597e-08,PASS,spc_S2_2113_m.json
+S2,SPC->geodetic 2113,m,longitude_deg,-85.4012,-85.4011999966,-3.400003834e-09,-0.0002711015345,2.5082881516838483e-08,PASS,spc_S2_2113_m.json
+S2,SPC->geodetic 2113,m,grid_scale_factor,1.00019267,1.00019267,0,,2e-08,PASS,llh_S2_2113.json
+S2,SPC->geodetic 2113,m,convergence_arcsec,-2534.51,-2534.51,0,,0.02,PASS,llh_S2_2113.json
+S2,SPC->geodetic 2113,m,geoid_height_m,-33.279,-33.28,0.001,,0.002,PASS,geoid_S2.json
+S2,SPC->geodetic 2113,m,elevation_factor,0.99994292,0.9999429222787679,-2.278767952e-09,,2e-08,PASS,geoid_S2.json + derivation R/(R+H+N)
+S2,SPC->geodetic 2113,m,combined_factor,1.00013558,1.0001355812816033,-1.281603268e-09,,2e-08,PASS,llh_S2_2113.json k * derived EF
+S3,SPC->geodetic 2113,m,latitude_deg,42.3314,42.3314000023,-2.299998414e-09,-0.0002556056087,1.7996462795237597e-08,PASS,spc_S3_2113_m.json
+S3,SPC->geodetic 2113,m,longitude_deg,-83.0458,-83.0457999962,-3.799996762e-09,-0.0003127180187,2.430302402987557e-08,PASS,spc_S3_2113_m.json
+S3,SPC->geodetic 2113,m,grid_scale_factor,0.99995325,0.99995325,0,,2e-08,PASS,llh_S3_2113.json
+S3,SPC->geodetic 2113,m,convergence_arcsec,3236.0,3236.0,0,,0.02,PASS,llh_S3_2113.json
+S3,SPC->geodetic 2113,m,geoid_height_m,-34.547,-34.547,0,,0.002,PASS,geoid_S3.json
+S3,SPC->geodetic 2113,m,elevation_factor,0.9999767,0.9999767028340449,-2.834044888e-09,,2e-08,PASS,geoid_S3.json + derivation R/(R+H+N)
+S3,SPC->geodetic 2113,m,combined_factor,0.99992995,0.9999299539231875,-3.923187553e-09,,2e-08,PASS,llh_S3_2113.json k * derived EF
+S4,SPC->geodetic 2113,m,latitude_deg,42.78,42.7800000037,-3.700002082e-09,-0.0004111921464,1.7996462795237597e-08,PASS,spc_S4_2113_m.json
+S4,SPC->geodetic 2113,m,longitude_deg,-86.05,-86.0500000018,1.800003702e-09,0.0001470689982,2.4478356746470797e-08,PASS,spc_S4_2113_m.json
+S4,SPC->geodetic 2113,m,grid_scale_factor,0.99990855,0.99990855,0,,2e-08,PASS,llh_S4_2113.json
+S4,SPC->geodetic 2113,m,convergence_arcsec,-4124.01,-4124.01,0,,0.02,PASS,llh_S4_2113.json
+S4,SPC->geodetic 2113,m,geoid_height_m,-33.399,-33.399,0,,0.002,PASS,geoid_S4.json
+S4,SPC->geodetic 2113,m,elevation_factor,0.99997542,0.9999754241758629,-4.175862989e-09,,2e-08,PASS,geoid_S4.json + derivation R/(R+H+N)
+S4,SPC->geodetic 2113,m,combined_factor,0.99988398,0.999883976423322,3.576677954e-09,,2e-08,PASS,llh_S4_2113.json k * derived EF
+S1,SPC->geodetic 2113,ift,latitude_deg,41.9,41.9000000009,-9.000018508e-10,-0.0001000198607,1.7996462795237597e-08,PASS,spc_S1_2113_ift.json
+S1,SPC->geodetic 2113,ift,longitude_deg,-86.55,-86.5500000002,2.000035693e-10,1.657157208e-05,2.4138152768680077e-08,PASS,spc_S1_2113_ift.json
+S1,SPC->geodetic 2113,ift,grid_scale_factor,1.00005334,1.00005334,0,,2e-08,PASS,llh_S1_2113.json
+S1,SPC->geodetic 2113,ift,convergence_arcsec,-5348.96,-5348.96,0,,0.02,PASS,llh_S1_2113.json
+S1,SPC->geodetic 2113,ift,geoid_height_m,-33.937,-33.937,0,,0.002,PASS,geoid_S1.json
+S1,SPC->geodetic 2113,ift,elevation_factor,0.9999708,0.9999708007584587,-7.584586292e-10,,2e-08,PASS,geoid_S1.json + derivation R/(R+H+N)
+S1,SPC->geodetic 2113,ift,combined_factor,1.00002414,1.0000241392009712,7.990288431e-10,,2e-08,PASS,llh_S1_2113.json k * derived EF
+S2,SPC->geodetic 2113,ift,latitude_deg,44.252,44.2519999995,5.000018177e-10,5.556667701e-05,1.7996462795237597e-08,PASS,spc_S2_2113_ift.json
+S2,SPC->geodetic 2113,ift,longitude_deg,-85.4012,-85.401199999,-1.000003635e-09,-7.973594539e-05,2.5082881516838483e-08,PASS,spc_S2_2113_ift.json
+S2,SPC->geodetic 2113,ift,grid_scale_factor,1.00019267,1.00019267,0,,2e-08,PASS,llh_S2_2113.json
+S2,SPC->geodetic 2113,ift,convergence_arcsec,-2534.51,-2534.51,0,,0.02,PASS,llh_S2_2113.json
+S2,SPC->geodetic 2113,ift,geoid_height_m,-33.279,-33.28,0.001,,0.002,PASS,geoid_S2.json
+S2,SPC->geodetic 2113,ift,elevation_factor,0.99994292,0.9999429222787679,-2.278767952e-09,,2e-08,PASS,geoid_S2.json + derivation R/(R+H+N)
+S2,SPC->geodetic 2113,ift,combined_factor,1.00013558,1.0001355812816033,-1.281603268e-09,,2e-08,PASS,llh_S2_2113.json k * derived EF
+S3,SPC->geodetic 2113,ift,latitude_deg,42.3314,42.3314000003,-2.999982485e-10,-3.333969035e-05,1.7996462795237597e-08,PASS,spc_S3_2113_ift.json
+S3,SPC->geodetic 2113,ift,longitude_deg,-83.0458,-83.0458000001,1.000017846e-10,8.229575423e-06,2.430302402987557e-08,PASS,spc_S3_2113_ift.json
+S3,SPC->geodetic 2113,ift,grid_scale_factor,0.99995325,0.99995325,0,,2e-08,PASS,llh_S3_2113.json
+S3,SPC->geodetic 2113,ift,convergence_arcsec,3236.0,3236.0,0,,0.02,PASS,llh_S3_2113.json
+S3,SPC->geodetic 2113,ift,geoid_height_m,-34.547,-34.547,0,,0.002,PASS,geoid_S3.json
+S3,SPC->geodetic 2113,ift,elevation_factor,0.9999767,0.9999767028340449,-2.834044888e-09,,2e-08,PASS,geoid_S3.json + derivation R/(R+H+N)
+S3,SPC->geodetic 2113,ift,combined_factor,0.99992995,0.9999299539231875,-3.923187553e-09,,2e-08,PASS,llh_S3_2113.json k * derived EF
+S4,SPC->geodetic 2113,ift,latitude_deg,42.78,42.7800000005,-5.000018177e-10,-5.556667701e-05,1.7996462795237597e-08,PASS,spc_S4_2113_ift.json
+S4,SPC->geodetic 2113,ift,longitude_deg,-86.05,-86.0499999987,-1.299994778e-09,-0.0001062158536,2.4478356746470797e-08,PASS,spc_S4_2113_ift.json
+S4,SPC->geodetic 2113,ift,grid_scale_factor,0.99990855,0.99990855,0,,2e-08,PASS,llh_S4_2113.json
+S4,SPC->geodetic 2113,ift,convergence_arcsec,-4124.01,-4124.01,0,,0.02,PASS,llh_S4_2113.json
+S4,SPC->geodetic 2113,ift,geoid_height_m,-33.399,-33.399,0,,0.002,PASS,geoid_S4.json
+S4,SPC->geodetic 2113,ift,elevation_factor,0.99997542,0.9999754241758629,-4.175862989e-09,,2e-08,PASS,geoid_S4.json + derivation R/(R+H+N)
+S4,SPC->geodetic 2113,ift,combined_factor,0.99988398,0.999883976423322,3.576677954e-09,,2e-08,PASS,llh_S4_2113.json k * derived EF
+S1,SPC->geodetic 2113,usft,latitude_deg,41.9,41.9000000008,-8.000000662e-10,-8.890636736e-05,1.7996462795237597e-08,PASS,spc_S1_2113_usft.json
+S1,SPC->geodetic 2113,usft,longitude_deg,-86.55,-86.5500000002,2.000035693e-10,1.657157208e-05,2.4138152768680077e-08,PASS,spc_S1_2113_usft.json
+S1,SPC->geodetic 2113,usft,grid_scale_factor,1.00005334,1.00005334,0,,2e-08,PASS,llh_S1_2113.json
+S1,SPC->geodetic 2113,usft,convergence_arcsec,-5348.96,-5348.96,0,,0.02,PASS,llh_S1_2113.json
+S1,SPC->geodetic 2113,usft,geoid_height_m,-33.937,-33.937,0,,0.002,PASS,geoid_S1.json
+S1,SPC->geodetic 2113,usft,elevation_factor,0.9999708,0.9999708007584587,-7.584586292e-10,,2e-08,PASS,geoid_S1.json + derivation R/(R+H+N)
+S1,SPC->geodetic 2113,usft,combined_factor,1.00002414,1.0000241392009712,7.990288431e-10,,2e-08,PASS,llh_S1_2113.json k * derived EF
+S2,SPC->geodetic 2113,usft,latitude_deg,44.252,44.2520000005,-4.999947123e-10,-5.556588736e-05,1.7996462795237597e-08,PASS,spc_S2_2113_usft.json
+S2,SPC->geodetic 2113,usft,longitude_deg,-85.4012,-85.401200001,1.000003635e-09,7.973594539e-05,2.5082881516838483e-08,PASS,spc_S2_2113_usft.json
+S2,SPC->geodetic 2113,usft,grid_scale_factor,1.00019267,1.00019267,0,,2e-08,PASS,llh_S2_2113.json
+S2,SPC->geodetic 2113,usft,convergence_arcsec,-2534.51,-2534.51,0,,0.02,PASS,llh_S2_2113.json
+S2,SPC->geodetic 2113,usft,geoid_height_m,-33.279,-33.28,0.001,,0.002,PASS,geoid_S2.json
+S2,SPC->geodetic 2113,usft,elevation_factor,0.99994292,0.9999429222787679,-2.278767952e-09,,2e-08,PASS,geoid_S2.json + derivation R/(R+H+N)
+S2,SPC->geodetic 2113,usft,combined_factor,1.00013558,1.0001355812816033,-1.281603268e-09,,2e-08,PASS,llh_S2_2113.json k * derived EF
+S3,SPC->geodetic 2113,usft,latitude_deg,42.3314,42.3313999992,8.000000662e-10,8.890636736e-05,1.7996462795237597e-08,PASS,spc_S3_2113_usft.json
+S3,SPC->geodetic 2113,usft,longitude_deg,-83.0458,-83.0458000002,2.000035693e-10,1.645915085e-05,2.430302402987557e-08,PASS,spc_S3_2113_usft.json
+S3,SPC->geodetic 2113,usft,grid_scale_factor,0.99995325,0.99995325,0,,2e-08,PASS,llh_S3_2113.json
+S3,SPC->geodetic 2113,usft,convergence_arcsec,3236.0,3236.0,0,,0.02,PASS,llh_S3_2113.json
+S3,SPC->geodetic 2113,usft,geoid_height_m,-34.547,-34.547,0,,0.002,PASS,geoid_S3.json
+S3,SPC->geodetic 2113,usft,elevation_factor,0.9999767,0.9999767028340449,-2.834044888e-09,,2e-08,PASS,geoid_S3.json + derivation R/(R+H+N)
+S3,SPC->geodetic 2113,usft,combined_factor,0.99992995,0.9999299539231875,-3.923187553e-09,,2e-08,PASS,llh_S3_2113.json k * derived EF
+S4,SPC->geodetic 2113,usft,latitude_deg,42.78,42.7800000005,-5.000018177e-10,-5.556667701e-05,1.7996462795237597e-08,PASS,spc_S4_2113_usft.json
+S4,SPC->geodetic 2113,usft,longitude_deg,-86.05,-86.0499999987,-1.299994778e-09,-0.0001062158536,2.4478356746470797e-08,PASS,spc_S4_2113_usft.json
+S4,SPC->geodetic 2113,usft,grid_scale_factor,0.99990855,0.99990855,0,,2e-08,PASS,llh_S4_2113.json
+S4,SPC->geodetic 2113,usft,convergence_arcsec,-4124.01,-4124.01,0,,0.02,PASS,llh_S4_2113.json
+S4,SPC->geodetic 2113,usft,geoid_height_m,-33.399,-33.399,0,,0.002,PASS,geoid_S4.json
+S4,SPC->geodetic 2113,usft,elevation_factor,0.99997542,0.9999754241758629,-4.175862989e-09,,2e-08,PASS,geoid_S4.json + derivation R/(R+H+N)
+S4,SPC->geodetic 2113,usft,combined_factor,0.99988398,0.999883976423322,3.576677954e-09,,2e-08,PASS,llh_S4_2113.json k * derived EF
+C2,zone 2111->2112,m,northing,287134.3079,287134.307,0.0009000000427,0.0009000000427,0.004,PASS,llh_C2_2111.json -> llh_C2_2112.json
+C2,zone 2111->2112,m,easting,5972579.0187,5972579.018,0.0006999997422,0.0006999997422,0.004,PASS,llh_C2_2111.json -> llh_C2_2112.json
+C2,zone 2111->2112,m,source_grid_scale_factor,0.99992532,0.99992532,0,,2e-08,PASS,llh_C2_2111.json
+C2,zone 2111->2112,m,source_convergence_arcsec,5932.66,5932.66,0,,0.02,PASS,llh_C2_2111.json
+C2,zone 2111->2112,m,grid_scale_factor,1.00005242,1.00005242,0,,2e-08,PASS,llh_C2_2112.json
+C2,zone 2111->2112,m,convergence_arcsec,-898.55,-898.55,0,,0.02,PASS,llh_C2_2112.json
+C2,zone 2111->2112,m,geoid_height_m,-35.396,-35.396,0,,0.002,PASS,geoid_C2.json
+C2,zone 2111->2112,m,elevation_factor,0.99997574,0.9999757375629424,2.437057556e-09,,2e-08,PASS,geoid_C2.json + derivation R/(R+H+N)
+C2,zone 2111->2112,m,combined_factor,1.00002816,1.0000281562911055,3.708894525e-09,,2e-08,PASS,llh_C2_2112.json k * derived EF
+C2,zone 2111->2112,ift,northing,942041.691,942041.691,0,0,0.013123359580052493,PASS,llh_C2_2111.json -> llh_C2_2112.json
+C2,zone 2111->2112,ift,easting,19595075.52,19595075.52,0,0,0.013123359580052493,PASS,llh_C2_2111.json -> llh_C2_2112.json
+C2,zone 2111->2112,ift,source_grid_scale_factor,0.99992532,0.99992532,0,,2e-08,PASS,llh_C2_2111.json
+C2,zone 2111->2112,ift,source_convergence_arcsec,5932.66,5932.66,0,,0.02,PASS,llh_C2_2111.json
+C2,zone 2111->2112,ift,grid_scale_factor,1.00005242,1.00005242,0,,2e-08,PASS,llh_C2_2112.json
+C2,zone 2111->2112,ift,convergence_arcsec,-898.55,-898.55,0,,0.02,PASS,llh_C2_2112.json
+C2,zone 2111->2112,ift,geoid_height_m,-35.396,-35.396,0,,0.002,PASS,geoid_C2.json
+C2,zone 2111->2112,ift,elevation_factor,0.99997574,0.9999757375629424,2.437057556e-09,,2e-08,PASS,geoid_C2.json + derivation R/(R+H+N)
+C2,zone 2111->2112,ift,combined_factor,1.00002816,1.0000281562911055,3.708894525e-09,,2e-08,PASS,llh_C2_2112.json k * derived EF
+C2,zone 2111->2112,usft,northing,942039.807,942039.807,0,0,0.013123333333333334,PASS,llh_C2_2111.json -> llh_C2_2112.json
+C2,zone 2111->2112,usft,easting,19595036.329,19595036.33,-0.0009999983013,-0.0003048000918,0.013123333333333334,PASS,llh_C2_2111.json -> llh_C2_2112.json
+C2,zone 2111->2112,usft,source_grid_scale_factor,0.99992532,0.99992532,0,,2e-08,PASS,llh_C2_2111.json
+C2,zone 2111->2112,usft,source_convergence_arcsec,5932.66,5932.66,0,,0.02,PASS,llh_C2_2111.json
+C2,zone 2111->2112,usft,grid_scale_factor,1.00005242,1.00005242,0,,2e-08,PASS,llh_C2_2112.json
+C2,zone 2111->2112,usft,convergence_arcsec,-898.55,-898.55,0,,0.02,PASS,llh_C2_2112.json
+C2,zone 2111->2112,usft,geoid_height_m,-35.396,-35.396,0,,0.002,PASS,geoid_C2.json
+C2,zone 2111->2112,usft,elevation_factor,0.99997574,0.9999757375629424,2.437057556e-09,,2e-08,PASS,geoid_C2.json + derivation R/(R+H+N)
+C2,zone 2111->2112,usft,combined_factor,1.00002816,1.0000281562911055,3.708894525e-09,,2e-08,PASS,llh_C2_2112.json k * derived EF
+C2,zone 2112->2111,m,northing,126655.3111,126655.312,-0.0008999999991,-0.0008999999991,0.004,PASS,llh_C2_2112.json -> llh_C2_2111.json
+C2,zone 2112->2111,m,easting,8176896.6153,8176896.616,-0.0007000006735,-0.0007000006735,0.004,PASS,llh_C2_2112.json -> llh_C2_2111.json
+C2,zone 2112->2111,m,source_grid_scale_factor,1.00005242,1.00005242,0,,2e-08,PASS,llh_C2_2112.json
+C2,zone 2112->2111,m,source_convergence_arcsec,-898.55,-898.55,0,,0.02,PASS,llh_C2_2112.json
+C2,zone 2112->2111,m,grid_scale_factor,0.99992532,0.99992532,0,,2e-08,PASS,llh_C2_2111.json
+C2,zone 2112->2111,m,convergence_arcsec,5932.66,5932.66,0,,0.02,PASS,llh_C2_2111.json
+C2,zone 2112->2111,m,geoid_height_m,-35.396,-35.396,0,,0.002,PASS,geoid_C2.json
+C2,zone 2112->2111,m,elevation_factor,0.99997574,0.9999757375629424,2.437057556e-09,,2e-08,PASS,geoid_C2.json + derivation R/(R+H+N)
+C2,zone 2112->2111,m,combined_factor,0.99990106,0.9999010593748613,6.251387186e-10,,2e-08,PASS,llh_C2_2111.json k * derived EF
+C2,zone 2112->2111,ift,northing,415535.799,415535.799,0,0,0.013123359580052493,PASS,llh_C2_2112.json -> llh_C2_2111.json
+C2,zone 2112->2111,ift,easting,26827088.635,26827088.635,0,0,0.013123359580052493,PASS,llh_C2_2112.json -> llh_C2_2111.json
+C2,zone 2112->2111,ift,source_grid_scale_factor,1.00005242,1.00005242,0,,2e-08,PASS,llh_C2_2112.json
+C2,zone 2112->2111,ift,source_convergence_arcsec,-898.55,-898.55,0,,0.02,PASS,llh_C2_2112.json
+C2,zone 2112->2111,ift,grid_scale_factor,0.99992532,0.99992532,0,,2e-08,PASS,llh_C2_2111.json
+C2,zone 2112->2111,ift,convergence_arcsec,5932.66,5932.66,0,,0.02,PASS,llh_C2_2111.json
+C2,zone 2112->2111,ift,geoid_height_m,-35.396,-35.396,0,,0.002,PASS,geoid_C2.json
+C2,zone 2112->2111,ift,elevation_factor,0.99997574,0.9999757375629424,2.437057556e-09,,2e-08,PASS,geoid_C2.json + derivation R/(R+H+N)
+C2,zone 2112->2111,ift,combined_factor,0.99990106,0.9999010593748613,6.251387186e-10,,2e-08,PASS,llh_C2_2111.json k * derived EF
+C2,zone 2112->2111,usft,northing,415534.968,415534.968,0,0,0.013123333333333334,PASS,llh_C2_2112.json -> llh_C2_2111.json
+C2,zone 2112->2111,usft,easting,26827034.981,26827034.98,0.0009999983013,0.0003048000918,0.013123333333333334,PASS,llh_C2_2112.json -> llh_C2_2111.json
+C2,zone 2112->2111,usft,source_grid_scale_factor,1.00005242,1.00005242,0,,2e-08,PASS,llh_C2_2112.json
+C2,zone 2112->2111,usft,source_convergence_arcsec,-898.55,-898.55,0,,0.02,PASS,llh_C2_2112.json
+C2,zone 2112->2111,usft,grid_scale_factor,0.99992532,0.99992532,0,,2e-08,PASS,llh_C2_2111.json
+C2,zone 2112->2111,usft,convergence_arcsec,5932.66,5932.66,0,,0.02,PASS,llh_C2_2111.json
+C2,zone 2112->2111,usft,geoid_height_m,-35.396,-35.396,0,,0.002,PASS,geoid_C2.json
+C2,zone 2112->2111,usft,elevation_factor,0.99997574,0.9999757375629424,2.437057556e-09,,2e-08,PASS,geoid_C2.json + derivation R/(R+H+N)
+C2,zone 2112->2111,usft,combined_factor,0.99990106,0.9999010593748613,6.251387186e-10,,2e-08,PASS,llh_C2_2111.json k * derived EF
+S2,zone 2112->2113,m,northing,306229.1454,306229.145,0.0003999999608,0.0003999999608,0.004,PASS,llh_S2_2112.json -> llh_S2_2113.json
+S2,zone 2112->2113,m,easting,3917362.1874,3917362.188,-0.0005999999121,-0.0005999999121,0.004,PASS,llh_S2_2112.json -> llh_S2_2113.json
+S2,zone 2112->2113,m,source_grid_scale_factor,0.99998497,0.99998497,0,,2e-08,PASS,llh_S2_2112.json
+S2,zone 2112->2113,m,source_convergence_arcsec,-2630.89,-2630.89,0,,0.02,PASS,llh_S2_2112.json
+S2,zone 2112->2113,m,grid_scale_factor,1.00019267,1.00019267,0,,2e-08,PASS,llh_S2_2113.json
+S2,zone 2112->2113,m,convergence_arcsec,-2534.51,-2534.51,0,,0.02,PASS,llh_S2_2113.json
+S2,zone 2112->2113,m,geoid_height_m,-33.279,-33.28,0.001,,0.002,PASS,geoid_S2.json
+S2,zone 2112->2113,m,elevation_factor,0.99994292,0.9999429222787679,-2.278767952e-09,,2e-08,PASS,geoid_S2.json + derivation R/(R+H+N)
+S2,zone 2112->2113,m,combined_factor,1.00013558,1.0001355812816033,-1.281603268e-09,,2e-08,PASS,llh_S2_2113.json k * derived EF
+S2,zone 2112->2113,ift,northing,1004688.797,1004688.797,0,0,0.013123359580052493,PASS,llh_S2_2112.json -> llh_S2_2113.json
+S2,zone 2112->2113,ift,easting,12852238.148,12852238.149,-0.001000000164,-0.00030480005,0.013123359580052493,PASS,llh_S2_2112.json -> llh_S2_2113.json
+S2,zone 2112->2113,ift,source_grid_scale_factor,0.99998497,0.99998497,0,,2e-08,PASS,llh_S2_2112.json
+S2,zone 2112->2113,ift,source_convergence_arcsec,-2630.89,-2630.89,0,,0.02,PASS,llh_S2_2112.json
+S2,zone 2112->2113,ift,grid_scale_factor,1.00019267,1.00019267,0,,2e-08,PASS,llh_S2_2113.json
+S2,zone 2112->2113,ift,convergence_arcsec,-2534.51,-2534.51,0,,0.02,PASS,llh_S2_2113.json
+S2,zone 2112->2113,ift,geoid_height_m,-33.279,-33.28,0.001,,0.002,PASS,geoid_S2.json
+S2,zone 2112->2113,ift,elevation_factor,0.99994292,0.9999429222787679,-2.278767952e-09,,2e-08,PASS,geoid_S2.json + derivation R/(R+H+N)
+S2,zone 2112->2113,ift,combined_factor,1.00013558,1.0001355812816033,-1.281603268e-09,,2e-08,PASS,llh_S2_2113.json k * derived EF
+S2,zone 2112->2113,usft,northing,1004686.788,1004686.788,0,0,0.013123333333333334,PASS,llh_S2_2112.json -> llh_S2_2113.json
+S2,zone 2112->2113,usft,easting,12852212.444,12852212.444,0,0,0.013123333333333334,PASS,llh_S2_2112.json -> llh_S2_2113.json
+S2,zone 2112->2113,usft,source_grid_scale_factor,0.99998497,0.99998497,0,,2e-08,PASS,llh_S2_2112.json
+S2,zone 2112->2113,usft,source_convergence_arcsec,-2630.89,-2630.89,0,,0.02,PASS,llh_S2_2112.json
+S2,zone 2112->2113,usft,grid_scale_factor,1.00019267,1.00019267,0,,2e-08,PASS,llh_S2_2113.json
+S2,zone 2112->2113,usft,convergence_arcsec,-2534.51,-2534.51,0,,0.02,PASS,llh_S2_2113.json
+S2,zone 2112->2113,usft,geoid_height_m,-33.279,-33.28,0.001,,0.002,PASS,geoid_S2.json
+S2,zone 2112->2113,usft,elevation_factor,0.99994292,0.9999429222787679,-2.278767952e-09,,2e-08,PASS,geoid_S2.json + derivation R/(R+H+N)
+S2,zone 2112->2113,usft,combined_factor,1.00013558,1.0001355812816033,-1.281603268e-09,,2e-08,PASS,llh_S2_2113.json k * derived EF
+S2,zone 2113->2112,m,northing,104463.0686,104463.069,-0.0004000000044,-0.0004000000044,0.004,PASS,llh_S2_2113.json -> llh_S2_2112.json
+S2,zone 2113->2112,m,easting,5917379.5096,5917379.509,0.0006000008434,0.0006000008434,0.004,PASS,llh_S2_2113.json -> llh_S2_2112.json
+S2,zone 2113->2112,m,source_grid_scale_factor,1.00019267,1.00019267,0,,2e-08,PASS,llh_S2_2113.json
+S2,zone 2113->2112,m,source_convergence_arcsec,-2534.51,-2534.51,0,,0.02,PASS,llh_S2_2113.json
+S2,zone 2113->2112,m,grid_scale_factor,0.99998497,0.99998497,0,,2e-08,PASS,llh_S2_2112.json
+S2,zone 2113->2112,m,convergence_arcsec,-2630.89,-2630.89,0,,0.02,PASS,llh_S2_2112.json
+S2,zone 2113->2112,m,geoid_height_m,-33.279,-33.28,0.001,,0.002,PASS,geoid_S2.json
+S2,zone 2113->2112,m,elevation_factor,0.99994292,0.9999429222787679,-2.278767952e-09,,2e-08,PASS,geoid_S2.json + derivation R/(R+H+N)
+S2,zone 2113->2112,m,combined_factor,0.99992789,0.999927893136646,-3.136645943e-09,,2e-08,PASS,llh_S2_2112.json k * derived EF
+S2,zone 2113->2112,ift,northing,342726.604,342726.604,0,0,0.013123359580052493,PASS,llh_S2_2113.json -> llh_S2_2112.json
+S2,zone 2113->2112,ift,easting,19413974.769,19413974.768,0.001000002027,0.0003048006177,0.013123359580052493,PASS,llh_S2_2113.json -> llh_S2_2112.json
+S2,zone 2113->2112,ift,source_grid_scale_factor,1.00019267,1.00019267,0,,2e-08,PASS,llh_S2_2113.json
+S2,zone 2113->2112,ift,source_convergence_arcsec,-2534.51,-2534.51,0,,0.02,PASS,llh_S2_2113.json
+S2,zone 2113->2112,ift,grid_scale_factor,0.99998497,0.99998497,0,,2e-08,PASS,llh_S2_2112.json
+S2,zone 2113->2112,ift,convergence_arcsec,-2630.89,-2630.89,0,,0.02,PASS,llh_S2_2112.json
+S2,zone 2113->2112,ift,geoid_height_m,-33.279,-33.28,0.001,,0.002,PASS,geoid_S2.json
+S2,zone 2113->2112,ift,elevation_factor,0.99994292,0.9999429222787679,-2.278767952e-09,,2e-08,PASS,geoid_S2.json + derivation R/(R+H+N)
+S2,zone 2113->2112,ift,combined_factor,0.99992789,0.999927893136646,-3.136645943e-09,,2e-08,PASS,llh_S2_2112.json k * derived EF
+S2,zone 2113->2112,usft,northing,342725.919,342725.919,0,0,0.013123333333333334,PASS,llh_S2_2113.json -> llh_S2_2112.json
+S2,zone 2113->2112,usft,easting,19413935.94,19413935.94,0,0,0.013123333333333334,PASS,llh_S2_2113.json -> llh_S2_2112.json
+S2,zone 2113->2112,usft,source_grid_scale_factor,1.00019267,1.00019267,0,,2e-08,PASS,llh_S2_2113.json
+S2,zone 2113->2112,usft,source_convergence_arcsec,-2534.51,-2534.51,0,,0.02,PASS,llh_S2_2113.json
+S2,zone 2113->2112,usft,grid_scale_factor,0.99998497,0.99998497,0,,2e-08,PASS,llh_S2_2112.json
+S2,zone 2113->2112,usft,convergence_arcsec,-2630.89,-2630.89,0,,0.02,PASS,llh_S2_2112.json
+S2,zone 2113->2112,usft,geoid_height_m,-33.279,-33.28,0.001,,0.002,PASS,geoid_S2.json
+S2,zone 2113->2112,usft,elevation_factor,0.99994292,0.9999429222787679,-2.278767952e-09,,2e-08,PASS,geoid_S2.json + derivation R/(R+H+N)
+S2,zone 2113->2112,usft,combined_factor,0.99992789,0.999927893136646,-3.136645943e-09,,2e-08,PASS,llh_S2_2112.json k * derived EF
+NS,zone 2111->2113,m,northing,350565.5009,350565.501,-0.0001000000047,-0.0001000000047,0.004,PASS,llh_NS_2111.json -> llh_NS_2113.json
+NS,zone 2111->2113,m,easting,3910066.0535,3910066.054,-0.000500000082,-0.000500000082,0.004,PASS,llh_NS_2111.json -> llh_NS_2113.json
+NS,zone 2111->2113,m,source_grid_scale_factor,1.00030493,1.00030493,0,,2e-08,PASS,llh_NS_2111.json
+NS,zone 2111->2113,m,source_convergence_arcsec,3903.07,3903.07,0,,0.02,PASS,llh_NS_2111.json
+NS,zone 2111->2113,m,grid_scale_factor,1.00038446,1.00038446,0,,2e-08,PASS,llh_NS_2113.json
+NS,zone 2111->2113,m,convergence_arcsec,-2776.56,-2776.56,0,,0.02,PASS,llh_NS_2113.json
+NS,zone 2111->2113,m,geoid_height_m,-34.137,-34.137,0,,0.002,PASS,geoid_NS.json
+NS,zone 2111->2113,m,elevation_factor,0.99995671,0.999956708873575,1.126424953e-09,,2e-08,PASS,geoid_NS.json + derivation R/(R+H+N)
+NS,zone 2111->2113,m,combined_factor,1.00034115,1.0003411522298686,-2.229868734e-09,,2e-08,PASS,llh_NS_2113.json k * derived EF
+NS,zone 2111->2113,ift,northing,1150149.28,1150149.28,0,0,0.013123359580052493,PASS,llh_NS_2111.json -> llh_NS_2113.json
+NS,zone 2111->2113,ift,easting,12828300.701,12828300.701,0,0,0.013123359580052493,PASS,llh_NS_2111.json -> llh_NS_2113.json
+NS,zone 2111->2113,ift,source_grid_scale_factor,1.00030493,1.00030493,0,,2e-08,PASS,llh_NS_2111.json
+NS,zone 2111->2113,ift,source_convergence_arcsec,3903.07,3903.07,0,,0.02,PASS,llh_NS_2111.json
+NS,zone 2111->2113,ift,grid_scale_factor,1.00038446,1.00038446,0,,2e-08,PASS,llh_NS_2113.json
+NS,zone 2111->2113,ift,convergence_arcsec,-2776.56,-2776.56,0,,0.02,PASS,llh_NS_2113.json
+NS,zone 2111->2113,ift,geoid_height_m,-34.137,-34.137,0,,0.002,PASS,geoid_NS.json
+NS,zone 2111->2113,ift,elevation_factor,0.99995671,0.999956708873575,1.126424953e-09,,2e-08,PASS,geoid_NS.json + derivation R/(R+H+N)
+NS,zone 2111->2113,ift,combined_factor,1.00034115,1.0003411522298686,-2.229868734e-09,,2e-08,PASS,llh_NS_2113.json k * derived EF
+NS,zone 2111->2113,usft,northing,1150146.98,1150146.98,0,0,0.013123333333333334,PASS,llh_NS_2111.json -> llh_NS_2113.json
+NS,zone 2111->2113,usft,easting,12828275.044,12828275.044,0,0,0.013123333333333334,PASS,llh_NS_2111.json -> llh_NS_2113.json
+NS,zone 2111->2113,usft,source_grid_scale_factor,1.00030493,1.00030493,0,,2e-08,PASS,llh_NS_2111.json
+NS,zone 2111->2113,usft,source_convergence_arcsec,3903.07,3903.07,0,,0.02,PASS,llh_NS_2111.json
+NS,zone 2111->2113,usft,grid_scale_factor,1.00038446,1.00038446,0,,2e-08,PASS,llh_NS_2113.json
+NS,zone 2111->2113,usft,convergence_arcsec,-2776.56,-2776.56,0,,0.02,PASS,llh_NS_2113.json
+NS,zone 2111->2113,usft,geoid_height_m,-34.137,-34.137,0,,0.002,PASS,geoid_NS.json
+NS,zone 2111->2113,usft,elevation_factor,0.99995671,0.999956708873575,1.126424953e-09,,2e-08,PASS,geoid_NS.json + derivation R/(R+H+N)
+NS,zone 2111->2113,usft,combined_factor,1.00034115,1.0003411522298686,-2.229868734e-09,,2e-08,PASS,llh_NS_2113.json k * derived EF
+NS,zone 2113->2111,m,northing,-13694.7879,-13694.788,0.0001000000011,0.0001000000011,0.004,PASS,llh_NS_2113.json -> llh_NS_2111.json
+NS,zone 2113->2111,m,easting,8119017.2525,8119017.252,0.000500000082,0.000500000082,0.004,PASS,llh_NS_2113.json -> llh_NS_2111.json
+NS,zone 2113->2111,m,source_grid_scale_factor,1.00038446,1.00038446,0,,2e-08,PASS,llh_NS_2113.json
+NS,zone 2113->2111,m,source_convergence_arcsec,-2776.56,-2776.56,0,,0.02,PASS,llh_NS_2113.json
+NS,zone 2113->2111,m,grid_scale_factor,1.00030493,1.00030493,0,,2e-08,PASS,llh_NS_2111.json
+NS,zone 2113->2111,m,convergence_arcsec,3903.07,3903.07,0,,0.02,PASS,llh_NS_2111.json
+NS,zone 2113->2111,m,geoid_height_m,-34.137,-34.137,0,,0.002,PASS,geoid_NS.json
+NS,zone 2113->2111,m,elevation_factor,0.99995671,0.999956708873575,1.126424953e-09,,2e-08,PASS,geoid_NS.json + derivation R/(R+H+N)
+NS,zone 2113->2111,m,combined_factor,1.00026162,1.0002616256728118,-5.672811776e-09,,2e-08,PASS,llh_NS_2111.json k * derived EF
+NS,zone 2113->2111,ift,northing,-44930.408,-44930.408,0,0,0.013123359580052493,PASS,llh_NS_2113.json -> llh_NS_2111.json
+NS,zone 2113->2111,ift,easting,26637195.709,26637195.709,0,0,0.013123359580052493,PASS,llh_NS_2113.json -> llh_NS_2111.json
+NS,zone 2113->2111,ift,source_grid_scale_factor,1.00038446,1.00038446,0,,2e-08,PASS,llh_NS_2113.json
+NS,zone 2113->2111,ift,source_convergence_arcsec,-2776.56,-2776.56,0,,0.02,PASS,llh_NS_2113.json
+NS,zone 2113->2111,ift,grid_scale_factor,1.00030493,1.00030493,0,,2e-08,PASS,llh_NS_2111.json
+NS,zone 2113->2111,ift,convergence_arcsec,3903.07,3903.07,0,,0.02,PASS,llh_NS_2111.json
+NS,zone 2113->2111,ift,geoid_height_m,-34.137,-34.137,0,,0.002,PASS,geoid_NS.json
+NS,zone 2113->2111,ift,elevation_factor,0.99995671,0.999956708873575,1.126424953e-09,,2e-08,PASS,geoid_NS.json + derivation R/(R+H+N)
+NS,zone 2113->2111,ift,combined_factor,1.00026162,1.0002616256728118,-5.672811776e-09,,2e-08,PASS,llh_NS_2111.json k * derived EF
+NS,zone 2113->2111,usft,northing,-44930.318,-44930.318,0,0,0.013123333333333334,PASS,llh_NS_2113.json -> llh_NS_2111.json
+NS,zone 2113->2111,usft,easting,26637142.435,26637142.435,0,0,0.013123333333333334,PASS,llh_NS_2113.json -> llh_NS_2111.json
+NS,zone 2113->2111,usft,source_grid_scale_factor,1.00038446,1.00038446,0,,2e-08,PASS,llh_NS_2113.json
+NS,zone 2113->2111,usft,source_convergence_arcsec,-2776.56,-2776.56,0,,0.02,PASS,llh_NS_2113.json
+NS,zone 2113->2111,usft,grid_scale_factor,1.00030493,1.00030493,0,,2e-08,PASS,llh_NS_2111.json
+NS,zone 2113->2111,usft,convergence_arcsec,3903.07,3903.07,0,,0.02,PASS,llh_NS_2111.json
+NS,zone 2113->2111,usft,geoid_height_m,-34.137,-34.137,0,,0.002,PASS,geoid_NS.json
+NS,zone 2113->2111,usft,elevation_factor,0.99995671,0.999956708873575,1.126424953e-09,,2e-08,PASS,geoid_NS.json + derivation R/(R+H+N)
+NS,zone 2113->2111,usft,combined_factor,1.00026162,1.0002616256728118,-5.672811776e-09,,2e-08,PASS,llh_NS_2111.json k * derived EF

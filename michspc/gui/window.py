@@ -103,6 +103,50 @@ exists to ask — and defaulting a question the user was never asked is the
 failure the longitude rule exists to prevent (docs/DESIGN.md section 7).
 """
 
+UNITS_LABEL = "Units:"
+UNITS_LABEL_ELEVATION_ONLY = "Units (elevation only):"
+"""The two spellings of a unit selector's label.
+
+**Both selectors stay enabled in every direction, and that is the honest
+state.** A unit selector is disabled only if it governs nothing, and neither
+one ever governs nothing:
+
+* The INPUT unit reads the input file. When the file is geodetic its columns
+  two and three are degrees and carry no linear unit - but its ELEVATION column
+  still does, and that column is what the elevation factor and the combined
+  factor are computed from. Disabling the selector there would make a wrong
+  foot definition unselectable rather than unnecessary.
+* The OUTPUT unit writes the export. When the export is geodetic the same is
+  true of its elevation column, which is re-expressed into the output unit end
+  to end (WP-R2 fix A) and which the job record's "Units out" and "Precision
+  written" lines both describe.
+
+So what changes is the label, not the enablement: it says "elevation only" on
+the side whose coordinate columns are degrees, and the tooltip says which
+column that is and why it still matters. Greying out a control that is still
+load-bearing would be a worse lie than the unqualified label was.
+"""
+
+UNITS_TOOLTIP_ZONE_IN = (
+    "The unit the input file's northing, easting and elevation columns are "
+    "written in."
+)
+UNITS_TOOLTIP_GEODETIC_IN = (
+    "The input file's columns two and three are latitude and longitude in "
+    "decimal degrees, which carry no linear unit. This selects the unit of its "
+    "ELEVATION column only - and that still matters: the elevation factor and "
+    "the combined factor are computed from it."
+)
+UNITS_TOOLTIP_ZONE_OUT = (
+    "The unit the converted northing, easting and elevation are written in."
+)
+UNITS_TOOLTIP_GEODETIC_OUT = (
+    "The export's columns two and three are latitude and longitude in decimal "
+    "degrees, which carry no linear unit. This selects the unit of its "
+    "ELEVATION column only - the elevation is re-expressed into it, and the "
+    "job record says so."
+)
+
 GEODETIC = "geodetic"
 """Sentinel for "this side of the conversion is latitude/longitude, not a zone".
 
@@ -172,6 +216,7 @@ class MainWindow(QMainWindow):
 
         self._build()
         self._update_input_hint()
+        self._update_unit_labels()
         self._update_longitude_relevance()
         self._update_convert_enabled()
         self.resize(1000, 640)
@@ -221,14 +266,19 @@ class MainWindow(QMainWindow):
         self.input_unit = self._unit_combo(box)
         self.output_unit = self._unit_combo(box)
 
+        # Held as attributes rather than dropped into the layout anonymously:
+        # their text follows the From/To selections (see _update_unit_labels).
+        self.input_unit_label = QLabel(UNITS_LABEL, box)
+        self.output_unit_label = QLabel(UNITS_LABEL, box)
+
         grid.addWidget(QLabel("From zone:", box), 2, 0)
         grid.addWidget(self.from_zone, 2, 1)
-        grid.addWidget(QLabel("Units:", box), 2, 2)
+        grid.addWidget(self.input_unit_label, 2, 2)
         grid.addWidget(self.input_unit, 2, 3)
 
         grid.addWidget(QLabel("To zone:", box), 3, 0)
         grid.addWidget(self.to_zone, 3, 1)
-        grid.addWidget(QLabel("Units:", box), 3, 2)
+        grid.addWidget(self.output_unit_label, 3, 2)
         grid.addWidget(self.output_unit, 3, 3)
 
         # --- longitude sign convention ----------------------------------
@@ -376,9 +426,16 @@ class MainWindow(QMainWindow):
     def direction(self) -> Direction | None:
         """The job this pair of dropdowns describes, or None if it is not one.
 
-        Returns None while either side is unanswered, and for the two
-        combinations that are not conversions: geodetic to geodetic, and a zone
-        to itself.
+        Returns None while either side is unanswered, and for the one
+        combination that is not a conversion: geodetic to geodetic, which has
+        no zone at either end and nothing to project through.
+
+        A zone to ITSELF is deliberately not in that list. It returns
+        ``ZONE_TO_ZONE`` and runs, because it is a real job: the units are
+        selected independently of the zones, so Michigan South in feet to
+        Michigan South in metres is a conversion the surveyor asked for, and
+        even the identity case produces the per-point scale, convergence and
+        combined factors that the audit CSV and the job record exist to report.
         """
         source = self.from_zone.currentData()
         target = self.to_zone.currentData()
@@ -424,8 +481,9 @@ class MainWindow(QMainWindow):
         if direction is Direction.ZONE_TO_ZONE:
             # A pure zone-to-zone job never consults the longitude convention
             # (michspc.job._convert_row), so the interface does not pretend the
-            # user answered a question it never asked.
-            return JobSettings(**common)
+            # user answered a question it never asked. The field carries no
+            # default, so the absence has to be stated rather than omitted.
+            return JobSettings(**common, longitude_convention=None)
 
         convention = self.longitude_convention()
         if convention is None:
@@ -438,8 +496,34 @@ class MainWindow(QMainWindow):
 
     def _on_direction_changed(self) -> None:
         self._update_input_hint()
+        self._update_unit_labels()
         self._update_longitude_relevance()
         self._update_convert_enabled()
+
+    def _update_unit_labels(self) -> None:
+        """Say what each unit selector governs, given From and To.
+
+        Reads the two dropdowns' own data, not ``direction()``: each selector
+        belongs to one END of the job and must describe that end even while the
+        other end is still unanswered. Nothing here computes anything - it sets
+        two strings and two tooltips (see ``UNITS_LABEL_ELEVATION_ONLY`` for why
+        neither selector is ever disabled).
+        """
+        source_is_geodetic = self.from_zone.currentData() == GEODETIC
+        target_is_geodetic = self.to_zone.currentData() == GEODETIC
+
+        self.input_unit_label.setText(
+            UNITS_LABEL_ELEVATION_ONLY if source_is_geodetic else UNITS_LABEL
+        )
+        self.input_unit.setToolTip(
+            UNITS_TOOLTIP_GEODETIC_IN if source_is_geodetic else UNITS_TOOLTIP_ZONE_IN
+        )
+        self.output_unit_label.setText(
+            UNITS_LABEL_ELEVATION_ONLY if target_is_geodetic else UNITS_LABEL
+        )
+        self.output_unit.setToolTip(
+            UNITS_TOOLTIP_GEODETIC_OUT if target_is_geodetic else UNITS_TOOLTIP_ZONE_OUT
+        )
 
     def input_hint_text(self) -> str:
         """The column layout the input file will be read as, given From.

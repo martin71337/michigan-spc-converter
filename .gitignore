@@ -27,3 +27,10 @@ review/*.log
 .idea/
 Thumbs.db
 desktop.ini
+
+# Reviewer scratch: probe scripts and generated run artifacts. The EVIDENCE
+# (raw NGS captures, the comparison table, the written records) is committed;
+# the throwaway inputs, ZIP outputs and probe scripts are not.
+review/opus-probes/
+review/ncat-crosscheck/inputs/
+review/ncat-crosscheck/outputs/

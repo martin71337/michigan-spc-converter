@@ -49,7 +49,7 @@ from michspc.gui.window import (  # noqa: E402
     WINDOW_TITLE,
     MainWindow,
 )
-from michspc.job import LongitudeConvention  # noqa: E402
+from michspc.job import Direction, LongitudeConvention  # noqa: E402
 from michspc.spc.units import (  # noqa: E402
     ALL_UNITS,
     INTERNATIONAL_FEET,
@@ -1228,3 +1228,257 @@ def test_launch_imports_main_with_the_signature_it_expects():
         Path(__file__).resolve().parent.parent / "launch.py"
     ).read_text(encoding="utf-8")
     assert "from michspc.gui.app import main" in launch_source
+
+
+# --------------------------------------------------------------------------
+# WP-R2 fixes A and H, at the interface.
+#
+# A State-Plane-to-geodetic run driven through the window, because these two
+# fixes are about what the SCREEN says and about the screen agreeing with the
+# file. The position is the interim gate's own: Lansing, 42.73250000 N,
+# -84.55550000 W, which in Michigan South is N = 136920.027586723 m,
+# E = 3984537.119005890 m, and 0.3048 m to the International foot exactly gives
+#     136920.027586723 / 0.3048 = 449212.6889 ift
+#     3984537.119005890 / 0.3048 = 13072628.3432 ift
+# --------------------------------------------------------------------------
+
+SPC_POINT = "101,449212.689,13072628.343,900.000,IRON PIPE\n"
+"""The reviewer's counterexample row for fix A, in Michigan South feet."""
+
+
+@pytest.fixture
+def spc_file(tmp_path) -> Path:
+    path = tmp_path / "24-118-spc.csv"
+    path.write_text(SPC_POINT, encoding="utf-8")
+    return path
+
+
+@pytest.fixture
+def to_geodetic(window, spc_file, out_dir):
+    """A completed Michigan South -> geodetic run, feet in, metres out."""
+    fill_in(
+        window,
+        input_path=spc_file,
+        output_directory=out_dir,
+        source=MI_SOUTH,
+        target=GEODETIC,
+    )
+    window.input_unit.setCurrentIndex(window.input_unit.findData(INTERNATIONAL_FEET))
+    window.output_unit.setCurrentIndex(window.output_unit.findData(METERS))
+    window.longitude_combo.setCurrentIndex(
+        window.longitude_combo.findData(LongitudeConvention.NEGATIVE_WEST)
+    )
+    if not window.convert():
+        raise AssertionError(f"the run failed: {window.shown_failures}")
+    return window
+
+
+def test_fix_a_the_table_shows_the_elevation_in_the_output_unit(to_geodetic):
+    """900 International feet in, metres out, on screen.
+
+    Hand-derived. The International foot is 0.3048 m exactly (units.py), so
+
+        900.000 ift x 0.3048 m/ift = 274.32 m exactly
+
+    (900 x 0.3 = 270, 900 x 0.0048 = 4.32, sum 274.32.) Metres are written to
+    4 decimal places, so the cell reads "274.3200".
+
+    The elevation column is index 3 (results_model.ELEVATION_COLUMN). Before
+    the fix it read "900.0000" - the input number relabelled as metres, which
+    is 625.680 m from the truth - while the "Units out" line of the record in
+    the same archive said metres.
+    """
+    assert cell(to_geodetic, 0, results_model.ELEVATION_COLUMN) == "274.3200"
+
+
+def test_fix_a_the_screen_and_the_written_export_agree_on_the_elevation(
+    to_geodetic,
+):
+    """UI honesty: the same string, not a string that rounds the same way.
+
+    Read out of the archive that was actually written, so a divergence between
+    the two surfaces would fail here rather than on a surveyor's disk.
+    """
+    exported = member_text(to_geodetic.written_files["archive"], "GEODETIC.csv")
+    fields = exported.strip().split(",")
+
+    # The clean export has no header row: field 3 of the single data line is
+    # the elevation.
+    assert fields[3] == cell(to_geodetic, 0, results_model.ELEVATION_COLUMN)
+    # ... and it is the formatter's own string for the value the job produced.
+    assert fields[3] == fmt.coordinate(
+        to_geodetic.result.points[0].output_elevation, METERS
+    )
+
+
+# --------------------------------------------------------------------------
+# Fix H - the table's headings name what the columns hold
+# --------------------------------------------------------------------------
+
+
+def headings(window) -> list[str]:
+    """The horizontal header, as the table itself reports it."""
+    return [
+        window.model.headerData(
+            section, Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole
+        )
+        for section in range(window.model.columnCount())
+    ]
+
+
+def test_fix_h_a_geodetic_result_renames_the_two_degree_columns(to_geodetic):
+    """The values were always degrees; the headings called them a northing.
+
+    ``row_strings`` has always rendered columns 1 and 2 as a latitude and a
+    longitude on this branch, so the table labelled 42.73250000 "Northing".
+    Only the two names move - the columns, their order and their alignment are
+    unchanged.
+    """
+    assert headings(to_geodetic) == [
+        "Point",
+        "Latitude",
+        "Longitude",
+        "Elevation",
+        "Grid scale factor",
+        "Combined factor",
+        "Warnings",
+    ]
+    assert headings(to_geodetic) == list(results_model.GEODETIC_COLUMNS)
+
+    # The cells under those two headings really are the degrees, at 8 places.
+    point = to_geodetic.result.points[0]
+    assert cell(to_geodetic, 0, results_model.NORTHING_COLUMN) == fmt.latitude(
+        point.output_northing
+    )
+    assert cell(to_geodetic, 0, results_model.EASTING_COLUMN) == fmt.longitude(
+        point.output_easting
+    )
+
+
+def test_fix_h_a_zone_to_zone_result_keeps_the_linear_headings(converted):
+    """The rename is for the one direction whose values are degrees.
+
+    A Michigan Central -> Michigan South job puts grid coordinates in those two
+    columns, so they keep the names the owner approved.
+    """
+    assert headings(converted) == list(results_model.COLUMNS)
+    assert headings(converted)[1:3] == ["Northing", "Easting"]
+
+
+def test_fix_h_an_empty_table_shows_the_ordinary_headings(window):
+    """Nothing has been converted, so no direction has been run.
+
+    Naming the columns after a direction the user has not run would be the
+    interface answering a question it was not asked.
+    """
+    assert window.result is None
+    assert window.model.rowCount() == 0
+    assert headings(window) == list(results_model.COLUMNS)
+    assert results_model.columns_for(None) == results_model.COLUMNS
+
+
+def test_fix_h_the_headings_change_back_when_the_result_is_cleared(to_geodetic):
+    """The model settles headings with rows, in one reset.
+
+    A stale "Latitude" over an empty table, or over the next zone-to-zone job,
+    would be the same wrong label the fix removed.
+    """
+    assert headings(to_geodetic)[1:3] == ["Latitude", "Longitude"]
+
+    to_geodetic.model.set_result(None)
+
+    assert to_geodetic.model.rowCount() == 0
+    assert headings(to_geodetic) == list(results_model.COLUMNS)
+
+
+def test_fix_h_both_unit_selectors_stay_enabled_in_every_direction(window):
+    """A selector is disabled only if it governs nothing, and neither ever does.
+
+    On a geodetic side, columns two and three are degrees and carry no linear
+    unit - but the ELEVATION column still does, and that column is what the
+    elevation factor and the combined factor are computed from. Greying the
+    control out would make a wrong foot definition unselectable rather than
+    unnecessary, which is a worse lie than the unqualified label was.
+    """
+    for source, target in (
+        (UNCHOSEN, UNCHOSEN),
+        (MI_SOUTH, MI_CENTRAL),
+        (MI_SOUTH, GEODETIC),
+        (GEODETIC, MI_SOUTH),
+        (GEODETIC, GEODETIC),
+    ):
+        window.from_zone.setCurrentIndex(window.from_zone.findData(source))
+        window.to_zone.setCurrentIndex(window.to_zone.findData(target))
+        assert window.input_unit.isEnabled() is True
+        assert window.output_unit.isEnabled() is True
+
+
+def test_fix_h_the_unit_label_says_elevation_only_on_the_geodetic_side(window):
+    """What changes is the LABEL, and it follows the end it belongs to.
+
+    Each selector describes one END of the job, so the labels are driven by the
+    two dropdowns separately rather than by ``direction()`` - the input side
+    must describe itself while the output side is still unanswered.
+    """
+    # Nothing chosen: both sides are still ordinary linear columns.
+    assert window.input_unit_label.text() == window_module.UNITS_LABEL
+    assert window.output_unit_label.text() == window_module.UNITS_LABEL
+
+    # Reading a geodetic file: only the INPUT label is qualified.
+    window.from_zone.setCurrentIndex(window.from_zone.findData(GEODETIC))
+    window.to_zone.setCurrentIndex(window.to_zone.findData(MI_SOUTH))
+    assert (
+        window.input_unit_label.text() == window_module.UNITS_LABEL_ELEVATION_ONLY
+    )
+    assert window.output_unit_label.text() == window_module.UNITS_LABEL
+
+    # Writing a geodetic file: only the OUTPUT label is.
+    window.from_zone.setCurrentIndex(window.from_zone.findData(MI_SOUTH))
+    window.to_zone.setCurrentIndex(window.to_zone.findData(GEODETIC))
+    assert window.input_unit_label.text() == window_module.UNITS_LABEL
+    assert (
+        window.output_unit_label.text() == window_module.UNITS_LABEL_ELEVATION_ONLY
+    )
+
+
+def test_fix_h_the_unit_tooltip_says_which_column_the_unit_governs(window):
+    """The label is short, so the tooltip carries the reason.
+
+    It names the elevation column and says why it still matters - the factors
+    are computed from it - which is what makes an enabled control honest rather
+    than merely un-greyed.
+    """
+    window.from_zone.setCurrentIndex(window.from_zone.findData(GEODETIC))
+    window.to_zone.setCurrentIndex(window.to_zone.findData(MI_SOUTH))
+    assert window.input_unit.toolTip() == window_module.UNITS_TOOLTIP_GEODETIC_IN
+    assert window.output_unit.toolTip() == window_module.UNITS_TOOLTIP_ZONE_OUT
+    assert "ELEVATION column only" in window.input_unit.toolTip()
+
+    window.from_zone.setCurrentIndex(window.from_zone.findData(MI_SOUTH))
+    window.to_zone.setCurrentIndex(window.to_zone.findData(GEODETIC))
+    assert window.input_unit.toolTip() == window_module.UNITS_TOOLTIP_ZONE_IN
+    assert window.output_unit.toolTip() == window_module.UNITS_TOOLTIP_GEODETIC_OUT
+    assert "ELEVATION column only" in window.output_unit.toolTip()
+
+
+def test_fix_h_a_zone_to_itself_is_a_real_job_and_the_docstring_says_so(window):
+    """The docstring used to claim a guard that does not exist in the code.
+
+    Michigan South in feet to Michigan South in metres is a conversion the
+    surveyor asked for - the units are chosen independently of the zones - and
+    even the identity case produces the per-point factors the audit CSV exists
+    to report. The behaviour is unchanged by fix H; only the description of it
+    was wrong, and a docstring that describes a guard nobody wrote is how the
+    guard gets removed by someone "restoring" it.
+    """
+    window.from_zone.setCurrentIndex(window.from_zone.findData(MI_SOUTH))
+    window.to_zone.setCurrentIndex(window.to_zone.findData(MI_SOUTH))
+
+    # The behaviour: it is a job.
+    assert window.direction() is Direction.ZONE_TO_ZONE
+
+    # The description of it.
+    text = MainWindow.direction.__doc__
+    assert "A zone to ITSELF is deliberately not in that list" in text
+    assert "not a conversion: geodetic to geodetic" in text
+    assert "and a zone to itself" not in text

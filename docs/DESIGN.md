@@ -100,10 +100,19 @@ rigorous equations.
 
 ## 6. Extensibility
 
-SPCS2022 is in beta with official release in 2027; NAD 83 is being replaced by
-NATRF2022. Michigan's committee kept Lambert conformal conic and the same three
-zones, redesigned as low-distortion projections. The seams that let that arrive
-as data rather than a rewrite:
+**Corrected by amendment #21 (2026-08-06); the original text is quoted there.**
+Michigan's published SPCS2022 design is **19 zones on NATRF2022** — a statewide
+oblique Mercator plus 18 low-distortion zones, 13 one-parallel Lambert and 5
+transverse Mercator. The SPCS 83 North/Central/South zones do not carry forward.
+NATRF2022 is finalized in beta but not released, and no official
+NAD83(2011)→NATRF2022 transformation exists yet.
+
+The seams below were **claimed** to let that arrive as data rather than a
+rewrite. Two independent reviewers attacked that claim at the closing gate and
+both returned REWORK-REQUIRED: the protocol, the second constructor and the
+transformation seam do not exist in code. Amendment #21 carries the full list,
+which is the opening specification of the SPCS2022 work package. They are
+retained here as the intended design, not as a description of the code:
 
 - **`Projection` protocol** — `forward(lat, lon)` and `inverse(N, E)`. Lambert
   today; the manual already supplies transverse Mercator (§3.2) and oblique
@@ -278,6 +287,219 @@ geodetic conversion was tested at all: 42.73250000 N, −84.55550000 W into
 Michigan South gives 449,212.689 / 13,072,628.343 international feet, which is
 the interim reviewer's own metre figures (136,920.027586723 / 3,984,537.119005890)
 divided by 0.3048 exactly. The pin was falsified.
+
+### #20 — 2026-08-06 — Closing review gate: 17 findings, all fixed and pinned
+
+The closing gate ran three independent tracks, blind to each other: the Codex
+CLI over the whole codebase, an Opus adversarial reviewer, and a **live NGS NCAT
+cross-check** driving every pipeline through the real file path. Prompts and raw
+output are in `review/gate2-prompt.txt`, `review/gate2-output.txt`,
+`review/opus-probes/` and `review/ncat-crosscheck/`; the session lead's
+adjudication is `review/gate2-adjudication.md`.
+
+**The mathematics was found correct by all three tracks.** The live cross-check
+made 666 comparisons over 13 fresh points — geodetic⇄SPC in all three zones, all
+six directed zone pairs, all three unit systems — against NCAT and the NGS geoid
+API, and every one passed: single-leg linear agreement to **0.5 mm**, chained
+zone-to-zone to **0.9 mm**, grid scale factor and convergence matching NCAT's
+printed precision **exactly**, geoid separation within the API's own 1 mm print
+quantum. Both reviewers independently re-derived §3.1 from the manual — Codex at
+80 digits, Opus at 60 digits writing the manual's positive-west form from
+scratch — and matched production to ~1e-9 m.
+
+**Every defect found was in the contract, the record, or the safety gates — not
+in a coordinate.** At this tier that distinction is not a comfort: a deliverable
+that misstates its own units is a wrong number in the reader's hands.
+
+Two interim-gate fixes were recorded in #11 as landed and had **not** landed:
+
+- **The `constants=` seam.** #11 says the caller-supplied constants parameters
+  were "deleted rather than guarded". They were not; all four public conversion
+  functions still accepted them, `LambertConstants.zone_code` existed to make
+  the mismatch checkable and nothing read it, and `test_convert.py` pinned the
+  seam *open* by testing only the matched pairing. Mispairing moved a point
+  **4,231 km** with no warning. Now genuinely deleted, and pinned by signature.
+- **The longitude convention default.** `JobSettings.longitude_convention`
+  defaulted to negative-west against §7's "no default" rule, and its pin only
+  counted enum members. A positive-west file converted under the silent default
+  lands **11,634,618 m** away. The field is now required; `None` is sayable only
+  by a zone-to-zone job, which never consults it, and `run` refuses any other
+  direction that arrives with it.
+
+Interim pins #2 (the 0-360 east longitude, 275.4445) and #3 (non-finite input)
+were **never written at all** — the reviewer seeded both pre-fix behaviours and
+260 tests stayed green. Both are now pinned and falsified.
+
+Fixed in this round, each pinned with the reviewer's own counterexample and each
+pin falsified by reverting the fix:
+
+| Defect | Consequence before the fix |
+|---|---|
+| Zone→geodetic elevation left in the INPUT unit while the clean export, audit CSV and record all declared the OUTPUT unit | 900 ift read as 900 m: **625.680 m**; re-import as the record instructs: 98 ppm factor error |
+| Job record described geodetic files as "PNEZD … northing, easting" | three false statements about a latitude/longitude file, in the program's only documentation |
+| Geoid lookup failure silently merged into "no elevation" | a point whose Z *was* recorded listed under "Blank elevation field" — a falsehood in an audit record |
+| `verify_round_trip` compared only point identifiers | every coordinate, elevation and description could be corrupted and still pass the writer's own safety gate |
+| Input SHA-256 hashed independently of the bytes parsed | the record could certify a file that was never converted |
+| Duplicate point identifiers accepted | export names a point that picks out neither row |
+| `overwrite=False` committed with `os.replace` | a file created by another process mid-write was destroyed |
+| ZIP never fsynced, never verified before commit | a corrupt archive could reach the deliverable name |
+| Lenient CSV quoting silently repaired malformed rows | `"A"junk` became `Ajunk`; the parsed text stopped representing the file |
+| Cone-apex band raised bare `ZeroDivisionError` | 20–45 m of northing per zone refused with no point named |
+| Audit CSV formatted geodetic input degrees as linear coordinates | 42.73250000 recorded as 42.733 — about 55 m |
+| BOM survived into `point_id` on the cp1252 path | point "101" matched nothing on the way back |
+| GUI table headed degrees "Northing"/"Easting" | the screen named a latitude a northing |
+
+The unit selectors were examined and deliberately **left enabled in every
+direction**: a geodetic side's Z column still carries a linear unit and still
+drives the elevation and combined factors, so greying the control would make a
+wrong foot definition unselectable rather than unnecessary. The label and
+tooltip now say which column the unit governs.
+
+**A defect found by the fix round itself.** The WP-R4 verification package,
+writing anchors, found that `lambert.forward` had the same bare-arithmetic
+failure near the poles that `inverse` had just been hardened against: `sin()`
+rounds to exactly ±1 over the last ~6.04e-7° (about 67 mm) below each pole, and
+`isometric_latitude` then evaluated `log(2/0)`. North side raised
+`ZeroDivisionError`, south side a `ValueError` out of `math.log` naming nothing.
+No Michigan survey reaches it; the rule it broke has no latitude qualifier. The
+symmetric guard is in, pinned, and falsified. The package reported it rather
+than fixing it silently, which is the behaviour the method asks for.
+
+**Verification, rebuilt.** The suite went **546 → 855**. The 27 frozen NCAT
+anchors drove `lambert` directly and nothing drove the production path end to
+end, which is exactly why the unit and record defects survived — one whole
+direction, `ZONE_TO_GEODETIC`, had **zero** successful executions anywhere in
+the suite. Now: the 13 live cross-check points are frozen as fixtures in
+`tests/fixtures/ncat_crosscheck.py` (401 values, every one transcribed from the
+raw NGS JSON and machine-verified against it, none recomputed by this program),
+and `tests/test_ncat_crosscheck.py` drives **file → `job.run` → `write_all` →
+the ZIP → the parsed audit CSV** for all three directions in all three units,
+asserting against NGS figures rather than against the program's own output.
+Anti-vacuousness was demonstrated by seeding seven separate production defects
+and confirming which tests caught each.
+
+Rejected nothing this round. Codex's finding 11 (no fsync, no startup cleanup of
+stale `.partial` files) was accepted in part: fsync and pre-commit archive
+verification are in; a startup sweep for orphaned `.partial` files is **not**,
+because nothing in the program is a daemon and a sweep would race a concurrent
+job. Recorded here so it is a decision rather than an omission.
+
+One platform dependency is now load-bearing and stated: the no-clobber commit
+relies on Windows `os.rename` refusing an existing target. POSIX `rename`
+replaces silently. This program ships for Windows (§9); a port would need
+`O_EXCL` or an equivalent.
+
+### #21 — 2026-08-06 — §6 was wrong about SPCS2022, and the extensibility claim did not survive
+
+Both reviewers were asked to attack §6's claim that SPCS2022 "arrives as data
+rather than a rewrite". Both returned **REWORK-REQUIRED**, independently and
+with congruent lists. The claim was aspiration recorded as fact.
+
+What §6 promised and what exists: there is **no `Projection` protocol** —
+`convert.py` imports `lambert.forward`/`inverse` by name; `Zone.definition` is
+typed to `LambertTwoParallelDef` alone; **`ProjectionKind` is declared and read
+nowhere**; the "two Lambert constructors" are one; there is **no datum
+transformation seam as code** — `PointConversion` carries a single pivot and a
+single frame, so a real transformation changes the core record type and with it
+the audit schema; `report.py` hardcodes 2SP Lambert, GRS 80, NAD 83, Appendix C
+and "twenty-seven positions", and raises `AttributeError` on a 1SP zone *after*
+the coordinates are computed; zone lookup is keyed on the bare code, so two eras
+collide; archive names and audit columns cannot distinguish eras;
+`_EASTING_WINDOW_M` assumes SPCS 83 false-easting spacing. Clean: `zones.py` is
+genuinely data, and the GUI zone dropdown builds entirely from `ALL_ZONES`.
+
+**§6's factual claim about Michigan was also false.** It said Michigan "kept
+Lambert conformal conic and the same three zones, redesigned as low-distortion
+projections". Recon against NGS's published zone definitions
+(`beta.ngs.noaa.gov/SPCS/json_data/zoneDefinitions.json`, page last updated
+2026-06-01; downloaded and inspected directly by the session lead) shows
+Michigan's final SPCS2022 design is **19 zones on NATRF2022**:
+
+- `260001` **Michigan**, statewide, **oblique Mercator (OMC)**, origin 45°00′N /
+  86°00′W, skew azimuth −26°, origin scale 0.999800;
+- `261001`–`261018`, eighteen state-designed low-distortion zones named for
+  localities (Ann Arbor, Detroit, Flint, Saginaw, Roscommon, Thunder Bay,
+  Kalamazoo, Grand Rapids, Newaygo, Wexford, Leelanau, Cheboygan, Mackinac,
+  Escanaba, Marquette, Houghton, Bessemer, Isle Royale) — **13 one-parallel
+  Lambert (LC1) and 5 transverse Mercator (TM)**, all origin scales ≥ 1.
+
+There is no SPCS2022 Michigan North/Central/South. Supporting Michigan therefore
+needs the **transverse Mercator (§3.2) and oblique Mercator (§3.3) engines**,
+not merely the 1SP Lambert constructor §10 anticipated. §6 is corrected in place
+by this amendment; the superseded wording is quoted above so the record shows
+what was believed and when.
+
+**Publication status, established 2026-08-06 from primary NGS sources.** Zone
+parameters: published and declared *"stable for implementation planning"* (NOAA
+bulletin, 2026-05-28); beta feedback closed. NATRF2022: **finalized in beta, not
+released** — FGCS approval expected mid-2026, official adoption late 2026 per the
+Federal Register notice of 2024-10-09, with an unconfirmed report of slip into
+2027. NAD83(2011)→NATRF2022 transformation: **does not exist as an official
+product**; beta NCAT states plainly that it does not transform between reference
+frames. Verification source: beta NCAT **does** emit SPCS2022 coordinates, so
+projection anchors are obtainable — but they would be *beta* anchors and must be
+re-frozen against official NCAT at rollout. Units: the beta tables publish
+international feet only, which matches this program's default.
+
+**Verdict recorded: PARTIALLY BUILDABLE, and deliberately not built now.** The
+zone layer could be built today; the datum layer cannot. Until an official
+NAD83(2011)→NATRF2022 transformation ships, this program could hold SPCS2022
+zones but could not legitimately move the owner's existing NAD 83 job
+coordinates into them — and moving them anyway is precisely the silent 1–2 m
+error §6's safety rule exists to prevent. The frame refusal in `frames.py`
+therefore stays, and it is doing real work rather than standing in reserve.
+
+The rework list above is the opening specification of the future SPCS2022 work
+package. Deliberately not attempted in this session: the core had just passed
+three independent verifications, and restructuring it before release would
+re-open verified surfaces for no present capability.
+
+### #22 — 2026-08-06 — NGVD 29 → NAVD 88 sized, recorded, not built
+
+Owner asked how large a task vertical datum conversion would be, with NAPGD2022
+capability later. Researched against primary NGS sources 2026-08-06; recorded
+here so the work can be scoped without repeating the recon.
+
+**Verdict: MEDIUM — two work packages**, comparable in bulk to the GEOID18
+subsystem, roughly 1,200–1,800 lines with tests. Nothing architecturally novel;
+every piece has a precedent in this repo.
+
+Available today: **VERTCON 3.0** (release 20190601) transformation and *error*
+grids for CONUS, covering all of Michigan, in the NGS `.b` format — the same
+family as the GEOID18 tile already read here, differing by Fortran record
+markers bracketing the header and each row, which are themselves a free
+structural check. Both grids are ~2.4 MB, US-government work, SHA-256 pinnable
+exactly like `g2018u3.bin`. The NCAT API carries the transformation
+(`orthoHt`, `inVertDatum`, `outVertDatum`), so frozen anchors come from the same
+source and workflow as the existing NCAT lattice — verified live by the session
+lead: 200.000 m NGVD 29 at 43.0 N, 84.5 W → **199.860 m** NAVD 88, σ 0.001,
+`vertconVersion 3.0`. The shift depends on horizontal position only, so the
+inverse is the same grid with the sign reversed — one data path, not two.
+
+Shape of the work: a `VerticalDatum` and a **transformation registry keyed by
+(source, target)**, mirroring `frames.py` and its refusal — any pair without a
+published grid refuses loudly. That registry is the NAPGD2022 seam: it arrives
+later as a record plus grids plus a citation. Elevations become datum-tagged
+rather than untyped floats implicitly meaning NAVD 88. The shift must land
+**before** the geoid lookup, because GEOID18's N is defined against NAVD 88.
+`ConvertedPoint`'s "unchanged by the conversion" contract is repealed for the Z
+column, which must then be said in every output.
+
+**Top risk, and the reason this is not a small task: disclosure.** VERTCON is a
+*modeled* shift — NGS states 2 cm (1σ) and that it "can not maintain the full
+vertical control accuracy of geodetic leveling", with rare NGVD 29 network
+distortions of 20 cm or more, and published NAVD 88 benchmark values superseding
+it. A converted elevation looks exact. The record must carry the per-point sigma
+from the error grid and the supersession caveat verbatim, or this program
+launders a model into a sealed number — the tier sentence applied to heights.
+Second risk: the sign/direction semantics of the `trn` grid must be pinned
+against a live NCAT anchor at build time; that is the geoid-sign defect class
+this project has already been burned by (#1, MATLAB defect 2).
+
+NAPGD2022 itself is **blocked**: beta only, no final NAVD88→NAPGD2022
+transformation product exists, and GEOID2022 replaces GEOID18 in the factor
+chain when it lands. Make the GEOID18↔NAVD88 pairing explicit data in the
+registry now so that later is a data change rather than an excavation.
 
 ### #17 — 2026-08-05 — Owner resolves the two open questions from #15 and #16
 

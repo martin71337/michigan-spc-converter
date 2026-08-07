@@ -46,6 +46,56 @@ from michspc.spc.zones import LambertTwoParallelDef, Zone
 _SIN_LAT_TOLERANCE = 1e-15
 _MAX_ITERATIONS = 12
 
+# Largest |Q| for which the manual's starting approximation can still produce a
+# sin(phi) strictly inside (-1, 1), hand-derived:
+#
+#     sin phi = (exp(2Q) - 1) / (exp(2Q) + 1) = tanh Q
+#     1 - tanh Q = 2 / (exp(2Q) + 1)
+#
+# IEEE-754 binary64 has ulp(1.0) = 2^-53, so any value within 2^-54 of 1.0
+# rounds to exactly 1.0. The seed is therefore indistinguishable from 1 once
+#
+#     2 / (exp(2Q) + 1) <= 2^-54   <=>   exp(2Q) >= 2^55 - 1
+#     Q >= 0.5 ln(2^55 - 1) = 19.0615475...
+#
+# and no representable latitude corresponds. Guarding here also keeps
+# math.exp(2Q) below its own overflow point (2Q < 709.78) and keeps the
+# symmetric case, Q -> -inf and sin(phi) -> -1, out of math.log(0.0).
+_MAX_ISOMETRIC_LATITUDE = 0.5 * math.log(2.0**55 - 1.0)
+
+
+class ApexLatitudeError(ValueError):
+    """The grid point lies too close to the cone apex for any latitude.
+
+    Distinct from the ``R' <= 0`` refusal in ``inverse``, which catches points
+    at or past the apex itself. This is the band just below it, a few tens of
+    metres deep, where the mapping radius is still positive but the latitude it
+    implies is within a rounding step of 90 degrees. Before this guard existed
+    the band raised a bare ``ZeroDivisionError`` out of
+    ``Ellipsoid.isometric_latitude`` - found by the closing review gate.
+
+    A ``ValueError`` so it sits alongside the module's other refusals for a
+    coordinate that cannot be converted.
+    """
+
+
+def _require_representable_sin_latitude_of(sin_lat: float, latitude: float) -> None:
+    """Refuse a latitude whose sine has rounded onto a pole.
+
+    The forward counterpart of ``_require_representable_sin_latitude``, which
+    guards the inverse iteration. Stated as a containment test so a NaN is
+    refused too, and it names the latitude the caller passed rather than its
+    sine, because that is the number in the file.
+    """
+    if not -1.0 < sin_lat < 1.0:
+        raise ApexLatitudeError(
+            f"Latitude {latitude!r} is within a rounding step of a pole: its "
+            f"sine is exactly {sin_lat!r}, and the isometric latitude of a pole "
+            f"is infinite, so no grid coordinate corresponds to it. Check that "
+            f"the latitude column holds decimal degrees and was not swapped "
+            f"with another field."
+        )
+
 
 class ConvergenceError(Exception):
     """The inverse latitude iteration did not converge.
@@ -302,6 +352,18 @@ def forward(
     _require_valid_geodetic(latitude, longitude)
 
     sin_lat = math.sin(math.radians(latitude))
+
+    # The domain check above admits any latitude strictly inside (-90, 90), but
+    # sin() rounds to exactly +-1.0 for the last 6.04e-7 degrees - about 67 mm -
+    # below each pole, and isometric_latitude then evaluates log((1+1)/(1-1)).
+    # The inverse path was hardened against the same arithmetic at the cone
+    # apex; this is its symmetric partner on the forward path, found by the
+    # WP-R4 verification package. Michigan work never approaches it, but "no
+    # bare arithmetic error escapes the core" is not a rule with a latitude
+    # qualifier: unguarded, the north side raised ZeroDivisionError and the
+    # south side a ValueError out of math.log naming nothing.
+    _require_representable_sin_latitude_of(sin_lat, latitude)
+
     Q = constants.ellipsoid.isometric_latitude(sin_lat)
     R = constants.K / math.exp(Q * constants.sin_lat_origin)
 
@@ -362,7 +424,20 @@ def inverse(
     R = math.hypot(R_prime, E_prime)
     Q = math.log(constants.K / R) / constants.sin_lat_origin
 
-    sin_lat = _solve_sin_latitude(Q, constants.ellipsoid)
+    try:
+        sin_lat = _solve_sin_latitude(Q, constants.ellipsoid)
+    except ApexLatitudeError as exc:
+        # The solver knows only Q. Re-raise naming the quantity the surveyor
+        # actually typed, in the wording of the adjacent apex refusal above.
+        raise ApexLatitudeError(
+            f"Northing {northing} m is within a rounding step of the apex of "
+            f"the projection cone for this zone (the mapping radius is only "
+            f"{R:.3f} m, isometric latitude {Q:.6f}). Every latitude that close "
+            f"to 90 degrees is the same double-precision number, so no geodetic "
+            f"position can be reported for it. Check that the northing and "
+            f"easting are not transposed and that the correct zone and unit "
+            f"were selected."
+        ) from exc
 
     return GeodeticPoint(
         latitude=math.degrees(math.asin(sin_lat)),
@@ -370,6 +445,31 @@ def inverse(
         convergence=convergence,
         scale_factor=constants._scale_factor(sin_lat, R),
     )
+
+
+def _require_representable_sin_latitude(sin_lat: float, Q: float) -> None:
+    """Refuse a sin(phi) that has reached or passed a pole, or is not a number.
+
+    Written as a containment test rather than ``abs(sin_lat) >= 1.0`` so that a
+    NaN - which compares false against every bound - is refused too.
+
+    The |Q| ceiling above is the analytic boundary; this is the arithmetic one,
+    and it is the tighter of the two. The manual's seed is evaluated as
+    ``(exp(2Q) - 1) / (exp(2Q) + 1)``, and near the apex exp(2Q) is of order
+    1e16, where ulp is 2 - so the +-1 terms snap to the same double and the
+    quotient reaches exactly 1.0 while Q is still around 18.46, well short of
+    19.06. Measured on the shipped zones, the refused band is the last 20 m
+    (MI North), 28 m (MI Central) and 45 m (MI South) of northing below the
+    apex, and its lower edge is ragged over a few metres for the same
+    ulp-snapping reason - which is why the guard is a test on the value rather
+    than a northing threshold anyone could tabulate.
+    """
+    if not -1.0 < sin_lat < 1.0:
+        raise ApexLatitudeError(
+            f"The latitude iteration reached sin(phi) = {sin_lat!r} for "
+            f"isometric latitude Q={Q!r}. No geodetic latitude corresponds to "
+            f"it; the point is at or beyond a pole of the projection."
+        )
 
 
 def _solve_sin_latitude(Q: float, ellipsoid: Ellipsoid) -> float:
@@ -387,15 +487,31 @@ def _solve_sin_latitude(Q: float, ellipsoid: Ellipsoid) -> float:
     applying a correction of -f1/f2. The manual says to iterate twice; we
     iterate to machine precision and raise if that does not happen, rather than
     returning a value that merely looks converged.
+
+    Refuses with ``ApexLatitudeError`` if the seed or any iterate leaves the
+    open interval (-1, 1). ``isometric_latitude`` divides by ``1 - sin phi``,
+    so a sin(phi) that has reached the poles produces a bare ZeroDivisionError
+    (or, at -1, a math domain error out of ``log``) rather than a refusal, and
+    no bare arithmetic error may escape the core.
     """
+    if abs(Q) >= _MAX_ISOMETRIC_LATITUDE:
+        raise ApexLatitudeError(
+            f"Isometric latitude Q={Q!r} is beyond {_MAX_ISOMETRIC_LATITUDE:.6f}, "
+            f"past which the starting approximation sin(phi) = tanh(Q) is "
+            f"exactly +-1 in double precision and no representable geodetic "
+            f"latitude corresponds."
+        )
+
     exp_2q = math.exp(2.0 * Q)
     sin_lat = (exp_2q - 1.0) / (exp_2q + 1.0)
+    _require_representable_sin_latitude(sin_lat, Q)
 
     for _ in range(_MAX_ITERATIONS):
         f1 = ellipsoid.isometric_latitude(sin_lat) - Q
         f2 = ellipsoid.d_isometric_latitude_d_sin(sin_lat)
         correction = -f1 / f2
         sin_lat += correction
+        _require_representable_sin_latitude(sin_lat, Q)
         if abs(correction) < _SIN_LAT_TOLERANCE:
             return sin_lat
 

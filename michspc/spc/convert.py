@@ -31,7 +31,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from michspc.spc.frames import ReferenceFrame, require_same_frame
-from michspc.spc.lambert import LambertConstants, constants_for
+from michspc.spc.lambert import constants_for
 from michspc.spc.lambert import forward as lambert_forward
 from michspc.spc.lambert import inverse as lambert_inverse
 from michspc.spc.zones import Zone
@@ -49,6 +49,18 @@ class WarningCode(Enum):
 
     OUTSIDE_ZONE_EXTENT = "outside-zone-extent"
     EASTING_UNLIKE_SELECTED_ZONE = "easting-unlike-selected-zone"
+    GEOID_UNAVAILABLE = "geoid-unavailable"
+    """A point carried a usable elevation but the geoid grid does not cover it.
+
+    Raised by michspc.job, not by this module - nothing here reads a file - but
+    the code lives with the others because a job's warnings are one list and
+    the audit CSV and the job record group them by this one enum.
+
+    Without it a geoid miss is silent: the elevation and combined factors read
+    N/A exactly as they do for a blank Z column, and the job record then lists
+    the point under "blank elevation field", which is a false statement about a
+    point whose elevation was recorded perfectly well.
+    """
 
 
 @dataclass(frozen=True)
@@ -139,14 +151,12 @@ def to_geodetic(
     easting: float,
     zone: Zone,
     context: str = "point",
-    constants: LambertConstants | None = None,
 ) -> tuple[float, float, float, float, tuple[ConversionWarning, ...]]:
     """Grid to geodetic.
 
     Returns (latitude, longitude, convergence, scale_factor, warnings).
     """
-    constants = constants or constants_for(zone)
-    position = lambert_inverse(northing, easting, constants)
+    position = lambert_inverse(northing, easting, constants_for(zone))
 
     return (
         position.latitude,
@@ -162,14 +172,12 @@ def from_geodetic(
     longitude: float,
     zone: Zone,
     context: str = "point",
-    constants: LambertConstants | None = None,
 ) -> tuple[float, float, float, float, tuple[ConversionWarning, ...]]:
     """Geodetic to grid.
 
     Returns (northing, easting, convergence, scale_factor, warnings).
     """
-    constants = constants or constants_for(zone)
-    point = lambert_forward(latitude, longitude, constants)
+    point = lambert_forward(latitude, longitude, constants_for(zone))
 
     warnings: list[ConversionWarning] = []
     extent_warning = _check_extent(
@@ -193,18 +201,23 @@ def convert_point(
     source_zone: Zone,
     target_zone: Zone,
     context: str = "point",
-    source_constants: LambertConstants | None = None,
-    target_constants: LambertConstants | None = None,
 ) -> PointConversion:
     """Convert one point from one zone to another.
 
     Both zones must be in the same reference frame; crossing frames is refused
     (michspc.spc.frames). Linear values are meters.
+
+    A zone is the only thing this function accepts; its constants are derived
+    from it here. Callers used to be able to hand in precomputed
+    ``LambertConstants`` for speed, which made it possible to name one zone and
+    supply another's constants - a 4,231 km error with no refusal and no warning
+    (docs/DESIGN.md amendment #11 finding 5). ``constants_for`` is cached, so
+    the speed that seam bought is now free.
     """
     require_same_frame(source_zone.frame, target_zone.frame)
 
     latitude, longitude, source_convergence, source_scale, warnings_in = to_geodetic(
-        northing, easting, source_zone, context, source_constants
+        northing, easting, source_zone, context
     )
 
     (
@@ -213,7 +226,7 @@ def convert_point(
         target_convergence,
         target_scale,
         warnings_out,
-    ) = from_geodetic(latitude, longitude, target_zone, context, target_constants)
+    ) = from_geodetic(latitude, longitude, target_zone, context)
 
     return PointConversion(
         source_zone=source_zone,
@@ -239,7 +252,6 @@ def project_point(
     source_frame: ReferenceFrame,
     target_zone: Zone,
     context: str = "point",
-    target_constants: LambertConstants | None = None,
 ) -> PointConversion:
     """Convert a geodetic position into a zone's grid coordinates.
 
@@ -278,7 +290,7 @@ def project_point(
         convergence,
         scale,
         warnings,
-    ) = from_geodetic(latitude, longitude, target_zone, context, target_constants)
+    ) = from_geodetic(latitude, longitude, target_zone, context)
 
     return PointConversion(
         source_zone=target_zone,

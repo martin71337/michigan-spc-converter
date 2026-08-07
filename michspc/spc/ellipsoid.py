@@ -19,8 +19,10 @@ from functools import cached_property
 class Ellipsoid:
     """An ellipsoid of revolution, defined by semimajor axis and flattening.
 
-    Two geometric constants define an ellipsoid (manual p. 12). Every other
-    quantity below is derived on demand.
+    Two geometric constants define an ellipsoid (PDF p. 36: "only two geometric
+    constants are required to define an ellipsoid ... All other geometric
+    ellipsoid constants are then derived from the two defining constants").
+    Every other quantity below is derived on demand.
     """
 
     name: str
@@ -45,7 +47,11 @@ class Ellipsoid:
 
     @cached_property
     def e2(self) -> float:
-        """First eccentricity squared, e^2 = 2f - f^2 (manual p. 27)."""
+        """First eccentricity squared, e^2 = 2f - f^2.
+
+        Manual section 3.11 notation list (PDF p. 37): "First eccentricity of
+        the ellipsoid = (2f - f^2)^(1/2)".
+        """
         return 2.0 * self.f - self.f * self.f
 
     @cached_property
@@ -54,7 +60,7 @@ class Ellipsoid:
         return math.sqrt(self.e2)
 
     def W(self, sin_lat: float) -> float:
-        """W = (1 - e^2 sin^2(phi))^(1/2), manual section 3.12 (PDF p. 27).
+        """W = (1 - e^2 sin^2(phi))^(1/2), manual section 3.12 (PDF p. 37).
 
         Appears throughout the Lambert equations as the scaling between the
         ellipsoid and the sphere of curvature at a latitude.
@@ -62,14 +68,14 @@ class Ellipsoid:
         return math.sqrt(1.0 - self.e2 * sin_lat * sin_lat)
 
     def isometric_latitude(self, sin_lat: float) -> float:
-        """Isometric latitude Q, manual section 3.12 (PDF p. 27).
+        """Isometric latitude Q, manual section 3.12 (PDF p. 37).
 
             Q = 1/2 [ ln((1 + sin phi) / (1 - sin phi))
                       - e ln((1 + e sin phi) / (1 - e sin phi)) ]
 
         Takes the sine of the latitude rather than the latitude itself because
-        the inverse conversion iterates on sin(phi) directly (manual p. 29) and
-        would otherwise round-trip through asin on every step.
+        the inverse conversion iterates on sin(phi) directly (section 3.14,
+        PDF p. 39) and would otherwise round-trip through asin on every step.
         """
         e_sin = self.e * sin_lat
         return 0.5 * (
@@ -80,7 +86,7 @@ class Ellipsoid:
     def d_isometric_latitude_d_sin(self, sin_lat: float) -> float:
         """dQ/d(sin phi), used by the inverse conversion's Newton iteration.
 
-        The manual gives this as ``f2`` in section 3.14 (PDF p. 29):
+        The manual gives this as ``f2`` in section 3.14 (PDF p. 39):
 
             f2 = 1 / (1 - sin^2 phi) - e^2 / (1 - e^2 sin^2 phi)
 
@@ -93,7 +99,7 @@ class Ellipsoid:
     def radius_meridian(self, sin_lat: float) -> float:
         """Radius of curvature in the meridian, M = a(1 - e^2) / W^3.
 
-        Manual section 3.15 (PDF p. 30), where M0 is this quantity at the
+        Manual section 3.15 (PDF p. 40), where M0 is this quantity at the
         central parallel, scaled to the grid.
         """
         w = self.W(sin_lat)
@@ -110,7 +116,7 @@ class Ellipsoid:
         """Geometric mean radius of curvature, sqrt(M * N).
 
         The manual's ``r0`` is this quantity at the central parallel, scaled to
-        the grid (manual section 3.15, PDF p. 30).
+        the grid (manual section 3.15, PDF p. 40).
         """
         return math.sqrt(
             self.radius_meridian(sin_lat) * self.radius_prime_vertical(sin_lat)

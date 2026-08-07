@@ -25,7 +25,48 @@ It deliberately does **not** do UTM, SPCS2022, NAD 83 ↔ NATRF2022
 transformation, other states, NAD 27, or two-point azimuth/distance. See
 DESIGN.md §10 for why each was deferred.
 
-## Status (2026-08-06, interim gate CLOSED — session closed cleanly here)
+## Status (2026-08-06, CLOSING GATE findings all fixed; release in progress)
+
+**Closing adversarial gate is done and every finding is fixed.** Three
+independent tracks ran blind to each other — Codex CLI, an Opus reviewer, and a
+**live NGS NCAT cross-check** of every pipeline through the real file path. The
+mathematics was confirmed correct by all three: 666 live comparisons, all pass,
+single-leg agreement 0.5 mm, chained zone-to-zone 0.9 mm, scale factor and
+convergence exact to NCAT's printed precision. Both reviewers re-derived §3.1
+from the manual independently (80 and 60 digits) and matched to ~1e-9 m.
+
+Seventeen defects were found, **all in the contract/record/safety-gate layer,
+none in a coordinate**, and all are now fixed, pinned with the reviewer's own
+counterexample, and each pin falsified. Two interim-gate fixes recorded in #11
+as landed had not landed (the `constants=` seam, the longitude-convention
+default) and two interim pins had never been written at all. Full account:
+DESIGN.md amendment **#20**.
+
+**Suite: 546 → 855**, green in both `pytest` and `-O`, exit codes asserted
+directly, run unpiped. The 13 live cross-check points are frozen as fixtures and
+now drive **file → job.run → ZIP → parsed audit CSV** for all three directions
+in all three units — the end-to-end path that had no anchors before, and whose
+absence is why the record defects survived.
+
+**Extensibility: REWORK-REQUIRED, recorded not built** (amendment #21). §6's
+claim that SPCS2022 arrives as data did not survive review. Michigan's published
+SPCS2022 design is 19 zones on NATRF2022 (statewide oblique Mercator + 18 LDPs,
+13 LC1 and 5 TM) — *not* the three Lambert zones §6 assumed. Zone parameters are
+published and stable; NATRF2022 and its transformation are not released, so the
+frame refusal stays and the zone layer is deliberately not built yet.
+
+**Vertical datums sized, recorded not built** (amendment #22): NGVD 29 → NAVD 88
+is MEDIUM, two work packages, everything needed available today; NAPGD2022 is
+blocked but seam-able via a transformation registry.
+
+### Remaining in this session
+
+1. Narrowing Codex re-confirmation over the fixed surfaces.
+2. WP7 release: PyInstaller spec, frozen-bundle `--selftest` gate, Inno Setup
+   with a once-generated frozen AppId, SHA-256, GitHub Release. Drop the `-dev`
+   marker from `michspc.__version__` only at the release gate.
+
+## Superseded status (2026-08-06, interim gate CLOSED)
 
 **WP0–WP6 complete, committed, pushed.** Suite **546 passing in both `pytest`
 and `-O`**, exit codes asserted directly, run unpiped. Working tree clean,

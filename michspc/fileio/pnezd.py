@@ -28,6 +28,18 @@ anything it cannot read rather than guessing.
   it the value has already been shown to the surveyor as though it were real.
 * **A number written with unquoted thousands separators is refused, not
   guessed.** See ``_grouping_signature`` below.
+* **No two rows may share a point identifier.** Both would convert and both
+  would be written out under the same name, after which the job record names a
+  point that could be either and a CAD import overwrites or fails. Refused,
+  naming the identifier and both line numbers.
+* **Malformed double quoting is refused, not repaired.** ``csv``'s default
+  leniency turns ``"UNTERMINATED`` into ``UNTERMINATED`` and ``"A"junk`` into
+  ``Ajunk``, so the parsed text stops representing the file with nothing said.
+  The reader is strict and converts ``csv.Error`` into a refusal naming the
+  line.
+* **A byte order mark never becomes part of a point identifier.** It is
+  stripped on every path into the parser, not only on the one that decodes
+  utf-8-sig.
 
 **On zero elevations.** Data collectors write 0.00 into the Z column for points
 that were never levelled. Treating that as a real elevation would compute an
@@ -42,6 +54,7 @@ so the surveyor sees exactly what was assumed (docs/DESIGN.md section 7).
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import math
 import re
@@ -62,6 +75,11 @@ _GROUPED_NUMBER = re.compile(r"^[+-]?\d{1,3}(?:,\d{3})+(?:\.\d+)?$")
 # UNQUOTED grouped number into separate fields.
 _LEADING_GROUP = re.compile(r"^[+-]?\d{1,3}$")
 _FOLLOWING_GROUP = re.compile(r"^\d{3}(?:\.\d+)?$")
+
+# U+FEFF, the byte order mark, written as an escape rather than as the character
+# itself: docs/DESIGN.md amendment #7 records what an invisible mark in a source
+# file costs, and a literal one here would be exactly that.
+_BYTE_ORDER_MARK = "\ufeff"
 
 # A bare number, used only to test whether the description begins with one.
 # Deliberately does not admit "nan" or "inf": those are refused as coordinates,
@@ -109,6 +127,20 @@ class PnezdFile:
     path: Path
     rows: tuple[PnezdRow, ...]
     skipped_blank_lines: int
+
+    sha256: str | None = None
+    """SHA-256 of the bytes these rows were parsed from, or None.
+
+    Carried by the reader rather than recomputed later, because a digest taken
+    from the path afterwards certifies whatever is at that path *then* - not
+    what was converted. The reader reads the file once and hashes exactly the
+    bytes it decoded, so the two cannot be different bytes (WP-R3 fix 2).
+
+    ``None`` is a statement, not an absence: "these rows did not come from bytes
+    this program read". ``parse_lines`` is handed already-decoded text and so
+    says None, and every surface that reports the digest must say so plainly
+    rather than substituting a hash of something else.
+    """
 
     @property
     def points_without_elevation(self) -> tuple[PnezdRow, ...]:
@@ -270,8 +302,20 @@ def parse_lines(lines, path="<text>") -> PnezdFile:
     """
     rows: list[PnezdRow] = []
     blank = 0
+    first_seen: dict[str, int] = {}
 
     for line_number, line in enumerate(lines, start=1):
+        if line_number == 1:
+            # A byte order mark belongs to the file, not to the first point.
+            # ``read`` decodes utf-8-sig and so never delivers one - but its
+            # cp1252 fallback does, and so does any caller handing this
+            # function text it decoded itself, and the mark then rides into
+            # point_id, so point "101" arrives with an invisible mark glued to its front
+            # and matches nothing
+            # on the way back (WP-R2 fix G). Stripped here, at the one entry
+            # point every route funnels through, rather than on one of them.
+            line = line.lstrip(_BYTE_ORDER_MARK)
+
         if not line.strip():
             blank += 1
             continue
@@ -279,7 +323,29 @@ def parse_lines(lines, path="<text>") -> PnezdFile:
         # csv handles quoted fields containing commas; anything past the fifth
         # field is description text that contained unquoted commas, and is
         # rejoined below.
-        fields = next(csv.reader(io.StringIO(line)))
+        #
+        # strict=True is load-bearing, not tidiness. csv's default leniency
+        # REPAIRS malformed quoting instead of reporting it: an unterminated
+        # '"UNTERMINATED' becomes UNTERMINATED, and '"A"junk' becomes Ajunk.
+        # The parsed text then no longer represents the file, with no refusal
+        # anywhere - which for a description field is a survey note silently
+        # rewritten (WP-R2 fix E). csv.Error is converted to this module's own
+        # refusal so it names the line and says what is wrong, like every other
+        # refusal here.
+        try:
+            fields = next(csv.reader(io.StringIO(line), strict=True))
+        except csv.Error as error:
+            raise PnezdError(
+                f"{path}, line {line_number}: the double quotes on this row are "
+                f"malformed, so it is refused rather than repaired.\n"
+                f"  {line.strip()!r}\n"
+                f"The CSV reader reported: {error}.\n"
+                f"A quoted field must open and close with a double quote and "
+                f"must be followed by a comma or the end of the line - "
+                f'101,1,2,3,"IRON PIPE, BENT". A double quote INSIDE a quoted '
+                f'field is written twice - "6"" PIPE". Repairing this row '
+                f"instead would change the text the file actually holds."
+            ) from error
 
         if len(fields) < 4:
             raise PnezdError(
@@ -297,6 +363,36 @@ def parse_lines(lines, path="<text>") -> PnezdFile:
                 f"Every point must be identifiable, or the converted file "
                 f"cannot be matched back to this one."
             )
+
+        # Two rows claiming the same identifier is refused, not resolved. Both
+        # would parse, both would be converted, and both would be written into
+        # the export as point 101 - after which the job record names points by
+        # an identifier that no longer picks out one of them, and a CAD import
+        # either overwrites the first with the second or stops. Neither outcome
+        # can be corrected from the export, because the export no longer says
+        # which row was which.
+        #
+        # The owner's decision, and DESIGN.md section 7's rule that loaders
+        # validate as strictly as the UI. Compared exactly, after stripping
+        # surrounding whitespace: "101" and "101 " are the same point written
+        # untidily, but "CP4" and "cp4" are two identifiers this program has no
+        # authority to declare the same, and folding case would refuse a file
+        # that is legitimate (WP-R2 fix D).
+        if point_id in first_seen:
+            raise PnezdError(
+                f"{path}, line {line_number}: the point identifier "
+                f"{point_id!r} is already used on line {first_seen[point_id]}, "
+                f"so this file is refused rather than converted.\n"
+                f"  {line.strip()!r}\n"
+                f"Two rows sharing one identifier both convert and both are "
+                f"written out as point {point_id!r}. The job record then names "
+                f"a point that could be either of them, and importing the "
+                f"result into CAD either overwrites the first with the second "
+                f"or fails outright - and nothing in the export says which row "
+                f"was which. Give the duplicate a distinct identifier, or "
+                f"delete whichever row is the stale one, and convert again."
+            )
+        first_seen[point_id] = line_number
 
         description = ",".join(fields[4:]).strip() if len(fields) > 4 else ""
 
@@ -336,10 +432,24 @@ def read(path: Path) -> PnezdFile:
     Decoded as utf-8-sig so a byte order mark written by Excel or PowerShell is
     consumed rather than becoming part of the first point's identifier - which
     would otherwise turn point "101" into "\\ufeff101" and match nothing.
+
+    **The bytes are read once and hashed here**, and the digest travels with the
+    parsed rows. A job record's SHA-256 line exists to say what was converted;
+    hashing the path again afterwards would certify whatever is at that path at
+    that later moment, which is a different file if anything touched it in
+    between - and no file at all if the caller supplied the rows itself
+    (WP-R3 fix 2). One read, one decode, one digest.
     """
     path = Path(path)
     try:
-        text = path.read_text(encoding="utf-8-sig")
+        data = path.read_bytes()
+    except OSError as error:
+        raise PnezdError(f"Could not read {path}: {error}") from error
+
+    digest = hashlib.sha256(data).hexdigest()
+
+    try:
+        text = data.decode("utf-8-sig")
     except UnicodeDecodeError:
         # Legacy exports are often ANSI. Fall back rather than refusing a file
         # that is perfectly readable, and stay strict about the contents.
@@ -351,7 +461,7 @@ def read(path: Path) -> PnezdFile:
         # the surveyor a Python traceback instead of a sentence naming the file
         # and saying what to do about it.
         try:
-            text = path.read_text(encoding="cp1252")
+            text = data.decode("cp1252")
         except UnicodeDecodeError as error:
             raise PnezdError(
                 f"Could not read {path}: it is not a plain text file this "
@@ -362,14 +472,11 @@ def read(path: Path) -> PnezdFile:
                 f"compressed archive rather than a coordinate file. Export it "
                 f"again from the source program as CSV or plain text."
             ) from error
-        except OSError as error:
-            raise PnezdError(f"Could not read {path}: {error}") from error
-    except OSError as error:
-        raise PnezdError(f"Could not read {path}: {error}") from error
 
     parsed = parse_lines(text.splitlines(), path=str(path))
     return PnezdFile(
         path=path,
         rows=parsed.rows,
         skipped_blank_lines=parsed.skipped_blank_lines,
+        sha256=digest,
     )

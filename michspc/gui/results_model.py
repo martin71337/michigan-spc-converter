@@ -28,6 +28,37 @@ COLUMNS: tuple[str, ...] = (
     "Warnings",
 )
 
+GEODETIC_COLUMNS: tuple[str, ...] = (
+    "Point",
+    "Latitude",
+    "Longitude",
+    "Elevation",
+    "Grid scale factor",
+    "Combined factor",
+    "Warnings",
+)
+"""The same seven columns, named for what a State-Plane-to-geodetic job puts
+in them.
+
+``row_strings`` has always rendered columns 1 and 2 as a latitude and a
+longitude on that branch while the header still read "Northing" and "Easting",
+so the table labelled 42.73250000 as a northing (WP-R2 fix H). The columns
+themselves, their order, their alignment and their meaning are unchanged - only
+the two names move, and only for the one direction whose values are degrees.
+"""
+
+
+def columns_for(result: JobResult | None) -> tuple[str, ...]:
+    """The header row for a job's direction. ``COLUMNS`` until a job says else.
+
+    An empty table shows the ordinary headings: nothing has been converted, so
+    naming the columns after a direction the user has not run would be the
+    interface answering a question it was not asked.
+    """
+    if result is not None and result.settings.direction is Direction.ZONE_TO_GEODETIC:
+        return GEODETIC_COLUMNS
+    return COLUMNS
+
 POINT_COLUMN = 0
 NORTHING_COLUMN = 1
 EASTING_COLUMN = 2
@@ -65,13 +96,14 @@ def row_strings(result: JobResult) -> tuple[tuple[str, ...], ...]:
     The northing/easting/elevation branch below is deliberately identical to
     ``michspc.fileio.exports.clean_pnezd_rows``: when a job converts to geodetic
     the first two columns hold a latitude and a longitude, not a grid
-    coordinate, and the elevation stays in the unit the file arrived in because
-    nothing rescaled it. If those two ever diverge, the screen would be
-    describing a different file from the one written.
+    coordinate. The elevation is in the OUTPUT unit in every direction,
+    including that one - it is the only linear column left on a geodetic
+    export and the job record describes it in the output unit (WP-R2 fix A).
+    If those two ever diverge, the screen would be describing a different file
+    from the one written.
     """
     settings = result.settings
     to_geodetic = settings.direction is Direction.ZONE_TO_GEODETIC
-    elevation_unit = settings.input_unit if to_geodetic else settings.output_unit
 
     rows: list[tuple[str, ...]] = []
 
@@ -88,7 +120,7 @@ def row_strings(result: JobResult) -> tuple[tuple[str, ...], ...]:
                 point.point_id,
                 northing,
                 easting,
-                fmt.coordinate(point.output_elevation, elevation_unit),
+                fmt.coordinate(point.output_elevation, settings.output_unit),
                 fmt.factor(point.factors.grid_scale_factor),
                 # combined_factor is None for a point with no usable elevation;
                 # fmt.factor renders that as "N/A", never as 1.0.
@@ -111,9 +143,13 @@ class ResultsModel(QAbstractTableModel):
         super().__init__(parent)
         self._rows: tuple[tuple[str, ...], ...] = ()
         self._warning_messages: tuple[str, ...] = ()
+        self._columns: tuple[str, ...] = COLUMNS
 
     def set_result(self, result: JobResult | None) -> None:
         self.beginResetModel()
+        # The headings are settled here, with the rows, so the two can never
+        # describe different jobs: a model reset repaints both together.
+        self._columns = columns_for(result)
         if result is None:
             self._rows = ()
             self._warning_messages = ()
@@ -132,7 +168,7 @@ class ResultsModel(QAbstractTableModel):
     def columnCount(self, parent=QModelIndex()) -> int:
         if parent.isValid():
             return 0
-        return len(COLUMNS)
+        return len(self._columns)
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
         if not index.isValid():
@@ -141,7 +177,7 @@ class ResultsModel(QAbstractTableModel):
         column = index.column()
         if row < 0 or row >= len(self._rows):
             return None
-        if column < 0 or column >= len(COLUMNS):
+        if column < 0 or column >= len(self._columns):
             return None
 
         if role == Qt.ItemDataRole.DisplayRole:
@@ -169,7 +205,7 @@ class ResultsModel(QAbstractTableModel):
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         if orientation == Qt.Orientation.Horizontal:
-            if 0 <= section < len(COLUMNS):
-                return COLUMNS[section]
+            if 0 <= section < len(self._columns):
+                return self._columns[section]
             return None
         return str(section + 1)

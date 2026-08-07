@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import math
 
 import pytest
@@ -11,7 +12,9 @@ from michspc.spc.convert import (
     WarningCode,
     convert_point,
     easting_looks_wrong_for_zone,
+    from_geodetic,
     project_point,
+    to_geodetic,
 )
 from michspc.spc.frames import (
     NAD83_2011,
@@ -20,7 +23,6 @@ from michspc.spc.frames import (
     ReferenceFrame,
     require_same_frame,
 )
-from michspc.spc.lambert import constants_for
 from michspc.spc.units import INTERNATIONAL_FEET
 from michspc.spc.zones import ALL_ZONES, MI_CENTRAL, MI_NORTH, MI_SOUTH
 from tests.fixtures.ncat_anchors import NCAT_ANCHORS
@@ -388,25 +390,59 @@ def test_geodetic_input_reports_the_zone_as_both_source_and_target():
     assert result.source_easting == result.target_easting
 
 
-def test_passing_precomputed_constants_gives_identical_results():
-    """The per-file optimisation must not change a single digit."""
-    source_constants = constants_for(MI_SOUTH)
-    target_constants = constants_for(MI_CENTRAL)
+@pytest.mark.parametrize(
+    "function", [to_geodetic, from_geodetic, convert_point, project_point]
+)
+def test_no_public_conversion_function_accepts_caller_supplied_constants(function):
+    """The 4,231 km seam, pinned shut (docs/DESIGN.md amendment #11 finding 5).
 
-    plain = convert_point(160000.0, 4010000.0, MI_SOUTH, MI_CENTRAL)
-    cached = convert_point(
-        160000.0,
-        4010000.0,
-        MI_SOUTH,
-        MI_CENTRAL,
-        source_constants=source_constants,
-        target_constants=target_constants,
+    A ``constants=`` parameter lets a caller name one zone and hand in another
+    zone's ``LambertConstants``. Nothing downstream compares the two, so the
+    mispairing is silent. Measured:
+
+        project_point(42.7325, -84.5555, NAD83_2011, MI_SOUTH,
+                      target_constants=constants_for(MI_NORTH))
+            -> -224978.383266 N, 8200514.325070 E  (meters)
+
+    against the correct 136920.027587 N, 3984537.119006 E - the point moved
+    4,231 km, with no refusal and no warning. The predecessor of this test
+    passed matched constants and asserted the digits were identical, which
+    exercised only the one pairing that is harmless and locked the seam in.
+
+    ``constants_for`` is lru_cached, so deriving the constants inside each call
+    costs nothing a caller could have saved by passing them.
+    """
+    parameters = inspect.signature(function).parameters
+
+    assert not [name for name in parameters if "constants" in name], (
+        f"{function.__name__} accepts {sorted(parameters)}; a constants "
+        f"parameter has been re-introduced"
     )
 
-    assert cached.target_northing == plain.target_northing
-    assert cached.target_easting == plain.target_easting
-    assert cached.latitude == plain.latitude
-    assert cached.longitude == plain.longitude
+
+def test_a_zone_is_the_only_way_to_name_a_projection():
+    """The positive half of the pin: the zone alone still produces the answer.
+
+    The reviewer's Lansing position in Michigan South, derived here from the
+    section 3.12 and 3.13 equations at 50 significant decimal digits, from the
+    Appendix A defining constants alone (phi_s = 42-06, phi_n = 43-40,
+    phi_b = 41-30, lambda_0 = -84-22, N_b = 0, E_0 = 4,000,000 m):
+
+        sin phi_0 = 0.68052925991183034786
+        K         = 12061671.83848264505673 m
+        R_b       =  7031167.29066513148358 m
+        R         =  6894264.60365083245725 m
+        gamma     = (-84.5555 + 84.3666...) sin phi_0 = -0.12850660858001729735 deg
+        N = R_b + N_b - R cos gamma =  136920.02758672257815 m
+        E = E_0 + R sin gamma       = 3984537.11900588955191 m
+
+    Production agrees to 1.7e-10 m, so 1e-6 m is a loose bound on double
+    arithmetic rather than a tolerance on the mathematics.
+    """
+    result = project_point(42.7325, -84.5555, NAD83_2011, MI_SOUTH)
+
+    assert result.target_northing == pytest.approx(136920.027586722578, abs=1e-6)
+    assert result.target_easting == pytest.approx(3984537.119005889552, abs=1e-6)
 
 
 # --------------------------------------------------------------------------

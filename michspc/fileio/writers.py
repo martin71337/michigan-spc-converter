@@ -37,6 +37,17 @@ def staged_write(path: Path, overwrite: bool = False):
     If the body raises, the staged file is removed and the destination is left
     exactly as it was. That is what lets a failed export leave the previous
     job's output intact rather than a truncated replacement.
+
+    **The existence check below is not the guarantee; the commit is.** The check
+    happens before the body runs, and the body takes as long as it takes to
+    build an archive - during which another process, or the surveyor working in
+    two windows, can create the destination. Committing with ``os.replace``
+    would then destroy that file without a word, which is exactly what
+    "exports never silently clobber" forbids. So the commit itself refuses when
+    the overwrite was not granted: on Windows ``os.rename`` fails with
+    ``FileExistsError`` if the target exists, and this program is Windows-only
+    (docs/DESIGN.md section 2). ``os.replace``, which never refuses, is used
+    only on the path where the overwrite actually was granted (WP-R3 fix 3).
     """
     path = Path(path)
 
@@ -59,7 +70,19 @@ def staged_write(path: Path, overwrite: bool = False):
 
     try:
         yield staged
-        os.replace(staged, path)
+        if overwrite:
+            os.replace(staged, path)
+        else:
+            os.rename(staged, path)
+    except FileExistsError as error:
+        with contextlib.suppress(OSError):
+            staged.unlink()
+        raise WriteError(
+            f"{path} already exists. Nothing was written - it appeared while "
+            f"this export was being built, so it is not the file the earlier "
+            f"check looked at, and it was left exactly as it is. Choose a "
+            f"different output folder, or confirm the overwrite."
+        ) from error
     except OSError as error:
         with contextlib.suppress(OSError):
             staged.unlink()

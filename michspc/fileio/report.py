@@ -31,6 +31,9 @@ _WARNING_HEADINGS = {
         "COORDINATES MAY NOT BE IN THE SELECTED SOURCE ZONE"
     ),
     WarningCode.OUTSIDE_ZONE_EXTENT: "POINTS OUTSIDE THE TARGET ZONE'S AREA",
+    WarningCode.GEOID_UNAVAILABLE: (
+        "ELEVATION RECORDED, BUT NO GEOID HEIGHT AT THIS POSITION"
+    ),
 }
 """Readable headings for the warning kinds this program currently raises.
 
@@ -76,6 +79,88 @@ def _warning_heading(code) -> str:
     return str(getattr(code, "value", code)).replace("-", " ").replace("_", " ").upper()
 
 
+def _input_format_block(settings) -> list[str]:
+    """What the input file's five columns actually held, and in what units.
+
+    Direction-aware, because the input is not always PNEZD. When a job starts
+    from geodetic positions, columns two and three are a latitude and a
+    longitude in decimal degrees - not a northing and an easting in the linear
+    unit - and this block used to say otherwise in a document that is signed,
+    filed and believed.
+
+    That is the same confusion docs/DESIGN.md amendment #16 note 1 called "a
+    correctness aid, not cosmetics" for the input hint on screen: the two
+    layouts are indistinguishable from the numbers, because a geodetic file
+    read as PNEZD yields a plausible coordinate rather than an error. The
+    record has to describe the file that was actually read.
+
+    The longitude sign convention is stated here as well as on the OUTPUT
+    section's "Longitude" line. It is not a duplicate for its own sake: a
+    reader who takes columns two and three as latitude and longitude has still
+    not been told which way west is signed, and the two readings are 340 miles
+    apart (docs/DESIGN.md section 7). The description of the file cannot be
+    read without it.
+    """
+    unit = settings.input_unit
+    if settings.direction is Direction.GEODETIC_TO_ZONE:
+        return [
+            "Format             Comma separated, no header row - NOT PNEZD",
+            "                   point, latitude, longitude, elevation, description",
+            "                   description is everything after the fourth comma",
+            "                   Columns two and three are DECIMAL DEGREES, read",
+            f"                   as {settings.longitude_convention.value}.",
+            f"Units in           {unit.name} ({unit.code}) - the ELEVATION column only",
+            "                   Columns two and three are degrees and carry no",
+            "                   linear unit.",
+            f"                   {unit.citation}",
+        ]
+    return [
+        "Format             PNEZD, no header row",
+        "                   point, northing, easting, elevation, description",
+        "                   description is everything after the fourth comma",
+        f"Units in           {unit.name} ({unit.code}) - northing, easting and elevation",
+        f"                   {unit.citation}",
+    ]
+
+
+def _clean_export_block(settings) -> list[str]:
+    """What the clean export's five columns hold. Direction-aware.
+
+    "in the same PNEZD layout as the input" is true only of a zone-to-zone job.
+    Converting TO geodetic writes a latitude and a longitude in columns two and
+    three; converting FROM geodetic writes PNEZD out of a file that was never
+    PNEZD going in. In both cases the old sentence described a file that is not
+    on the disk, and this record is the only documentation the program produces
+    (docs/DESIGN.md amendment #13).
+    """
+    unit = settings.output_unit
+    if settings.direction is Direction.ZONE_TO_GEODETIC:
+        return [
+            "    The converted positions - NOT PNEZD, and NOT the same layout as",
+            "    the input: point, latitude, longitude, elevation, description,",
+            "    no header row.",
+            "    Columns two and three are DECIMAL DEGREES to 8 places, written",
+            f"    {settings.longitude_convention.value}.",
+            f"    The elevation column is {unit.name} ({unit.code}).",
+            "    Nothing else.",
+        ]
+    if settings.direction is Direction.GEODETIC_TO_ZONE:
+        opening = [
+            "    The converted coordinates in PNEZD layout - which the INPUT file",
+            "    was not: point, northing, easting, elevation, description, no",
+            "    header row.",
+        ]
+    else:
+        opening = [
+            "    The converted coordinates, in the same PNEZD layout as the input:",
+            "    point, northing, easting, elevation, description - no header row.",
+        ]
+    return opening + [
+        f"    Northing, easting and elevation are {unit.name} ({unit.code}).",
+        "    Nothing else. Extract this one and import it into CAD.",
+    ]
+
+
 def _zone_block(zone, label: str) -> list[str]:
     """A zone's full defining and derived constants, with citations."""
     definition = zone.definition
@@ -119,15 +204,24 @@ def build_report(result: JobResult) -> str:
     add("INPUT")
     add(_THIN)
     add(f"File               {settings.input_path}")
-    add(f"SHA-256            {result.input_sha256 or 'not available'}")
+    if result.input_sha256:
+        add(f"SHA-256            {result.input_sha256}")
+    else:
+        # No digest means no bytes passed through this program: the rows were
+        # handed to the job already parsed. Saying so is the only honest line
+        # available, and it is a great deal more honest than the hash of
+        # whatever happens to sit at the path above - which is what this line
+        # used to print, certifying a file that was never converted
+        # (WP-R3 fix 2). The file name is left in place because it is what the
+        # caller stated; the sentence below says what it is worth.
+        add("SHA-256            not available")
+        add("                   These coordinates were supplied to this program")
+        add("                   already parsed, so it never read the file named")
+        add("                   above and nothing here certifies its contents.")
     add(f"Coordinate rows    {result.input_row_count}")
     if result.skipped_blank_lines:
         add(f"Blank lines        {result.skipped_blank_lines} (skipped)")
-    add(f"Format             PNEZD, no header row")
-    add(f"                   point, northing, easting, elevation, description")
-    add(f"                   description is everything after the fourth comma")
-    add(f"Units in           {settings.input_unit.name} ({settings.input_unit.code})")
-    add(f"                   {settings.input_unit.citation}")
+    lines.extend(_input_format_block(settings))
     add("")
 
     # --------------------------------------------------------------- output
@@ -252,10 +346,32 @@ def build_report(result: JobResult) -> str:
     add(_THIN)
     add("ELEVATIONS")
     add(_THIN)
+    # Three causes, and this section must not flatten them into one. The first
+    # two are genuinely absent elevations. The THIRD is a point whose Z column
+    # was read perfectly well, and whose factors are absent only because the
+    # shipped GEOID18 tile does not reach its position. Describing that point
+    # as having a blank Z field is a false statement in an audit document, and
+    # it is the statement this section used to make (WP-R2 fix C).
+    #
+    # ``Factors.orthometric_height`` is what separates them: it is the height
+    # the job read, present whether or not a geoid height was found, so a
+    # factor-less point that still carries one is a geoid miss and nothing else.
+    no_geoid = [p for p in missing if p.factors.orthometric_height is not None]
+    absent = [p for p in missing if p.factors.orthometric_height is None]
+
     if not missing:
         add(f"All {len(result.points)} points carried a usable elevation.")
     else:
-        add(f"{len(missing)} of {len(result.points)} points had NO usable elevation.")
+        if absent:
+            add(
+                f"{len(absent)} of {len(result.points)} points had NO usable "
+                f"elevation."
+            )
+        if no_geoid:
+            add(
+                f"{len(no_geoid)} of {len(result.points)} points carried an "
+                f"elevation the {GEOID_MODEL_NAME} grid does not reach."
+            )
         add("")
         add("For those points the elevation factor and combined factor are written")
         add(f"as {fmt.NOT_AVAILABLE!r} in the exports. They are NOT set to 1.0, and the grid")
@@ -264,20 +380,37 @@ def build_report(result: JobResult) -> str:
         add("number here would travel onto a drawing. The horizontal conversion is")
         add("unaffected - it does not depend on elevation at all.")
         add("")
-        add("A Z field that is blank, or that holds exactly 0.00, is treated as")
-        add("'not recorded'. Michigan's lowest natural point is Lake Erie at about")
-        add("571 feet, so a genuine survey elevation of exactly zero does not")
-        add("occur here. This is a stated convention of this program, not")
-        add("something the source documents specify.")
-        add("")
-        blank = [p for p in missing if not p.row.elevation_was_zero]
-        zeroed = [p for p in missing if p.row.elevation_was_zero]
-        if blank:
-            add(f"  Blank elevation field ({len(blank)}):")
-            lines.extend(_point_id_block(blank))
-        if zeroed:
-            add(f"  Elevation field held exactly 0.00 ({len(zeroed)}):")
-            lines.extend(_point_id_block(zeroed))
+        if absent:
+            add("A Z field that is blank, or that holds exactly 0.00, is treated as")
+            add("'not recorded'. Michigan's lowest natural point is Lake Erie at about")
+            add("571 feet, so a genuine survey elevation of exactly zero does not")
+            add("occur here. This is a stated convention of this program, not")
+            add("something the source documents specify.")
+            add("")
+            blank = [p for p in absent if not p.row.elevation_was_zero]
+            zeroed = [p for p in absent if p.row.elevation_was_zero]
+            if blank:
+                add(f"  Blank elevation field ({len(blank)}):")
+                lines.extend(_point_id_block(blank))
+            if zeroed:
+                add(f"  Elevation field held exactly 0.00 ({len(zeroed)}):")
+                lines.extend(_point_id_block(zeroed))
+            if no_geoid:
+                add("")
+        if no_geoid:
+            add(
+                f"  Elevation recorded, but no {GEOID_MODEL_NAME} geoid height at "
+                f"this position ({len(no_geoid)}):"
+            )
+            lines.extend(_point_id_block(no_geoid))
+            add("")
+            add("  These Z fields were read and are written to the exports. They are")
+            add("  NOT blank and they are NOT zero. What is missing is the geoid")
+            add("  height, because the position lies outside the grid tile this")
+            add("  program ships, and without it there is no elevation factor. The")
+            add("  HORIZONTAL coordinate of each point is unaffected and stands: it")
+            add("  does not depend on elevation at all. Each point is named again,")
+            add("  with its position, under WARNINGS below.")
     add("")
 
     # ------------------------------------------------------------- warnings
@@ -323,9 +456,7 @@ def build_report(result: JobResult) -> str:
     add("export is a single archive rather than three loose files.")
     add("")
     add(f"  {names['pnezd']}")
-    add("    The converted coordinates, in the same PNEZD layout as the input:")
-    add("    point, northing, easting, elevation, description - no header row.")
-    add("    Nothing else. Extract this one and import it into CAD.")
+    lines.extend(_clean_export_block(settings))
     add("")
     add(f"  {names['audit']}")
     add("    Every computed quantity for every point, with a header row: both")

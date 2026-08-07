@@ -1,9 +1,23 @@
 # PLAN — Vertical datum transformation, and a geoid model registry
 
-**Status: PLAN ONLY. Nothing in this document is built.** Written 2026-08-07 at
-the owner's direction. It is a proposal against DESIGN.md amendments **#22**
-(sizing) and **#32** (ordering), and it becomes a DESIGN.md amendment when the
-owner approves it. Until then DESIGN.md is unchanged.
+**Status: V0, V2 and V3 are BUILT. V1 and V4–V9 are not.** See the work-package
+table in §7 and DESIGN.md amendment **#35**, which records what landed, the
+review-gate findings, and why the rest stopped. Written 2026-08-07 at the owner's
+direction. It remains a proposal against DESIGN.md amendments **#22** (sizing) and
+**#32** (ordering), and it becomes a DESIGN.md amendment when the owner approves
+it. Until then DESIGN.md's body is unchanged.
+
+**WP-V1 cannot be done off the owner's machine.** `geodesy.noaa.gov` is refused by
+the container's egress policy, so neither the three files of §2.1 nor NCAT can be
+reached, and the 20-point anchor lattice §6 requires exists nowhere in this repo —
+§2 records that the V0 scripts stayed in that session's scratchpad. **V4 was
+deliberately not built without those anchors** (§8 risk 3).
+
+**Known inconsistency in this document, flagged at the WP-V3 gate:** §2.8 states
+the Michigan σ range as "0.001 m to 0.366 m", while §2.7's direct scan of the same
+window gives **+0.000004 m to +0.365599 m**. The code quotes §2.7, because that is
+what this program's reader produces and 0.001 m is NCAT's printed resolution.
+Confirm and correct §2.8.
 
 **The V0 verification gate has been run.** Every load-bearing unknown named in
 the first draft of this plan is now measured rather than assumed, against the
@@ -538,10 +552,10 @@ Each ends with the suite green and a commit.
 | WP | Contents |
 |---|---|
 | **V0** | **DONE** — §2. Data located, downloaded, format/sign/units/interpolation/inverse verified against NCAT, sentinels scanned, σ field characterized. |
-| **V1** | Commit the three files; pin SHA-256s; `michspc.spec` and `installer.iss`; freeze the 20-point NCAT lattice and the 5-point inverse set as fixtures. |
-| **V2** | `fileio/ngs_grid.py` extraction (§3.2), its own commit, geoid suite passing unchanged. |
-| **V3** | `spc/vertical.py` — datums, registry, refusals. Stdlib only, fully testable without a grid. |
-| **V4** | `fileio/vertcon.py` — marker-validated reader, the grid pair, the §2.5 interpolation asymmetry, geometry and checksum pins. |
+| **V1** | **BLOCKED off Windows — needs geodesy.noaa.gov.** Commit the three files; pin SHA-256s; `michspc.spec` and `installer.iss`; freeze the 20-point NCAT lattice and the 5-point inverse set as fixtures. |
+| **V2** | **DONE** — `fileio/ngs_grid.py` extraction (§3.2), geoid suite passing byte-unchanged, behaviour proved identical (DESIGN.md #35). |
+| **V3** | **DONE** — `spc/vertical.py`: datums, registry, refusals, `apply_shift`. Stdlib only. Sign re-derived against #22's NCAT anchor (DESIGN.md #35). |
+| **V4** | **NOT BUILT — deliberately, pending V1's anchors.** `fileio/vertcon.py` — marker-validated reader, the grid pair, the §2.5 interpolation asymmetry, geometry and checksum pins. |
 | **V5** | Geoid model registry; `apply_geoid` → `geoid_model`; GEOID12B; `geoid18.py` → `geoid.py` rename as its own commit. |
 | **V6** | `job.py` wiring; step 3 before step 4; datum-tagged elevations; the four refusals. |
 | **V7** | Outputs: audit CSV, clean export, job record, results model — the disclosure of §5. |
@@ -550,9 +564,14 @@ Each ends with the suite green and a commit.
 
 **Interim adversarial gate after V4** — the reader is where a sign or scale error
 hides and it is what V6–V8 build on. **Closing gate over the full diff.** Then
-narrowing re-confirmation until approved (METHOD.md §3). The Codex plugin was not
-loaded in this session; re-check at the interim gate, and if it is still
-unreachable, record the substitution of reviewer rather than glossing it.
+narrowing re-confirmation until approved (METHOD.md §3).
+
+**Reviewer status: SUBSTITUTED at the V2/V3 gate, and it must not stay that way.**
+Codex was unreachable again — no binary, no credential in the container — so that
+gate ran with two independent adversarial reviewers on a different briefing but the
+same model family as the implementers. That is weaker than the method asks for, and
+it is recorded rather than glossed, per this section's own instruction. **Run the
+interim and closing gates under Codex on the owner's machine.**
 
 **V5 and V8's geoid dropdown do not depend on the vertical work at all.** If the
 owner wants instruction 5 first and on its own, V2 + V5 + the dropdown half of V8

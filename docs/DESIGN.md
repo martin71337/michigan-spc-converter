@@ -447,6 +447,144 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #35 — 2026-08-07 — The vertical build starts: WP-V2 and WP-V3, and the two work packages that cannot be built off Windows
+
+**Status: the vertical feature is STARTED, not finished, and `docs/PLAN-vertical-datums.md`
+is still a proposal — the sections of this document above the amendment log are
+unchanged.** Two of its ten work packages are built, gated and committed. The rest
+are blocked, and the reason is environmental rather than technical, which is why it
+is recorded here rather than left as a note in a session log.
+
+**What landed.**
+
+- **WP-V2 — `michspc/fileio/ngs_grid.py`.** The substrate shared by the GEOID18
+  reader and the VERTCON reader WP-V4 will add: the `<4d3i` header record,
+  `TileGeometry` and the canonical-geometry check, the generic header refusals, the
+  0–360 east conversion, `lagrange3`, both interpolators, and the non-finite payload
+  refusal. `geoid18.py` is now a thin **policy** layer over it — filename, checksum,
+  geometry, model name, interpolation choice, and the wording of every refusal.
+- **WP-V3 — `michspc/spc/vertical.py`.** `VerticalDatum` (NGVD29 and NAVD88 usable,
+  NAPGD2022 declared-not-usable, mirroring `NATRF2022` in `frames.py`),
+  `VerticalTransformation`, the registry keyed by `(source, target)` with both
+  identity pairs as explicit records, `require_vertical_pair` with two distinct
+  refusals, and `signed_shift` / `apply_shift`. Stdlib only; the grid value is a
+  parameter, exactly as `factors.factors_at` takes the geoid height.
+
+**The extraction problem, and its solution.** `job.py` catches `geoid18.GeoidError`
+by name, so a refusal raised inside a shared substrate has to *be* that class — not a
+base of it and not a sibling. The substrate therefore defines **no exception at all**;
+a policy layer hands down a frozen `GridDialect` carrying its exception class and the
+model-specific wording of each refusal. A shared base class was tried and rejected by
+measurement: it breaks 24 geoid tests. The wording seam matters as much as the class —
+a structural check shared by two readers would otherwise have to speak generically,
+and this project's refusals are meant to teach.
+
+**The extraction was proved behaviour-preserving, not asserted to be.** Its stated
+safety property is that `tests/test_geoid.py` passes byte-unchanged, and it does — but
+a passing suite only covers what it covers. Both the old and new modules were loaded
+side by side and compared directly: **every refusal message character-identical across
+37 constructed failure scenarios** plus 14 outside-the-tile positions; **check ORDER
+unchanged** under 8 inputs built to violate two rules at once, since an earlier refusal
+masks a later one; `GeoidError` the exact class on all 12 raise sites, which map 1:1
+old to new; and **both interpolators bit-identical (max difference exactly 0.0)** over
+200,000 random positions, a 2,499-point synthetic lattice including every node, edge
+and corner, and 3,600 Michigan positions on the real shipped tile — the last of these
+re-run independently by the session lead.
+
+**The sign convention was re-derived independently before anything was accepted.** The
+grid stores `NAVD88 − NGVD29` in metres and it is ADDED to the source height. Against
+#22's live NCAT anchor — 200.000 m NGVD 29 at 43.0 N / 84.5 W → **199.860 m** NAVD 88 —
+`sign = +1` gives 199.8598 with our grid's −0.1402, 0.2 mm from NCAT, which prints only
+to the millimetre. `sign = −1` returns 200.0000 exactly, matching plan §2.4's 0.00 mm
+round trip. `grid_quantity` reports "NAVD88 minus NGVD29" from **both** records, which
+is correct because it is one grid; and it is derived from `sign` rather than stored, so
+`direction_statement` — the sentence the job record will quote — cannot drift from the
+arithmetic the program performs. This is the defect class of #1 / MATLAB defect 2, and
+it is now pinned before the reader that will feed it exists.
+
+**Review gate: THE REVIEWER WAS SUBSTITUTED, and that is disclosed rather than
+glossed.** #1 records Codex CLI as the independent adversarial reviewer at both gates.
+This session ran in a Linux container with no `codex` binary, no `~/.codex`, and no
+credential to authenticate one (`@openai/codex` 0.147.0 is installable from npm; there
+is nothing to log it in with). Plan §7 anticipated exactly this and required the
+substitution be recorded. Two independent adversarial reviewers were used instead,
+briefed blind to the implementers' reasoning and on different models — one on the sign
+convention and the registry, one solely on proving the extraction changed nothing.
+**This is weaker than the standing method**, because both reviewers share a model
+family with the implementers, and the closing gate for this feature should be run under
+Codex on the owner's machine before any of it ships.
+
+**Findings: one MEDIUM, two LOW. All three fixed at the root, each pinned with the
+reviewer's own counterexample, each pin falsified.**
+
+1. **MEDIUM — a non-datum record duck-typed into `require_vertical_pair`.** Every
+   record in this core carries `code`, `name` and `citation`, so
+   `require_vertical_pair(frames.NAD83_2011, NAVD88)`, and the same with a `Zone` or a
+   `LinearUnit`, passed `_canonical` unremarked and failed several lines later on
+   `.is_usable` — as an `AttributeError`, which names nothing and walks straight
+   through the `except VerticalDatumError` this module's own docstring tells callers
+   to write. **This is #11 finding 1 recurring in a new module**: the same duck-typing,
+   against the same three-field shape, whose fix in `convert.project_point` is an
+   `isinstance` guard. That guard now exists here. Pinned against all three impostor
+   types *and* against a forged record carrying both `code` and a truthy `is_usable`,
+   so the refusal does not depend on the impostor happening to lack a field.
+   Falsified: removing the guard fails 4 tests.
+2. **LOW — `ngs_grid.py` claimed to carry "no wording that names a model", and its own
+   prose contradicted it.** The claim worth holding is narrower: no **message a user
+   reads** may name a model, because such a message is wrong for the substrate's other
+   caller. Comments may and must name the file a constant was measured against, or the
+   constant becomes uncited (§7). The docstring now says that, and
+   `test_no_refusal_message_names_a_model` walks the AST of every `raise` in the module
+   to hold it. Falsified: seeding "GEOID18" into one refusal fails it.
+3. **LOW — the plan disagrees with itself about the σ floor, and the looser figure was
+   heading for the job record.** Plan §2.8 says σ runs "0.001 m to 0.366 m"; §2.7's
+   direct scan of the `.err` grid over the same Michigan window gives **+0.000004 m to
+   +0.365599 m**. `uncertainty_citation` is quoted verbatim into the record (plan
+   §5.2), so it now states §2.7's measured range — what this program's own reader can
+   actually produce — and both the constant and its pin say why. **0.001 m is NCAT's
+   printed resolution, not a value the grid holds.** *Open for the owner: confirm §2.7
+   is authoritative, and correct §2.8 if so.* The 249% headline fact is unaffected and
+   both sections agree on it (0.3656 / 0.1466 = 2.494).
+
+One further citation was softened rather than left overstated: #22 names NCAT's
+`inVertDatum` / `outVertDatum` **parameters**, not their permitted values, so the datum
+codes are recorded as a convention chosen to match NCAT and to be confirmed against it
+when WP-V1 freezes the anchors — not as a quoted token list.
+
+**Suite: 1132 → 1223.** WP-V2 added 39 tests, WP-V3 added 52. Green in both `pytest`
+and `-O`. Every new pin was falsified by seeding the defect it catches, and every
+seed-and-restore was verified by SHA-256 afterwards rather than by eye, because #34's
+trap was an encoding change no test could see.
+
+**BLOCKED, and blocked on data rather than on effort. WP-V1 cannot be done anywhere
+but the owner's machine.** This session's egress policy refuses `geodesy.noaa.gov`
+outright — every NOAA host, 403 on CONNECT. Three consequences, all of which stop the
+build here rather than slowing it:
+
+- The three files WP-V1 commits — `vertcon_3.0_20190601.ngvd29.navd88.conus.oht.trn.b`,
+  `…err.b`, and `g2012bu3.bin` — cannot be fetched. Plan §2.1 requires them unmodified
+  under NGS's own filenames; GitHub carries neither, and a re-projected mirror would
+  not satisfy the SHA-256 pin.
+- **NCAT cannot be reached, so the frozen anchor lattice cannot be recreated.** Plan §2
+  records the V0 scripts as living in that session's scratchpad rather than the repo,
+  and that scratchpad was the owner's Windows machine. What survives in the plan is
+  summary statistics plus the 43.0 N / 84.5 W anchor, the five-point inverse set and
+  two σ readings — **not the 20-point lattice §6 requires as fixtures.**
+- Therefore **WP-V4 was deliberately not built.** Its reader could have been written and
+  structurally tested against synthesized `.b` files, but §1's tier does not permit
+  shipping the module where a sign or scale error hides with no external anchor under
+  it. §8 risk 3 exists to prevent precisely that, and V0 was run first precisely so the
+  anchors would precede the code. Building it now would invert that order.
+- **WP-V5's visible half is blocked too**: the geoid dropdown the owner asked for is
+  GEOID18 **and** GEOID12B, and `g2012bu3.bin` is one of the three unreachable files. A
+  one-entry dropdown is not the instruction.
+
+Recorded also because it will recur: the three `tests/test_fileio.py::test_r3_3_*`
+tests fail on any POSIX machine. That is not a defect and not new — it is the load-bearing
+platform dependency **#20** already states, that the no-clobber commit relies on Windows
+`os.rename` refusing an existing target while POSIX `rename` replaces silently. On
+Windows the suite is 1223 green.
+
 ### #34 — 2026-08-07 — Three tooltips removed from the entry controls (0.3.1)
 
 Owner's instruction. Removed, on both tabs where the control appears on both:

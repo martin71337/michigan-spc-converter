@@ -46,11 +46,84 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Next build: PLANNED, NOT STARTED — vertical datums (2026-08-07)
+## Current build: vertical datums — V2 and V3 DONE, V1 and V4+ BLOCKED (2026-08-07)
 
-**`docs/PLAN-vertical-datums.md` is the plan. Read it before touching this
-work.** It is a proposal, not yet a DESIGN.md amendment; DESIGN.md is unchanged.
-Parked at the owner's instruction with nothing built and nothing half-done.
+**Branch `claude/vertical-transformation-plan-dtxh6j`. Read
+`docs/PLAN-vertical-datums.md` and DESIGN.md **#35** before touching this work.**
+The plan is still a proposal; DESIGN.md's body is unchanged and #35 records what
+was built against it.
+
+**Built, gated, committed, pushed — a clean boundary, nothing half-done:**
+
+- **WP-V2** `michspc/fileio/ngs_grid.py` — the substrate `geoid18` and the coming
+  `vertcon` share. `geoid18.py` is now policy over it: filename, checksum,
+  geometry, interpolation choice, and the wording of every refusal, handed down
+  in a `GridDialect` that also carries the exception class (`job.py` catches
+  `GeoidError` by name, so a refusal from the substrate must *be* that class).
+  **Proved behaviour-identical**, not assumed: 37 refusal scenarios
+  character-identical, check order unchanged under 8 double-violating inputs,
+  both interpolators bit-identical (max diff exactly **0.0**) over 200k random
+  positions and 3,600 Michigan positions on the real tile.
+- **WP-V3** `michspc/spc/vertical.py` — datums, the `(source, target)` registry
+  with both identities as explicit records, two distinct refusals, `apply_shift`.
+  Stdlib only; the grid value is a parameter, as `factors.factors_at` takes N.
+  The sign was re-derived against #22's live NCAT anchor before acceptance:
+  200.000 m NGVD 29 at 43.0 N/84.5 W → 199.860 m NAVD 88, so `sign = +1` and the
+  inverse is the same grid at −1, round-tripping exactly.
+
+**Suite 1132 → 1223**, green in `pytest` and `-O`. Review gate found 1 MEDIUM
+(a `Zone`/`ReferenceFrame`/`LinearUnit` duck-typed into `require_vertical_pair` —
+**#11 finding 1 recurring**) and 2 LOW; all fixed at the root, pinned with the
+reviewer's own counterexample, every pin falsified.
+
+### STOP — why the rest is blocked, and what only the owner's machine can do
+
+**`geodesy.noaa.gov` is refused by the container's egress policy** (403 on
+CONNECT, every NOAA host). That blocks WP-V1 completely:
+
+1. The three files can't be fetched — both VERTCON grids and `g2012bu3.bin`.
+   Plan §2.1 wants them unmodified under NGS's own filenames; GitHub has neither.
+2. **NCAT can't be reached, so the 20-point anchor lattice can't be recreated.**
+   Plan §2 says the V0 scripts lived in that session's scratchpad, not the repo —
+   and that scratchpad was the Windows machine. The plan preserves only summary
+   statistics, the 43.0 N/84.5 W anchor, the 5-point inverse set and two σ values.
+3. **WP-V4 was therefore NOT built, deliberately.** The reader is where a sign or
+   scale error hides (§8 risk 3); the tier does not permit shipping it with only
+   self-generated fixtures under it. V0 ran first so the anchors would precede the
+   code — building V4 now would invert that.
+4. **WP-V5's dropdown is blocked too** — it must offer GEOID18 *and* GEOID12B, and
+   that tile is one of the three unreachable files.
+
+**Also substituted, and disclosed:** no Codex in the container (no binary, no
+credential), so plan §7's clause applied — two independent adversarial reviewers
+were used instead. **Weaker than the method**, since they share a model family
+with the implementers. **Run the closing gate under Codex on Windows before any
+of this ships.**
+
+### Resume checklist, in order
+
+1. `git checkout claude/vertical-transformation-plan-dtxh6j` on Windows; suite
+   should be **1223 green** there (on Linux 3 `test_r3_3_*` fail — that is #20's
+   recorded Windows `os.rename` dependency, not a defect).
+2. **WP-V1.** Download the three files from plan §2.1, verify each SHA-256
+   against the pins there, commit unmodified, add to `michspc.spec` and
+   `installer/michspc.iss`. Re-run the 20-point NCAT lattice and the 5-point
+   inverse set and freeze both as `tests/fixtures/vertcon_anchors.py` — the shape
+   `tests/fixtures/ncat_anchors.py` and `geoid_anchors.py` already use.
+3. **WP-V4** on top of `ngs_grid`: Fortran markers on the header and all 521 rows,
+   bytes-consumed == file length, the grid pair sharing geometry, and §2.5's
+   asymmetry — `.trn` biquadratic, `.err` **bilinear** — pinned so unifying them
+   fails. `ngs_grid.unpack_header` already takes an `offset` for the marker layout.
+4. Then V5–V9 as the plan has them. **Interim Codex gate after V4.**
+5. One answer needed from the owner, flagged at the gate: **plan §2.7 and §2.8
+   disagree about the σ floor** (0.000004 m vs 0.001 m). §2.7's measured figure is
+   in the code and quoted into the record; confirm it and correct §2.8.
+
+Two notes left for V4/V6 by the reviewer, neither a defect: `signed_shift` accepts
+`grid_value_m=0.0` legitimately (the `.trn` grid genuinely crosses zero in
+Michigan), so **the V4 reader must raise on an unreadable cell and never fall back
+to 0.0**; and `apply_shift` takes a bare float, so plan §3.6's datum tag on
+`ConvertedPoint` must be *checked*, not merely carried.
 
 **The V0 verification gate is DONE and its measurements are in the plan (§2).**
 That is the load-bearing part, because it settles four things that would
@@ -84,9 +157,8 @@ unchanged, because a sixth column breaks the CAD import.
 −0.1466 m and its uncertainty is **±0.366 m — 249% of the shift**. Across
 Michigan σ runs 0.001 to 0.366 m. A job-level constant would have hidden that.
 
-**Pick up at** plan §7: WP-V1 (commit the grids, pin the checksums, freeze the
-NCAT fixtures) — or take **V2 + V5 first** to land the geoid dropdown on its own,
-which needs none of the vertical work.
+**Superseded by the resume checklist above.** V2 is done; V5's registry half is
+still open and its dropdown half is blocked on `g2012bu3.bin`. Pick up at WP-V1.
 
 ## Superseded status (2026-08-07, 0.3.0 RELEASED)
 

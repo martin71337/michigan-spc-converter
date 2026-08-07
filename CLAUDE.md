@@ -59,12 +59,41 @@ frame refusal stays and the zone layer is deliberately not built yet.
 is MEDIUM, two work packages, everything needed available today; NAPGD2022 is
 blocked but seam-able via a transformation registry.
 
-### Remaining in this session
+**0.1.0 IS RELEASED.** Tag `v0.1.0`, GitHub Release published with the Inno
+installer and `SHA256SUMS.txt`. Installer SHA-256
+`c25116fc45245580332c611f2db60ad0f268356b7dcb53ef7d1abc7ac9581ea1`. All eight
+build gates passed, including the frozen bundle's own `--selftest`. Suite 898,
+green in both modes.
 
-1. Narrowing Codex re-confirmation over the fixed surfaces.
-2. WP7 release: PyInstaller spec, frozen-bundle `--selftest` gate, Inno Setup
-   with a once-generated frozen AppId, SHA-256, GitHub Release. Drop the `-dev`
-   marker from `michspc.__version__` only at the release gate.
+The narrowing re-confirmation closed 10 of 11 findings, found one defect the
+fixes had introduced (fixed and pinned, amendment #23), and one item is accepted
+weak with reasons recorded: the final rename is not write-through, so the
+failure mode is an absent archive, never a corrupt one.
+
+### Open for the owner
+
+1. **The install proof is human and still outstanding** (METHOD.md §6): install
+   on a clean profile and run one real job end to end. A self-test is not a
+   substitute.
+2. **A real PNEZD file from an actual job** is still worth having. The reader is
+   built to a documented convention, not to a real export.
+3. **The icon at 16 and 32 px** — "COORD CONVERT" lettering will smear. A
+   cropped, text-free compass variant for the small sizes inside the same `.ico`
+   is the usual fix. His artwork, his call.
+4. **The `Geodetic (latitude / longitude)` dropdown entry** was a subagent
+   addition to the owner-approved layout. It works, it is tested end to end, and
+   he has not looked at it.
+
+### Next build, when it comes
+
+- **SPCS2022** — spec is DESIGN.md #21. Blocked on NATRF2022 and its
+  transformation, not on effort. Michigan is 19 zones, needing transverse and
+  oblique Mercator engines this program does not have.
+- **NGVD 29 → NAVD 88** — sizing is DESIGN.md #22. MEDIUM, two work packages,
+  buildable today; design the vertical-transformation registry so NAPGD2022 is
+  later a data change.
+- **Rename durability** (#23) — if it is ever worth it, `MoveFileEx` with
+  `MOVEFILE_WRITE_THROUGH` via `ctypes`.
 
 ## Superseded status (2026-08-06, interim gate CLOSED)
 

@@ -40,6 +40,18 @@ anything it cannot read rather than guessing.
 * **A byte order mark never becomes part of a point identifier.** It is
   stripped on every path into the parser, not only on the one that decodes
   utf-8-sig.
+* **Angles are DECIMAL DEGREES. Degrees-minutes-seconds is refused, by name.**
+  When a job reads geodetic positions, columns two and three hold decimal
+  degrees and nothing else. DMS is not read out of a file and is not planned:
+  the spellings differ between data collectors (``43°47'59.8"N``,
+  ``43 47 59.8 N``, ``43-47-59.8``, packed ``434759.8``), the hemisphere is a
+  letter in some and a sign in others, and packed forms are indistinguishable
+  from an ordinary number — ``434759.8`` is a perfectly good decimal degree
+  reading nowhere near Michigan. Guessing between those moves a point silently,
+  which is the one thing this program may not do. A DMS-looking field is
+  therefore refused with a message that says so and points at the Single point
+  tab, which does take DMS in four separate boxes where nothing is ambiguous
+  (docs/DESIGN.md amendment #28).
 
 **On zero elevations.** Data collectors write 0.00 into the Z column for points
 that were never levelled. Treating that as a real elevation would compute an
@@ -85,6 +97,28 @@ _BYTE_ORDER_MARK = "\ufeff"
 # Deliberately does not admit "nan" or "inf": those are refused as coordinates,
 # and a description that literally reads "nan" is text, not a shifted number.
 _NUMERIC_TOKEN = re.compile(r"^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$")
+
+# An angle written as degrees, minutes and seconds, in the spellings a data
+# collector or a spreadsheet actually produces:
+#
+#     43°47'59.8"N     43 47 59.8 N     43-47-59.8     43d47m59.8s     43:47:59.8N
+#
+# This reader takes DECIMAL DEGREES only (docs/DESIGN.md amendment #28), and
+# every one of those is refused by float() anyway. The pattern exists solely so
+# the refusal can say WHY rather than "not a number" - a surveyor whose export
+# wrote DMS needs to be told the format is wrong, not that his data is
+# unreadable. It is a diagnostic, never a parse: nothing downstream branches on
+# it, and a false positive costs a slightly wrong sentence in a message that
+# was going to be a refusal either way.
+_LOOKS_LIKE_DMS = re.compile(
+    r"""^[+-]?\d{1,3}          # degrees
+        \s*(?:[°ºd:\-\s])\s*   # a separator of some kind
+        \d{1,2}                # minutes
+        \s*(?:['′m:\-\s]\s*\d{1,2}(?:\.\d+)?\s*(?:["″s])?)?   # optional seconds
+        \s*[NSEWnsew]?$        # optional hemisphere letter
+    """,
+    re.VERBOSE,
+)
 
 
 class PnezdError(Exception):
@@ -174,6 +208,21 @@ def _parse_number(text: str, field: str, line_number: int, line: str, path) -> f
     try:
         value = float(cleaned)
     except ValueError:
+        if _LOOKS_LIKE_DMS.match(cleaned):
+            raise PnezdError(
+                f"{path}, line {line_number}: the {field} field reads "
+                f"{text.strip()!r}, which looks like degrees, minutes and "
+                f"seconds.\n  {line.strip()!r}\n"
+                f"This file reader takes DECIMAL DEGREES only - 43.80000000, "
+                f"not 43 48 00.0 - and there is deliberately no attempt to "
+                f"read DMS out of a file: the spellings vary between data "
+                f"collectors, the hemisphere is sometimes a letter and "
+                f"sometimes a sign, and guessing wrongly between them moves a "
+                f"point without saying so.\n"
+                f"Export the file again in decimal degrees, or convert the "
+                f"point on the Single point tab, which does take degrees, "
+                f"minutes and seconds in four separate boxes."
+            ) from None
         raise PnezdError(
             f"{path}, line {line_number}: the {field} field reads {text.strip()!r}, "
             f"which is not a number.\n  {line.strip()!r}\n"

@@ -35,7 +35,7 @@ from pathlib import Path  # noqa: E402
 import pytest  # noqa: E402
 from PySide6.QtCore import Qt  # noqa: E402
 from PySide6.QtGui import QGuiApplication  # noqa: E402
-from PySide6.QtWidgets import QFrame  # noqa: E402
+from PySide6.QtWidgets import QFrame, QLabel  # noqa: E402
 
 from michspc.fileio import exports, formatting as fmt, pnezd  # noqa: E402
 from michspc.gui import single_point as single_point_module  # noqa: E402
@@ -1333,3 +1333,384 @@ def test_no_value_wraps_except_the_one_that_has_to(window, tab):
     # that is allowed to wrap is present and really is wrapping.
     assert "Warnings" in [label for label, _text in rows]
     assert panel.value_labels[-1].height() > one_line
+
+
+# --------------------------------------------------------------------------
+# Degrees / minutes / seconds entry
+# --------------------------------------------------------------------------
+#
+# docs/DESIGN.md amendment #28. The property that matters is that this is an
+# ENTRY mode and nothing else: the same point typed either way must convert to
+# the same coordinate, because a second way of reading a latitude is a second
+# thing that can be wrong about one.
+
+# 43.800 N and -84.367 W as degrees, minutes and seconds. Hand-derived from the
+# decimal values the cases above already use:
+#
+#   0.800 deg x 60 = 48.000 min exactly            -> 43 deg 48 min 00.00000 sec
+#   0.367 deg x 60 = 22.02 min; 0.02 x 60 = 1.2 s  -> 84 deg 22 min 01.20000 sec
+#
+# So the two spellings name one point, and every comparison below rests on that
+# arithmetic rather than on the program agreeing with itself.
+LATITUDE_DMS = ("43", "48", "00.00000", "N")
+LONGITUDE_DMS = ("84", "22", "01.20000", "W")
+
+
+def fill_dms(entry, components):
+    degrees, minutes, seconds, hemisphere = components
+    entry.degrees.setText(degrees)
+    entry.minutes.setText(minutes)
+    entry.seconds.setText(seconds)
+    entry.hemisphere.setCurrentIndex(entry.hemisphere.findData(hemisphere))
+
+
+def set_up_dms_job(tab, target=MI_CENTRAL, convention=LongitudeConvention.NEGATIVE_WEST):
+    """A geodetic-to-zone job with the two angles typed in DMS."""
+    tab.from_zone.setCurrentIndex(tab.from_zone.findData(GEODETIC))
+    tab.to_zone.setCurrentIndex(tab.to_zone.findData(target))
+    tab.longitude_combo.setCurrentIndex(tab.longitude_combo.findData(convention))
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DMS_PAGE)
+    )
+    fill_dms(tab.first_dms, LATITUDE_DMS)
+    fill_dms(tab.second_dms, LONGITUDE_DMS)
+    tab.elevation_edit.setText(CENTRAL_ELEVATION)
+
+
+def output_rows(tab):
+    """Just the OUTPUT section, as (label, value) pairs."""
+    count = len(tab.sections[0].values)
+    return tab.displayed_rows()[count:]
+
+
+def test_decimal_degrees_is_what_the_tab_opens_on(tab):
+    """A starting state, not a silent default.
+
+    Almost nothing in this program has a default, so this is worth saying: the
+    two zone dropdowns and the longitude convention open unanswered because
+    their options are indistinguishable from what is on screen. These two are
+    not - the boxes visibly change shape - so nothing is being assumed about a
+    value the user did not state.
+    """
+    assert tab.angle_format.currentData() == single_point_module.DECIMAL_PAGE
+    assert tab.entering_dms() is False
+    assert tab.first_stack.currentIndex() == single_point_module.DECIMAL_PAGE
+    assert tab.second_stack.currentIndex() == single_point_module.DECIMAL_PAGE
+
+
+def test_the_format_selector_is_dead_while_the_job_starts_from_a_zone(tab):
+    """A northing has no minutes.
+
+    The selector follows the FROM selection alone, exactly as the entry labels
+    do and for the same reason: the To selection cannot change what the typed
+    values ARE.
+    """
+    tab.from_zone.setCurrentIndex(tab.from_zone.findData(MI_CENTRAL))
+    assert tab.angle_format.isEnabled() is False
+    assert tab.angle_format_label.isEnabled() is False
+
+    # Even set to DMS, a zone source keeps the decimal boxes: entering_dms()
+    # requires both, so the dropdown cannot strand a northing in a degrees box.
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DMS_PAGE)
+    )
+    assert tab.entering_dms() is False
+    assert tab.first_stack.currentIndex() == single_point_module.DECIMAL_PAGE
+
+    tab.from_zone.setCurrentIndex(tab.from_zone.findData(GEODETIC))
+    assert tab.angle_format.isEnabled() is True
+    assert tab.entering_dms() is True
+    assert tab.first_stack.currentIndex() == single_point_module.DMS_PAGE
+
+
+def test_the_dms_row_has_four_boxes_with_the_symbols_already_in_place(tab):
+    """The owner's shape: type the numbers, not the punctuation."""
+    tab.from_zone.setCurrentIndex(tab.from_zone.findData(GEODETIC))
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DMS_PAGE)
+    )
+
+    for entry, letters in (
+        (tab.first_dms, ("N", "S")),
+        (tab.second_dms, ("E", "W")),
+    ):
+        symbols = [
+            child.text()
+            for child in entry.findChildren(QLabel)
+        ]
+        assert symbols == ["°", "'", '"']
+
+        # The hemisphere opens unanswered, like every other question this
+        # program refuses to answer for the user.
+        assert entry.hemisphere.currentIndex() == 0
+        assert entry.hemisphere_letter() == ""
+        offered = [
+            entry.hemisphere.itemData(i) for i in range(1, entry.hemisphere.count())
+        ]
+        assert tuple(offered) == letters
+
+
+def test_convert_waits_for_every_box_including_the_hemisphere(tab):
+    """Four boxes each, and an unanswered hemisphere is a missing box.
+
+    A dropdown left on its placeholder is exactly the state a default would
+    have hidden, and the letter decides which side of the meridian this is.
+    """
+    set_up_dms_job(tab)
+    assert tab.convert_button.isEnabled() is True
+
+    for clear, restore in (
+        (lambda: tab.first_dms.degrees.setText(""),
+         lambda: tab.first_dms.degrees.setText(LATITUDE_DMS[0])),
+        (lambda: tab.second_dms.minutes.setText(""),
+         lambda: tab.second_dms.minutes.setText(LONGITUDE_DMS[1])),
+        (lambda: tab.second_dms.seconds.setText(""),
+         lambda: tab.second_dms.seconds.setText(LONGITUDE_DMS[2])),
+        (lambda: tab.second_dms.hemisphere.setCurrentIndex(0),
+         lambda: fill_dms(tab.second_dms, LONGITUDE_DMS)),
+    ):
+        clear()
+        assert tab.convert_button.isEnabled() is False
+        restore()
+        assert tab.convert_button.isEnabled() is True
+
+
+def test_the_same_point_converts_the_same_typed_either_way(window, tab):
+    """The load-bearing pin of this feature.
+
+    43 deg 48 min 00 sec N is 43.800 and 84 deg 22 min 01.2 sec W is -84.367 -
+    derived above from the arithmetic, not from this program. Typing the point
+    each way must therefore produce the same converted coordinate, to the last
+    displayed digit. A DMS-specific route through the conversion would be a
+    second way of converting a latitude, and two ways of doing one thing is
+    exactly how the two TABS would come to disagree (amendment #26).
+    """
+    set_up_dms_job(tab)
+    if tab.convert() is not True:
+        raise AssertionError(f"the DMS run failed: {tab.shown_failures}")
+    from_dms = output_rows(tab)
+
+    # The identical job, typed as decimal degrees.
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DECIMAL_PAGE)
+    )
+    tab.first_edit.setText(CENTRAL_LATITUDE)
+    tab.second_edit.setText(CENTRAL_LONGITUDE)
+    if tab.convert() is not True:
+        raise AssertionError(f"the decimal run failed: {tab.shown_failures}")
+    from_decimal = output_rows(tab)
+
+    assert from_dms == from_decimal
+    # Anti-vacuousness: there is a real converted coordinate in there.
+    labels = [label for label, _text in from_dms]
+    assert NORTHING_LABEL in labels and EASTING_LABEL in labels
+
+
+def test_a_dms_entry_means_the_same_point_under_both_conventions(window, tab):
+    """The hemisphere letter fixes the position; the convention only spells it.
+
+    ``formatting.longitude_dms`` records why a DMS longitude is
+    convention-independent: the magnitude is the same number under both, and
+    the letter is a fact about the point rather than about how a file writes
+    its signs. So the two conventions must give ONE converted coordinate here -
+    where the same DECIMAL longitude gives two, 340 miles apart. That contrast
+    is the whole reason the convention selector exists, and both halves of it
+    are checked.
+    """
+    set_up_dms_job(tab, convention=LongitudeConvention.NEGATIVE_WEST)
+    assert tab.convert() is True
+    negative_west = output_rows(tab)
+
+    set_up_dms_job(tab, convention=LongitudeConvention.POSITIVE_WEST)
+    assert tab.convert() is True
+    positive_west = output_rows(tab)
+
+    assert negative_west == positive_west
+
+    # And the contrast, on the decimal page: the SAME typed text is two
+    # different points, which is what the selector is there to disambiguate.
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DECIMAL_PAGE)
+    )
+    tab.first_edit.setText(CENTRAL_LATITUDE)
+    tab.second_edit.setText(CENTRAL_LONGITUDE)
+
+    tab.longitude_combo.setCurrentIndex(
+        tab.longitude_combo.findData(LongitudeConvention.NEGATIVE_WEST)
+    )
+    assert tab.convert() is True
+    decimal_negative = output_rows(tab)
+
+    tab.longitude_combo.setCurrentIndex(
+        tab.longitude_combo.findData(LongitudeConvention.POSITIVE_WEST)
+    )
+    assert tab.convert() is True
+    decimal_positive = output_rows(tab)
+
+    assert decimal_negative != decimal_positive
+
+
+def test_a_panel_reading_can_be_typed_straight_back_in(window, tab):
+    """Screen and entry form are two views of one notation, not two notations.
+
+    Converts a zone point to geodetic, reads the two DMS strings off the panel
+    exactly as a surveyor would, types them back into the four-box entry, and
+    converts back. The northing and easting must return to where they started.
+    """
+    fill_single(tab, case_named("zone_to_geodetic"))
+    if tab.convert() is not True:
+        raise AssertionError(f"the run failed: {tab.shown_failures}")
+
+    shown = dict(tab.displayed_rows())
+    latitude_text = shown["Latitude (DMS)"]
+    longitude_text = shown["Longitude (DMS)"]
+
+    def components(text):
+        degrees, rest = text.split("°")
+        minutes, rest = rest.split("'")
+        return degrees, minutes, rest[:-2], rest[-1]
+
+    set_up_dms_job(tab, target=MI_CENTRAL)
+    fill_dms(tab.first_dms, components(latitude_text))
+    fill_dms(tab.second_dms, components(longitude_text))
+    tab.elevation_edit.setText(CENTRAL_ELEVATION)
+    if tab.convert() is not True:
+        raise AssertionError(f"the round trip failed: {tab.shown_failures}")
+
+    returned = dict(output_rows(tab))
+    # Five decimals of a second is about 0.3 mm, so the returned coordinate
+    # agrees with the original to well under a millimetre. Compared as numbers
+    # at that tolerance rather than as strings: the last displayed digit of a
+    # foot is 0.001, and a 0.3 mm difference can still move it.
+    assert float(returned[NORTHING_LABEL].replace(",", "")) == pytest.approx(
+        float(CENTRAL_NORTHING), abs=0.005
+    )
+    assert float(returned[EASTING_LABEL].replace(",", "")) == pytest.approx(
+        float(CENTRAL_EASTING), abs=0.005
+    )
+
+
+def test_an_unreadable_dms_box_refuses_by_name_and_clears_the_result(window, tab):
+    """The refusal is fileio.dms's own sentence, shown exactly as raised."""
+    set_up_dms_job(tab)
+    assert tab.convert() is True
+    assert tab.sections is not None
+
+    tab.second_dms.minutes.setText("61")
+    assert tab.convert() is False
+
+    message = str(tab.last_failure)
+    assert "60 minutes in a degree" in message
+    assert "longitude" in message
+    assert tab.result is None
+    assert tab.sections is None
+    assert tab.copy_all_button.isEnabled() is False
+    assert tab.status_label.styleSheet() == single_point_module.RED
+
+
+def test_editing_any_dms_box_discards_a_displayed_result(window, tab):
+    """The stale-value failure of amendment #26, on the new boxes.
+
+    Every one of the eight new controls has to reach _invalidate_result, or a
+    surveyor who corrected a seconds box and did not press Convert could copy
+    the previous point's coordinate straight into CAD.
+    """
+    boxes = [
+        tab.first_dms.degrees,
+        tab.first_dms.minutes,
+        tab.first_dms.seconds,
+        tab.second_dms.degrees,
+        tab.second_dms.minutes,
+        tab.second_dms.seconds,
+    ]
+    for box in boxes:
+        set_up_dms_job(tab)
+        assert tab.convert() is True
+        assert tab.sections is not None
+
+        box.setText(box.text() + "0")
+        assert tab.sections is None, f"{box} left a result on screen"
+        assert tab.result is None
+
+    # And the two hemisphere dropdowns.
+    for entry in (tab.first_dms, tab.second_dms):
+        set_up_dms_job(tab)
+        assert tab.convert() is True
+        entry.hemisphere.setCurrentIndex(0)
+        assert tab.sections is None
+
+
+def test_switching_the_entry_format_discards_a_displayed_result(window, tab):
+    """The two pages hold different text, and nothing is translated between
+    them - so what is on screen no longer describes what is in the boxes."""
+    set_up_dms_job(tab)
+    assert tab.convert() is True
+    assert tab.sections is not None
+
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DECIMAL_PAGE)
+    )
+    assert tab.sections is None
+    assert tab.result is None
+    assert tab.status_label.text() == single_point_module.STATUS_INPUT_CHANGED
+
+
+def test_the_two_pages_do_not_leak_into_each_other(tab):
+    """Nothing is translated when the format switches, and nothing is cleared.
+
+    Carrying a decimal 43.800 into a degrees box would read as 43 degrees flat
+    - 48 minutes away - and clearing the abandoned page would lose work on a
+    mis-click. The abandoned page simply stops gating Convert.
+    """
+    tab.from_zone.setCurrentIndex(tab.from_zone.findData(GEODETIC))
+    tab.to_zone.setCurrentIndex(tab.to_zone.findData(MI_CENTRAL))
+    tab.longitude_combo.setCurrentIndex(
+        tab.longitude_combo.findData(LongitudeConvention.NEGATIVE_WEST)
+    )
+
+    tab.first_edit.setText(CENTRAL_LATITUDE)
+    tab.second_edit.setText(CENTRAL_LONGITUDE)
+    assert tab.convert_button.isEnabled() is True
+
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DMS_PAGE)
+    )
+    # The decimal text survives untouched, and no digit of it appeared in a
+    # degrees box.
+    assert tab.first_edit.text() == CENTRAL_LATITUDE
+    assert tab.first_dms.degrees.text() == ""
+    # Convert now reads the DMS page, which is empty.
+    assert tab.convert_button.isEnabled() is False
+
+
+BUTTON_FRAME_ALLOWANCE = 4
+"""How far a flat QToolButton may stand above the line of text beside it.
+
+The button cannot shrink to the text height: Qt adds its own frame around the
+icon, and pinning it flat would mean overriding that with a hard-coded box,
+which renders cramped under a native Windows theme. So the pin below allows the
+frame and nothing more - which is a real discriminator rather than a formality:
+the 14 px glyph this replaced measured 21 px against a 14 px line and would
+fail it, and the 11 px one measures 18 and passes.
+"""
+
+
+def test_the_copy_button_does_not_tower_over_the_value_it_copies(window, tab):
+    """The owner asked for a smaller glyph (docs/DESIGN.md amendment #28).
+
+    Pinned as a relationship rather than as the number 11, which would only
+    restate the constant. What he was after is a control that sits beside a
+    coordinate without dominating it, and that is a comparison against the text.
+    """
+    panel = laid_out(window, tab, case_named("zone_to_zone"))
+
+    for value, button in zip(panel.value_labels, panel.copy_buttons):
+        line_height = value.fontMetrics().height()
+
+        assert button.height() <= line_height + BUTTON_FRAME_ALLOWANCE, (
+            f"the copy button is {button.height()} px against a "
+            f"{line_height} px line of text"
+        )
+        # The glyph itself is smaller than a character, which is the part the
+        # eye actually reads as the button's size.
+        assert button.iconSize().height() < line_height

@@ -924,19 +924,52 @@ def test_the_hint_ignores_the_to_selection(window):
 
 
 def test_the_longitude_convention_reads_the_wording_the_owner_chose():
-    """Exactly these two strings (docs/DESIGN.md amendments #16 note 2, #17).
+    """Exactly these two strings (docs/DESIGN.md amendments #16 note 2, #17, #28).
 
-    The attribution tails - "as used by OPUS, NCAT, GPS and GIS" and "as used by
-    NOAA Manual NOS NGS 5" - were dropped. The sign and the worked example are
-    what disambiguate, and the owner chose the short form for BOTH surfaces, so
-    there is no separate GUI label to drift from this.
+    Two things have been stripped at the owner's direction: the attribution
+    tails ("as used by OPUS, NCAT, GPS and GIS" / "as used by NOAA Manual NOS
+    NGS 5") at #17, and the worked example ("(-84.37)" / "(84.37)") at #28. The
+    sign word alone names the convention completely.
+
+    He chose one wording for BOTH surfaces each time, so there is no separate
+    GUI label to drift from this - which is why the job record's line moves with
+    the dropdown's, and why that is checked below rather than assumed.
     """
-    assert LongitudeConvention.NEGATIVE_WEST.value == "negative west (-84.37)"
-    assert LongitudeConvention.POSITIVE_WEST.value == "positive west (84.37)"
+    assert LongitudeConvention.NEGATIVE_WEST.value == "negative west"
+    assert LongitudeConvention.POSITIVE_WEST.value == "positive west"
     assert [c.value for c in LongitudeConvention] == [
-        "negative west (-84.37)",
-        "positive west (84.37)",
+        "negative west",
+        "positive west",
     ]
+
+    # The worked example is gone from the values themselves, not merely
+    # shortened - it moved to the dropdown's tooltip, which is checked in
+    # test_the_longitude_tooltip_carries_the_worked_example.
+    for convention in LongitudeConvention:
+        assert "84.37" not in convention.value
+
+
+def test_the_longitude_tooltip_carries_the_worked_example(window):
+    """The example moved out of the entries and into the tooltip (#28).
+
+    It was doing real work where it was - a surveyor choosing between two
+    conventions needs to see which sign each one puts on a Michigan longitude -
+    but it rode the enum value into the job record's Longitude line as well.
+    The tooltip teaches the person making the choice without following the
+    choice into every document that reports it.
+    """
+    tip = window.longitude_combo.toolTip()
+
+    assert "-84.37" in tip
+    assert "84.37" in tip
+    # And the part that says why the question is being asked at all.
+    assert "340 miles" in tip
+    assert "no default" in tip
+
+    # Anti-vacuousness: the example really is absent from the place it used to
+    # be, so the tooltip is now the only surface carrying it.
+    for position in range(window.longitude_combo.count()):
+        assert "84.37" not in window.longitude_combo.itemText(position)
 
 
 def test_the_longitude_dropdown_shows_the_enum_values_and_nothing_else(window):
@@ -1075,8 +1108,8 @@ def test_the_job_record_prints_the_short_longitude_wording(
 
     assert len(longitude_lines) == 1
     # The line is a fixed-width label followed by the convention's own value.
-    assert longitude_lines[0].split(maxsplit=1)[1].strip() == "positive west (84.37)"
-    assert longitude_lines[0].strip() == "Longitude          positive west (84.37)"
+    assert longitude_lines[0].split(maxsplit=1)[1].strip() == "positive west"
+    assert longitude_lines[0].strip() == "Longitude          positive west"
     # The dropped attribution is gone from the whole record, not just this line.
     assert "as used by" not in record
 

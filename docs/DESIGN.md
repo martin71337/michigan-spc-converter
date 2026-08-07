@@ -440,6 +440,108 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #28 — 2026-08-07 — Owner's second pass: DMS entry, and the worked example goes
+
+Four more owner directives after looking at #27 on screen. Three are interface;
+the fourth is a question he asked, answered here and in the suite.
+
+**1. The copy glyph is smaller** — 14 px to 11. Pinned as a relationship rather
+than as the number: the button may stand above its line of text by the frame a
+flat `QToolButton` needs and no more, which the 14 px glyph failed and the 11 px
+one passes. It cannot go flat without a hard-coded box, and hard-coding one
+renders cramped under a native Windows theme.
+
+**2. The worked example leaves the longitude sign entries.**
+
+    NEGATIVE_WEST -> "negative west"
+    POSITIVE_WEST -> "positive west"
+
+This continues #16 note 2 and #17, which took the attribution tail off the same
+two strings. The sign word alone names the convention completely — "negative
+west" *is* the definition, not an abbreviation of one.
+
+**The job record's `Longitude` line moves with it, and that is the owner's
+standing choice, not an oversight.** #16 note 2 raised exactly this and #17
+settled it: one wording in both surfaces rather than a short GUI label beside a
+longer record entry, because two strings for one fact drift. The example was
+doing real work for the person *choosing*, so it moved to the dropdown's
+tooltip — which teaches at the moment of the decision without following the
+decision into every document that reports it. The record's surrounding lines
+still state the conversion direction and both zones' defining constants.
+
+**3. Latitude and longitude can be typed as degrees, minutes and seconds.**
+
+A `Lat/long entry` selector on the Single point tab, relevant only while the
+FROM selection is geodetic — a northing has no minutes, so a zone source keeps
+the decimal boxes however the selector is set. Decimal degrees is what the tab
+opens on. That is a starting state rather than a silent default: the two zone
+dropdowns and the longitude convention open unanswered because their options are
+indistinguishable from what is on screen, and these two are not — the boxes
+visibly change shape.
+
+DMS is four boxes per angle with the symbols already between them — `43 ° 48 '
+00.00000 " N` — mirroring what the results panel displays, so a reading can be
+typed straight back in. **The hemisphere opens unanswered** and gates Convert,
+like every other question this program refuses to answer for the user. Michigan
+is always N and W; a dropdown that opened there would be right until the first
+time it was not, with nothing on screen saying a choice had been made.
+
+**The architecture point.** Composing d + m/60 + s/3600 is arithmetic on a
+coordinate, so it is in `michspc/fileio/dms.py` and not in the interface (§9).
+It sits beside `formatting.latitude_dms` and `longitude_dms` because those two
+*define* the notation it reads; a parser living anywhere else would be a second,
+drifting definition of one format. `tests/test_dms.py` pins the round trip
+against the formatter in both directions.
+
+What comes back is **the text the decimal box would have held**, which then goes
+through `pnezd.parse_typed_point` — the same single gate as everything else. So
+DMS adds a step in front of the gate, not a second gate, and nothing downstream
+of `typed_coordinates` can tell the two entry modes apart. `repr` rather than a
+fixed format, because `f"{v:.8f}"` would round the typed angle to about a
+millimetre before it was ever converted.
+
+**The convention interaction, which is the subtle part.** A DMS longitude is
+convention-independent — `formatting.longitude_dms` already recorded why: the
+magnitude is the same under both conventions and the letter is a fact about the
+point. So the letter alone fixes the position, and `positive_west` only decides
+how that one position is written as a bare number. The pin: **the same DMS entry
+converts to the same coordinate under both conventions, where the same decimal
+entry gives two points 340 miles apart.** Both halves are asserted; the contrast
+is what makes the first half mean something.
+
+The convention selector stays required for geodetic jobs regardless. It still
+governs how the decimal longitude is displayed and recorded, and relaxing a
+safety gate because one entry mode happens not to need it would be a rule with
+an exception in it.
+
+**4. The input CSV takes decimal degrees only — the owner's question, answered.**
+
+`pnezd._parse_number` calls `float()`, so `43°47'59.8"N`, `43 47 59.8 N` and
+`43-47-59.8` were all refused already, as "not a number". That is the right
+behaviour and the wrong sentence: a surveyor whose data collector exported DMS
+has a *format* problem and would go looking for a corrupt row.
+
+DMS is now refused **by name**, with a message that says the reader takes
+decimal degrees, says why DMS is not read from a file, and points at the Single
+point tab, which does take it. The detection is a diagnostic and never a parse —
+nothing branches on it.
+
+**Reading DMS out of a file is deliberately not built**, and the reason is
+recorded so it is not revisited by accident: the spellings differ between
+collectors, the hemisphere is a letter in some and a sign in others, and packed
+forms are indistinguishable from ordinary numbers — `434759.8` is a perfectly
+good decimal degree, nowhere near Michigan. A reader that accepted DMS would
+have to guess between those readings, and guessing moves a point silently. In
+four separate boxes nothing is ambiguous, which is why the typed path can offer
+what the file path refuses.
+
+**Verification.** Suite **1048 → 1118**, green in both `pytest` and `-O`; the
+frozen-bundle self-test passes with `fileio.dms` and `gui.dms_entry` in its lazy
+import list. Every new pin was falsified by seeding its defect: minutes divided
+by 100, the hemisphere ignored, a blank component read as zero, the fixed
+8-place format, the convention applied to a latitude, the 14 px glyph restored,
+and a DMS spelling reaching the generic refusal.
+
 ### #27 — 2026-08-07 — Owner's interface edits before the release: four changes
 
 Four owner directives, taken after looking at the built Single point tab

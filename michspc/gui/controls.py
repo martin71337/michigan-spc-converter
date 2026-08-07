@@ -131,10 +131,18 @@ def longitude_combo(parent, on_change) -> QComboBox:
     for convention in LongitudeConvention:
         combo.addItem(convention.value, convention)
     combo.setToolTip(
-        "The two conventions are indistinguishable from the numbers alone, "
-        "and choosing wrongly moves a Michigan point about 340 miles. There "
-        "is deliberately no default."
+        "A Michigan longitude of 84 deg 22 min W is written -84.37 under the "
+        "negative-west convention and 84.37 under the positive-west one. The "
+        "two are indistinguishable from the numbers alone, and choosing "
+        "wrongly moves the point about 340 miles. There is deliberately no "
+        "default.\n\n"
+        "Degrees-minutes-seconds entry does not depend on this: a hemisphere "
+        "letter states the direction outright."
     )
+    """The worked example moved here from the entries themselves at the owner's
+    request (docs/DESIGN.md amendment #28). It taught the person choosing, but
+    it rode the enum value into the job record's Longitude line as well, and
+    "positive west" alone names the convention completely."""
     combo.currentIndexChanged.connect(on_change)
     return combo
 

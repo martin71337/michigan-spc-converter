@@ -2859,7 +2859,7 @@ def test_a_geodetic_job_record_states_the_frame_it_read_the_file_as(tmp_path):
 
     # And the short longitude wording the owner chose (docs/DESIGN.md #17)
     # reaches the record, not just the dropdown.
-    assert "Longitude          negative west (-84.37)" in text
+    assert "Longitude          negative west" in text
     assert "as used by" not in text
 
 
@@ -3029,7 +3029,7 @@ def test_fix_b_a_geodetic_input_is_not_described_as_pnezd(tmp_path):
     assert "Columns two and three are DECIMAL DEGREES, read" in block
     # ... and which way west is signed, without which the description of the
     # file cannot be read at all (docs/DESIGN.md section 7).
-    assert "as negative west (-84.37)." in block
+    assert "as negative west." in block
 
     # What it must NOT say.
     assert "PNEZD, no header row" not in block
@@ -3070,7 +3070,7 @@ def test_fix_b_a_geodetic_export_is_not_described_as_pnezd(tmp_path):
     assert "The converted positions - NOT PNEZD, and NOT the same layout as" in block
     assert "the input: point, latitude, longitude, elevation, description," in block
     assert "Columns two and three are DECIMAL DEGREES to 8 places, written" in block
-    assert "negative west (-84.37)." in block
+    assert "negative west." in block
     # The elevation, named as the one linear column and in the OUTPUT unit.
     assert "The elevation column is meters (m)." in block
 
@@ -4132,3 +4132,100 @@ def test_r3_4_a_corrupt_staged_archive_creates_no_file_at_all(tmp_path, monkeypa
 
     assert not destination.exists()
     assert list(destination.parent.iterdir()) == []
+
+
+# --------------------------------------------------------------------------
+# The input file takes decimal degrees only
+# --------------------------------------------------------------------------
+#
+# The owner asked the direct question: do both DD and DMS work in the input
+# CSV? They do not, deliberately, and docs/DESIGN.md amendment #28 records why.
+# These tests are the answer in executable form - both halves of it, because
+# "DMS is not supported" is only half an answer if the refusal does not say so.
+
+
+DECIMAL_DEGREE_ROWS = (
+    "101,43.80000000,-84.36700000,812.40,IRON PIPE\n"
+    "102,43.80100000,-84.36800000,814.10,HUB\n"
+)
+
+
+def test_decimal_degrees_are_what_a_geodetic_input_file_holds():
+    """The supported half. Columns two and three are plain decimal degrees.
+
+    Anti-vacuousness for every refusal below: the format that IS accepted has
+    to actually be accepted, or the tests that follow would pass against a
+    reader that refused everything.
+    """
+    parsed = pnezd.parse_lines(DECIMAL_DEGREE_ROWS.splitlines())
+
+    assert len(parsed.rows) == 2
+    assert parsed.rows[0].northing == pytest.approx(43.8, abs=1e-12)
+    assert parsed.rows[0].easting == pytest.approx(-84.367, abs=1e-12)
+
+
+@pytest.mark.parametrize(
+    "written",
+    [
+        "43°47'59.8\"N",
+        "43 47 59.8 N",
+        "43-47-59.8",
+        "43:47:59.8N",
+        "43d47m59.8s",
+        "43°47'59.8\"",
+        "43 47 59.8",
+    ],
+)
+def test_a_dms_angle_in_the_file_is_refused_and_told_why(written):
+    """Refused, and the refusal names the format rather than the value.
+
+    "which is not a number" is true and useless: a surveyor whose data
+    collector exported DMS has a FORMAT problem, and the message has to say
+    that or he will go looking for a corrupt row. It also points him at the
+    Single point tab, which does take DMS (amendment #28).
+
+    Every spelling here is one a data collector or a spreadsheet actually
+    produces, and none of them is guessed at.
+    """
+    # Quoted, with any inner double quote doubled - the CSV spelling of a
+    # seconds symbol. Written out here rather than left to chance: an
+    # improperly quoted line is refused by the QUOTING guard instead, and the
+    # test would then be checking the wrong refusal.
+    line = '101,"' + written.replace('"', '""') + '",-84.36700000,812.40,IRON PIPE'
+
+    with pytest.raises(pnezd.PnezdError) as raised:
+        pnezd.parse_lines([line])
+
+    message = str(raised.value)
+    assert "degrees, minutes and seconds" in message
+    assert "DECIMAL DEGREES only" in message
+    assert "Single point tab" in message
+    # It still names the field and the line, like every other refusal here.
+    assert "northing" in message
+    assert "line 1" in message
+
+
+def test_a_packed_dms_angle_is_the_reason_dms_is_not_read_from_a_file():
+    """434759.8 is a perfectly good decimal degree, and it is not near Michigan.
+
+    This is the case that cannot be caught and is why the format is refused
+    outright rather than sniffed: packed DMS is indistinguishable from an
+    ordinary number, so a reader that tried to accept DMS would have to guess,
+    and guessing moves a point silently. Here it parses as what it literally
+    is - which is exactly right, and exactly why the OTHER spellings are
+    refused with a message instead.
+    """
+    parsed = pnezd.parse_lines(['101,"434759.8",-84.36700000,812.40,PIPE'])
+
+    assert parsed.rows[0].northing == pytest.approx(434759.8, abs=1e-9)
+
+
+def test_the_dms_hint_does_not_fire_on_an_ordinary_bad_number():
+    """A false positive here would send someone hunting a format problem that
+    is not there. Plain rubbish gets the plain message."""
+    with pytest.raises(pnezd.PnezdError) as raised:
+        pnezd.parse_lines(["101,IRON PIPE,-84.367,812.40,DESC"])
+
+    message = str(raised.value)
+    assert "which is not a number" in message
+    assert "degrees, minutes and seconds" not in message

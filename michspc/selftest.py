@@ -220,6 +220,11 @@ LAZY_IMPORTS: tuple[str, ...] = (
     # module still has to be IN the bundle, and a missing one would show as a
     # row of buttons with no picture on them rather than as an error.
     "michspc.gui.copy_icon",
+    # Degrees / minutes / seconds entry (amendment #28): the four boxes and the
+    # composition behind them. fileio.dms is the one that matters most here -
+    # it is the only module in the program that turns typed text into an angle.
+    "michspc.gui.dms_entry",
+    "michspc.fileio.dms",
     # Standard-library modules the shipped code paths reach for. Cheap to check
     # and they have been dropped from bundles before by an over-eager exclude.
     "csv",

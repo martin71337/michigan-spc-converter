@@ -25,12 +25,41 @@ It deliberately does **not** do UTM, SPCS2022, NAD 83 ↔ NATRF2022
 transformation, other states, NAD 27, or two-point azimuth/distance. See
 DESIGN.md §10 for why each was deferred.
 
-## Status (2026-08-07, owner's interface edits DONE, awaiting his approval to release)
+## Status (2026-08-07, owner's second round of edits DONE, awaiting approval to release)
 
-**The four interface edits the owner asked for are in, and the release is
-paused on his approval — that is the next thing that happens.** All four are
-interface-only: no computation, no formatter, and no value on screen is
-produced differently. Full account: DESIGN.md **#27**.
+**Both rounds of the owner's interface edits are in and the release is still
+paused on his approval.** Round two: DMS entry, a smaller copy glyph, and the
+worked example out of the longitude sign entries. Full account: DESIGN.md
+**#28**.
+
+1. **Copy glyph 14 px → 11 px.** Pinned as a relationship — the button may
+   stand above its line of text by the frame a flat QToolButton needs and no
+   more — rather than as the number.
+2. **`LongitudeConvention` values are now `negative west` / `positive west`.**
+   The `(84.37)` example moved to the dropdown's tooltip. **This shortens the
+   job record's `Longitude` line too**, which is #17's standing choice (one
+   wording in both surfaces), not an oversight.
+3. **Lat/long can be typed as degrees / minutes / seconds** on the Single point
+   tab — four boxes per angle with the symbols already in place, hemisphere
+   letter instead of a sign, opening unanswered. Decimal degrees is still what
+   the tab opens on. The composition lives in `michspc/fileio/dms.py`, beside
+   the formatters that define the notation, because the GUI may not compute an
+   angle. The load-bearing pin: **the same DMS entry converts identically under
+   both longitude conventions, where the same decimal entry gives two points
+   340 miles apart.**
+4. **The input CSV takes decimal degrees only** — the owner's question,
+   answered. It always did; DMS is now refused *by name*, with a message
+   pointing at the Single point tab. Reading DMS from a file is deliberately
+   not built: packed `434759.8` is indistinguishable from an ordinary decimal
+   degree, so a file reader would have to guess.
+
+Suite **1048 → 1118**, green in both modes; frozen-bundle self-test passes.
+Seven seeded defects, all caught.
+
+### Round one (DESIGN.md #27), also in
+
+All four are interface-only: no computation, no formatter, and no value on
+screen is produced differently.
 
 1. The single-point result reads in **two columns, INPUT left, OUTPUT right**,
    with a vertical rule between. Row indices are unchanged by the split, so a
@@ -43,13 +72,20 @@ produced differently. Full account: DESIGN.md **#27**.
 4. The **output folder** starts empty. This reverses #16 note 3;
    `default_output_directory` is deleted, not left dormant.
 
-Suite **1031 → 1048**, green in both `pytest` and `-O`; the frozen-bundle
-self-test still passes. Every new pin was falsified by seeding the defect it
-catches — including one that had to be rewritten because the first version
-passed against its own defect (DESIGN.md #27, Verification).
+Every new pin was falsified by seeding the defect it catches — including one
+that had to be rewritten because the first version passed against its own
+defect (DESIGN.md #27, Verification).
 
 ### Before releasing this — open with the owner
 
+- **The job record's `Longitude` line is now shorter too** — `Longitude
+  negative west`, with no `(-84.37)`. That follows #17's standing choice of one
+  wording in both surfaces. If he wants the example kept in the record and out
+  of the dropdown only, that is a separate GUI label and #17 has to be reopened.
+- **The DMS hemisphere opens unanswered** and Convert waits for it. Michigan is
+  always N and W, so that is two clicks per conversion he may not want. Made
+  this way because the house rule is that nothing answers a question for the
+  user; preselecting N and W is a two-line change if he would rather have it.
 - **The layout question was asked and not answered.** "Two columns, one for
   input and one for output" was read as the **results panel**: the Conversion
   box keeps its owner-approved full-width shape on top, and the INPUT/OUTPUT

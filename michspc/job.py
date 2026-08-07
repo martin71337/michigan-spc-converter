@@ -54,15 +54,19 @@ class LongitudeConvention(Enum):
     it every run (docs/DESIGN.md section 7).
     """
 
-    # The sign and the worked example are what disambiguate; the attribution
-    # tail ("as used by OPUS, NCAT, GPS and GIS" / "as used by NOAA Manual NOS
-    # NGS 5") was dropped by the owner (docs/DESIGN.md amendments #16 note 2 and
-    # #17). These strings are BOTH the dropdown's text and the job record's
-    # "Longitude" line, and the owner decided the shorter wording for both: the
-    # record states the conversion direction and each zone's defining constants
-    # immediately around that line, so the convention is not left contextless.
-    NEGATIVE_WEST = "negative west (-84.37)"
-    POSITIVE_WEST = "positive west (84.37)"
+    # The attribution tail ("as used by OPUS, NCAT, GPS and GIS" / "as used by
+    # NOAA Manual NOS NGS 5") went at #16 note 2 and #17; the worked example
+    # ("(-84.37)" / "(84.37)") went at #28, both at the owner's direction. The
+    # sign word alone names the convention completely - "negative west" IS the
+    # definition, not an abbreviation of one.
+    #
+    # These strings are BOTH the dropdown's text and the job record's
+    # "Longitude" line, and the owner has twice chosen one wording for both
+    # rather than a short label beside a long record entry. The worked example
+    # now lives in the dropdown's tooltip, where it teaches the person making
+    # the choice without following the choice into every document.
+    NEGATIVE_WEST = "negative west"
+    POSITIVE_WEST = "positive west"
 
     def to_signed(self, longitude: float) -> float:
         return -longitude if self is LongitudeConvention.POSITIVE_WEST else longitude

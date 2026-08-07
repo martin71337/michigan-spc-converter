@@ -61,9 +61,15 @@ the word. A button with an icon and no accessible name is a button with no name
 at all to anything that is not a pair of eyes.
 """
 
-COPY_ICON_SIZE = 14
-"""The glyph's size in logical pixels. Small enough to sit inside a flat button
-without the row growing taller than a line of text."""
+COPY_ICON_SIZE = 11
+"""The glyph's size in logical pixels.
+
+Reduced from 14 at the owner's request. The floor is legibility, not taste: the
+glyph has to stay recognisable as two sheets, and below about 10 px its two
+outlines merge into a smudge at the stroke width Fluent uses. 11 keeps the
+button smaller than the line of text it sits beside, which is what he asked
+for, and `tests/test_copy_icon.py` still resolves the two sheets at this size.
+"""
 
 NAME_COLUMN = 0
 VALUE_COLUMN = 1

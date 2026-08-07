@@ -32,5 +32,6 @@ desktop.ini
 # (raw NGS captures, the comparison table, the written records) is committed;
 # the throwaway inputs, ZIP outputs and probe scripts are not.
 review/opus-probes/
+review/opus-probes-sp/
 review/ncat-crosscheck/inputs/
 review/ncat-crosscheck/outputs/

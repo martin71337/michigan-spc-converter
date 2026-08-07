@@ -95,8 +95,9 @@ Type: files; Name: "{autoprograms}\Michigan SPC Zone Converter.lnk"
 Type: files; Name: "{autodesktop}\Michigan SPC Zone Converter.lnk"
 
 [Files]
-; The whole PyInstaller one-folder bundle, including _internal\data\g2018u3.bin
-; (the GEOID18 tile) and _internal\assets\icon\coord-convert.ico. recursesubdirs
+; The whole PyInstaller one-folder bundle, including _internal\data\ (the
+; GEOID18 and GEOID12B tiles and the VERTCON 3.0 transformation and error
+; grids) and _internal\assets\icon\coord-convert.ico. recursesubdirs
 ; and createallsubdirs together keep the bundle's layout exactly as the frozen
 ; program expects to find it - the program locates its grid relative to the
 ; executable, so a flattened install would break every elevation factor.

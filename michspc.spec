@@ -60,28 +60,48 @@ EXECUTABLE_NAME = "mcx"
 # tests/test_selftest.py pins this file's destinations to those lookups.
 # ---------------------------------------------------------------------------
 
-GEOID_TILE_SOURCE = REPO_ROOT / "data" / "g2018u3.bin"
-GEOID_TILE_DESTINATION = "data"
-"""``michspc.fileio.geoid18._data_directory`` reads sys._MEIPASS/data."""
+DATA_DESTINATION = "data"
+"""``michspc.fileio.geoid18._data_directory`` reads sys._MEIPASS/data, and the
+VERTCON reader resolves its grid pair from the same directory."""
+
+# Every NGS grid the bundle carries, each under NGS's own filename so an auditor
+# can list it, hash it and compare it against NGS's published file without
+# unpacking anything (see the one-folder decision in the module docstring).
+#
+# The GEOID12B tile and the two VERTCON 3.0 grids are committed and bundled by
+# WP-V1 (docs/PLAN-vertical-datums.md section 2.1). GEOID12B is not yet read by
+# any code - the geoid model registry that reaches it is WP-V5 - and it is
+# bundled now rather than later so that the file, its checksum and the build
+# wiring all land in one reviewable step.
+NGS_GRID_FILENAMES = (
+    "g2018u3.bin",  # GEOID18 CONUS tile #3
+    "g2012bu3.bin",  # GEOID12B CONUS tile #3, same geometry
+    "vertcon_3.0_20190601.ngvd29.navd88.conus.oht.trn.b",  # the shift
+    "vertcon_3.0_20190601.ngvd29.navd88.conus.oht.err.b",  # its uncertainty
+)
+
+NGS_GRID_SOURCES = [REPO_ROOT / "data" / name for name in NGS_GRID_FILENAMES]
 
 ICON_DESTINATION = "assets/icon"
 """``michspc.gui.icon.icon_candidates`` reads
 sys._MEIPASS/assets/icon/coord-convert.ico."""
 
-if not GEOID_TILE_SOURCE.is_file():
+missing = [str(path) for path in NGS_GRID_SOURCES if not path.is_file()]
+if missing:
     raise SystemExit(
-        f"the GEOID18 tile is missing from the source tree: {GEOID_TILE_SOURCE}. "
-        f"Without it the bundle cannot compute an elevation or combined factor "
-        f"for any point, and the self-test would refuse the build anyway."
+        "NGS grid files are missing from the source tree: "
+        + ", ".join(missing)
+        + ". These ship with the program: without the geoid tile the bundle "
+        "cannot compute an elevation or combined factor for any point, and "
+        "without the VERTCON pair it cannot convert a height between vertical "
+        "datums. The self-test would refuse the build anyway."
     )
 
 # Derived here so a bundle can never ship yesterday's artwork.
 ICON_FILE = make_icon.generate()
 
-datas = [
-    (str(GEOID_TILE_SOURCE), GEOID_TILE_DESTINATION),
-    (str(ICON_FILE), ICON_DESTINATION),
-]
+datas = [(str(path), DATA_DESTINATION) for path in NGS_GRID_SOURCES]
+datas.append((str(ICON_FILE), ICON_DESTINATION))
 
 # ---------------------------------------------------------------------------
 # Deferred imports. PyInstaller's analysis does follow imports inside function

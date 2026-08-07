@@ -271,12 +271,23 @@ def gate_bundle() -> Path:
             f"PyInstaller exited 0 and produced no executable at {FROZEN_EXE}."
         )
 
-    tile = BUNDLE_DIR / "_internal" / "data" / "g2018u3.bin"
-    if not tile.is_file():
+    # Derived from the source tree rather than restated as a list: data/ holds
+    # exactly the NGS grids this program ships, so a grid added there and
+    # forgotten in michspc.spec fails here instead of shipping as a bundle that
+    # refuses the first job needing it. The self-test would catch the geoid tile
+    # a moment later; it is checked here as well because a missing data file is
+    # a spec defect, not a program defect.
+    bundled_data = BUNDLE_DIR / "_internal" / "data"
+    absent = sorted(
+        source.name
+        for source in (REPO_ROOT / "data").iterdir()
+        if source.is_file() and not (bundled_data / source.name).is_file()
+    )
+    if absent:
         raise BuildError(
-            f"the bundle has no GEOID18 tile at {tile}. The self-test would "
-            f"catch this a moment later; it is checked here as well because a "
-            f"missing data file is a spec defect, not a program defect."
+            f"the bundle is missing NGS grid files that data/ carries: "
+            f"{', '.join(absent)}. Expected them under {bundled_data}. Add "
+            f"them to NGS_GRID_FILENAMES in michspc.spec."
         )
 
     print(

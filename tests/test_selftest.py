@@ -376,8 +376,30 @@ def test_the_spec_reads_the_version_rather_than_restating_it():
 
 def test_the_spec_bundles_the_geoid_tile_where_the_reader_looks():
     """``_data_directory`` reads ``sys._MEIPASS/data``; the spec must put it there."""
-    assert 'GEOID_TILE_DESTINATION = "data"' in SPEC_SOURCE
+    assert 'DATA_DESTINATION = "data"' in SPEC_SOURCE
     assert '"g2018u3.bin"' in SPEC_SOURCE
+
+
+def test_the_spec_bundles_every_ngs_grid_the_source_tree_carries():
+    """Every file in ``data/`` must be named in the spec.
+
+    ``data/`` holds exactly the NGS grids this program ships, so this compares
+    the spec against the source tree rather than against a second list that
+    would have to be maintained beside it. WP-V1 added three files here - the
+    GEOID12B tile and the VERTCON 3.0 transformation and error grids - and a
+    fourth added later without touching ``michspc.spec`` would otherwise build
+    a bundle that looks complete and refuses the first job that needs it.
+
+    ``tools/build_release.py`` makes the same comparison against the *built*
+    bundle. This one fails in the suite, seconds after the omission, rather than
+    twenty minutes into a release build.
+    """
+    for source in sorted((REPO_ROOT / "data").iterdir()):
+        if source.is_file():
+            assert f'"{source.name}"' in SPEC_SOURCE, (
+                f"data/{source.name} is not named in michspc.spec, so the "
+                f"frozen bundle will not carry it."
+            )
 
 
 def test_the_spec_bundles_the_icon_where_the_loader_looks():

@@ -48,11 +48,11 @@ REPO_ROOT = Path(SPECPATH).resolve()  # noqa: F821 — PyInstaller injects SPECP
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from michspc import APP_NAME, __version__  # noqa: E402
+from michspc import APP_FULL_NAME, APP_NAME, APP_PUBLISHER, __version__  # noqa: E402
 from michspc.selftest import LAZY_IMPORTS  # noqa: E402
 from tools import make_icon  # noqa: E402
 
-EXECUTABLE_NAME = "michspc-spc-converter"
+EXECUTABLE_NAME = "mcx"
 
 # ---------------------------------------------------------------------------
 # Data files. Destination paths are load-bearing: the running program looks for
@@ -145,8 +145,8 @@ version_resource = VSVersionInfo(
                 StringTable(
                     "040904B0",  # US English, Unicode
                     [
-                        StringStruct("CompanyName", "Lapham Associates"),
-                        StringStruct("FileDescription", APP_NAME),
+                        StringStruct("CompanyName", APP_PUBLISHER),
+                        StringStruct("FileDescription", f"{APP_NAME} - {APP_FULL_NAME}"),
                         StringStruct("FileVersion", __version__),
                         StringStruct("InternalName", EXECUTABLE_NAME),
                         StringStruct(
@@ -155,7 +155,7 @@ version_resource = VSVersionInfo(
                             "States Government.",
                         ),
                         StringStruct("OriginalFilename", f"{EXECUTABLE_NAME}.exe"),
-                        StringStruct("ProductName", APP_NAME),
+                        StringStruct("ProductName", f"{APP_NAME} - {APP_FULL_NAME}"),
                         StringStruct("ProductVersion", __version__),
                     ],
                 )

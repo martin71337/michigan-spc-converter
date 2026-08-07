@@ -27,7 +27,7 @@ from pathlib import Path
 
 from PySide6.QtGui import QIcon
 
-GENERATED_ICO_NAME = "coord-convert.ico"
+GENERATED_ICO_NAME = "mcx.ico"
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 """michspc/gui/icon.py -> michspc/gui -> michspc -> the repository root."""
@@ -37,7 +37,7 @@ GENERATED_ICO = REPO_ROOT / "build" / "icon" / GENERATED_ICO_NAME
 other by ``tests/test_icon.py``, so moving one without the other fails the
 suite rather than silently losing the icon."""
 
-MASTER_PNG = REPO_ROOT / "assets" / "icon" / "coord-convert-1024.png"
+MASTER_PNG = REPO_ROOT / "assets" / "icon" / "mcx-1024.png"
 """The committed master artwork, used as the fallback."""
 
 

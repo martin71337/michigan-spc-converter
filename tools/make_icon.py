@@ -1,7 +1,7 @@
 """Generate the Windows multi-resolution ``.ico`` from the master artwork.
 
 **A build step, not a committed artefact.** The owner's artwork lives once, at
-``assets/icon/coord-convert-1024.png`` (1024x1024, 8-bit RGBA). Committing a
+``assets/icon/mcx-1024.png`` (1024x1024, 8-bit RGBA). Committing a
 hand-made ``.ico`` beside it would create a second representation of the same
 fact, and the two would eventually disagree about what the program looks like
 (docs/DESIGN.md amendment #15 note 1, docs/method/METHOD.md section 5). So the
@@ -32,7 +32,7 @@ Setup. Size is not a constraint here.
 
 Run it directly::
 
-    py tools/make_icon.py                 # -> build/icon/coord-convert.ico
+    py tools/make_icon.py                 # -> build/icon/mcx.ico
     py tools/make_icon.py --output X.ico
 """
 
@@ -47,10 +47,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-MASTER_PNG = REPO_ROOT / "assets" / "icon" / "coord-convert-1024.png"
+MASTER_PNG = REPO_ROOT / "assets" / "icon" / "mcx-1024.png"
 """The owner's artwork. The single authoritative representation of the icon."""
 
-DEFAULT_OUTPUT = REPO_ROOT / "build" / "icon" / "coord-convert.ico"
+DEFAULT_OUTPUT = REPO_ROOT / "build" / "icon" / "mcx.ico"
 """Build output, git-ignored. ``michspc.gui.icon`` looks here; the two are
 pinned to each other by ``tests/test_icon.py`` so they cannot drift apart."""
 

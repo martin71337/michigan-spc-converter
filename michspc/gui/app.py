@@ -11,6 +11,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
+from michspc import APP_PUBLISHER
 from michspc.gui.window import WINDOW_TITLE, MainWindow
 
 
@@ -26,7 +27,7 @@ def build_application(argv: list[str] | None = None) -> QApplication:
 
     application = QApplication(list(argv) if argv is not None else sys.argv)
     application.setApplicationName(WINDOW_TITLE)
-    application.setOrganizationName("Michigan SPC Zone Converter")
+    application.setOrganizationName(APP_PUBLISHER)
     return application
 
 

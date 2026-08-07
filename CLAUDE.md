@@ -1,4 +1,4 @@
-# CLAUDE.md — Michigan SPC Zone Converter
+# CLAUDE.md — MCX (Martin Coordinate Exchange)
 
 A Windows desktop tool that converts survey coordinate files between the three
 Michigan State Plane Coordinate System of 1983 zones, and between State Plane
@@ -25,7 +25,7 @@ It deliberately does **not** do UTM, SPCS2022, NAD 83 ↔ NATRF2022
 transformation, other states, NAD 27, or two-point azimuth/distance. See
 DESIGN.md §10 for why each was deferred.
 
-## Status (2026-08-07, 0.1.1 RELEASED)
+## Status (2026-08-07, 0.2.0 RELEASED)
 
 **Closing adversarial gate is done and every finding is fixed.** Three
 independent tracks ran blind to each other — Codex CLI, an Opus reviewer, and a
@@ -59,16 +59,20 @@ frame refusal stays and the zone layer is deliberately not built yet.
 is MEDIUM, two work packages, everything needed available today; NAPGD2022 is
 blocked but seam-able via a transformation registry.
 
-**0.1.1 IS RELEASED** (icon only; the mathematics is untouched since 0.1.0).
-The committed master artwork had a checkerboard *painted into it* — all
-1,048,576 pixels opaque — so the "transparent background" three parts of the
-build assumed never existed and 0.1.0 shipped grey squares behind the badge.
-The badge is now cut out on a real alpha channel and enlarged to fill the frame
-(it was 67% of it). Pinned and falsified; DESIGN.md **#24**.
+**0.2.0 IS RELEASED — the program is now MCX, Martin Coordinate Exchange.**
+Renamed throughout (window title, shortcuts, installer, job record, executable
+`mcx.exe`); publisher corrected to **DMARTIN** in Installed apps and the version
+resource; the "COORD CONVERT" lettering removed from the artwork at every size.
+The Python package stays `michspc` on purpose. The AppId is unchanged so this
+upgrades in place, with an `[InstallDelete]` clearing the old name's leftovers.
+No computation changed. DESIGN.md **#25**.
 
-**0.1.0** remains the release the verification record describes. All eight build
-gates passed for both, including the frozen bundle's own `--selftest`. Suite
-898, green in both modes.
+**0.1.1** fixed the icon's fake transparency: the master had a checkerboard
+*painted into it* — all 1,048,576 pixels opaque — so the transparent background
+three parts of the build assumed never existed (DESIGN.md **#24**).
+
+**0.1.0** remains the release the verification record describes. Suite 898,
+green in both modes; all eight build gates pass for each release.
 
 The narrowing re-confirmation closed 10 of 11 findings, found one defect the
 fixes had introduced (fixed and pinned, amendment #23), and one item is accepted
@@ -82,10 +86,9 @@ failure mode is an absent archive, never a corrupt one.
    substitute.
 2. **A real PNEZD file from an actual job** is still worth having. The reader is
    built to a documented convention, not to a real export.
-3. **The icon at 16 and 32 px** — the badge is larger since 0.1.1, but "COORD
-   CONVERT" is still below the size at which text resolves. A cropped, text-free
-   compass variant for the small sizes inside the same `.ico` is the usual fix.
-   His artwork, his call.
+3. ~~The icon's small-size lettering~~ — **closed at 0.2.0.** The lettering is
+   out of the artwork at every size, so nothing smears at 16 and 32 px and no
+   size-specific variant was needed.
 4. **The `Geodetic (latitude / longitude)` dropdown entry** was a subagent
    addition to the owner-approved layout. It works, it is tested end to end, and
    he has not looked at it.

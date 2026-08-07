@@ -7,8 +7,8 @@ in one of them has nowhere to hide.
 
 Two modes, decided by the command line:
 
-    michspc-spc-converter.exe                     open the window
-    michspc-spc-converter.exe --selftest          check the bundle, exit 0 or 1
+    mcx.exe                     open the window
+    mcx.exe --selftest          check the bundle, exit 0 or 1
 
 The self-test is the build gate on the shipped bundle (``michspc/selftest.py``),
 and it must be reachable from the executable itself, because the bundle is the

@@ -406,11 +406,11 @@ def test_the_master_artwork_really_has_a_transparent_background():
 
 def test_generating_from_the_master_produces_the_six_windows_sizes(tmp_path):
     """16, 32, 48, 64, 128, 256 - the sizes Windows asks for."""
-    written = make_icon.generate(output=tmp_path / "coord-convert.ico")
+    written = make_icon.generate(output=tmp_path / "mcx.ico")
 
     assert written.exists()
     # Nothing partial survives: the staged file is renamed, not left behind.
-    assert [p.name for p in tmp_path.iterdir()] == ["coord-convert.ico"]
+    assert [p.name for p in tmp_path.iterdir()] == ["mcx.ico"]
 
     entries = read_ico_directory(written.read_bytes())
     assert [e["width"] for e in entries] == list(sorted(make_icon.ICON_SIZES))
@@ -432,7 +432,7 @@ def test_qt_reads_every_size_out_of_the_generated_icon(qapp, tmp_path):
     """
     from PySide6.QtGui import QIcon
 
-    written = make_icon.generate(output=tmp_path / "coord-convert.ico")
+    written = make_icon.generate(output=tmp_path / "mcx.ico")
     loaded = QIcon(str(written))
 
     assert loaded.isNull() is False
@@ -468,9 +468,9 @@ def test_the_loader_looks_exactly_where_the_generator_writes():
 def test_the_generated_icon_is_preferred_over_the_master(tmp_path, monkeypatch):
     """The .ico carries six hand-sized renderings; the PNG is one 1024 px image
     Qt would have to scale. When both exist the derived one wins."""
-    generated = tmp_path / "coord-convert.ico"
+    generated = tmp_path / "mcx.ico"
     generated.write_bytes(b"stand-in")
-    master = tmp_path / "coord-convert-1024.png"
+    master = tmp_path / "mcx-1024.png"
     master.write_bytes(b"stand-in")
 
     monkeypatch.setattr(icon, "GENERATED_ICO", generated)

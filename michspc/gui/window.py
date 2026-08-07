@@ -53,6 +53,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from michspc import APP_FULL_NAME, APP_NAME
 from michspc.fileio import exports, geoid18
 from michspc.gui.icon import application_icon
 from michspc.gui.results_model import ResultsModel
@@ -60,7 +61,7 @@ from michspc.job import Direction, JobResult, JobSettings, LongitudeConvention, 
 from michspc.spc.units import ALL_UNITS, INTERNATIONAL_FEET
 from michspc.spc.zones import ALL_ZONES, Zone
 
-WINDOW_TITLE = "Michigan SPC Zone Converter"
+WINDOW_TITLE = f"{APP_NAME} - {APP_FULL_NAME}"
 
 UNCHOSEN = "unchosen"
 """Sentinel for a dropdown the user has not answered yet.

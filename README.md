@@ -1,4 +1,4 @@
-# Michigan SPC Zone Converter
+# MCX - Martin Coordinate Exchange
 
 Converts survey coordinate files between the three Michigan State Plane
 Coordinate System of 1983 zones — North (2111), Central (2112) and South

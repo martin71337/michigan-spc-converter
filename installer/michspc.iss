@@ -3,7 +3,7 @@
 ; Compiled by tools/build_release.py, which passes the version and the paths in
 ; rather than letting this file guess at them:
 ;
-;   ISCC.exe /DAppVersion=0.1.0 /DSourceDir=<repo>\dist\michspc-spc-converter ^
+;   ISCC.exe /DAppVersion=0.1.0 /DSourceDir=<repo>\dist\mcx ^
 ;            /DOutputDir=<repo>\dist\installer installer\michspc.iss
 ;
 ; Compiling it by hand works too and is useful for checking a change, but a
@@ -42,9 +42,9 @@
   #define OutputDir "..\dist\installer"
 #endif
 
-#define AppName "Michigan SPC Zone Converter"
-#define AppPublisher "Lapham Associates"
-#define ExeName "michspc-spc-converter.exe"
+#define AppName "MCX"
+#define AppPublisher "DMARTIN"
+#define ExeName "mcx.exe"
 
 [Setup]
 AppId={{9D0F57AB-4394-41F2-8164-D40015E7A8B4}
@@ -54,7 +54,7 @@ AppVerName={#AppName} {#AppVersion}
 AppPublisher={#AppPublisher}
 VersionInfoVersion={#AppVersion}
 
-DefaultDirName={autopf}\Michigan SPC Zone Converter
+DefaultDirName={autopf}\MCX
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 UninstallDisplayName={#AppName} {#AppVersion}
@@ -66,7 +66,7 @@ PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 
 OutputDir={#OutputDir}
-OutputBaseFilename=michspc-spc-converter-{#AppVersion}-setup
+OutputBaseFilename=mcx-{#AppVersion}-setup
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -83,6 +83,16 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
+
+[InstallDelete]
+; The product was renamed to MCX at 0.2.0. The AppId is deliberately unchanged,
+; so Windows treats this as an upgrade of the same product rather than a second
+; entry in Installed apps - which means an existing install is reused, old exe
+; and all. These entries remove what the old name left behind. Harmless on a
+; clean machine, where there is nothing to delete.
+Type: files; Name: "{app}\michspc-spc-converter.exe"
+Type: files; Name: "{autoprograms}\Michigan SPC Zone Converter.lnk"
+Type: files; Name: "{autodesktop}\Michigan SPC Zone Converter.lnk"
 
 [Files]
 ; The whole PyInstaller one-folder bundle, including _internal\data\g2018u3.bin

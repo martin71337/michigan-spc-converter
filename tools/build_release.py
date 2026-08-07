@@ -59,7 +59,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from michspc import APP_NAME, __version__  # noqa: E402
 
-EXECUTABLE_NAME = "michspc-spc-converter"
+EXECUTABLE_NAME = "mcx"
 SPEC_FILE = REPO_ROOT / "michspc.spec"
 INNO_SCRIPT = REPO_ROOT / "installer" / "michspc.iss"
 

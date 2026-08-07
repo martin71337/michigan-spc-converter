@@ -14,6 +14,14 @@ refer to that PDF's own page numbering.
 # build script, and the Inno installer all read this literal; nothing else
 # declares a version. The "-dev" marker is refused by the release gate, so the
 # shipped number space stays unambiguous (METHOD.md section 6).
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
-APP_NAME = "Michigan SPC Zone Converter"
+APP_NAME = "MCX"
+
+APP_FULL_NAME = "Martin Coordinate Exchange"
+"""What MCX stands for. Written out wherever there is room for it - the job
+record's header, the installer, the about text - because three letters alone do
+not tell a reader six months later what produced the file."""
+
+APP_PUBLISHER = "DMARTIN"
+"""The publisher Windows shows in Installed apps and in the file properties."""

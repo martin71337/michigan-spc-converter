@@ -440,6 +440,58 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #25 — 2026-08-07 — 0.2.0: renamed MCX, publisher corrected, lettering removed
+
+Three owner directives, one release. **No computation changed**; the suite is
+green in both modes and the frozen bundle passes its own self-test.
+
+**The program is MCX, for Martin Coordinate Exchange.** `APP_NAME` is now the
+three letters, with `APP_FULL_NAME` beside it for every surface that has room —
+the window title, the file description, the installer — because three letters
+alone do not tell a reader six months later what produced a file. The executable
+is `mcx.exe`. The **Python package stays `michspc`**: renaming it would touch
+every import in the project for no user-visible gain, and the package name is
+not a user-facing fact. Recorded so the divergence is deliberate rather than
+an oversight.
+
+**The publisher is DMARTIN.** Windows' Installed apps and the executable's own
+version resource both showed "Lapham Associates", which was wrong. It is now a
+constant, `APP_PUBLISHER`, read by the installer and the version resource
+rather than restated in each.
+
+**The AppId is deliberately unchanged.** A new GUID would make the renamed
+program a *second* entry in Installed apps beside the old one, with the old one
+un-uninstallable from its own shortcut. Keeping it means Windows treats 0.2.0
+as an upgrade — which is what it is — so an `[InstallDelete]` section removes
+what the old name left behind: `michspc-spc-converter.exe` and the two old
+shortcuts. Harmless on a clean machine.
+
+**The lettering is out of the artwork at every size.** "COORD CONVERT" was also
+now simply wrong. It could not be cropped away: the down arrow's tip reaches
+y=956, *below* the lettering band at y=860–915, so every crop that loses the
+words amputates the arrow the composition is built around. The words and their
+embossed shadow were painted out instead and the badge behind them rebuilt by
+interpolating each column between the clean rows above and below the band,
+which reproduces the vertical gradient and the vertical grid lines exactly.
+
+Four things had to be got right, each found by looking at the output rather
+than trusting the previous step: a warm-colour mask removes the cream glyphs but
+leaves their dark shadow perfectly legible; a "keep what is bright and neutral"
+rule preserves the arrow but also preserves the glyphs' anti-aliased edges, so
+the wording survives as an outline; interpolating across the badge's bevelled
+rim smears it into vertical streaks, so the rebuild is confined to the flat
+interior; and a keep-window derived per row from the arrow's own measured extent
+must be clamped, or a letter edge inside the search range widens it and drags
+a shadow back in. The final rule is: rebuild rows 843–934 for x in [120, 940],
+except the arrow's own width per row, clamped to [462, 560] and never narrower
+than the shaft.
+
+**A test pin was corrected, not deleted.** `test_the_spec_reads_the_version_
+rather_than_restating_it` asserted the spec's *entire* import line, so adding
+`APP_FULL_NAME` and `APP_PUBLISHER` beside `__version__` failed it. The rule it
+exists to enforce — the version is imported, never restated — is untouched; the
+assertion now checks that rule instead of the line's exact shape.
+
 ### #23 — 2026-08-06 — Narrowing re-confirmation: 10 closed, 1 accepted weak, 1 new defect fixed
 
 The closing gate's reviewer re-examined only the fixed surfaces, at commit

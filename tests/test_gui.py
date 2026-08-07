@@ -166,7 +166,7 @@ def cell(window, row, column) -> str:
 
 def test_the_window_builds(window):
     """It constructs, names itself, and starts with an empty table."""
-    assert window.windowTitle() == "Michigan SPC Zone Converter"
+    assert window.windowTitle() == "MCX - Martin Coordinate Exchange"
     # Nothing has been converted, so there is nothing to show.
     assert window.model.rowCount() == 0
     assert window.result is None

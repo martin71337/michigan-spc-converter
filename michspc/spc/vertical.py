@@ -214,27 +214,39 @@ _VERTCON3_CONUS_GRID_KEY = "ngvd29.navd88.conus"
 
 # The per-point uncertainty is read from the companion error grid, not stated as
 # a constant here, because it varies enormously: at 43.05 N, 86.20 W it is
-# 0.3656 m against a modeled shift of -0.1466 m, which is 249% of the shift
-# itself (plan section 2.8, measured against NCAT). A single job-level constant
-# would understate that point by orders of magnitude while the shift beside it
-# was printed to the millimetre.
+# 0.3656 m against a modeled shift of -0.1435 m, which is 255% of the shift
+# itself. A single job-level constant would understate that point by orders of
+# magnitude while the shift beside it was printed to the millimetre.
 #
 # The BOUNDS quoted below are plan section 2.7's - the direct scan of the .err
-# grid over the Michigan window, min +0.000004 m and max +0.365599 m. Plan
-# section 2.8 summarises the same field as "0.001 m to 0.366 m, a factor of
-# 366"; the two disagree at the floor, and 0.001 m is NCAT's printed resolution
-# rather than a value the grid holds. This string is quoted verbatim into the
-# job record (plan section 5.2), so it states what THIS program's reader can
-# actually produce, which is the grid's own range. Flagged for the owner at the
-# WP-V3 review gate (docs/DESIGN.md amendment #35); if section 2.8's figure is
-# the authoritative one, this is the one line to change.
+# grid over the Michigan window, min +0.000004 m and max +0.365599 m. Both were
+# re-measured at the WP-V1/V4 gate from the committed grids and reproduce
+# EXACTLY, at the same two nodes.
+#
+# Two figures here were corrected at that gate, and the corrections are recorded
+# rather than quietly applied:
+#
+#  * The shift at the max-sigma point is -0.1435 m, not the -0.1466 m plan
+#    section 2.8 states. 43.05 N / 86.20 W is an EXACT grid node - both
+#    interpolation schemes return the stored value and cannot disagree - so the
+#    node value settles it, and NGS NCAT independently returns -0.144 m there
+#    (it prints to 0.001 m). The ratio is therefore 255%, not 249%. The
+#    disclosure this sentence exists to make is unchanged and if anything
+#    slightly stronger.
+#
+#  * Plan section 2.8's "0.001 m" floor is NOT a disagreement with section
+#    2.7's 0.000004 m: they describe different things. 0.000004 m is what the
+#    grid holds; 0.001 m is the resolution NCAT PRINTS to, so it is the
+#    smallest value NCAT can ever display. Evidence: at 43.0 N / 84.5 W the
+#    grid reads 0.00065542 m where NCAT returns 0.001. This string quotes the
+#    grid's own range, because that is what this program's reader produces.
 _VERTCON3_UNCERTAINTY_CITATION = (
     "Per-point one-sigma uncertainty from the companion VERTCON 3.0 error grid "
     "(.err), NOAA Technical Report NOS NGS 68. Measured across the Michigan "
     "window it ranges from 0.000004 m to 0.365599 m "
     "(docs/PLAN-vertical-datums.md section 2.7); the largest is 0.3656 m at "
-    "43.05 N, 86.20 W, where the modeled shift is -0.1466 m - the uncertainty "
-    "is 249% of the shift (section 2.8, measured against NGS NCAT)."
+    "43.05 N, 86.20 W, where the modeled shift is -0.1435 m - the uncertainty "
+    "is 255% of the shift."
 )
 
 # NGS's own caveat, which must reach every output that carries a shifted height.

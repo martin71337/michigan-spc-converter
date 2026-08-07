@@ -13,11 +13,16 @@ reached, and the 20-point anchor lattice §6 requires exists nowhere in this rep
 §2 records that the V0 scripts stayed in that session's scratchpad. **V4 was
 deliberately not built without those anchors** (§8 risk 3).
 
-**Known inconsistency in this document, flagged at the WP-V3 gate:** §2.8 states
-the Michigan σ range as "0.001 m to 0.366 m", while §2.7's direct scan of the same
-window gives **+0.000004 m to +0.365599 m**. The code quotes §2.7, because that is
-what this program's reader produces and 0.001 m is NCAT's printed resolution.
-Confirm and correct §2.8.
+**RESOLVED, and no longer a question for the owner:** §2.8's "0.001 m to
+0.366 m" and §2.7's "+0.000004 m to +0.365599 m" are not in conflict — they
+describe the grid's own value and NCAT's *printed resolution* respectively. At
+43.0 N / 84.5 W the grid holds 0.00065542 m where NCAT returns 0.001. The code
+quotes §2.7, which is right. See the note in §2.8.
+
+**§2.5 IS SUPERSEDED — read §2.5a before building the reader.** Both VERTCON
+grids are biquadratic; the "`.err` is bilinear" asymmetry was an artifact of an
+off-centre interpolation stencil, and the pin §2.5 and §6 ask for would enshrine
+a defect. Measured by two independent readers agreeing to four decimals.
 
 **The V0 verification gate has been run.** Every load-bearing unknown named in
 the first draft of this plan is now measured rather than assumed, against the
@@ -162,7 +167,13 @@ figure:
 
 One grid, one data path, two directions.
 
-### 2.5 THE INTERPOLATION FINDING — the two grids use different schemes
+### 2.5 THE INTERPOLATION FINDING — SUPERSEDED AT THE WP-V1/V4 GATE
+
+> **This section's conclusion was wrong, and the way it was wrong is the useful
+> part.** It is left standing rather than rewritten, with the correction below
+> it, because "the plan was right and the recon was wrong" is recorded in §2.6
+> and the reverse deserves the same treatment. **Read §2.5a before building
+> anything.**
 
 **Measured, not assumed, and not what anyone would have guessed.** 20 points
 across Michigan, our reader against NCAT:
@@ -192,6 +203,69 @@ the authority; the reason is why the measurement is believable.
 **This gets pinned by a test that fails if the two are ever unified**, because
 "use the same interpolator for both grids" is exactly the tidy-looking
 simplification a future reader would make.
+
+### 2.5a THE CORRECTION — both grids are biquadratic; the asymmetry was a stencil artifact
+
+**Measured 2026-08-07 by two independent readers** — one written by a
+measurement agent forbidden to look at the production code, one written by the
+session lead from the format spec — **agreeing to four decimal places**, against
+the re-captured NCAT lattice in `tests/fixtures/vertcon_anchors.py`.
+
+`ngs_grid.interpolate_biquadratic` anchors its 3×3 stencil with
+`row0 = int(row) - 1`. That puts the interpolation coordinate in **[1, 2]**: the
+point sits in the *upper* interval of the stencil, which therefore reaches a
+full cell below the point and none above it. Anchoring on the **nearest node**
+(`int(row + 0.5) - 1`) puts it in [0.5, 1.5], centred.
+
+Max absolute residual against NCAT, 20 forward anchors:
+
+| Grid | biquad, **floor**-anchored | biquad, **nearest-node** | Bilinear | Nearest |
+|---|---|---|---|---|
+| `.trn` | 8.4573 mm | **0.4707 mm** | 17.7262 mm | 32.5466 mm |
+| `.err` | 3.0416 mm | **0.4716 mm** | 4.5468 mm | 14.3214 mm |
+
+**Both grids are biquadratic with nearest-node anchoring**, and under it all 40
+residuals fall below NCAT's own 0.5 mm printing quantization — every one of the
+20 points in both grids rounds to NCAT's printed figure exactly.
+
+§2.5's asymmetry was a real measurement of an off-centre stencil, not a property
+of the two grids: bilinear only beat "biquadratic" on `.err` because it was
+racing a mis-anchored biquadratic. Note that *both* of §2.5's biquadratic
+figures (2.657 and 12.406 mm) are worse than the 0.47 mm a centred stencil gets
+on the same grids.
+
+**Three consequences, all load-bearing:**
+
+1. **The pin §2.5 and §6 ask for — "fails if the two are ever unified" — must
+   NOT be written.** It would pin the defect. The pin to write is the opposite:
+   both grids read through the nearest-node-anchored biquadratic, with the
+   floor-anchored and bilinear variants failing the anchor lattice.
+2. **`ngs_grid.interpolate_biquadratic` must NOT be changed, and neither must
+   `geoid18.py`.** Measured against GEOID18's own frozen NGS geoid-API anchors,
+   floor anchoring gives max 0.595 mm / mean 0.237 / 18-of-20 within ±0.5 mm,
+   against nearest-node's 0.830 / 0.246 / 17-of-20. **GEOID18 measurably prefers
+   the anchoring that ships today**, which is released code behind amendment #8.
+   VERTCON gets a *second* interpolator added alongside, never a replacement.
+3. **The two NGS products genuinely differ in stencil convention.** A likely
+   reason, offered as explanation and not as evidence: VERTCON's 0.05° spacing
+   is three times coarser than GEOID18's one arcminute over a rougher field, so
+   the choice is decidable there and sits at the quantization floor on the
+   geoid. **Whether GEOID18 would also prefer nearest-node anchoring if the
+   truth set could resolve it is an open question** — its evidence cannot
+   currently tell, 0.595 against 0.830 mm is within the noise of a ±0.5 mm
+   truth set, and changing released code on undecidable evidence is not
+   justified. Raise it at the closing gate.
+
+**Tolerance, derived rather than chosen:** the primary pin is exact —
+`round(grid_value, 3)` equals NCAT's printed figure, 20/20 on both grids, and it
+discriminates (floor anchoring fails it 8/20 on `.trn`, 6/20 on `.err`). The
+secondary numeric pin is **0.0005 m**: NCAT prints to 0.001 m so a printed figure
+carries ±0.5 mm, and the shift is `target − 200.000` where the 200.000 is the
+request input echoed back rather than a rounded print, so only one term is
+quantized. Measured max is 0.4707 and 0.4716 mm. **Do not loosen it to 2 mm or
+5 mm**: 2 mm admits bilinear on `.err` and 5 mm admits the floor-anchored
+biquadratic, and the tolerance would stop telling the schemes apart — the exact
+failure mode DESIGN.md #31 already recorded once.
 
 ### 2.6 The wrong turn, recorded
 
@@ -237,7 +311,26 @@ payloads, as `geoid18` does, because `load_grid` accepts any path.
 
 **The largest NGVD 29 uncertainty inside Michigan is 0.3656 m — 36.6 cm — at
 43.05 N, 86.20 W** (the Lake Michigan shore near Muskegon). The modeled shift
-there is **−0.1466 m**. The uncertainty is **249% of the shift itself**.
+there is **−0.1435 m**. The uncertainty is **255% of the shift itself**.
+
+> **Two corrections made at the WP-V1/V4 gate, recorded rather than quietly
+> applied.**
+>
+> **The shift was stated here as −0.1466 m, and it is −0.143529 m.** 43.05 N /
+> 86.20 W is an *exact grid node* — row 381, column 776 — so no interpolation is
+> involved and every scheme returns the stored value; NGS NCAT independently
+> returns −0.144 m there, printing to 0.001 m. The ratio is 255%, not 249%. The
+> σ figure, 0.365599 m, was re-measured from the committed grid and is exact.
+>
+> **The "0.001 m" floor below is not a competing measurement of §2.7's
+> 0.000004 m — the two describe different things**, and neither should be
+> "corrected" to the other. 0.000004 m is what the grid holds at its Michigan
+> minimum (43.85 N / 84.95 W, reproduced exactly). 0.001 m is the resolution
+> **NCAT prints to**, so it is the smallest value NCAT can ever display.
+> Evidence, not inference: at 43.0 N / 84.5 W the grid holds 0.00065542 m where
+> NCAT returns 0.001. **This resolves the question flagged for the owner at the
+> WP-V3 gate.** The sentence below should read: across Michigan σ runs
+> 0.000004 m to 0.365599 m in the grid; NCAT prints to 0.001 m.
 
 Across Michigan, σ ranges from **0.001 m to 0.366 m** — a factor of 366. Any
 single job-level constant hides that completely, and at that location it would
@@ -529,7 +622,9 @@ falsified by seeding the defect it catches; suite green in `pytest` and `-O`.
 | Frozen NCAT vertical conversions, 20 Michigan points | `.trn` reader and sign against NGS's own service | max 2.657 mm, mean 0.697 |
 | The 43.0 N / 84.5 W anchor: −0.1402 m vs NCAT −0.1400 | sign, direction, metres — the #1/MATLAB-defect-2 class | 0.2 mm |
 | Frozen NCAT `sigOrthoht`, same 20 points | `.err` reader | max 1.526 mm, mean 0.589 |
-| **`.trn` biquadratic beats bilinear; `.err` bilinear beats biquadratic** | the §2.5 asymmetry — fails if ever unified | 2.657 vs 7.430; 1.526 vs 12.406 |
+| ~~**`.trn` biquadratic beats bilinear; `.err` bilinear beats biquadratic**~~ **SUPERSEDED, see §2.5a — do not build this pin** | ~~the §2.5 asymmetry~~ it would pin a defect | ~~2.657 vs 7.430; 1.526 vs 12.406~~ |
+| **Both grids read nearest-node-anchored biquadratic; floor-anchored and bilinear FAIL the lattice** | §2.5a. Every anchor rounds to NCAT's printed figure, 20/20 on both grids | 0.4707 mm `.trn`, 0.4716 mm `.err`, against 8.4573 / 3.0416 floor-anchored |
+| **GEOID18 still reads floor-anchored, and its suite still passes** | the new interpolator is added ALONGSIDE, never a replacement; GEOID18 measurably prefers the old anchoring | 0.595 mm vs 0.830 mm nearest-node |
 | Fortran markers on header and all 521 rows; bytes consumed == file length | the structural check #22 predicted | exact |
 | `.trn` and `.err` share geometry | a mismatched pair cannot report one point's σ for another's shift | exact |
 | Header geometry + SHA-256, both grids | refuses a substituted or transposed grid | exact |

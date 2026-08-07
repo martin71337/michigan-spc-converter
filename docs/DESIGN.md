@@ -1801,6 +1801,31 @@ packages, reviewed and re-derived before acceptance.
 
 ### #8 — 2026-08-05 — GEOID18 interpolation is biquadratic, settled by measurement
 
+> **CORRECTED AT THE WP-V4 GATE, 2026-08-07.** The first sentence below is
+> false. NGS *does* document it: NOAA Technical Memorandum **NOS NGS-84,
+> "Biquadratic Interpolation"**, describes the method as relying on "the nearest
+> 3×3 set of grid points to the point of interpolation", and INTG's published
+> Fortran source anchors on the nearest node —
+> `irown = nint((xlat-glamn(k)) / dla(k)) + 1`, then rows `irown-1, irown,
+> irown+1`. Source fetched and read directly at
+> `https://www.ngs.noaa.gov/GEOID/G99BM/intg.f`.
+>
+> **What survives:** biquadratic over bilinear, which is what this amendment
+> actually decided and what the measurement actually showed. **What does not:**
+> the claim that this program's *anchoring* is INTG's. It is not — this program
+> anchors below the point, INTG centres on the nearest node.
+>
+> **Why it was not simply fixed here.** The 20 anchors below cannot tell the two
+> anchorings apart: they are quantized to 0.001 m and all candidates sit inside
+> that noise. A 120-point sample taken where the anchorings diverge most
+> reverses the ranking (floor rms 0.715 mm, nearest-node 0.454 mm), so
+> nearest-node is probably right for GEOID18 too. The cost of the present
+> anchoring is about 4 mm at worst in a *reported geoid separation*, ~6e-10 in an
+> elevation factor, well inside GEOID18's own 30–60 mm model uncertainty — so no
+> coordinate moves and nothing on a sealed survey changes. Re-anchoring released
+> code deserves its own work package, its own discriminating anchors, and the
+> owner's decision. **Raised, not taken.**
+
 NGS does not document which interpolation scheme its INTG program uses for the
 geoid grids — not in the GEOID18 readme, not on the computation or technical
 details pages. The plan therefore called for implementing both candidates and

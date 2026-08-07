@@ -249,23 +249,128 @@ class Grid:
     def interpolate_biquadratic(self, latitude: float, longitude: float) -> float:
         """Biquadratic interpolation over a 3x3 neighbourhood.
 
-        This is the scheme NGS's own INTG program uses for its geoid grids. The
-        3x3 block is chosen so the target cell is the middle one where possible,
-        then Lagrange quadratics are applied along each row and the three row
+        The 3x3 block is anchored at ``int(row) - 1``, so the target sits in the
+        UPPER of the stencil's two intervals - its local coordinate runs in
+        [1, 2]. Lagrange quadratics are applied along each row and the three row
         results are combined along the column.
 
-        Which grid wants which scheme is the *caller's* choice and is not
-        obvious: GEOID18 is biquadratic by measurement (docs/DESIGN.md amendment
-        #8), and the VERTCON uncertainty grid is measurably better read
-        bilinearly (docs/PLAN-vertical-datums.md section 2.5). Both live here;
-        neither is a default.
+        **This is NOT the anchoring NGS's INTG program uses, and the docstring
+        here said for three releases that it was.** That claim was checked
+        against the published source at the WP-V4 gate and is false. INTG
+        anchors on the NEAREST node::
+
+            irown = nint((xlat-glamn(k)) / dla(k)) + 1
+
+        and then reads rows ``irown-1, irown, irown+1`` - a 3x3 centred on the
+        nearest node, which is ``interpolate_biquadratic_nearest_node`` below,
+        not this method. Source: https://www.ngs.noaa.gov/GEOID/G99BM/intg.f,
+        fetched and read directly 2026-08-07; corroborated by NOAA Technical
+        Memorandum NOS NGS-84, *Biquadratic Interpolation*, which describes the
+        method as relying on "the nearest 3x3 set of grid points".
+        docs/DESIGN.md amendment #8's statement that NGS does not document the
+        scheme is likewise wrong, and is corrected there.
+
+        **This method is nevertheless what GEOID18 keeps**, on the measurement
+        below, and changing it is a separate owner-gated decision rather than a
+        silent consequence of this discovery - see the table.
+
+        **Anchoring is a second choice, independent of the scheme, and the two
+        NGS products this program reads want different answers to it.** The
+        alternative anchors on the nearest node instead, putting the local
+        coordinate in [0.5, 1.5]; it is
+        ``interpolate_biquadratic_nearest_node`` below. Measured against each
+        product's own frozen anchors (max absolute residual, and how many of the
+        20 points land inside the source's printed half-unit):
+
+            GEOID18, against the NGS geoid API
+                this method (floor)   0.595 mm, 18/20 within 0.5 mm
+                nearest-node          0.830 mm, 17/20
+            VERTCON 3.0 .trn, against NGS NCAT
+                this method (floor)   8.457 mm, 12/20 reproduce the printed value
+                nearest-node          0.471 mm, 20/20
+            VERTCON 3.0 .err, against NGS NCAT
+                this method (floor)   3.042 mm, 14/20
+                nearest-node          0.472 mm, 20/20
+
+        So GEOID18 keeps this method and both VERTCON grids take the other one.
+        The difference is detectable on VERTCON and at the quantization floor on
+        the geoid, which is what one would expect: VERTCON's 0.05-degree spacing
+        is three times coarser than GEOID18's arcminute, over a rougher field.
+
+        Which grid wants which scheme, and which anchoring, is the *caller's*
+        choice and is not obvious. GEOID18 is biquadratic, floor-anchored, by
+        measurement (docs/DESIGN.md amendment #8); both VERTCON grids are
+        biquadratic, nearest-node anchored, by measurement (WP-V4, superseding
+        docs/PLAN-vertical-datums.md section 2.5, whose "the uncertainty grid is
+        bilinear" finding was measuring this anchoring difference rather than a
+        property of the two grids). Every variant lives here; none is a default.
+
+        **The GEOID18 row of that table is weak evidence and is recorded as
+        such.** The 20 geoid anchors are quantized to 0.001 m, and all four
+        candidate schemes sit within that noise on them (rms 0.29 to 0.53 mm
+        against a 0.289 mm quantization floor). A 120-point sample taken
+        deliberately where the two anchorings diverge most - fractional cell
+        position 0.9, highest-curvature Michigan cells - reverses the ranking:
+        floor rms 0.715 mm against nearest-node 0.454. Combined with the INTG
+        source above, the likelihood is that **GEOID18 should also be
+        nearest-node anchored**, and that this method is simply wrong. It is
+        left in place because it is released code whose worst measured error is
+        about 4 mm in a reported geoid separation - roughly 6e-10 in an
+        elevation factor, and far inside GEOID18's own 30-60 mm model
+        uncertainty - so nothing on a sealed survey moves, and re-anchoring it
+        deserves its own work package, its own anchors and the owner's decision
+        rather than being folded into a vertical-datum build.
         """
         row, column = self._require_inside(latitude, longitude)
 
-        # Anchor so the interpolated point sits in the middle interval of the
-        # three, clamped at the grid edges.
+        # Anchor at int(row) - 1: the point lands in the stencil's UPPER
+        # interval, local coordinate in [1, 2]. See the docstring - this is NOT
+        # centred, and it is not what INTG does.
         row0 = min(max(int(row) - 1, 0), self.row_count - 3)
         col0 = min(max(int(column) - 1, 0), self.column_count - 3)
+
+        dr = row - row0
+        dc = column - col0
+
+        row_values = [
+            lagrange3([self._value(row0 + i, col0 + j) for j in range(3)], dc)
+            for i in range(3)
+        ]
+        return lagrange3(row_values, dr)
+
+    def interpolate_biquadratic_nearest_node(
+        self, latitude: float, longitude: float
+    ) -> float:
+        """Biquadratic over a 3x3 neighbourhood anchored on the NEAREST node.
+
+        The same tensor product of Lagrange quadratics as
+        ``interpolate_biquadratic``, differing only in where the 3x3 block is
+        placed: ``int(row + 0.5) - 1`` rather than ``int(row) - 1``, so the
+        target sits in the MIDDLE of the stencil and its local coordinate runs in
+        [0.5, 1.5] rather than [1, 2]. A quadratic through three points is most
+        accurate near its centre, which is why the placement is worth a method of
+        its own rather than being treated as an implementation detail.
+
+        This is what both VERTCON 3.0 grids are read through, measured against
+        NGS NCAT at 0.471 mm and 0.472 mm maximum residual over the 20 frozen
+        Michigan anchors, where the floor-anchored variant reaches 8.457 mm and
+        3.042 mm. See ``interpolate_biquadratic`` for the full table and for why
+        GEOID18 keeps the other one.
+
+        **The five lines of evaluation below are deliberately not shared with
+        ``interpolate_biquadratic``.** That method is released code standing
+        behind DESIGN.md amendment #8 and a Michigan geoid height in every
+        elevation factor this program has ever printed; factoring its body out to
+        serve a new caller would edit it to no behavioural purpose. The
+        duplication is two lines of arithmetic and it is the cheaper risk.
+        """
+        row, column = self._require_inside(latitude, longitude)
+
+        # Round to the nearest node, then step back one so that node is the
+        # middle of the three. Clamped at the grid edges exactly as the
+        # floor-anchored variant clamps.
+        row0 = min(max(int(row + 0.5) - 1, 0), self.row_count - 3)
+        col0 = min(max(int(column + 0.5) - 1, 0), self.column_count - 3)
 
         dr = row - row0
         dc = column - col0

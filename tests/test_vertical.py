@@ -535,16 +535,26 @@ def test_every_modeled_record_carries_its_uncertainty_and_the_supersession_cavea
 
     The caveat is NGS's own and is not optional: published NAVD 88 benchmark
     values supersede a modeled shift, and NGVD 29 network distortions of 20 cm
-    or more exist. Plan section 2.8 proves that is not boilerplate - at
-    43.05 N, 86.20 W in Michigan the uncertainty is 0.3656 m against a modeled
-    shift of -0.1466 m: 0.3656 / 0.1466 = 2.494, so 249% of the shift itself.
+    or more exist. That is not boilerplate - at 43.05 N, 86.20 W in Michigan the
+    uncertainty is 0.3656 m against a modeled shift of -0.1435 m:
+    0.3656 / 0.1435 = 2.548, so 255% of the shift itself.
+
+    **The shift figure was corrected at the WP-V1/V4 gate** from plan section
+    2.8's -0.1466 m. 43.05 N / 86.20 W is an EXACT grid node - row 381, column
+    776 - so no interpolation is involved and both schemes return the stored
+    value: -0.143529 m. NGS NCAT independently returns -0.144 m there, printing
+    to 0.001 m. The disclosure is unchanged in kind and slightly stronger in
+    degree.
 
     The BOUNDS pinned below are plan section 2.7's direct scan of the .err grid
-    over the Michigan window - min +0.000004 m, max +0.365599 m - and not
-    section 2.8's "0.001 m to 0.366 m", which the two sections disagree about.
-    0.001 m is NCAT's printed resolution, not a value the grid holds, and this
-    string is quoted verbatim into the job record, so it must state what this
-    program's own reader can produce. Review gate finding 3 (DESIGN.md #35).
+    over the Michigan window - min +0.000004 m, max +0.365599 m - both
+    re-measured from the committed grid at the same gate and reproducing
+    exactly, at the same two nodes. Section 2.8's "0.001 m to 0.366 m" is NOT a
+    competing measurement of the same thing: 0.001 m is the resolution NCAT
+    PRINTS to. At 43.0 N / 84.5 W the grid holds 0.00065542 m where NCAT
+    returns 0.001. This string is quoted verbatim into the job record, so it
+    must state what this program's own reader can produce, which is the grid's
+    range.
     """
     for transformation in VERTICAL_TRANSFORMATIONS.values():
         assert transformation.uncertainty_citation.strip()
@@ -556,10 +566,15 @@ def test_every_modeled_record_carries_its_uncertainty_and_the_supersession_cavea
     assert "20 cm" in modeled.caveat
     assert "0.365599" in modeled.uncertainty_citation
     assert "0.000004" in modeled.uncertainty_citation
-    assert "249%" in modeled.uncertainty_citation
+    assert "255%" in modeled.uncertainty_citation
+    assert "0.1435" in modeled.uncertainty_citation
     # The superseded floor must not come back: it overstates the smallest
     # uncertainty this reader can report by a factor of 250.
     assert "0.001 m to" not in modeled.uncertainty_citation
+    # Nor the superseded shift, which understated the ratio the whole sentence
+    # exists to state.
+    assert "0.1466" not in modeled.uncertainty_citation
+    assert "249%" not in modeled.uncertainty_citation
 
     identity = require_vertical_pair(NAVD88, NAVD88)
     assert "no shift is applied" in identity.caveat

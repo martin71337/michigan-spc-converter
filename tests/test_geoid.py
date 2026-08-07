@@ -97,8 +97,15 @@ def test_geoid_height_matches_ngs(anchor, grid):
 def test_biquadratic_beats_bilinear_against_ngs(grid):
     """The evidence that settled the interpolation choice (design log #8).
 
-    NGS does not document which scheme INTG uses, so both were implemented and
-    measured against NGS's own service across the 20 Michigan anchors:
+    NGS documents the scheme after all - NOAA TM NOS NGS-84 and INTG's own
+    Fortran source both give biquadratic on a nearest-node 3x3, which the WP-V4
+    gate established and DESIGN.md #8 now records. That confirms the choice this
+    test pins. It also shows the ANCHORING here is not INTG's, which is a
+    separate open item recorded in #8 and in
+    ``ngs_grid.interpolate_biquadratic``; it is not what this test is about.
+
+    Both candidates were implemented and measured against NGS's own service
+    across the 20 Michigan anchors:
 
         bilinear      worst error 1.3 mm
         biquadratic   worst error 0.6 mm

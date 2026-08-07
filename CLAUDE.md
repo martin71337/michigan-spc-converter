@@ -278,9 +278,16 @@ failure mode is an absent archive, never a corrupt one.
   reproduce afterwards, so the registry keeps every pair it has carried,
   elevations stay datum-tagged, the datum in force is named in every output, and
   an unestablished datum refuses rather than assuming the newest.
-- **SPCS2022 — not next.** Spec is #21. Blocked on NATRF2022 and its
-  transformation, not on effort. Michigan is 19 zones, needing transverse and
-  oblique Mercator engines this program does not have.
+- **SPCS2022 — not next, and DOWNSTREAM OF NAPGD2022, not parallel to it.** The
+  modernized NSRS has two halves that arrive together: SPCS2022 coordinates are
+  defined on **NATRF2022**, and **NAPGD2022** is the geopotential half
+  (GEOID2022 replacing GEOID18 and NAVD 88). This program reports elevation and
+  combined factors, so an SPCS2022 point carrying a GEOID18/NAVD 88 factor mixes
+  two eras inside one number — and 18 of Michigan's 19 zones are LDPs designed
+  at a topographic height, where the height side is load-bearing. So the order
+  above is a dependency order. Spec is #21; its own blockers are unchanged — no
+  official NAD83(2011)→NATRF2022 transformation, and the transverse and oblique
+  Mercator engines this program does not have.
 - **Rename durability** (#23) — if it is ever worth it, `MoveFileEx` with
   `MOVEFILE_WRITE_THROUGH` via `ctypes`.
 

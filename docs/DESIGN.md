@@ -501,9 +501,33 @@ pair it has ever carried, elevations stay datum-tagged so an old file says what
 it meant, and the datum in force is named in every output. A conversion whose
 datum cannot be established refuses; it does not assume the newest.
 
-**SPCS2022 (#21) is not next**, and its blocker is unchanged: NATRF2022 and its
-transformation are unreleased, and Michigan's 19-zone design needs transverse and
-oblique Mercator engines this program does not have.
+**SPCS2022 (#21) is not next — and it is not a parallel track either. It is
+downstream of NAPGD2022.** Owner's correction, recorded because the first draft
+of this amendment listed the two as separate items and that understates the
+dependency.
+
+The modernized NSRS has two halves and they arrive together. SPCS2022
+*coordinates* are defined on **NATRF2022**, the terrestrial frame — #21's recon
+says so directly, 19 Michigan zones on NATRF2022. **NAPGD2022** is the
+geopotential half: GEOID2022 replacing GEOID18, replacing NAVD 88 as the height
+datum.
+
+For **this** program the coupling is concrete rather than administrative,
+because this program does not merely project a point — it reports an elevation
+factor and a combined factor. #22 already records that GEOID2022 replaces
+GEOID18 in that factor chain when it lands. So an SPCS2022 conversion carrying a
+GEOID18/NAVD 88 elevation factor would be **mixing two eras inside a single
+number**, which is the same class of silent error the frame refusal exists to
+prevent, one level down. Michigan's 2022 layer sharpens it: 18 of the 19 zones
+are low-distortion projections designed at a topographic height — grid ≈ ground
+at the design height — so the height side is load-bearing there, not incidental.
+
+Hence the ordering in this amendment is a **dependency order, not a preference**:
+the vertical work builds the registry, NAPGD2022 arrives through that registry,
+and SPCS2022 needs both halves before this program could write a conversion it
+would stand behind. SPCS2022's other blockers from #21 are unchanged and
+independent of all this — no official NAD83(2011)→NATRF2022 transformation, and
+the transverse and oblique Mercator engines this program does not have.
 
 Nothing is built here. This is an ordering, and the two sizings it points at are
 #21 and #22.

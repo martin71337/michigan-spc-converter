@@ -369,6 +369,41 @@ def test_the_master_artwork_is_the_image_the_design_records():
     assert len(pixels) == 1024 * 1024 * 4
 
 
+def test_the_master_artwork_really_has_a_transparent_background():
+    """The property make_icon's premultiply logic exists to serve.
+
+    It was false for the whole of 0.1.0 and nothing noticed. The artwork had a
+    checkerboard PAINTED INTO it - the pattern an image editor draws to INDICATE
+    transparency - so all 1,048,576 pixels were alpha 255 and the shipped icon
+    carried grey squares behind the badge on every surface that respects alpha.
+
+    Three separate claims depended on it: make_icon's module docstring ("the
+    artwork has a transparent background"), the premultiply-then-divide
+    resampling that exists solely to keep an alpha edge clean, and the 32-bit
+    BGRA DIB whose whole point is that the alpha channel carries the
+    transparency. Pinned here so a future master cannot quietly lose it again.
+    """
+    width, height, pixels = make_icon.decode_png_rgba8(
+        make_icon.MASTER_PNG.read_bytes()
+    )
+
+    def alpha(x: int, y: int) -> int:
+        return pixels[(y * width + x) * 4 + 3]
+
+    # Every corner is outside the badge's rounded rectangle, so every corner is
+    # fully transparent. This is the assertion the old master failed.
+    for x, y in ((0, 0), (width - 1, 0), (0, height - 1), (width - 1, height - 1)):
+        assert alpha(x, y) == 0, f"corner {x},{y} is not transparent"
+
+    # The badge itself is opaque.
+    assert alpha(width // 2, height // 2) == 255
+
+    # And the edge is anti-aliased rather than a hard 1-bit cutout: a rounded
+    # rectangle crossing a pixel grid must produce intermediate coverage.
+    partial = sum(1 for i in range(3, len(pixels), 4) if 0 < pixels[i] < 255)
+    assert partial > 1000, f"only {partial} partially transparent pixels"
+
+
 def test_generating_from_the_master_produces_the_six_windows_sizes(tmp_path):
     """16, 32, 48, 64, 128, 256 - the sizes Windows asks for."""
     written = make_icon.generate(output=tmp_path / "coord-convert.ico")

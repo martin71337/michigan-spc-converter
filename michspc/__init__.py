@@ -14,6 +14,6 @@ refer to that PDF's own page numbering.
 # build script, and the Inno installer all read this literal; nothing else
 # declares a version. The "-dev" marker is refused by the release gate, so the
 # shipped number space stays unambiguous (METHOD.md section 6).
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 APP_NAME = "Michigan SPC Zone Converter"

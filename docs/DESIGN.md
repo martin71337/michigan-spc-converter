@@ -389,6 +389,57 @@ relies on Windows `os.rename` refusing an existing target. POSIX `rename`
 replaces silently. This program ships for Windows (§9); a port would need
 `O_EXCL` or an equivalent.
 
+### #24 — 2026-08-07 — 0.1.1: the icon's transparency was painted on, not real
+
+Owner asked for a transparent background where the checkered area was, and for
+the artwork to be enlarged. Investigating the first found a defect rather than a
+preference.
+
+**The checkerboard was in the artwork.** `assets/icon/coord-convert-1024.png`
+had the grey-and-white squares an image editor draws to *indicate* transparency
+painted into it as opaque pixels — all 1,048,576 of them alpha 255, confirmed by
+reading the decoded alpha channel. The shipped icon therefore carried grey
+squares behind the badge on every surface that respects alpha. It went out in
+0.1.0.
+
+Three parts of the build asserted the property and none verified it:
+`make_icon.py`'s module docstring states "the artwork has a transparent
+background"; its resampler premultiplies alpha and divides it out afterwards for
+the sole purpose of keeping a transparent edge from fringing; and every entry is
+written as a 32-bit BGRA DIB whose alpha channel is meant to carry the
+transparency. All three were correct code operating on artwork that had none —
+the same shape as this project's other findings, where the record and the
+artefact disagreed and only the record was ever read.
+
+**What was done.** The badge's rounded-rect geometry was measured from the
+image (left 169, top 171, right 854, bottom 859, corner radius 126.7), the alpha
+channel rebuilt from a 4x4-supersampled rounded-rect mask inset 3 px so no
+checkerboard-blended edge pixel survives, the image cropped to the badge so it
+fills the canvas instead of 67% of it, and the result rescaled to 1024 so the
+master keeps its documented size. The baked drop shadow is gone: it was painted
+onto the checkerboard and could not survive its removal.
+
+Two measurement errors worth recording, both caught by looking at the output
+rather than trusting the arithmetic. The corner radius read off the top
+scanline gave 105 against a true 126 — up there the circle is nearly tangent to
+the row, so one pixel of anti-aliasing moves the first dark sample a long way
+sideways, and the too-square mask cut the corners through the checkerboard and
+left grey nubs on the edge. Refitting from mid-curve samples, where
+`r = (dx+dy) ± sqrt(2·dx·dy)`, then required the **larger** root; taking the
+smaller one gave 63 and a visibly wrong corner. Two independent rows agree on
+126.2 and 126.7.
+
+**Pinned.** `tests/test_icon.py` now asserts the committed master's corners are
+fully transparent, its centre opaque, and its edge anti-aliased rather than a
+1-bit cutout. Falsified against the old artwork, which fails on the first
+corner. The derivation script was a one-shot and is not committed; the original
+artwork remains in history at `50ada05` for anyone who needs to redo it.
+
+Not addressed, and still the owner's call: at 16 and 32 px the "COORD CONVERT"
+lettering is below the size at which text resolves. Enlarging the badge does not
+fix it; the usual remedy is a cropped, text-free compass variant for the small
+sizes inside the same `.ico`.
+
 ### #23 — 2026-08-06 — Narrowing re-confirmation: 10 closed, 1 accepted weak, 1 new defect fixed
 
 The closing gate's reviewer re-examined only the fixed surfaces, at commit

@@ -11,9 +11,11 @@ bundle builds and dies on first use).
 
 So the shipped executable answers ``--selftest`` by exercising itself:
 
-1. the bundled GEOID18 tile is present, authenticates against its pinned
-   SHA-256 and its canonical geometry, and returns a geoid height NGS agrees
-   with;
+1. every bundled NGS grid is present and authenticates: the GEOID18 tile
+   against its pinned SHA-256 and canonical geometry, returning a geoid height
+   NGS agrees with; the VERTCON 3.0 pair the same way, returning a shift NCAT
+   agrees with; and the GEOID12B tile against its digest (nothing reads it
+   until WP-V5, so the digest is the only executable statement about it);
 2. every module the program reaches for lazily — PySide6 above all — actually
    imports out of the bundle;
 3. Qt starts far enough to build a real ``QApplication`` and read the bundled
@@ -94,6 +96,13 @@ TARGET_EASTING_IFT = 19413974.768
 # an NGS output. It is here so the conversion carries an elevation and the
 # geoid, elevation and combined factors are actually computed.
 ANCHOR_ELEVATION_M = 397.0
+
+# tests/fixtures/vertcon_anchors.py, VertconAnchor "anchor-22" — NGS NCAT,
+# captured 2026-08-07. DESIGN.md #22's anchor: 200.000 m NGVD 29 at
+# 43.0 N / 84.5 W converts to 199.860 m NAVD 88, a -0.140 m shift.
+VERTCON_ANCHOR_LATITUDE = 43.0
+VERTCON_ANCHOR_LONGITUDE = -84.5
+VERTCON_ANCHOR_SHIFT_M = -0.140
 
 # tests/fixtures/ncat_crosscheck.py, CROSSCHECK_TOLERANCES. NCAT publishes to
 # 0.001 m, so one printed figure carries +-0.0005 m; 0.002 m is four times that.
@@ -187,6 +196,98 @@ def check_geoid_grid() -> str:
     )
 
 
+def check_vertcon_grids() -> str:
+    """The VERTCON 3.0 pair ships, authenticates, and answers like NCAT.
+
+    The same three failure modes as the geoid check, doubled: either file can be
+    absent, altered (the SHA-256 catches any changed byte), or intact and read
+    wrongly - which is why the shift itself is checked against an NGS NCAT
+    figure rather than the pair merely loading. Until the WP-V4 review gate the
+    suite authenticated these files in ``data/`` and nothing authenticated them
+    in the BUNDLE: a grid corrupted during packaging passed every release gate
+    (independent review of the vertical branch, MEDIUM 3).
+    """
+    from michspc.fileio import vertcon
+
+    for tile in (vertcon.VERTCON3_TRN_TILE, vertcon.VERTCON3_ERR_TILE):
+        if not tile.is_file():
+            raise SelfTestError(
+                f"the {vertcon.VERTCON_MODEL_NAME} grid {tile.name} is not in "
+                f"this bundle. Looked for {tile}. Without the pair no elevation "
+                f"can be converted between NGVD 29 and NAVD 88. The bundle is "
+                f"incomplete."
+            )
+
+    try:
+        pair = vertcon.load_shipped_grids()
+    except vertcon.VertconError as error:
+        raise SelfTestError(
+            f"the bundled {vertcon.VERTCON_MODEL_NAME} grids did not pass "
+            f"their own checks: {error}"
+        ) from error
+
+    try:
+        shift, _sigma = pair.reading_at(
+            VERTCON_ANCHOR_LATITUDE, VERTCON_ANCHOR_LONGITUDE
+        )
+    except vertcon.VertconError as error:
+        raise SelfTestError(
+            f"the bundled {vertcon.VERTCON_MODEL_NAME} grids loaded but could "
+            f"not be interpolated at {VERTCON_ANCHOR_LATITUDE}, "
+            f"{VERTCON_ANCHOR_LONGITUDE}: {error}"
+        ) from error
+
+    difference = abs(shift - VERTCON_ANCHOR_SHIFT_M)
+    if difference > LINEAR_TOLERANCE_M:
+        raise SelfTestError(
+            f"the bundled {vertcon.VERTCON_MODEL_NAME} grids returned a shift "
+            f"of {shift:.4f} m at {VERTCON_ANCHOR_LATITUDE}, "
+            f"{VERTCON_ANCHOR_LONGITUDE}, where NGS NCAT returns "
+            f"{VERTCON_ANCHOR_SHIFT_M:.3f} m - out by {difference:.4f} m, "
+            f"against a tolerance of {LINEAR_TOLERANCE_M} m. The grids in this "
+            f"bundle are not being read the way the source tree reads them."
+        )
+
+    return (
+        f"{vertcon.VERTCON_MODEL_NAME} pair authenticated and returned "
+        f"{shift:.4f} m against NCAT's {VERTCON_ANCHOR_SHIFT_M:.3f} m"
+    )
+
+
+def check_geoid12b_tile() -> str:
+    """The GEOID12B tile ships and matches its pinned digest.
+
+    No code reads this tile yet - the geoid model registry that will is WP-V5 -
+    so this is purely a bundle-integrity check: the digest is the only
+    executable statement about the file's contents, and a tile corrupted during
+    packaging today would otherwise first be noticed by whichever surveyor
+    first selects GEOID12B after WP-V5 ships, with nothing to say when the
+    corruption happened.
+    """
+    import hashlib
+
+    from michspc.fileio import geoid18
+
+    tile = geoid18.GEOID12B_TILE
+    if not tile.is_file():
+        raise SelfTestError(
+            f"the GEOID12B tile is not in this bundle. Looked for {tile}. "
+            f"Nothing reads it until WP-V5, but the bundle claims to carry it "
+            f"and does not. The bundle is incomplete."
+        )
+
+    digest = hashlib.sha256(tile.read_bytes()).hexdigest()
+    if digest != geoid18.GEOID12B_TILE_SHA256:
+        raise SelfTestError(
+            f"the bundled GEOID12B tile does not match the grid this program "
+            f"was built against.\n  expected SHA-256 "
+            f"{geoid18.GEOID12B_TILE_SHA256}\n  found    SHA-256 {digest}\n"
+            f"The file was corrupted or substituted during packaging."
+        )
+
+    return "GEOID12B tile authenticated (not yet read by any code; WP-V5)"
+
+
 #: Everything the program imports late, or imports only from one branch. A name
 #: that is only ever reached from inside a function body is invisible to
 #: PyInstaller's static analysis unless it is declared in ``michspc.spec``'s
@@ -198,6 +299,15 @@ LAZY_IMPORTS: tuple[str, ...] = (
     #   exports.write_all         -> michspc.fileio.report
     "michspc.fileio.pnezd",
     "michspc.fileio.report",
+    # The vertical-datum layer (V0-V4). Nothing in the shipped program imports
+    # these yet - the job and GUI wiring is WP-V6/V7 - which makes them MORE
+    # invisible to PyInstaller's analysis than a lazy import, not less: the
+    # bundle carries their 4.9 MB of VERTCON grids, so it must carry the code
+    # that can read them, or the data ships dead. check_vertcon_grids below is
+    # what proves the pair authenticates from inside the bundle.
+    "michspc.fileio.ngs_grid",
+    "michspc.fileio.vertcon",
+    "michspc.spc.vertical",
     # The GUI, which the self-test itself never opens — so nothing else in this
     # process would notice if Qt were missing from the bundle.
     "PySide6.QtCore",
@@ -432,6 +542,8 @@ def check_end_to_end_conversion() -> str:
 CHECKS: tuple[tuple[str, object], ...] = (
     ("version and application name", check_version),
     ("bundled GEOID18 grid", check_geoid_grid),
+    ("bundled VERTCON 3.0 grid pair", check_vertcon_grids),
+    ("bundled GEOID12B tile", check_geoid12b_tile),
     ("lazily imported dependencies", check_lazy_imports),
     ("Qt startup and bundled icon", check_icon_resource),
     ("end-to-end conversion against NGS NCAT", check_end_to_end_conversion),

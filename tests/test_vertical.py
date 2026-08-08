@@ -500,6 +500,54 @@ def test_the_registry_cannot_be_emptied_at_runtime():
         VERTICAL_TRANSFORMATIONS.pop((NGVD29, NAVD88))  # type: ignore[attr-defined]
 
 
+def test_the_import_guard_fires_on_a_registry_that_lost_a_pair(monkeypatch):
+    """The guard must refuse, not merely exist.
+
+    ``_check_registry_keeps_every_required_pair`` is exercised directly against
+    a mapping with one required pair removed, because the way it fires in life -
+    failing the module import - is not something a test inside an already
+    imported suite can observe.
+    """
+    from michspc.spc import vertical
+
+    doctored = {
+        code: record
+        for code, record in vertical._TRANSFORMATIONS_BY_CODE.items()
+        if code != ("NGVD29", "NAVD88")
+    }
+    monkeypatch.setattr(vertical, "_TRANSFORMATIONS_BY_CODE", doctored)
+
+    with pytest.raises(VerticalDatumError, match="NGVD29 -> NAVD88"):
+        vertical._check_registry_keeps_every_required_pair()
+
+
+def test_the_import_guard_is_actually_called_at_import():
+    """The guard's own existence is pinned, not just its behaviour.
+
+    The module docstring promises it "refuses to import if the registry has
+    lost one of them". Deleting the module-level call would keep that promise
+    on paper and break it in fact, with every other test staying green - the
+    guard is the whole mechanism behind DESIGN.md #32's backwards-compatibility
+    requirement, so the call site itself is held here (found by the independent
+    review of the vertical branch, which seeded exactly that deletion). Walks
+    the AST rather than grepping, so a commented-out call cannot pass.
+    """
+    import ast
+    import inspect
+
+    from michspc.spc import vertical
+
+    tree = ast.parse(inspect.getsource(vertical))
+    module_level_calls = [
+        node.value.func.id
+        for node in tree.body
+        if isinstance(node, ast.Expr)
+        and isinstance(node.value, ast.Call)
+        and isinstance(node.value.func, ast.Name)
+    ]
+    assert "_check_registry_keeps_every_required_pair" in module_level_calls
+
+
 def test_every_registered_pair_is_between_usable_datums():
     """A registered pair naming an unusable datum would contradict the refusal.
 

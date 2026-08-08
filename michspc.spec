@@ -61,8 +61,8 @@ EXECUTABLE_NAME = "mcx"
 # ---------------------------------------------------------------------------
 
 DATA_DESTINATION = "data"
-"""``michspc.fileio.geoid18._data_directory`` reads sys._MEIPASS/data, and the
-VERTCON reader resolves its grid pair from the same directory."""
+"""``michspc.fileio.ngs_grid.shipped_data_directory`` reads sys._MEIPASS/data;
+both the geoid and VERTCON policy layers resolve their grids through it."""
 
 # Every NGS grid the bundle carries, each under NGS's own filename so an auditor
 # can list it, hash it and compare it against NGS's published file without

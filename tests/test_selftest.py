@@ -91,6 +91,26 @@ def test_the_selftests_tolerances_are_the_frozen_ones():
     assert selftest.GEOID_TOLERANCE_M == CROSSCHECK_TOLERANCES["geoid_m"]
 
 
+def test_the_selftests_vertcon_anchor_is_the_frozen_ncat_value():
+    """The transcription check for the VERTCON anchor, same rule as the geoid's.
+
+    ``anchor-22`` is DESIGN.md #22's anchor: 200.000 m NGVD 29 at
+    43.0 N / 84.5 W converts to 199.860 m NAVD 88 per NCAT, so the shift is
+    199.860 - 200.000 = -0.140 m. Rounded at the transcription, not in the
+    check: both NCAT figures are printed to the millimetre, so their
+    difference is exact at that precision.
+    """
+    from tests.fixtures.vertcon_anchors import NGVD29_TO_NAVD88_ANCHORS
+
+    anchor = next(a for a in NGVD29_TO_NAVD88_ANCHORS if a.name == "anchor-22")
+
+    assert selftest.VERTCON_ANCHOR_LATITUDE == anchor.latitude
+    assert selftest.VERTCON_ANCHOR_LONGITUDE == anchor.longitude
+    assert selftest.VERTCON_ANCHOR_SHIFT_M == round(
+        anchor.target_height_m - anchor.source_height_m, 3
+    )
+
+
 def test_the_end_to_end_tolerance_is_two_ncat_legs_plus_the_written_place():
     """Hand-derived, in the unit the export is written in.
 
@@ -217,6 +237,64 @@ def test_the_geoid_check_fails_when_the_height_is_wrong(monkeypatch):
     assert "out by" in message
 
 
+def test_the_vertcon_check_fails_when_a_grid_is_missing(tmp_path, monkeypatch):
+    from michspc.fileio import vertcon
+
+    monkeypatch.setattr(vertcon, "VERTCON3_TRN_TILE", tmp_path / "no-such-grid.b")
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_vertcon_grids()
+    assert "not in this bundle" in str(raised.value)
+
+
+def test_the_vertcon_check_fails_when_the_shift_is_wrong(monkeypatch):
+    """The pair loads and authenticates, and still answers wrongly.
+
+    The failure the checksums cannot see: byte-identical grids read through
+    different code. The seeded value is the shift with its sign flipped - the
+    exact defect class DESIGN.md #35 pinned before the reader existed.
+    """
+    from michspc.fileio import vertcon
+
+    class WrongPair:
+        def reading_at(self, latitude, longitude):
+            return (0.140, 0.001)
+
+    monkeypatch.setattr(vertcon, "load_shipped_grids", lambda: WrongPair())
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_vertcon_grids()
+    message = str(raised.value)
+    assert "0.1400" in message
+    assert "out by" in message
+
+
+def test_the_geoid12b_check_fails_when_the_tile_is_missing(tmp_path, monkeypatch):
+    monkeypatch.setattr(geoid18, "GEOID12B_TILE", tmp_path / "no-such-grid.bin")
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_geoid12b_tile()
+    assert "not in this bundle" in str(raised.value)
+
+
+def test_the_geoid12b_check_fails_on_a_tampered_tile(tmp_path, monkeypatch):
+    """One flipped payload byte must fail the digest.
+
+    This is the bundle-side twin of the suite's data/ pin: until this check,
+    a GEOID12B tile corrupted during packaging passed every release gate,
+    because the digest was only ever checked against the source tree
+    (independent review of the vertical branch, MEDIUM 3).
+    """
+    tampered = bytearray(geoid18.GEOID12B_TILE.read_bytes())
+    tampered[100] ^= 0xFF
+    path = tmp_path / "g2012bu3.bin"
+    path.write_bytes(bytes(tampered))
+    monkeypatch.setattr(geoid18, "GEOID12B_TILE", path)
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_geoid12b_tile()
+    assert "does not match" in str(raised.value)
+
+
 def test_the_lazy_import_check_fails_on_a_module_that_is_not_there(monkeypatch):
     monkeypatch.setattr(
         selftest,
@@ -324,23 +402,34 @@ def test_an_unwritable_report_path_does_not_fail_a_passing_bundle(tmp_path):
 # --------------------------------------------------------------------------
 
 
-def test_the_geoid_tile_is_found_beside_the_source_tree_when_not_frozen(monkeypatch):
+def test_the_grids_are_found_beside_the_source_tree_when_not_frozen(monkeypatch):
+    from michspc.fileio import ngs_grid
+
     monkeypatch.delattr(sys, "_MEIPASS", raising=False)
 
-    assert geoid18._data_directory() == REPO_ROOT / "data"
+    assert ngs_grid.shipped_data_directory() == REPO_ROOT / "data"
     assert (REPO_ROOT / "data" / "g2018u3.bin").is_file()
 
+    # Both policy layers resolve their files under the one shared locator -
+    # the private copies each carried were extracted at the #38 merge gate.
+    from michspc.fileio import vertcon
 
-def test_the_geoid_tile_is_found_inside_the_bundle_when_frozen(tmp_path, monkeypatch):
+    assert geoid18.GEOID18_TILE.parent == geoid18.DATA_DIR
+    assert vertcon.VERTCON3_TRN_TILE.parent == vertcon.DATA_DIR
+
+
+def test_the_grids_are_found_inside_the_bundle_when_frozen(tmp_path, monkeypatch):
     """PyInstaller sets sys._MEIPASS; nothing else does.
 
-    Without this branch the frozen program resolves its grid by walking up from
-    a module path that only exists inside the archive - which happens to land in
-    the right place today and is not a property to hold by coincidence.
+    Without this branch the frozen program resolves its grids by walking up
+    from a module path that only exists inside the archive - which happens to
+    land in the right place today and is not a property to hold by coincidence.
     """
+    from michspc.fileio import ngs_grid
+
     monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
 
-    assert geoid18._data_directory() == tmp_path / "data"
+    assert ngs_grid.shipped_data_directory() == tmp_path / "data"
 
 
 # --------------------------------------------------------------------------
@@ -375,7 +464,7 @@ def test_the_spec_reads_the_version_rather_than_restating_it():
 
 
 def test_the_spec_bundles_the_geoid_tile_where_the_reader_looks():
-    """``_data_directory`` reads ``sys._MEIPASS/data``; the spec must put it there."""
+    """``shipped_data_directory`` reads ``sys._MEIPASS/data``; the spec must put it there."""
     assert 'DATA_DESTINATION = "data"' in SPEC_SOURCE
     assert '"g2018u3.bin"' in SPEC_SOURCE
 

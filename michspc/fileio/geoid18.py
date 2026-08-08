@@ -48,7 +48,6 @@ from __future__ import annotations
 
 import hashlib
 import struct
-import sys
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -65,27 +64,7 @@ from michspc.fileio.ngs_grid import to_east_longitude as _to_east_longitude  # n
 from michspc.fileio.ngs_grid import to_signed_longitude as _to_signed_longitude  # noqa: F401
 
 
-def _data_directory() -> Path:
-    """Where the shipped tile lives, frozen or from source.
-
-    PyInstaller sets ``sys._MEIPASS`` to the directory it unpacked the bundle's
-    data files into, and nothing else sets it (docs/method/TOOLING.md). A source
-    run walks up from this module instead: fileio -> michspc -> the repository
-    root, then ``data/``.
-
-    Stated explicitly rather than left to the source-tree walk happening to land
-    in the right place inside a bundle. It very nearly does — a frozen module's
-    ``__file__`` sits under ``sys._MEIPASS`` — but "the frozen program finds its
-    geoid grid" is not a property to hold by coincidence, and
-    ``tests/test_selftest.py`` pins both branches.
-    """
-    bundle = getattr(sys, "_MEIPASS", None)
-    if bundle:
-        return Path(bundle) / "data"
-    return Path(__file__).resolve().parent.parent.parent / "data"
-
-
-DATA_DIR = _data_directory()
+DATA_DIR = ngs_grid.shipped_data_directory()
 GEOID18_TILE = DATA_DIR / "g2018u3.bin"
 
 GEOID18_TILE_SHA256 = "cd2080f904d168e3356effffc535d5d0c9cd8c2a0019ddb4f40a0e2454ebe3b3"
@@ -219,8 +198,13 @@ class GeoidGrid(ngs_grid.Grid):
         against NGS's own geoid API at 120 positions chosen where the two
         anchorings diverge most, nearest-node is the better fit - rms 0.454 mm
         against 0.715, 83 against 66 of 120 reproducing NGS's printed figure -
-        and the worst change to a reported separation is about 4 mm, far inside
-        GEOID18's own 30-60 mm model uncertainty. No coordinate moves.
+        and the worst change to a reported separation is about 7 mm (Michigan
+        window, measured at the merge gate; ~8 mm over the whole tile), far
+        inside GEOID18's own 30-60 mm model uncertainty. No coordinate moves.
+        The nearest-node stencil is discontinuous at half-cell lines - about
+        6 mm at worst here, where the old anchoring was continuous; that
+        property, NOAA's sharing of it, and its pin are recorded in
+        ``ngs_grid.interpolate_biquadratic_nearest_node``.
 
         The honest caveat, from #36 and kept here on purpose: INTG's stencil is
         NOT the best fit to the NGS geoid API - a bicubic is, by a visible

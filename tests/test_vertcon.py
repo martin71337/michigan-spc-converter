@@ -1079,6 +1079,45 @@ def test_geoid18_shares_vertcons_anchoring_since_wp_g1():
     )
 
 
+def test_the_nearest_node_stencil_is_discontinuous_and_ncat_shares_the_jump():
+    """A disclosed property of NOAA's own algorithm, frozen with NGS truth on
+    BOTH sides of the line (merge-gate review, HIGH 1; DESIGN.md #38).
+
+    A 3x3 stencil centred on the NEAREST node changes which nine cells it
+    reads as a position crosses a half-cell line - latitudes and longitudes at
+    odd multiples of 0.025 degrees on these grids, exactly the round values a
+    surveyor types. The interpolated field therefore JUMPS there; the
+    floor-anchored stencil switches at a node instead, where both stencils
+    reproduce the stored value, so the scheme this program used through 0.3.1
+    was continuous. Across Michigan the .trn jump is under 1 mm on three
+    quarters of the half-cell lines, but reaches 75.6 mm at the pair below -
+    2.2 m of ground, on the 41.975 N line in Monroe County.
+
+    **This is NOAA's behaviour, not an MCX defect**: NCAT, queried live
+    2026-08-07 at both positions (200.000 m NGVD 29), prints the same step -
+    200.168 against 200.244 - and the reader is bit-identical to NOAA's
+    published Vertcon.java. Replicating NOAA is the owner's standing
+    instruction, so the jump is DISCLOSED rather than smoothed: this test is
+    the executable form of that disclosure, and how the step is shown to a
+    user whose points straddle such a line belongs to WP-V7's disclosure
+    decision. Smoothing it - blending stencils near the boundary, say - would
+    diverge from NOAA at exactly the positions NCAT can be checked at.
+    """
+    trn = vertcon.default_grids().transformation
+
+    south = trn.shift_m(41.974990, -83.935)
+    north = trn.shift_m(41.975010, -83.935)
+
+    # Both sides round to NCAT's printed figure (destOrthoht - 200.000).
+    assert round(south, 3) == pytest.approx(0.168)
+    assert round(north, 3) == pytest.approx(0.244)
+
+    # The step itself: ~75.6 mm across 2.2 m of ground. If this ever fails,
+    # the interpolation has been smoothed or re-anchored, and either way the
+    # program no longer replicates NOAA - revisit #37/#38, do not loosen.
+    assert abs(north - south) == pytest.approx(0.0756, abs=0.0005)
+
+
 # The two positions the WP-V4 review gate produced from its own sweep of
 # Michigan at 0.01-degree spacing. That sweep is reproduced below rather than
 # quoted: 41.6 to 48.4 N and 90.6 to 82.2 W inclusive is 681 x 841 = 572,721
@@ -1385,8 +1424,12 @@ def test_one_rule_decides_the_refusal_and_the_unavailability(grids, err):
     assert refused == 114
 
 
-def test_the_pair_offers_no_way_to_take_half_a_reading(grids):
-    """The LOW finding's structural pin (WP-V4 review, LOW 1).
+def test_the_pair_offers_no_way_to_take_half_a_reading_through_itself(grids):
+    """The LOW finding's structural pin (WP-V4 review, LOW 1) - MITIGATED, not
+    closed, and the name must not overclaim what #36 records as partial:
+    ``pair.transformation.shift_m(A)`` beside ``pair.uncertainty.sigma_m(B)``
+    still reproduces the mistake one attribute deeper, deliberately, because
+    hiding the grids would break their legitimate one-at-a-time use.
 
     The pair used to carry ``shift_m`` and ``sigma_m`` as separate public
     methods, so a caller could take a shift at one position and a sigma at
@@ -1421,6 +1464,31 @@ def test_the_pair_offers_no_way_to_take_half_a_reading(grids):
     shift, sigma = grids.reading_at(43.05, -86.20)
     assert shift == pytest.approx(-0.143529, abs=1e-6)
     assert sigma == pytest.approx(0.365599, abs=1e-6)
+
+
+def test_the_pair_asks_both_grids_whether_a_position_is_inside(grids, monkeypatch):
+    """``contains`` is defence-in-depth, so it must actually defend.
+
+    The docstring claims "asking it of both is what keeps that true if the
+    check is ever weakened" - a claimed defence, which without this pin could
+    be weakened to ``or`` or to asking one grid, with the geometry check hiding
+    the difference (independent review of the vertical branch, LOW 1). The two
+    grids are distinct classes, so patching one class's ``contains`` starves
+    exactly one side of the AND.
+    """
+    position = (43.0, -84.5)
+    assert grids.contains(*position)
+
+    monkeypatch.setattr(
+        vertcon.UncertaintyGrid, "contains", lambda self, lat, lon: False
+    )
+    assert not grids.contains(*position)
+
+    monkeypatch.undo()
+    monkeypatch.setattr(
+        vertcon.TransformationGrid, "contains", lambda self, lat, lon: False
+    )
+    assert not grids.contains(*position)
 
 
 # ==========================================================================

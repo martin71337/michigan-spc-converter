@@ -479,8 +479,9 @@ def test_the_production_path_authenticates_the_grid(tmp_path):
     suite and the frozen bundle's self-test - never by the running program.
 
     Exercised through ``load_shipped_grid``, which is the policy ``default_grid``
-    applies; ``default_grid`` itself is lru_cached on the shipped path and
-    cannot be pointed at a test file.
+    applies. The claim that ``default_grid`` actually routes through it is not
+    left to this docstring: ``test_the_cached_grid_comes_through_the_authenticated_path``
+    below pins the wiring itself.
     """
     original = bytearray(geoid18.GEOID18_TILE.read_bytes())
     original[100] ^= 0xFF  # flip a byte in the payload, leaving the header valid
@@ -498,6 +499,35 @@ def test_the_production_path_authenticates_the_grid(tmp_path):
     # everything.
     assert geoid18.load_shipped_grid().row_count == 1081
     assert geoid18.default_grid().column_count == 1141
+
+
+def test_the_cached_grid_comes_through_the_authenticated_path(monkeypatch):
+    """``default_grid`` must not be a second, laxer loader.
+
+    The test above proves ``load_shipped_grid`` enforces the checksum and the
+    geometry; this one proves ``default_grid`` actually goes through it. Without
+    this pin, ``default_grid`` rewired to call ``load_grid`` bare - both gates
+    gone - left the whole suite green (found by the independent review of the
+    vertical branch, which seeded exactly that; the identical pin already
+    existed for ``vertcon.default_grids`` and this module lacked it). Cleared
+    and reloaded so the lru_cache cannot hide which path was taken; the cache is
+    cleared again afterwards so later tests do not share a grid loaded under
+    the monkeypatch.
+    """
+    called: list[bool] = []
+    real = geoid18.load_shipped_grid
+
+    def recording(*args, **kwargs):
+        called.append(True)
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(geoid18, "load_shipped_grid", recording)
+    geoid18.default_grid.cache_clear()
+    try:
+        geoid18.default_grid()
+        assert called == [True]
+    finally:
+        geoid18.default_grid.cache_clear()
 
 
 def test_the_canonical_geometry_is_the_one_the_readme_documents(grid):

@@ -50,7 +50,10 @@ two-point azimuth/distance computation.
 |---|---|---|
 | NOAA Manual NOS NGS 5, *State Plane Coordinate System of 1983*, Stem, Jan 1989, reprinted with minor corrections Mar 1990 | `docs/NOAA_Manual_NOS_NGS_0005.pdf` (committed) | All projection math, zone constants, factor definitions |
 | NGS GEOID18 model, grid tile `g2018u3.bin` | `data/` (committed unmodified, SHA-256 pinned) | Geoid separation |
-| NGS NCAT service | Frozen fixtures in `tests/fixtures/` | Independent verification anchors |
+| NGS GEOID12B model, grid tile `g2012bu3.bin` | `data/` (committed unmodified, SHA-256 pinned; read by nothing until WP-V5) | Geoid model registry (planned) |
+| NGS VERTCON 3.0, release 20190601, `.trn.b` and `.err.b` CONUS grids | `data/` (committed unmodified under NGS's own filenames, SHA-256 pinned) | NGVD 29 ⇄ NAVD 88 shift and its one-sigma uncertainty |
+| NOAA TM NOS NGS-84 and `intg.f`; NOAA's published `Vertcon.java` | Read from `ngs.noaa.gov`; findings recorded in #36/#37, harnesses in `review/wp-v4-anchoring/` | The biquadratic scheme and its nearest-node stencil anchoring |
+| NGS NCAT service | Frozen fixtures in `tests/fixtures/` | Independent verification anchors, horizontal and vertical |
 | NGS geoid height API (`model=14`) | Frozen fixtures in `tests/fixtures/` | Geoid interpolation anchors |
 | Prior MATLAB implementation | `docs/reference/SPC_converter_AllZones_Elev.m` | Supplemental only, not authoritative |
 
@@ -174,7 +177,10 @@ michspc/spc/      computation core — stdlib only, no Qt, no I/O
 michspc/fileio/   readers and writers; owns csv and the binary grid format
 michspc/gui/      PySide6; never computes a domain value
 tests/            expected values hand-derived in comments
-data/             g2018u3.bin, unmodified from NGS, SHA-256 pinned
+data/             four NGS grids, unmodified, each SHA-256 pinned: g2018u3.bin,
+                  g2012bu3.bin, and the VERTCON 3.0 .trn/.err pair
+review/           committed review harnesses and captured NGS truth data; each
+                  claim in the design log maps to a script here (#36)
 docs/             DESIGN.md (authority), method/, the NOAA manual, reference/
 ```
 
@@ -447,6 +453,128 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #38 — 2026-08-07 — The merge gate: two independent Opus reviews before V0–V4 and WP-G1 reach main
+
+**Why Opus reviewers:** the owner's standing instruction (2026-08-07, recorded
+at #36's close) is Codex for gates, independent Opus reviewers if Codex usage
+runs out. This session ran two Opus reviewers in parallel, briefed blind to
+each other on different angles — one on numerical and algorithmic correctness,
+one on contracts, tests, regression risk and process integrity — both
+read-only, both against the full branch. Every finding below was verified by
+the session lead before being acted on; both reviewers also independently
+re-ran the load-bearing measurements rather than trusting the record.
+
+**What the gate confirmed, independently of the record:** suite 1346/1348
+green in both modes with exit codes read directly; the WP-V2 extraction
+behaviour-identical to `origin/main`'s `geoid18.py` (bit-identical
+interpolation over 200,000 positions, 69 refusal scenarios
+character-identical); the VERTCON reader bit-identical to NOAA's published
+`Vertcon.java` over the *whole* CONUS grid including clamp regions and 88,968
+typed-coordinate half-cell positions the original 18,000-point sweep never
+sampled; all four SHA-256 pins matching the committed bytes; sign, direction
+and round-trip exact at every anchor (forward + reverse = exactly 0.0 at all
+five inverse points, and over 8,000 further Michigan positions); the 20-anchor
+pins strongly discriminating (a sign flip misses by 792 mm, every stencil
+mutation caught); 10 of the 120 frozen geoid anchors re-queried live against
+NGS and identical; and the negative-σ record accurate under independent test —
+at 12 NCAT queries inside the negative region no candidate rule reproduces
+NCAT, and at 14 positions just *outside* it agreement returns to NCAT's
+printed quantization, so the disagreement is confined to exactly where
+`sigma_m` refuses.
+
+**HIGH (found by the numerical review, verified by the lead, live-confirmed
+against NCAT): the nearest-node stencil is discontinuous, and nothing had said
+so.** A 3×3 stencil centred on the nearest node switches cells at half-cell
+lines — odd multiples of 0.025° on the VERTCON grids, exactly the round values
+surveyors type — and the interpolated field jumps there. Measured across
+Michigan: under 1 mm on three quarters of the lines, `.trn` worst **75.6 mm**
+at 41.975 N / −83.935 W (2.2 m of ground), `.err` worst ~94 mm, re-anchored
+GEOID18 ~6 mm. The floor-anchored scheme this program shipped through 0.3.1
+switches stencils *at* nodes and is exactly continuous, so WP-V4 and WP-G1
+both imported this property, and the anchoring tables presented nearest-node
+as strictly better with no tradeoff named. **NCAT prints the same step** —
+queried live at both sides of the 41.975 N pair: 200.168 / 200.244 from
+200.000 NGVD 29 — and the reader is bit-identical to NOAA's published source,
+so this is NOAA's behaviour and replicating NOAA (the owner's standing
+instruction) carries it in; smoothing it would diverge from the authority at
+exactly the positions NCAT can check. **Resolved as disclosure, not repair:**
+the property, its magnitude and NOAA's sharing of it are now in
+`interpolate_biquadratic_nearest_node`'s docstring, pinned executable in
+`test_the_nearest_node_stencil_is_discontinuous_and_ncat_shares_the_jump`
+with NGS truth frozen on both sides of the line, and **WP-V7's disclosure
+decision now owns how a job whose points straddle such a line shows the step**
+— alongside the negative-σ disclosure it already owns.
+
+**MEDIUM, all fixed at the root this session:**
+
+1. **`geoid18.default_grid` — the loader production actually calls — had no
+   pin on its authentication wiring** (contracts review). All three seeded
+   rewirings (both gates gone, checksum gone, geometry gone) left the suite
+   green; the identical pin already existed for `vertcon.default_grids`, built
+   by this very branch. The matching pin now exists
+   (`test_the_cached_grid_comes_through_the_authenticated_path`), falsified by
+   seeding the both-gates-gone variant. Pre-existing at 0.3.1, not introduced
+   by the branch.
+2. **The vertical registry's import guard could be deleted silently**
+   (contracts review). The module promises it "refuses to import" when a
+   required pair is lost; removing the module-level call kept every test
+   green. Two pins now: the guard fires on a doctored registry, and an
+   AST-walking test holds the call site itself — a commented-out call cannot
+   pass. Falsified by seeding exactly that deletion.
+3. **The frozen bundle carried three grids nothing authenticated and two
+   modules nothing imported** (contracts review). The suite's digest pins
+   check `data/`, not the bundle, so a grid corrupted during packaging passed
+   all eight release gates; and `vertcon.py`/`vertical.py` were invisible to
+   PyInstaller's analysis (imported by nothing yet), so the next installer
+   would have shipped 4.9 MB of VERTCON data with no code able to read it.
+   The self-test now authenticates all four grids from inside the bundle —
+   the VERTCON pair fully loaded and checked against NCAT's anchor-22 figure,
+   GEOID12B by digest — and `LAZY_IMPORTS` (which `michspc.spec` derives
+   `hiddenimports` from) now declares `ngs_grid`, `vertcon` and `vertical`.
+   Selftest constants transcribed from `tests/fixtures/vertcon_anchors.py`
+   and pinned to it, per the standing convention.
+4. **WP-G1's stated cost was understated** (numerical review): "~4 mm" is
+   ~7 mm over the Michigan window, ~8 mm over the whole tile, at 300,000
+   random positions each — verified by the lead before correcting #36/#37's
+   figures in place. Wrong in the direction that flattered the change, which
+   is why it is called out rather than silently amended.
+5. **DESIGN.md's body was factually stale** (contracts review): §3 now cites
+   VERTCON 3.0, GEOID12B and the NOAA interpolation sources; §9 now lists the
+   four grids and the `review/` directory.
+
+**LOW, fixed:** `VertconGridPair.contains` — a claimed defence with no pin —
+is now tested to ask both grids; `test_the_pair_offers_no_way_to_take_half_a_reading`
+renamed `..._through_itself` so the name no longer overclaims what #36 records
+as mitigated-not-closed; the `GEOMETRY_TOLERANCE_DEG` comment's
+"six orders of magnitude" corrected to seven; plan §2.5a consequences 2 and 3
+annotated as superseded/resolved by WP-G1 (the same defect class #36 fixed at
+§3.3/§5.1/§7 — one location it missed).
+
+**LOW, recorded for the next work packages rather than fixed here:**
+
+- **For WP-V6 (file wiring):** `to_east_longitude` accepts a 0–360 east
+  longitude silently — `shift_m(43.0, 275.5)` equals `shift_m(43.0, -84.5)`
+  byte-identically. It fails closed for the realistic positive-west mistake
+  (84.5 lands outside the grid and refuses), but a CSV carrying 0–360
+  longitudes would convert without complaint. The file layer's geodetic
+  validation must decide the accepted longitude range *before* these readers
+  see it. Pre-existing behaviour inherited from released `geoid18`.
+- **For WP-V7 (disclosure):** `reading_at`'s `sigma=None` collapses "the
+  model interpolated negative" into one signal; the GUI/record layer will
+  need the distinction (the raw figure is reachable via
+  `modeled_error_raw_m`). And WP-V7 now owns TWO disclosure decisions: the
+  negative σ (#36) and the half-cell discontinuity (this amendment).
+
+**A verification trap recorded for whoever repeats the discontinuity
+measurement:** synthesising a boundary position as `slat + (k + 0.5) * dlat`
+lands ~6e-14° on the *opposite side* of the half-cell line from the typed
+decimal (`43.025`), which manufactures apparent 90 mm disagreements with NCAT
+that are pure float artefact. Feed typed decimals, not synthesised ones.
+
+**Suite after the gate's fixes: 1348 → 1358**, green in both `pytest` and
+`-O`. Merged to `main` after this amendment; no release cut — the owner
+reviews first.
+
 ### #37 — 2026-08-07 — WP-G1 executed: GEOID18 re-anchored to INTG's stencil
 
 **The work package #36 specified is built.** `geoid18.GeoidGrid.height_biquadratic`
@@ -490,12 +618,18 @@ aggregate pin on rms (0.715 measured against the 0.454 required), and the
 cross-product pin in `test_vertcon.py`. Restored, suite **1346 → 1348**, green in
 `pytest` and `-O`.
 
-**What it cost, measured:** worst change to a reported geoid separation ~4 mm in
-the roughest cells (#36's figure, confirmed); at the 20 frozen anchors the
-largest change is 0.83 mm; at the frozen self-test anchor (Cadillac) 0.09 mm,
-far inside its 0.002 m tolerance; ~6e-10 in an elevation factor. **No coordinate
-moves.** All figures sit far inside GEOID18's own stated 30–60 mm model
-uncertainty.
+**What it cost, measured:** worst change to a reported geoid separation
+**~7 mm over the Michigan window and ~8 mm over the whole tile** — measured at
+the #38 merge gate over 300,000 random positions each; #36's "~4 mm" was this
+same quantity sampled less widely and is corrected, not confirmed. At the 20
+frozen anchors the largest change is 0.83 mm; at the frozen self-test anchor
+(Cadillac) 0.09 mm, far inside its 0.002 m tolerance; ~1e-9 in an elevation
+factor. **No coordinate moves.** All figures sit far inside GEOID18's own
+stated 30–60 mm model uncertainty. One property the change trades away is
+recorded in #38: the nearest-node stencil is discontinuous at half-cell lines
+(~6 mm at worst on this grid) where the floor anchoring was continuous —
+NOAA's own algorithm shares the jumps, which is why replicating NOAA carries
+them in.
 
 **The caveat #36 required to survive, stated again rather than implied away:**
 INTG's stencil is *not* the best fit to the NGS geoid API — a bicubic 4×4 is,

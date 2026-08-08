@@ -48,9 +48,38 @@ from __future__ import annotations
 
 import math
 import struct
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import ClassVar, NamedTuple
+
+
+def shipped_data_directory() -> Path:
+    """Where the shipped NGS grids live, frozen or from source.
+
+    PyInstaller sets ``sys._MEIPASS`` to the directory it unpacked the bundle's
+    data files into, and nothing else sets it (docs/method/TOOLING.md). A source
+    run walks up from this module instead: fileio -> michspc -> the repository
+    root, then ``data/``.
+
+    Stated explicitly rather than left to the source-tree walk happening to land
+    in the right place inside a bundle. It very nearly does - a frozen module's
+    ``__file__`` sits under ``sys._MEIPASS`` - but "the frozen program finds its
+    grids" is not a property to hold by coincidence, and
+    ``tests/test_selftest.py`` pins both branches.
+
+    This is environment plumbing, not model policy, which is why it may live in
+    the substrate: it says where the ``data`` directory is, never which files a
+    model reads from it - each policy layer still names its own files and
+    checksums. Extracted from the identical private copies ``geoid18.py`` and
+    ``vertcon.py`` carried (the extraction vertcon's own note deferred as not
+    that work package's to do, done at the #38 merge gate).
+    """
+    bundle = getattr(sys, "_MEIPASS", None)
+    if bundle:
+        return Path(bundle) / "data"
+    return Path(__file__).resolve().parent.parent.parent / "data"
+
 
 HEADER = struct.Struct("<4d3i")
 """SLAT, WLON, DLAT, DLON as real*8, then NLAT, NLON, IKIND as int*4."""
@@ -76,9 +105,10 @@ MINIMUM_INTERPOLATION_SPAN = 3
 # The reasoning above was measured on GEOID18's one-arcminute spacing and now
 # governs every caller, so it is worth saying that it still holds for the other
 # one: VERTCON 3.0 is 0.05 degrees (docs/PLAN-vertical-datums.md section 2.2),
-# and 1e-9 is six orders of magnitude below that - far tighter than 0.05 against
-# 0.025, the smallest confusion that grid could suffer. Any future caller on a
-# spacing finer than about 1e-6 degrees must re-derive it rather than inherit it.
+# and 1e-9 is more than seven orders of magnitude below that - far tighter than
+# 0.05 against 0.025, the smallest confusion that grid could suffer. Any future
+# caller on a spacing finer than about 1e-6 degrees must re-derive it rather
+# than inherit it.
 GEOMETRY_TOLERANCE_DEG = 1e-9
 
 
@@ -304,8 +334,11 @@ class Grid:
         NGS's printed figure. Those positions are frozen as
         ``tests/fixtures/geoid_discriminating_anchors.py`` and are what now
         pins the anchoring. The worst change re-anchoring made to a reported
-        separation is about 4 mm - roughly 6e-10 in an elevation factor, far
-        inside GEOID18's own 30-60 mm model uncertainty. No coordinate moved.
+        separation is about 7 mm over the Michigan window and about 8 mm over
+        the whole tile (measured at the merge gate over 300,000 random
+        positions each, correcting #36's ~4 mm, which sampled less widely) -
+        roughly 1e-9 in an elevation factor, far inside GEOID18's own 30-60 mm
+        model uncertainty. No coordinate moved.
         """
         row, column = self._require_inside(latitude, longitude)
 
@@ -346,6 +379,24 @@ class Grid:
         where the floor-anchored variant reaches 8.457 mm and 3.042 mm) and
         GEOID18 since WP-G1 (DESIGN.md #37). See ``interpolate_biquadratic``
         for the full table and for why that variant is kept at all.
+
+        **Disclosed property: this interpolant is DISCONTINUOUS at half-cell
+        lines** - positions whose fractional row or column is exactly 0.5,
+        which on these grids means latitudes and longitudes at odd multiples
+        of half the spacing, exactly the round values a surveyor types. The
+        stencil switches between nodes, where the two candidate 3x3 blocks do
+        not agree; the floor-anchored variant switches AT a node, where they
+        do, which is why the scheme this program shipped through 0.3.1 was
+        continuous. Measured across Michigan (merge-gate review, DESIGN.md
+        #38): most half-cell lines jump under 1 mm, but the ``.trn`` grid
+        reaches **75.6 mm** at 41.975 N / -83.935 W and the ``.err`` grid
+        ~94 mm; the re-anchored GEOID18 reaches ~6 mm where the old anchoring
+        was exact. **NOAA's own algorithm and NOAA's live NCAT service share
+        every jump** - NCAT prints the 75.6 mm step at that position -
+        so smoothing it here would diverge from the authority at exactly the
+        positions it can be checked at. Disclosed and pinned
+        (``test_the_nearest_node_stencil_is_discontinuous_and_ncat_shares_the_jump``)
+        rather than repaired; how it is shown to a user is WP-V7's.
 
         **The five lines of evaluation below are deliberately not shared with
         ``interpolate_biquadratic``.** The two anchorings must stay separately

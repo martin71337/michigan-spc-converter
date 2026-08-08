@@ -75,6 +75,13 @@ the owner ruled that NOAA's published programs govern. ``ngs_grid`` still
 carries both variants, with the floor-anchored one kept as the measured
 history and the thing the anchoring pins are shown failing against.
 
+One disclosed cost travels with that fidelity: the nearest-node stencil is
+DISCONTINUOUS at half-cell lines - up to 75.6 mm on the ``.trn`` grid, and
+NCAT prints the same step, so it is NOAA's property replicated rather than a
+defect introduced (DESIGN.md #38, and the pin
+``test_the_nearest_node_stencil_is_discontinuous_and_ncat_shares_the_jump``).
+How a job that straddles such a line shows it belongs to WP-V7.
+
 **This supersedes docs/PLAN-vertical-datums.md section 2.5**, which recorded that
 the ``.trn`` grid is biquadratic and the ``.err`` grid bilinear and asked for a
 test that fails if the two are ever unified. That asymmetry was a real
@@ -113,7 +120,6 @@ from __future__ import annotations
 
 import hashlib
 import struct
-import sys
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -122,30 +128,13 @@ from michspc.fileio import ngs_grid
 from michspc.fileio.ngs_grid import TileGeometry
 
 
-def _data_directory() -> Path:
-    """Where the shipped grids live, frozen or from source.
-
-    PyInstaller sets ``sys._MEIPASS`` to the directory it unpacked the bundle's
-    data files into, and nothing else sets it (docs/method/TOOLING.md). A source
-    run walks up from this module instead: fileio -> michspc -> the repository
-    root, then ``data/``.
-
-    Stated here rather than imported from ``geoid18``: that module is the GEOID18
-    *policy* layer, this one is the VERTCON policy layer, and a sibling importing
-    a sibling for a path would couple two models that share only a directory -
-    and would break at the ``geoid18.py`` to ``geoid.py`` rename plan section 3.4
-    calls for. The same three lines already appear in ``geoid18.py``,
-    ``gui/icon.py`` and ``selftest.py``; extracting all four into the substrate is
-    worth doing and is not this work package's to do, since ``ngs_grid.py`` is
-    gated code.
-    """
-    bundle = getattr(sys, "_MEIPASS", None)
-    if bundle:
-        return Path(bundle) / "data"
-    return Path(__file__).resolve().parent.parent.parent / "data"
-
-
-DATA_DIR = _data_directory()
+DATA_DIR = ngs_grid.shipped_data_directory()
+"""From the substrate, not from ``geoid18``: a sibling importing a sibling for
+a path would couple two models that share only a directory, and would break at
+the ``geoid18.py`` to ``geoid.py`` rename plan section 3.4 calls for. The
+private copy this module carried is extracted to
+``ngs_grid.shipped_data_directory`` (#38 merge gate), which its own note
+deferred as not WP-V4's to do."""
 
 VERTCON3_TRN_FILENAME = "vertcon_3.0_20190601.ngvd29.navd88.conus.oht.trn.b"
 VERTCON3_ERR_FILENAME = "vertcon_3.0_20190601.ngvd29.navd88.conus.oht.err.b"

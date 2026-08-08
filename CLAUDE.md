@@ -46,7 +46,68 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current build: vertical datums — V0–V4 DONE, V5+ NOT BUILT (2026-08-07)
+## Current state: vertical datums V0–V4 + WP-G1 MERGED TO MAIN; V5–V9 NOT BUILT (2026-08-07)
+
+**`main` now carries the vertical branch, WP-G1 and the merge gate. Suite
+1358, green in both `pytest` and `-O`. NOT RELEASED — 0.3.1 is still the
+released version, the version literal has not moved, and the owner reviews
+before any release is cut.** Read DESIGN.md **#36–#38** before touching this
+work; the plan (`docs/PLAN-vertical-datums.md`) remains a proposal whose
+§2.5a/§7/§8 carry supersession annotations.
+
+**This session (the merge session) did, in order:**
+
+1. **Two independent Opus reviewers ran blind over the whole branch** (the
+   owner's fallback rule when Codex is unavailable), one on numerical
+   correctness, one on contracts/tests/regression. No CRITICAL. Everything
+   load-bearing re-verified independently — the reader is bit-identical to
+   NOAA's published `Vertcon.java` over the whole CONUS grid, the WP-V2
+   extraction is behaviour-identical to `origin/main`, sign/round-trip exact,
+   anchors non-circular (10 of 120 re-queried live against NGS, identical).
+   Full record: DESIGN.md **#38**.
+2. **WP-G1 executed** (DESIGN.md **#37**): `geoid_height` now reads the
+   nearest-node (INTG) stencil. The work was the anchors —
+   `tests/fixtures/geoid_discriminating_anchors.py`, 120 NGS truths, 36
+   discriminating exactly; all pins falsified by seeding the floor stencil
+   back. Worst change to a reported separation ~7 mm (Michigan window);
+   no coordinate moves.
+3. **The gate's findings fixed at the root** (#38): the released
+   `default_grid`'s authentication wiring is now pinned; the vertical
+   registry's import guard is pinned by AST so it cannot be deleted silently;
+   **the frozen bundle self-test now authenticates all four NGS grids** and
+   `LAZY_IMPORTS` declares `ngs_grid`/`vertcon`/`vertical` (they were
+   invisible to PyInstaller — the installer would have shipped VERTCON data
+   with no reader in the bundle); DESIGN.md's body §3/§9 updated to the
+   four-grid reality; `shipped_data_directory` extracted to the substrate.
+4. **One HIGH, resolved as disclosure, not repair** (#38): the nearest-node
+   stencil is **discontinuous at half-cell lines** — up to 75.6 mm in the
+   `.trn` shift at 41.975 N / −83.935 W, ~6 mm in the re-anchored geoid —
+   and **NCAT prints the same step** (queried live, both sides). It is NOAA's
+   own behaviour, replicated on the owner's instruction; smoothing it would
+   diverge from the authority. Pinned executable with NGS truth frozen on
+   both sides. **WP-V7 now owns TWO disclosure decisions: the negative σ and
+   this.**
+
+### Resume here, in order
+
+1. **WP-V5** — geoid model registry, `apply_geoid` → `geoid_model`, GEOID12B
+   (tile and pin committed; selftest now authenticates it in the bundle), and
+   the `geoid18.py` → `geoid.py` rename as its own commit. **WP-V5 must put
+   the GEOID12B digest into its runtime model record** — today's pin is
+   suite-plus-selftest only, adequate only while nothing loads the tile.
+2. **WP-V6** — file wiring. Note from #38: `to_east_longitude` accepts 0–360
+   east longitudes silently; the file layer must settle the accepted range
+   before these readers see a CSV's longitude.
+3. **WP-V7** — the disclosure package, owner's decisions: negative σ
+   presentation AND the half-cell discontinuity; also `reading_at`'s
+   `sigma=None` needs a distinguishable signal by then (#38).
+4. Then V8–V9; closing gate under Codex, or independent Opus reviewers if
+   Codex usage runs out (owner's instruction, 2026-08-07).
+
+**Still human, still outstanding:** install on a clean profile and run one
+real job end to end (METHOD.md §6); a real PNEZD file from an actual job.
+
+## Superseded status: vertical datums — V0–V4 DONE, V5+ NOT BUILT (2026-08-07)
 
 **Branch `claude/vertical-transformation-plan-dtxh6j`. Read
 `docs/PLAN-vertical-datums.md` and DESIGN.md **#35** before touching this work.**
@@ -135,9 +196,9 @@ keeps the raw value readable under a name that cannot be mistaken for an
 uncertainty, and **the shift is unaffected and still reported**. All three
 paper-overs are pinned as failures.
 
-### Resume checklist, in order
+### Resume checklist, in order — SUPERSEDED by "Resume here" above; item 1 is DONE (#37)
 
-1. **WP-G1 — re-anchor GEOID18 to INTG's stencil. SPECIFIED, NOT BUILT.** The
+1. ~~**WP-G1 — re-anchor GEOID18 to INTG's stencil. SPECIFIED, NOT BUILT.**~~ **EXECUTED — DESIGN.md #37.** The
    owner instructed it and then instructed that this session log it rather than
    execute it, so **no line of `geoid18.py` or `ngs_grid.py` was re-anchored.**
    The full specification, the measured evidence and the caveats are DESIGN.md
@@ -528,10 +589,12 @@ found in this program's own file layer are fixed, pinned and falsified (#18).
 ```
 michspc/spc/      computation core — stdlib only; no Qt, no file I/O, no network
 michspc/fileio/   readers and writers; the ONLY layer that touches csv or the
-                  GEOID18 binary grid. Named fileio, never io (shadows stdlib).
+                  NGS binary grids. Named fileio, never io (shadows stdlib).
 michspc/gui/      PySide6; never computes a domain result
 tests/            suite; every expected value hand-derived in a comment
-data/             g2018u3.bin — NGS GEOID18 tile, unmodified, SHA-256 pinned
+data/             four NGS grids, unmodified, each SHA-256 pinned: g2018u3.bin,
+                  g2012bu3.bin, and the VERTCON 3.0 .trn/.err pair
+review/           committed review harnesses and captured NGS truth (#36)
 docs/             DESIGN.md (authority), method/, the NOAA manual, reference/
 ```
 

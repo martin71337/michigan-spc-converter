@@ -261,6 +261,31 @@ def geoid_height(value: float | None) -> str:
     return f"{value:.3f}"
 
 
+def vertical_metres(value: float | None) -> str:
+    """A vertical datum shift, or its one-sigma uncertainty, in metres to 4
+    decimal places.
+
+    Why 4: it is the metre unit's own declared coordinate precision
+    (``METERS.decimals``), so the shift is stated to exactly the resolution a
+    metre elevation is written to - a shift printed coarser than the Z column
+    it moved could not be reconciled against it, and one printed finer would
+    claim more than the model resolves (the reader's measured agreement with
+    NCAT is 0.47 mm, docs/PLAN-vertical-datums.md section 2.5a, so the fourth
+    decimal is the last honest one). One function for both quantities on
+    purpose: the shift and its sigma are compared against each other by the
+    reader of every surface (plan section 2.8's sigma-exceeds-shift case), and
+    two precisions would make that comparison a formatting artefact.
+
+    ``None`` renders as N/A - which is the ONLY thing an unavailable sigma may
+    render as. Where the error model interpolates below zero the reading
+    carries ``sigma_m=None``, and this program never prints a number there
+    (docs/DESIGN.md #36).
+    """
+    if value is None:
+        return NOT_AVAILABLE
+    return f"{value:.4f}"
+
+
 def millimetres(metres: float | None) -> str:
     """A small linear quantity in millimetres, to 4 places."""
     if metres is None:

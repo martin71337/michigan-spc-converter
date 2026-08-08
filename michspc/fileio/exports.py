@@ -25,7 +25,7 @@ from pathlib import Path
 
 from michspc.fileio import formatting as fmt
 from michspc.fileio.writers import WriteError, staged_write
-from michspc.job import Direction, JobResult
+from michspc.job import Direction, JobResult, VerticalMode
 
 _PNEZD_HEADERLESS = True
 """The clean export has no header row, matching the input format exactly.
@@ -141,13 +141,52 @@ def audit_columns(result: JobResult) -> list[str]:
     Identical to ``AUDIT_COLUMNS`` except where one end of the job is geodetic,
     in which case that end's pair of columns is renamed to say what it actually
     holds. The other end's headings never move.
+
+    A HORIZONTAL_AND_VERTICAL job additionally carries six columns a
+    horizontal CSV must never grow (WP-V7, docs/PLAN-vertical-datums.md
+    section 5.2):
+
+    * ``Source vertical datum`` / ``Target vertical datum`` - which surface
+      each end's heights are expressed in, per row, so a row cut out of this
+      file still says what its two heights mean.
+    * ``Source elevation (<input unit>)`` - the PRE-shift height as the file
+      supplied it, so this file answers "how was this Z derived" without
+      re-running anything. The existing ``Elevation`` column keeps the TARGET
+      height, which is what the clean export carries.
+    * ``Vertical shift (m)`` - the modeled shift applied. 0.0000 for an
+      identity, which really is a zero shift, not an absence.
+    * ``Shift sigma (m)`` - its one-sigma uncertainty, and
+      ``formatting.NOT_AVAILABLE`` where none can be stated (an identity ran
+      no model; where the error model interpolates below zero there is no
+      physical sigma) - NEVER a number in either case (docs/DESIGN.md #36).
+    * ``Geoid model`` - which model's separations the factor columns were
+      computed from. Two shipped models now differ by up to 32 mm at one
+      Michigan anchor (DESIGN.md #40 LOW 5), so a vertical CSV names its own.
+      A HORIZONTAL CSV deliberately does NOT gain this column: its layout is
+      the status quo since 0.1.0, relied on by downstream spreadsheets, and
+      the job record inside the same ZIP names the model (#17) - that
+      standing mitigation stays the horizontal answer.
     """
     columns = list(AUDIT_COLUMNS)
-    direction = result.settings.direction
+    settings = result.settings
+    direction = settings.direction
     if direction is Direction.GEODETIC_TO_ZONE:
         columns[2], columns[3] = SOURCE_COLUMNS_GEODETIC
     elif direction is Direction.ZONE_TO_GEODETIC:
         columns[5], columns[6] = TARGET_COLUMNS_GEODETIC
+    if settings.vertical_mode is VerticalMode.HORIZONTAL_AND_VERTICAL:
+        # The vertical block sits directly after Elevation, so the target
+        # height and the ingredients it was derived from read side by side;
+        # Geoid model sits directly before the geoid height it governs.
+        anchor = columns.index("Elevation") + 1
+        columns[anchor:anchor] = [
+            "Source vertical datum",
+            "Target vertical datum",
+            f"Source elevation ({settings.input_unit.code})",
+            "Vertical shift (m)",
+            "Shift sigma (m)",
+        ]
+        columns.insert(columns.index("Geoid height (m)"), "Geoid model")
     return columns
 
 
@@ -161,8 +200,10 @@ def audit_rows(result: JobResult) -> list[list[str]]:
     out_unit = settings.output_unit
     in_unit = settings.input_unit
     geodetic_source = settings.direction is Direction.GEODETIC_TO_ZONE
+    vertical = settings.vertical_mode is VerticalMode.HORIZONTAL_AND_VERTICAL
 
-    rows: list[list[str]] = [audit_columns(result)]
+    header = audit_columns(result)
+    rows: list[list[str]] = [header]
 
     for point in result.points:
         conversion = point.conversion
@@ -183,7 +224,7 @@ def audit_rows(result: JobResult) -> list[list[str]]:
             source_northing = fmt.coordinate(point.row.northing, in_unit)
             source_easting = fmt.coordinate(point.row.easting, in_unit)
 
-        rows.append(
+        row = (
             [
                 point.point_id,
                 settings.source_zone.name if settings.source_zone else "",
@@ -213,6 +254,47 @@ def audit_rows(result: JobResult) -> list[list[str]]:
                 point.row.description,
             ]
         )
+
+        if vertical:
+            # Inserted at the vertical header's own indexes, computed from the
+            # header this function just built, so the cells cannot land under
+            # the wrong headings if either insertion point moves. The vertical
+            # block first (it sits earlier), then Geoid model.
+            reading = point.vertical
+            insert_at = header.index("Source vertical datum")
+            row[insert_at:insert_at] = [
+                settings.source_vertical_datum.code,
+                settings.target_vertical_datum.code,
+                # The PRE-shift height exactly as the file supplied it, in the
+                # input unit - N/A for a blank Z field, exactly as the target
+                # Elevation cell is.
+                fmt.coordinate(point.row.elevation, in_unit),
+                # A reading is None on a point that carried no elevation, and
+                # on a coverage-refused point (the warnings cell says which):
+                # no shift was applied, so neither number exists. An identity
+                # reading carries shift_m=0.0 - a real zero, printed as one.
+                fmt.vertical_metres(
+                    reading.shift_m if reading is not None else None
+                ),
+                # sigma_m is None on an identity (no model ran) and where the
+                # error model interpolates below zero (DESIGN.md #36); both
+                # render N/A through the formatter - never the raw figure,
+                # which is not an uncertainty.
+                fmt.vertical_metres(
+                    reading.sigma_m if reading is not None else None
+                ),
+            ]
+            row.insert(
+                header.index("Geoid model"),
+                # result.geoid_model is the model's name, or None for a job
+                # that stated no geoid is applied - in which case there is no
+                # model to name and the factor columns beside it are N/A too.
+                result.geoid_model
+                if result.geoid_model is not None
+                else fmt.NOT_AVAILABLE,
+            )
+
+        rows.append(row)
 
     return rows
 

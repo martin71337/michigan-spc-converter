@@ -248,9 +248,14 @@ class VerticalReading:
     output there cannot be an uncertainty* (docs/DESIGN.md #36). A bare None
     with no reason would collapse those into one silence.
 
-    # WP-V7: the job record, the audit CSV and the Single point panel do not
-    # yet state these fields; that disclosure - wording, columns, and the
-    # negative-sigma decision - is WP-V7's and the owner's, deliberately.
+    WP-V7 is the disclosure of these fields: the job record (report.py) states
+    the datums, the direction, the shift summary and the sigma summary; the
+    audit CSV (exports.py) carries the per-point datums, source elevation,
+    shift and sigma; and the Single point panel (results_model.py) shows the
+    shift and sigma as rows of their own. A sigma-less modeled reading also
+    carries ``WarningCode.VERTICAL_SIGMA_UNAVAILABLE`` beside it, so every
+    surface inherits the disclosure through the warning pipeline rather than
+    each reading this record's reason field on its own.
     """
 
     transformation: VerticalTransformation
@@ -813,6 +818,29 @@ def _require_geodetic_in_range(
         )
 
 
+def factors_use_source_era(
+    settings: JobSettings, transformation: VerticalTransformation | None
+) -> bool:
+    """Whether this job's factors are computed from the SOURCE-datum height.
+
+    The #41 either-endpoint rule's one configuration where the factors do not
+    use the height the Z column carries: a modeled transformation whose
+    SOURCE datum is the geoid model's own era (NAVD88 -> NGVD29 with either
+    shipped model). Stated once and called from both the computation
+    (``_convert_row``) and the record (``report.py``'s Factor height
+    paragraph), so the sentence and the arithmetic cannot drift apart
+    (WP-V7 review gate, LOW 2; one authoritative representation per fact).
+    """
+    return (
+        transformation is not None
+        and not transformation.is_identity
+        and settings.geoid_model is not None
+        and settings.geoid_model.vertical_datum.code
+        == transformation.source.code
+        != transformation.target.code
+    )
+
+
 def _convert_row(
     row: pnezd.PnezdRow,
     settings: JobSettings,
@@ -1053,6 +1081,51 @@ def _convert_row(
                             f"The shift is read from the separate "
                             f"transformation grid and is unaffected."
                         )
+                        # And it must be SAID, not merely recorded on the
+                        # frozen reading: DESIGN.md #41 instructed WP-V7 not
+                        # to assume a warning already flags this, so this
+                        # warning is what makes the missing sigma reach every
+                        # surface - the record's WARNINGS section, the audit
+                        # CSV's warnings column, and the GUI warnings field -
+                        # through the one pipeline they all already read. The
+                        # identity's sigma-less reading raises NO warning: its
+                        # absence is stated by the record's METHOD text ("no
+                        # shift is applied"), and warning about a state the
+                        # user chose would teach nothing.
+                        warnings.append(
+                            ConversionWarning(
+                                code=WarningCode.VERTICAL_SIGMA_UNAVAILABLE,
+                                message=(
+                                    f"{context}: at "
+                                    f"{conversion.latitude:.6f}, "
+                                    f"{conversion.longitude:.6f} no one-sigma "
+                                    f"uncertainty can be stated for the "
+                                    f"{transformation.source.code} -> "
+                                    f"{transformation.target.code} shift: "
+                                    f"the {transformation.model} error model "
+                                    f"interpolates to a value there that is "
+                                    f"not physical as an uncertainty (a "
+                                    f"negative one-sigma is not a quantity). "
+                                    f"THE SHIFT ITSELF IS VALID AND "
+                                    f"UNAFFECTED - it is read from the "
+                                    f"separate transformation grid - so this "
+                                    f"point's elevation IS converted and "
+                                    f"written; only its sigma reads "
+                                    f"{formatting.NOT_AVAILABLE}, never a "
+                                    f"number."
+                                    # The raw model figure and its accessor
+                                    # path stay on the reading's
+                                    # sigma_unavailable_reason and OUT of
+                                    # every output: printing -0.00965 in a
+                                    # record a surveyor compares against
+                                    # NCAT's +0.011 manufactures the exact
+                                    # confusion #36's refusal exists to
+                                    # prevent, and a sealed document is no
+                                    # place for a Python attribute path
+                                    # (WP-V7 review gate, MEDIUM 1).
+                                ),
+                            )
+                        )
                     vertical_reading = VerticalReading(
                         transformation=transformation,
                         shift_m=signed_shift(
@@ -1088,11 +1161,8 @@ def _convert_row(
     factor_height_m = height_m
     if (
         vertical_reading is not None
-        and settings.geoid_model is not None
         and height_m is not None
-        and settings.geoid_model.vertical_datum.code
-        == vertical_reading.transformation.source.code
-        != vertical_reading.transformation.target.code
+        and factors_use_source_era(settings, vertical_reading.transformation)
     ):
         factor_height_m = elevation_m
 

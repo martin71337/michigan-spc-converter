@@ -13,15 +13,18 @@ conversion, six months later.
 from __future__ import annotations
 
 import statistics
+import textwrap
 from datetime import datetime, timezone
 
 from michspc import APP_NAME, __version__
 from michspc.fileio import formatting as fmt
+from michspc.fileio import vertcon
 from michspc.fileio.geoid import geoid_model_by_name
-from michspc.job import Direction, JobResult
+from michspc.job import Direction, JobResult, VerticalMode, factors_use_source_era
 from michspc.spc.convert import WarningCode
 from michspc.spc.factors import MEAN_EARTH_RADIUS_M
 from michspc.spc.lambert import constants_for
+from michspc.spc.vertical import require_vertical_pair
 
 _RULE = "=" * 78
 _THIN = "-" * 78
@@ -33,6 +36,14 @@ _WARNING_HEADINGS = {
     WarningCode.OUTSIDE_ZONE_EXTENT: "POINTS OUTSIDE THE TARGET ZONE'S AREA",
     WarningCode.GEOID_UNAVAILABLE: (
         "ELEVATION RECORDED, BUT NO GEOID HEIGHT AT THIS POSITION"
+    ),
+    # The two vertical codes fire only on a HORIZONTAL_AND_VERTICAL job, so
+    # giving them headings here changes no horizontal record by a byte.
+    WarningCode.VERTICAL_SHIFT_UNAVAILABLE: (
+        "ELEVATION RECORDED, BUT NOT CONVERTIBLE BETWEEN VERTICAL DATUMS"
+    ),
+    WarningCode.VERTICAL_SIGMA_UNAVAILABLE: (
+        "SHIFT APPLIED, BUT NO UNCERTAINTY COULD BE STATED FOR IT"
     ),
 }
 """Readable headings for the warning kinds this program currently raises.
@@ -182,6 +193,249 @@ def _zone_block(zone, label: str) -> list[str]:
     ]
 
 
+_LABEL_WIDTH = 19
+"""The record's label column: "File               " is 19 characters, and every
+labelled line in this document starts the same way."""
+
+
+def _labelled_paragraph(label: str, text: str) -> list[str]:
+    """A labelled line whose text wraps under itself, record-style.
+
+    The registry's ``direction_statement``, ``uncertainty_citation`` and
+    ``caveat`` are single authoritative sentences longer than a line, and they
+    must be QUOTED - re-drafting them here would create a second account of
+    what was done to a height, which is the drift ``direction_statement``
+    exists to make impossible. So the sentence is wrapped, never reworded:
+    the words and their order are the record's exactly.
+    """
+    # break_long_words=False: a URL in a quoted citation must never be
+    # snapped mid-token by the wrapper - a broken URL in a sealed record is
+    # a wrong URL (WP-V7 review gate, LOW 3).
+    body = (
+        textwrap.wrap(
+            text,
+            width=78 - _LABEL_WIDTH,
+            break_long_words=False,
+            break_on_hyphens=False,
+        )
+        or [""]
+    )
+    lines = [f"{label:<{_LABEL_WIDTH}}{body[0]}"]
+    lines.extend(f"{'':<{_LABEL_WIDTH}}{line}" for line in body[1:])
+    return lines
+
+
+def _vertical_method_block(settings, transformation, result) -> list[str]:
+    """The METHOD section's account of the vertical transformation.
+
+    Everything quotable is quoted from the registry record (``spc/vertical``),
+    which derives its words from the same ``sign`` the computation multiplies
+    by - so this document and the arithmetic cannot disagree about direction.
+    The grid filenames and digests are the ``fileio/vertcon`` constants the
+    loader itself authenticates against, for the same reason.
+    """
+    lines: list[str] = []
+    add = lines.append
+
+    add("VERTICAL DATUM TRANSFORMATION")
+    add("")
+    lines.extend(_labelled_paragraph("Direction", transformation.direction_statement))
+    if not transformation.is_identity:
+        add(
+            f"Model              {transformation.model} "
+            f"release {transformation.release}"
+        )
+        # Both grids, each with its own digest: the shift and its uncertainty
+        # come from two different files, and a record that named one would
+        # certify half of what was read (plan section 5.2).
+        add(f"Grids              {vertcon.VERTCON3_TRN_FILENAME}")
+        add(f"                   SHA-256 {vertcon.VERTCON3_TRN_SHA256}")
+        add(f"                   {vertcon.VERTCON3_ERR_FILENAME}")
+        add(f"                   SHA-256 {vertcon.VERTCON3_ERR_SHA256}")
+    lines.extend(
+        _labelled_paragraph("Uncertainty", transformation.uncertainty_citation)
+    )
+    lines.extend(_labelled_paragraph("Caveat", transformation.caveat))
+    if not transformation.is_identity:
+        # The half-cell discontinuity, DESIGN.md #38: a property of NOAA's own
+        # algorithm, carried in deliberately because NOAA is the authority,
+        # and disclosed here because a job whose points straddle such a line
+        # shows the step with nothing else to explain it.
+        add("")
+        lines.extend(
+            _labelled_paragraph(
+                "Interpolation",
+                "The grid is interpolated the way NOAA's own published "
+                "VERTCON software interpolates it: a 3x3 stencil centred on "
+                "the nearest grid node. That scheme steps at half-cell lines "
+                "- odd multiples of 0.025 degrees, exactly the round "
+                "coordinate values surveyors type - and the modeled shift "
+                "jumps there, by up to about 76 mm in Michigan. NGS NCAT "
+                "reproduces the same steps, because it runs the same "
+                "algorithm. Two points a fraction of a millimetre apart "
+                "across such a line can therefore carry visibly different "
+                "shifts, and that is the model's own behaviour, not an "
+                "error in either point.",
+            )
+        )
+    if (
+        # The one shared statement of the era rule - job.factors_use_source_era
+        # is what the computation itself branches on, so this sentence and the
+        # arithmetic cannot drift apart (WP-V7 review gate, LOW 2).
+        factors_use_source_era(settings, transformation)
+        # ...and only when at least one point actually HAS factors: "were
+        # computed from" is a claim about work done, and a job whose every
+        # point was blank-Z or coverage-refused did none of it - the record
+        # asserted it anyway (WP-V7 review gate, MEDIUM 3).
+        and any(p.factors.elevation_factor is not None for p in result.points)
+    ):
+        # The #41 either-endpoint rule, said out loud: this is the one
+        # configuration where the factors do NOT use the height the Z column
+        # carries, and a record that did not say which height the factors
+        # came from would leave the audit CSV's "how was this derived"
+        # question half answered.
+        add("")
+        lines.extend(
+            _labelled_paragraph(
+                "Factor height",
+                f"The elevation and combined factors were computed from the "
+                f"SOURCE-datum ({transformation.source.code}) height, not "
+                f"from the shifted height the Z column carries. The "
+                f"{settings.geoid_model.name} separations are defined "
+                f"against {settings.geoid_model.vertical_datum.code} "
+                f"heights, and combining a separation with a height from a "
+                f"different era would mix two eras inside one number "
+                f"(DESIGN.md #32, #41). The Z column carries the shifted, "
+                f"{transformation.target.code} height wherever one was "
+                f"written.",
+            )
+        )
+    add("")
+    return lines
+
+
+def _vertical_elevation_block(result, transformation) -> list[str]:
+    """The ELEVATIONS section's account of what the vertical conversion did.
+
+    The record keeps a SUMMARY of the per-point sigma - min, max, mean, the
+    shape ``_factor_summary`` uses for the scale factors - and leaves the
+    per-point column to the audit CSV: the record says how uncertain this job
+    was, the CSV says how uncertain each point was (plan section 5.1).
+    """
+    points = result.points
+    converted = [p for p in points if p.vertical is not None]
+    lines: list[str] = []
+    add = lines.append
+
+    if transformation.is_identity:
+        lines.extend(
+            textwrap.wrap(
+                f"{len(converted)} of {len(points)} points carried an "
+                f"elevation; both vertical datums are "
+                f"{transformation.source.code}, so no shift was applied to "
+                f"any of them (see METHOD). No model ran, so no modeled "
+                f"uncertainty is introduced.",
+                width=78,
+            )
+        )
+        return lines
+
+    if not converted:
+        # "each point's shift ... are in the _full.csv export" is a claim
+        # about cells that would all read N/A, and the sigma summary would
+        # summarize nothing - the record asserted both anyway on a job whose
+        # every point was blank-Z or coverage-refused (WP-V7 review gate,
+        # MEDIUM 3). Say what happened instead.
+        lines.extend(
+            textwrap.wrap(
+                f"0 of {len(points)} points had their elevation shifted from "
+                f"{transformation.source.code} to "
+                f"{transformation.target.code}: no point carried a "
+                f"convertible elevation. The causes are itemized above and "
+                f"under WARNINGS; the _full.csv export's shift and sigma "
+                f"cells read {fmt.NOT_AVAILABLE} for every point.",
+                width=78,
+            )
+        )
+        return lines
+
+    lines.extend(
+        textwrap.wrap(
+            f"{len(converted)} of {len(points)} points had their elevation "
+            f"shifted from {transformation.source.code} to "
+            f"{transformation.target.code}. The shift is MODELED, not "
+            f"measured (see METHOD); each point's shift and its one-sigma "
+            f"uncertainty are in the _full.csv export. Summary of the "
+            f"uncertainty across this job:",
+            width=78,
+        )
+    )
+    add("")
+
+    sigmas = [
+        p.vertical.sigma_m for p in converted if p.vertical.sigma_m is not None
+    ]
+    if sigmas:
+        # The _factor_summary shape exactly: label, then minimum / maximum /
+        # mean - because across Michigan the sigma varies by a factor of
+        # 91,000 (0.000004 m to 0.3656 m), a single figure here would
+        # understate somebody's point by orders of magnitude (plan 5.1).
+        add("  Shift one-sigma uncertainty (m)")
+        add(f"    minimum  {fmt.vertical_metres(min(sigmas))}")
+        add(f"    maximum  {fmt.vertical_metres(max(sigmas))}")
+        add(f"    mean     {fmt.vertical_metres(statistics.fmean(sigmas))}")
+    else:
+        add(
+            f"  {'Shift one-sigma uncertainty (m)':<33} {fmt.NOT_AVAILABLE}"
+        )
+
+    exceeds = [
+        p
+        for p in converted
+        if p.vertical.sigma_m is not None
+        and p.vertical.sigma_m > abs(p.vertical.shift_m)
+    ]
+    if exceeds:
+        # A real Michigan case, not a hypothetical: at 43.05 N, 86.20 W the
+        # sigma is 0.3656 m against a shift of -0.1435 m - 255% of the shift
+        # (plan section 2.8). A summary alone would bury the points it
+        # happens to; they are named.
+        add("")
+        add(
+            f"  Points whose shift uncertainty EXCEEDS the shift itself "
+            f"({len(exceeds)}):"
+        )
+        lines.extend(_point_id_block(exceeds))
+        add("")
+        add("  At each point above, the one-sigma uncertainty of the modeled")
+        add("  shift is larger than the whole shift that was applied. The")
+        add("  shifted elevation is still the model's best value there; the")
+        add("  caveat under METHOD applies with its full force.")
+
+    unstated = [p for p in converted if p.vertical.sigma_m is None]
+    if unstated:
+        # The negative-sigma region of DESIGN.md #36: the error model
+        # interpolates below zero at ~0.43% of Michigan positions, a value
+        # that cannot be a one-sigma. No uncertainty could be stated - never
+        # a number - and the shift beside it is valid and unaffected.
+        add("")
+        add(
+            f"  Points where no uncertainty could be stated "
+            f"({len(unstated)}):"
+        )
+        lines.extend(_point_id_block(unstated))
+        add("")
+        add("  At these positions the VERTCON error model interpolates to a")
+        add("  value that cannot be a one-sigma uncertainty, so no uncertainty")
+        add(f"  could be stated - the Shift sigma cell reads {fmt.NOT_AVAILABLE!r}, never a")
+        add("  number. THE SHIFT ITSELF IS VALID AND UNAFFECTED: it is read")
+        add("  from the separate transformation grid, and the converted")
+        add("  elevation stands. Each point is named again, with its position,")
+        add("  under WARNINGS below.")
+
+    return lines
+
+
 def build_report(result: JobResult) -> str:
     """Render the job record."""
     settings = result.settings
@@ -209,6 +463,21 @@ def build_report(result: JobResult) -> str:
             f"recorded."
         )
     generated = datetime.now(timezone.utc).astimezone()
+
+    # The vertical disclosure switch (WP-V7). Everything it gates below is
+    # ADDITIVE and appears only on a HORIZONTAL_AND_VERTICAL job: a horizontal
+    # job's record is byte-identical to what this program has always written,
+    # which is the WP-V6 gate's hard constraint on this package. The
+    # transformation is resolved through the same registry lookup job.run
+    # performed, so the record and the computation quote one record.
+    vertical = settings.vertical_mode is VerticalMode.HORIZONTAL_AND_VERTICAL
+    transformation = (
+        require_vertical_pair(
+            settings.source_vertical_datum, settings.target_vertical_datum
+        )
+        if vertical
+        else None
+    )
 
     lines: list[str] = []
     add = lines.append
@@ -245,6 +514,13 @@ def build_report(result: JobResult) -> str:
     if result.skipped_blank_lines:
         add(f"Blank lines        {result.skipped_blank_lines} (skipped)")
     lines.extend(_input_format_block(settings))
+    if vertical:
+        # Which surface the file's Z column measures from. Stated with the
+        # datum's full name: NGVD 29 and NAVD 88 heights differ by up to
+        # 0.41 m across Michigan while looking identical, so the code alone
+        # is a token a reader six months later may not place.
+        source_datum = settings.source_vertical_datum
+        add(f"Vertical datum     {source_datum.name} ({source_datum.code})")
     add("")
 
     # --------------------------------------------------------------- output
@@ -255,6 +531,12 @@ def build_report(result: JobResult) -> str:
     add(f"Conversion         {settings.direction.value}")
     add(f"Units out          {settings.output_unit.name} ({settings.output_unit.code})")
     add(f"                   {settings.output_unit.citation}")
+    if vertical:
+        target_datum = settings.target_vertical_datum
+        add(f"Vertical datum     {target_datum.name} ({target_datum.code})")
+        add("                   Every elevation this job writes - including the")
+        add("                   clean export's Z column - is expressed in this")
+        add("                   datum.")
     if settings.direction is not Direction.ZONE_TO_ZONE:
         add(f"Longitude          {settings.longitude_convention.value}")
     if settings.direction is Direction.GEODETIC_TO_ZONE:
@@ -366,6 +648,9 @@ def build_report(result: JobResult) -> str:
         add("Geoid model        not applied; no elevation or combined factors")
         add("                   were computed for this job.")
         add("")
+
+    if vertical:
+        lines.extend(_vertical_method_block(settings, transformation, result))
 
     # ------------------------------------------------------------- summary
     add(_THIN)
@@ -499,6 +784,12 @@ def build_report(result: JobResult) -> str:
             add("  target datum would look ordinary and be wrong. The HORIZONTAL")
             add("  coordinate of each point is unaffected and stands. Each point is")
             add("  named again, with its position, under WARNINGS below.")
+    if vertical:
+        if lines and lines[-1] != "":
+            # One separating blank, not two: some branches above already end
+            # on one (WP-V7 review gate, LOW 4).
+            add("")
+        lines.extend(_vertical_elevation_block(result, transformation))
     add("")
 
     # ------------------------------------------------------------- warnings
@@ -553,6 +844,11 @@ def build_report(result: JobResult) -> str:
     add("    grid, elevation and combined factors, and any warnings. This is the")
     add("    file that answers 'how was this number derived' without re-running")
     add("    anything.")
+    if vertical:
+        add("    For this vertical job it also carries, per point: both vertical")
+        add("    datums, the source-datum elevation before the shift, the modeled")
+        add("    shift applied, its one-sigma uncertainty, and the geoid model")
+        add("    the factors were computed from.")
     add("")
     add(f"  {names['report']}")
     add("    This file.")

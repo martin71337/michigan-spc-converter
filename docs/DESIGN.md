@@ -453,6 +453,87 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #42 — 2026-08-08 — WP-V7: the disclosure — every surface now says what was done to the height
+
+**What was built** (plan §5, implemented by a work-package subagent to the
+session lead's settled disclosure decisions, then gated): the job record's
+vertical blocks (both datums under INPUT/OUTPUT, the OUTPUT statement that the
+clean export's Z is in the target datum, a METHOD block quoting — wrapped,
+never reworded — the registry's `direction_statement`, model + release, both
+grid filenames and digests, the uncertainty citation, NGS's supersession
+caveat, **the half-cell step disclosure (#38's decision, discharged)**, and a
+Factor height paragraph for the #41 source-era configuration); the audit
+CSV's six vertical-only columns (source/target datum, source elevation, shift,
+σ, and `Geoid model` — closing #40 LOW 5 for the mode where two models can
+answer differently; horizontal CSVs deliberately keep the 0.1.0 layout and
+rely on the record, #17); the Single point panel's datum-labelled elevation
+rows, shift row, **σ row with its own copy button, in Copy all** (plan §6's
+pin); `WarningCode.VERTICAL_SIGMA_UNAVAILABLE` so the negative-σ absence is
+SAID on every surface (#41's note, discharged); `formatting.vertical_metres`
+(4 dp, rationale recorded); and the clean export pinned at **exactly five
+fields in every vertical mode** with the round-trip gate independently
+refusing a sixth. The negative-σ decision, on every surface: **N/A, never a
+number** (#36's rule, held by four independent pins).
+
+**The gate (independent Opus): FIX-FIRST.** It verified the disclosure
+complete on the written deliverable across 11 job shapes (identity both ways,
+geoid-none, source-era factors, coverage-refused, negative-σ, unit mixes),
+hand-derived the record's σ summary from the committed grids
+(0.0007/0.3656/0.1831 — character-exact), confirmed the direction statements
+against the arithmetic in both directions, byte-diffed **27 horizontal
+archive members against a HEAD worktree — all identical**, parsed every CSV
+(28 cells header and rows alike), and seeded 18 defects with 18 caught.
+Findings, all closed this round:
+
+1. **HIGH — the Single point panel showed the modeled shift with no caveat
+   anywhere**, on the one surface that writes no file — the condition #41's
+   sequencing constraint exists to prevent, live on the tab WP-V8 is about
+   to wire. Resolved with the **Vertical method row**: the transformation
+   record's own words (model, release, MODELED-not-measured, the
+   supersession caveat; the identity's own sentence for an identity), an
+   ordinary row with a copy button that rides into Copy all so numbers
+   leaving by clipboard take the caveat with them. Wording is the record's,
+   not re-drafted, so the panel and the job record cannot disagree. Pinned
+   (layout + content + clipboard), falsified. *Owner may re-word at the
+   pre-release review; the decision that SOME caveat must be on-screen was
+   the gate's condition for WP-V8 proceeding.*
+2. **MEDIUM — the σ warning printed the raw error-model output at 18
+   significant digits with a Python attribute path**, into the record and
+   the screen — publishing the figure #36 deliberately kept behind a code
+   accessor, beside which NCAT prints +0.011 where the raw figure is −0.00965.
+   The raw figure and the accessor now live only on the reading's
+   `sigma_unavailable_reason`, off every output. Pinned on the message, the
+   record and the panel; falsified.
+3. **MEDIUM — two record sentences claimed work not done** on jobs whose
+   every point was blank-Z or coverage-refused ("each point's shift … are in
+   the _full.csv export" over all-N/A cells; "factors were computed from the
+   SOURCE-datum height" when no factor existed). Both guarded on work
+   actually done, with an honest all-refused paragraph. Pinned, falsified.
+4. **MEDIUM — assigned, not dropped: the Multi point tab's on-screen table**
+   shows a shifted Z under a bare `Elevation` heading with no datum, shift
+   or σ — a surface neither plan §5.2 nor §7's V8 scope enumerated. **WP-V8's
+   scope now includes it**: the Elevation column header gains the datum and
+   the table gains shift and σ columns on vertical jobs, mirroring the audit
+   CSV (#26's cannot-disagree property is the pin to build).
+5. **MEDIUM/LOW housekeeping**: `window.py`'s geoid-dropdown comment now
+   cites WP-V8 (a half-applied correction); four future-tense comments
+   settled (`selftest.py`'s lazy-imports note, `ngs_grid.py` and
+   `vertcon.py`'s "is WP-V7's"); the factor-era rule is now stated ONCE —
+   `job.factors_use_source_era` — and called by both the computation and the
+   record, so the sentence and the arithmetic cannot drift (one
+   authoritative representation); `_labelled_paragraph` no longer breaks
+   long tokens, so a quoted URL cannot be snapped mid-token in a sealed
+   record; one double blank line removed.
+6. **LOW, carried with reasons**: a coverage-refused point's INPUT elevation
+   label reads plain `Elevation` rather than naming the source datum —
+   nothing false is printed and the warning names both datums.
+
+**Suite: 1441 → 1474**, green in `pytest` and `-O`; the implementer's six
+seeded falsifications plus the gate's 18 plus this round's two (the caveat
+row and the raw-figure leak, each failing 3 pins). Committed to `main` and
+pushed; no release. **The #41 sequencing constraint is satisfied: WP-V8 may
+now make vertical mode reachable.**
+
 ### #41 — 2026-08-08 — WP-V6: the vertical shift reaches the job, and the geoid guard learns which era a height is in
 
 **What was built** (plan §3.5–3.6, implemented by a work-package subagent to

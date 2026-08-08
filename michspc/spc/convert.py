@@ -78,6 +78,29 @@ class WarningCode(Enum):
     reached.
     """
 
+    VERTICAL_SIGMA_UNAVAILABLE = "vertical-sigma-unavailable"
+    """A vertical job's point was shifted, but no one-sigma uncertainty can be
+    stated for the shift: the VERTCON error model interpolates below zero at
+    the point's position, and a negative number is not an uncertainty
+    (docs/DESIGN.md #36).
+
+    Raised by michspc.job, like the two codes above. THE SHIFT ITSELF IS VALID
+    AND UNAFFECTED - it comes from the separate transformation grid - so the
+    point's elevation IS converted and written; only the sigma cell reads N/A.
+
+    This code exists because DESIGN.md #41 recorded that the disclosure layer
+    (WP-V7) must not assume a warning already flags the missing sigma: the
+    reading carries its reason, but a reason on a frozen record reaches no
+    surface on its own. Raising it here makes every surface - the job record's
+    WARNINGS section, the audit CSV's warnings column, and the GUI warnings
+    field - inherit the disclosure through the one warning pipeline they all
+    already read, rather than each growing its own special case.
+
+    NOT raised for an identity transformation: an identity carries no sigma
+    because no model ran, which is a statement the job record's METHOD text
+    makes ("no shift is applied"), not a condition worth warning about.
+    """
+
 
 @dataclass(frozen=True)
 class ConversionWarning:

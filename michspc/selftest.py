@@ -342,12 +342,13 @@ LAZY_IMPORTS: tuple[str, ...] = (
     #   exports.write_all         -> michspc.fileio.report
     "michspc.fileio.pnezd",
     "michspc.fileio.report",
-    # The vertical-datum layer (V0-V4). Nothing in the shipped program imports
-    # these yet - the job and GUI wiring is WP-V6/V7 - which makes them MORE
-    # invisible to PyInstaller's analysis than a lazy import, not less: the
-    # bundle carries their 4.9 MB of VERTCON grids, so it must carry the code
-    # that can read them, or the data ships dead. check_vertcon_grids below is
-    # what proves the pair authenticates from inside the bundle.
+    # The vertical-datum layer. Since WP-V6/V7 the shipped program DOES import
+    # these (job.py and report.py, at module level), so they are statically
+    # reachable - the declarations stay because this list's contract is the
+    # names the bundle then PROVES it can import, and a module that later
+    # went back to lazy would otherwise go missing with nothing noticing.
+    # check_vertcon_grids below is what proves the pair authenticates from
+    # inside the bundle.
     "michspc.fileio.ngs_grid",
     "michspc.fileio.vertcon",
     "michspc.spc.vertical",

@@ -205,6 +205,88 @@ ELLIPSOID_HEIGHT_LABEL = "Ellipsoid height (m)"
 ELEVATION_FACTOR_LABEL = "Elevation factor"
 COMBINED_FACTOR_LABEL = "Combined factor"
 
+VERTICAL_SIGMA_LABEL = "Shift sigma (m)"
+"""The sigma row's label - the audit CSV's own column heading, per the #17
+standing choice of one wording on every surface. It is a labelled row with its
+own copy button, exactly like every other value, because a sigma is a NUMBER a
+surveyor carries into a report - unlike the warnings, which are prose and live
+in their own field (#30). That is also why it belongs in
+``single_point_clipboard_text`` (plan section 6's pin) while warnings do not."""
+
+VERTICAL_METHOD_LABEL = "Vertical method"
+"""The caveat row's label.
+
+The Single point tab writes nothing, so a caveat not on screen does not exist
+for that user (plan section 5.2's own words) - and until this row existed the
+tab showed a modeled shift to four decimals with no caveat anywhere on the
+surface (WP-V7 review gate, HIGH 1; the condition #41's sequencing constraint
+exists to prevent). The value is the transformation record's own words -
+model, release and ``caveat`` for a modeled shift, the identity's caveat for
+an identity - never re-drafted here, so this row and the job record cannot
+disagree about what was done to the height. It is an ordinary row with a copy
+button and it rides into Copy all deliberately: numbers that leave this panel
+by clipboard take the caveat with them."""
+
+
+def vertical_method_text(transformation) -> str:
+    """The caveat row's value, from the record and nothing else."""
+    if transformation.is_identity:
+        return transformation.caveat
+    return (
+        f"{transformation.model} release {transformation.release}. "
+        f"{transformation.caveat}"
+    )
+
+
+def vertical_shift_label(transformation) -> str:
+    """``Vertical shift NGVD29 -> NAVD88 (m)`` - both datums in the label.
+
+    The datums are IN the label, not implied by the section, because the shift
+    is the one value on this panel that belongs to neither section alone: it is
+    what moved the INPUT elevation to the OUTPUT one, and a bare "Shift" copied
+    into a spreadsheet says nothing about which way.
+    """
+    return (
+        f"Vertical shift {transformation.source.code} -> "
+        f"{transformation.target.code} (m)"
+    )
+
+
+def _datum_elevation_label(datum) -> str:
+    """``Elevation (NAVD88)`` - the ordinary label, with its datum named.
+
+    Only a vertical conversion uses this: a horizontal job asked no vertical
+    question and its rows must not claim a datum nobody stated (plan section
+    1, the owner's decision that horizontal mode is unchanged).
+    """
+    return f"{ELEVATION_LABEL} ({datum.code})"
+
+
+def _vertical_rows(reading) -> tuple[ResultValue, ...]:
+    """The shift row and the sigma row, or nothing at all.
+
+    Empty when the point carries no ``VerticalReading`` - a horizontal job, a
+    vertical point with no elevation, or a coverage-refused point whose
+    warning says why. The sigma renders through ``fmt.vertical_metres``, which
+    prints N/A for a None - the ONLY thing an unavailable sigma may print
+    (docs/DESIGN.md #36); the reason it is unavailable reaches the warnings
+    field through ``WarningCode.VERTICAL_SIGMA_UNAVAILABLE``, raised beside
+    the reading by ``job._convert_row``.
+    """
+    if reading is None:
+        return ()
+    return (
+        ResultValue(
+            vertical_shift_label(reading.transformation),
+            fmt.vertical_metres(reading.shift_m),
+        ),
+        ResultValue(VERTICAL_SIGMA_LABEL, fmt.vertical_metres(reading.sigma_m)),
+        ResultValue(
+            VERTICAL_METHOD_LABEL,
+            vertical_method_text(reading.transformation),
+        ),
+    )
+
 
 def _units_text(unit) -> str:
     """"International feet (ift)" - the name and the code, never one alone."""
@@ -299,14 +381,21 @@ def _geodetic_values(conversion, positive_west: bool) -> tuple[ResultValue, ...]
     )
 
 
-def _grid_values(zone, unit, northing, easting, elevation) -> tuple[ResultValue, ...]:
-    """Zone, units and the three linear columns, in that order."""
+def _grid_values(
+    zone, unit, northing, easting, elevation, elevation_label: str = ELEVATION_LABEL
+) -> tuple[ResultValue, ...]:
+    """Zone, units and the three linear columns, in that order.
+
+    ``elevation_label`` names the vertical datum on a vertical conversion
+    (``Elevation (NAVD88)``) and is the plain ``ELEVATION_LABEL`` everywhere
+    else - the label moves, the value's formatter never does.
+    """
     return (
         ResultValue(ZONE_LABEL, zone_label(zone)),
         ResultValue(UNITS_LABEL, _units_text(unit)),
         ResultValue(NORTHING_LABEL, fmt.coordinate(northing, unit)),
         ResultValue(EASTING_LABEL, fmt.coordinate(easting, unit)),
-        ResultValue(ELEVATION_LABEL, fmt.coordinate(elevation, unit)),
+        ResultValue(elevation_label, fmt.coordinate(elevation, unit)),
     )
 
 
@@ -362,6 +451,24 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
     factors = point.factors
     positive_west = _positive_west(settings)
 
+    # The vertical rows (WP-V7, plan section 5.2). Gated on the point CARRYING
+    # a VerticalReading, not on the settings: a horizontal job's layout is
+    # unchanged to the label, and a vertical point whose shift was refused
+    # (coverage) or that had no elevation shows no shift row - its warning, in
+    # the warnings field, is what explains the absence. When a reading exists,
+    # the INPUT elevation is labelled with the source datum and the OUTPUT one
+    # with the target datum, because the two rows now hold heights on two
+    # different surfaces and unlabelled they would read as the same quantity
+    # re-expressed.
+    reading = point.vertical
+    if reading is not None:
+        input_elevation_label = _datum_elevation_label(reading.transformation.source)
+        output_elevation_label = _datum_elevation_label(reading.transformation.target)
+    else:
+        input_elevation_label = ELEVATION_LABEL
+        output_elevation_label = ELEVATION_LABEL
+    vertical_rows = _vertical_rows(reading)
+
     if settings.direction is Direction.GEODETIC_TO_ZONE:
         # The file's northing and easting columns hold a latitude and a
         # longitude here, which is the branch exports.audit_rows takes at its
@@ -372,7 +479,7 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
             (
                 *_geodetic_values(conversion, positive_west),
                 ResultValue(
-                    ELEVATION_LABEL,
+                    input_elevation_label,
                     fmt.coordinate(point.row.elevation, settings.input_unit),
                 ),
                 ResultValue(UNITS_LABEL, _units_text(settings.input_unit)),
@@ -387,7 +494,11 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                     point.output_northing,
                     point.output_easting,
                     point.output_elevation,
+                    elevation_label=output_elevation_label,
                 ),
+                # The shift and its sigma read directly under the elevation
+                # they explain, before the factors.
+                *vertical_rows,
                 ResultValue(
                     GRID_FACTOR_LABEL, fmt.factor(factors.grid_scale_factor)
                 ),
@@ -416,6 +527,7 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                     point.row.northing,
                     point.row.easting,
                     point.row.elevation,
+                    elevation_label=input_elevation_label,
                 ),
                 ResultValue(
                     GRID_FACTOR_LABEL, fmt.factor(factors.grid_scale_factor)
@@ -432,9 +544,10 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
             (
                 *_geodetic_values(conversion, positive_west),
                 ResultValue(
-                    ELEVATION_LABEL,
+                    output_elevation_label,
                     fmt.coordinate(point.output_elevation, settings.output_unit),
                 ),
+                *vertical_rows,
                 ResultValue(UNITS_LABEL, _units_text(settings.output_unit)),
             ),
         )
@@ -452,6 +565,7 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                 point.row.northing,
                 point.row.easting,
                 point.row.elevation,
+                elevation_label=input_elevation_label,
             ),
             ResultValue(
                 GRID_FACTOR_LABEL, fmt.factor(conversion.source_scale_factor)
@@ -471,7 +585,9 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                 point.output_northing,
                 point.output_easting,
                 point.output_elevation,
+                elevation_label=output_elevation_label,
             ),
+            *vertical_rows,
             *_geodetic_values(conversion, positive_west),
             ResultValue(GRID_FACTOR_LABEL, fmt.factor(factors.grid_scale_factor)),
             ResultValue(

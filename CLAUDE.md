@@ -46,7 +46,22 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: vertical datums V0–V6 DONE on main; V7–V9 NOT BUILT (2026-08-08)
+## Current state: vertical datums V0–V7 DONE on main; V8–V9 NOT BUILT (2026-08-08)
+
+**WP-V7 is DONE (DESIGN.md #42): every surface discloses the vertical
+conversion.** Job record (datums, quoted direction statement, both digests,
+NGS's supersession caveat, the half-cell step, σ summary with σ>|shift|
+points named), audit CSV (six vertical-only columns incl. Geoid model),
+Single point panel (datum-labelled elevations, shift, σ with copy button in
+Copy all, and the **Vertical method caveat row** — the gate's HIGH: the tab
+writes nothing, so the caveat must be on screen). Negative σ: N/A on every
+surface, never a number, warned via `VERTICAL_SIGMA_UNAVAILABLE`; the raw
+figure lives only on the reading's reason field, off every output.
+Horizontal outputs byte-identical (27/27 members vs HEAD at the gate).
+Suite **1474**. **The #41 sequencing constraint is satisfied — WP-V8 may
+make vertical mode reachable.** V8's scope now ALSO includes the Multi point
+on-screen table (datum in the Elevation header, shift and σ columns,
+mirroring the audit CSV — #42 finding 4).
 
 **WP-V6 is DONE (DESIGN.md #41): the vertical shift is wired into `job.run`**
 — `VerticalMode` (default HORIZONTAL, byte-identical to before, proven 15/15

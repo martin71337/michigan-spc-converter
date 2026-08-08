@@ -80,7 +80,8 @@ DISCONTINUOUS at half-cell lines - up to 75.6 mm on the ``.trn`` grid, and
 NCAT prints the same step, so it is NOAA's property replicated rather than a
 defect introduced (DESIGN.md #38, and the pin
 ``test_the_nearest_node_stencil_is_discontinuous_and_ncat_shares_the_jump``).
-How a job that straddles such a line shows it belongs to WP-V7.
+A job that straddles such a line discloses it through the record's METHOD
+block, built at WP-V7 (DESIGN.md #42).
 
 **This supersedes docs/PLAN-vertical-datums.md section 2.5**, which recorded that
 the ``.trn`` grid is biquadratic and the ``.err`` grid bilinear and asked for a
@@ -419,7 +420,9 @@ class UncertaintyGrid(ngs_grid.Grid):
     read as an uncertainty, and ``sigma_m`` refuses. Refusing is not the same as
     losing the point - the shift is a different grid and is unaffected, and
     ``VertconGridPair.reading_at`` still reports it with the sigma marked
-    unavailable. How that unavailability is *shown* remains WP-V7's, and the
+    unavailable. How that unavailability is *shown* was settled at WP-V7 -
+    N/A on every surface, never a number, with a warning that teaches
+    (DESIGN.md #42) - and the
     owner's; what is settled here is only that a number which cannot be a
     one-sigma will not be handed out as one.
     """

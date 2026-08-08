@@ -484,7 +484,8 @@ class SinglePointTab(QWidget):
             input_unit=self.input_unit.currentData(),
             output_unit=self.output_unit.currentData(),
             # Stated, not defaulted, matching MainWindow.settings. The model
-            # dropdown that makes this a choice is WP-V7 (plan section 4.3).
+            # dropdown that makes this a choice is WP-V8 (plan section 4.3);
+            # WP-V7 built the disclosure surfaces, not the controls.
             geoid_model=geoid.GEOID18_MODEL,
         )
 

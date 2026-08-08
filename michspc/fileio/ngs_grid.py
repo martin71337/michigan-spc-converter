@@ -396,7 +396,8 @@ class Grid:
         so smoothing it here would diverge from the authority at exactly the
         positions it can be checked at. Disclosed and pinned
         (``test_the_nearest_node_stencil_is_discontinuous_and_ncat_shares_the_jump``)
-        rather than repaired; how it is shown to a user is WP-V7's.
+        rather than repaired; how it is shown to a user was decided at WP-V7:
+        the job record's METHOD block discloses the step (DESIGN.md #42).
 
         **The five lines of evaluation below are deliberately not shared with
         ``interpolate_biquadratic``.** The two anchorings must stay separately

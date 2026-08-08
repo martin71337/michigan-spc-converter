@@ -404,7 +404,7 @@ class MainWindow(QMainWindow):
             output_unit=self.output_unit.currentData(),
             # Stated, not defaulted: the tab's static label names GEOID18, so
             # the settings say the same thing explicitly. The model dropdown
-            # that makes this a choice is WP-V7 (plan section 4.3).
+            # that makes this a choice is WP-V8 (plan section 4.3).
             geoid_model=geoid.GEOID18_MODEL,
         )
 

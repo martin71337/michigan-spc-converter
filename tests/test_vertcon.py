@@ -19,6 +19,11 @@ loss would do:
 3. **The Fortran record markers.** GEOID18 has nothing equivalent, so this is the
    one NGS format in the program whose structure can be checked rather than
    assumed.
+4. **A number that cannot be an uncertainty is never handed out as one.** The
+   error grid interpolates below zero at a small fraction of Michigan positions.
+   The raw model output stays readable under a name that says what it is; the
+   accessor named ``sigma_m`` refuses, and says in the refusal that the shift is
+   unaffected - because the wrong conclusion to draw is "the elevation is bad".
 """
 
 from __future__ import annotations
@@ -815,10 +820,19 @@ def test_both_grids_are_read_by_the_nearest_node_anchored_biquadratic(trn, err):
 
     Both accessors must be the nearest-node-anchored biquadratic, and must
     measurably not be either of the two variants that were plausible candidates.
+
+    The uncertainty grid is exercised through ``modeled_error_raw_m`` rather than
+    ``sigma_m`` because the interpolation is what is being pinned here, and at
+    this position the interpolation comes out negative - so ``sigma_m`` correctly
+    refuses. That refusal is asserted below, so this choice cannot quietly become
+    a way of avoiding the check.
     """
     latitude, longitude = STENCIL_LATITUDE, STENCIL_LONGITUDE
 
-    for grid, reading in ((trn, trn.shift_m), (err, err.sigma_m)):
+    with pytest.raises(vertcon.VertconError, match="cannot be a one-sigma"):
+        err.sigma_m(latitude, longitude)
+
+    for grid, reading in ((trn, trn.shift_m), (err, err.modeled_error_raw_m)):
         assert reading(latitude, longitude) == (
             grid.interpolate_biquadratic_nearest_node(latitude, longitude)
         )
@@ -905,8 +919,10 @@ def test_the_two_anchorings_choose_different_stencils_hand_derived(err):
     assert nearest_node == pytest.approx(-0.000489495, abs=1e-8)
     assert abs(nearest_node - floor_anchored) > abs(nearest_node) * 40.0
 
-    # The one that ships is the nearest-node one.
-    assert err.sigma_m(latitude, longitude) == nearest_node
+    # The one that ships is the nearest-node one. Read through the raw accessor:
+    # this position is one where the interpolant lands below zero, so ``sigma_m``
+    # refuses it - which is the test above.
+    assert err.modeled_error_raw_m(latitude, longitude) == nearest_node
 
 
 @pytest.mark.anchor
@@ -1060,6 +1076,19 @@ def test_geoid18_keeps_the_other_anchoring():
     assert max(nearest_node) < 0.001
 
 
+# The two positions the WP-V4 review gate produced from its own sweep of
+# Michigan at 0.01-degree spacing. That sweep is reproduced below rather than
+# quoted: 41.6 to 48.4 N and 90.6 to 82.2 W inclusive is 681 x 841 = 572,721
+# positions, and the grid this repository carries gives back the reviewer's
+# 1,848 negatives and its worst value exactly.
+#
+# Every number in this section is reproduced from the committed grid by the test
+# that states it. The single exception is NCAT's sigma at the second position,
+# which is external and is labelled as such where it is used.
+REVIEW_WORST_NEGATIVE = (42.87, -83.81)
+REVIEW_NCAT_DISAGREEMENT = (42.475, -83.125)
+
+
 def test_the_modeled_uncertainty_can_come_out_negative_and_is_not_clamped(err):
     """A real property of the published model, recorded rather than hidden.
 
@@ -1067,24 +1096,19 @@ def test_the_modeled_uncertainty_can_come_out_negative_and_is_not_clamped(err):
     exactly 0.0 - but a Lagrange quadratic is not monotone within its cell, so
     where the field is steep the interpolant undershoots past zero. Swept over
     Michigan at the grid's own 0.05-degree spacing, offset half a cell so every
-    sample is a cell centre: 114 of 22,848 positions return a negative one-sigma,
-    worst -0.009652 m at 42.475 N, 83.125 W.
+    sample is a cell centre: 114 of 22,848 positions come out negative, worst
+    -0.009652 m at 42.475 N, 83.125 W. That sweep is this test, run against the
+    committed grid, not a figure carried over from somewhere else.
 
-    **NCAT does NOT return these negatives.** Asked directly at the worst point,
-    42.475 N / 83.125 W, NCAT returns +0.011 m where this reader gives
-    -0.00965 m - a 20.7 mm disagreement. So at these positions this reader is
-    wrong, and the earlier claim that "NCAT must produce the same negatives
-    because we agree to 0.472 mm" was an inference that measurement refuted.
+    **NCAT does NOT return these negatives.** Asked directly at that point, NCAT
+    returns +0.011 m where this reader gives -0.00965 m - a 20.7 mm
+    disagreement. So at these positions this reader is wrong, and the earlier
+    claim that "NCAT must produce the same negatives because we agree to
+    0.472 mm" was an inference that measurement refuted.
 
-    Nor are they confined to the cell centres this sweep happens to sample: over
-    223,850 Michigan positions spanning 121 combinations of fractional cell
-    position, 956 come out negative - 0.43% - worst -0.027 m.
-
-    It is STILL not a reason to read the grid bilinearly, which is wrong by up
-    to 46 mm where the schemes discriminate against this scheme's 0.495 mm. It
-    is a **disclosure question for WP-V7**, which owns what a user is shown, and
-    the file layer must not pre-empt it by clamping: a reader that quietly
-    replaced a modeled value with zero would be inventing a reading.
+    What the reader does about it is ``sigma_m``'s business and is pinned below:
+    the raw interpolation stays available and unclamped, and the value is not
+    handed out as an uncertainty.
     """
     assert min(err.values) == 0.0
 
@@ -1109,7 +1133,7 @@ def test_the_modeled_uncertainty_can_come_out_negative_and_is_not_clamped(err):
                 err.west_longitude + (column + 0.5) * err.longitude_spacing - 360.0
             )
             samples += 1
-            value = err.sigma_m(latitude, longitude)
+            value = err.modeled_error_raw_m(latitude, longitude)
             if value < 0.0:
                 negative += 1
                 if value < worst:
@@ -1119,10 +1143,279 @@ def test_the_modeled_uncertainty_can_come_out_negative_and_is_not_clamped(err):
     assert samples == 22848
     assert negative == 114
     assert worst == pytest.approx(-0.009652, abs=1e-6)
-    assert worst_at == (42.475, -83.125)
+    assert worst_at == REVIEW_NCAT_DISAGREEMENT
 
-    # Not clamped, not floored, not replaced.
-    assert err.sigma_m(42.475, -83.125) < 0.0
+    # Not clamped, not floored, not replaced, not made positive.
+    assert err.modeled_error_raw_m(42.475, -83.125) < 0.0
+
+
+def test_the_review_gates_own_sweep_reproduces_from_the_committed_grid(err):
+    """The reviewer's independent measurement, made checkable rather than quoted.
+
+    Michigan at 0.01-degree spacing, 41.6 to 48.4 N by 90.6 to 82.2 W inclusive:
+
+        681 latitudes  x  841 longitudes  =  572,721 positions
+
+    Hand check of the counts: (48.4 - 41.6) / 0.01 = 680 steps, so 681 samples;
+    (90.6 - 82.2) / 0.01 = 840 steps, so 841. The reviewer found 1,848 negatives
+    there, worst -0.028879586 m at 42.87 N, 83.81 W, and that is what the grid
+    this repository carries gives back.
+
+    This exists because the suite previously cited external experiments - a
+    40-point discrimination run and a 223,850-position sweep - whose coordinates
+    and responses were never committed, so the claims could not be checked or
+    regression-tested (WP-V4 review, MEDIUM 2). Those citations are gone. This
+    one takes about 1.2 seconds and replaces a paragraph of assertion with a
+    measurement.
+    """
+    negative = 0
+    samples = 0
+    worst = 0.0
+    worst_at = None
+
+    for i in range(681):
+        latitude = 41.6 + i * 0.01
+        for j in range(841):
+            longitude = -90.6 + j * 0.01
+            samples += 1
+            value = err.modeled_error_raw_m(latitude, longitude)
+            if value < 0.0:
+                negative += 1
+                if value < worst:
+                    worst = value
+                    worst_at = (round(latitude, 4), round(longitude, 4))
+
+    assert samples == 572721
+    assert negative == 1848
+    assert worst == pytest.approx(-0.028879586, abs=1e-9)
+    assert worst_at == REVIEW_WORST_NEGATIVE
+
+
+def test_the_raw_error_reading_is_the_reviewers_own_figure_at_both_positions(err):
+    """The WP-V4 review gate's two counterexamples, reproduced to the last digit.
+
+    The two that matter out of the 1,848 the sweep above finds:
+
+        42.87 N, 83.81 W    -0.028879586 m   the worst it found
+        42.475 N, 83.125 W  -0.009651646 m   where NCAT returns +0.011 m
+    """
+    assert err.modeled_error_raw_m(*REVIEW_WORST_NEGATIVE) == pytest.approx(
+        -0.028879586, abs=1e-9
+    )
+    assert err.modeled_error_raw_m(*REVIEW_NCAT_DISAGREEMENT) == pytest.approx(
+        -0.009651646, abs=1e-9
+    )
+
+
+def test_the_three_schemes_diverge_at_the_reviewers_position(err):
+    """The scheme separation, checkable offline, at 42.87 N / 83.81 W.
+
+    The suite's discrimination between the three candidate interpolations rested
+    on the 20 frozen NCAT anchors and on a 40-point external experiment that the
+    repository does not hold - so that second claim could not be checked or
+    regression-tested and has been removed from every docstring that made it
+    (WP-V4 review, MEDIUM 2). This is the part of it that CAN be committed: at
+    the reviewer's own uncovered position the three schemes give three different
+    answers, and the differences are large enough that no rounding could unify
+    them.
+
+        nearest-node biquadratic   -0.028879586 m   what ships
+        floor-anchored biquadratic -0.024203909 m
+        bilinear                   +0.002618367 m
+
+    It does not say which is right - the NCAT anchors say that. It says the
+    schemes are distinguishable here, so a future edit that silently swapped one
+    for another cannot pass unnoticed even at a position no anchor covers.
+    """
+    latitude, longitude = REVIEW_WORST_NEGATIVE
+
+    nearest_node = err.modeled_error_raw_m(latitude, longitude)
+    floor_anchored = err.interpolate_biquadratic(latitude, longitude)
+    bilinear = err.interpolate_bilinear(latitude, longitude)
+
+    assert nearest_node == pytest.approx(-0.028879586, abs=1e-9)
+    assert floor_anchored == pytest.approx(-0.024203909, abs=1e-9)
+    assert bilinear == pytest.approx(0.002618367, abs=1e-9)
+
+    # Three distinct values, not three names for one. The closest pair differ by
+    # 4.7 mm, an order of magnitude above the 0.5 mm NCAT quantization the anchor
+    # pins are held to.
+    assert abs(nearest_node - floor_anchored) > 0.004
+    assert abs(floor_anchored - bilinear) > 0.026
+    assert abs(nearest_node - bilinear) > 0.031
+
+    # And bilinear does not go negative here, which is the property plan section
+    # 2.5 had hold of and the reason it is worth saying that the choice between
+    # them is settled by the NCAT lattice rather than by this position.
+    assert bilinear > 0.0
+
+
+def test_a_negative_reading_refuses_as_a_sigma_and_says_the_shift_still_stands(err):
+    """The HIGH finding's pin: a negative is not returned through ``sigma_m``.
+
+    Not clamping was right - a zero would be a fabricated reading, and this
+    module's whole first requirement is that it never fabricates one - but
+    returning a negative from a method named ``sigma_m`` is equally indefensible,
+    because it puts a number that cannot be an uncertainty exactly where a user
+    reads one (WP-V4 review, HIGH 1).
+
+    The message has one clause that is not decoration: a caller reading a refusal
+    about a point must not conclude the elevation is bad. It is not. The shift
+    comes from the other grid and is untouched.
+    """
+    for latitude, longitude in (REVIEW_WORST_NEGATIVE, REVIEW_NCAT_DISAGREEMENT):
+        raw = err.modeled_error_raw_m(latitude, longitude)
+        assert raw < 0.0
+
+        with pytest.raises(vertcon.VertconError) as caught:
+            err.sigma_m(latitude, longitude)
+
+        message = str(caught.value)
+        assert f"{latitude:.6f}, {longitude:.6f}" in message
+        assert repr(raw) in message
+        assert "cannot be a one-sigma uncertainty" in message
+        assert "THE SHIFT ITSELF IS STILL VALID AND UNAFFECTED" in message
+        assert "clamped to zero" in message
+
+
+def test_sigma_m_returns_the_reading_wherever_it_is_a_quantity(err):
+    """Anti-vacuousness: the refusal must not have become a refusal of everything.
+
+    43.0 N / 84.5 W is the amendment #22 anchor; 43.05 N / 86.20 W is the
+    disclosure position where sigma is 249% of the shift. Both are ordinary
+    positive readings and must come straight through, identical to the raw one.
+    """
+    for latitude, longitude in ((43.0, -84.5), (43.05, -86.20)):
+        assert err.sigma_m(latitude, longitude) == err.modeled_error_raw_m(
+            latitude, longitude
+        )
+        assert err.sigma_m(latitude, longitude) > 0.0
+
+
+def test_exactly_zero_is_a_reading_and_not_a_refusal():
+    """The boundary, and why it falls where it does.
+
+    The smallest cell stored in the shipped uncertainty grid is exactly 0.0, so a
+    zero is something the published model genuinely produces - not a symptom of
+    the interpolation leaving its range. Refusing it would refuse a real reading,
+    which is the mirror image of the defect being fixed.
+    """
+    assert vertcon.sigma_is_physical(0.0)
+    assert vertcon.sigma_is_physical(1e-9)
+    assert not vertcon.sigma_is_physical(-1e-12)
+
+
+def test_a_negative_sigma_does_not_cost_the_point_its_shift(grids):
+    """``reading_at`` is not collateral damage: the shift survives the refusal.
+
+    The shape is ``job.py``'s for a missing geoid height - the number is absent
+    and the caller says why, rather than the point being discarded or a value
+    invented. Here the shift is a real reading from the transformation grid and
+    is completely independent of the uncertainty grid beside it.
+    """
+    for latitude, longitude in (REVIEW_WORST_NEGATIVE, REVIEW_NCAT_DISAGREEMENT):
+        shift, sigma = grids.reading_at(latitude, longitude)
+
+        assert sigma is None
+        assert shift == grids.transformation.shift_m(latitude, longitude)
+        assert shift < 0.0
+
+    # 42.87 N, 83.81 W in full, so the surviving shift is a number and not just
+    # "whatever the grid says".
+    shift, sigma = grids.reading_at(*REVIEW_WORST_NEGATIVE)
+    assert shift == pytest.approx(-0.119270416, abs=1e-9)
+    assert sigma is None
+
+    # And where the sigma is a quantity it is still returned, so the None above
+    # is discriminating rather than universal.
+    shift, sigma = grids.reading_at(43.05, -86.20)
+    assert sigma == pytest.approx(0.3656, abs=0.001)
+
+
+def test_the_front_door_reports_the_same_unavailability(grids):
+    """``shift_and_sigma_m`` must not be a second, laxer path to the same pair."""
+    assert vertcon.shift_and_sigma_m(*REVIEW_WORST_NEGATIVE) == grids.reading_at(
+        *REVIEW_WORST_NEGATIVE
+    )
+    assert vertcon.shift_and_sigma_m(*REVIEW_WORST_NEGATIVE)[1] is None
+
+
+def test_one_rule_decides_the_refusal_and_the_unavailability(grids, err):
+    """The two paths cannot disagree about the same position.
+
+    ``sigma_m`` raises and ``reading_at`` reports None, and if those decisions
+    came from two separately written comparisons a position could be refused by
+    one and reported by the other. Both ask ``sigma_is_physical``. Swept over the
+    same Michigan cell centres as the sweep above, this checks the two agree at
+    every one of them.
+    """
+    first_row = round((41.6 - err.south_latitude) / err.latitude_spacing)
+    last_row = round((48.4 - err.south_latitude) / err.latitude_spacing)
+    first_column = round(
+        (360.0 - 90.6 - err.west_longitude) / err.longitude_spacing
+    )
+    last_column = round((360.0 - 82.2 - err.west_longitude) / err.longitude_spacing)
+
+    disagreements = 0
+    refused = 0
+    for row in range(first_row, last_row):
+        latitude = err.south_latitude + (row + 0.5) * err.latitude_spacing
+        for column in range(first_column, last_column):
+            longitude = (
+                err.west_longitude + (column + 0.5) * err.longitude_spacing - 360.0
+            )
+            _, sigma = grids.reading_at(latitude, longitude)
+            try:
+                err.sigma_m(latitude, longitude)
+            except vertcon.VertconError:
+                refused += 1
+                if sigma is not None:
+                    disagreements += 1
+            else:
+                if sigma is None:
+                    disagreements += 1
+
+    assert disagreements == 0
+    # Anti-vacuousness: the sweep must contain positions of both kinds.
+    assert refused == 114
+
+
+def test_the_pair_offers_no_way_to_take_half_a_reading(grids):
+    """The LOW finding's structural pin (WP-V4 review, LOW 1).
+
+    The pair used to carry ``shift_m`` and ``sigma_m`` as separate public
+    methods, so a caller could take a shift at one position and a sigma at
+    another through the pair itself - the reviewer's counterexample paired
+    -0.143529 m at 43.05 N / 86.20 W with 0.000655 m at 43.00 N / 84.50 W, where
+    the true figure is 0.365599 m: the uncertainty understated by 0.365 m with
+    both numbers looking ordinary.
+
+    Those two numbers are still readable, because reading one grid alone is
+    legitimate - but only through ``.transformation`` and ``.uncertainty``, where
+    the expression says which grid it came from and nothing suggests they are a
+    pair. What is gone is the accessor that made the mistake look like using the
+    pair correctly.
+    """
+    assert not hasattr(grids, "shift_m")
+    assert not hasattr(grids, "sigma_m")
+    assert not hasattr(grids, "modeled_error_raw_m")
+
+    # The counterexample's ingredients, so this test fails if they stop being the
+    # numbers that made it dangerous rather than merely if a name reappears.
+    assert grids.transformation.shift_m(43.05, -86.20) == pytest.approx(
+        -0.143529, abs=1e-6
+    )
+    assert grids.uncertainty.sigma_m(43.00, -84.50) == pytest.approx(
+        0.000655, abs=1e-6
+    )
+    assert grids.uncertainty.sigma_m(43.05, -86.20) == pytest.approx(
+        0.365599, abs=1e-6
+    )
+
+    # And the front door still hands both halves of ONE position over together.
+    shift, sigma = grids.reading_at(43.05, -86.20)
+    assert shift == pytest.approx(-0.143529, abs=1e-6)
+    assert sigma == pytest.approx(0.365599, abs=1e-6)
 
 
 # ==========================================================================

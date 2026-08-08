@@ -1,17 +1,22 @@
 # PLAN — Vertical datum transformation, and a geoid model registry
 
-**Status: V0, V2 and V3 are BUILT. V1 and V4–V9 are not.** See the work-package
-table in §7 and DESIGN.md amendment **#35**, which records what landed, the
-review-gate findings, and why the rest stopped. Written 2026-08-07 at the owner's
-direction. It remains a proposal against DESIGN.md amendments **#22** (sizing) and
-**#32** (ordering), and it becomes a DESIGN.md amendment when the owner approves
-it. Until then DESIGN.md's body is unchanged.
+**Status: V0, V1, V2, V3 and V4 are BUILT. V5–V9 are not.** See the work-package
+table in §7 and DESIGN.md amendments **#35** and **#36**, which record what
+landed, the review-gate findings, and why the rest stopped. Written 2026-08-07 at
+the owner's direction. It remains a proposal against DESIGN.md amendments **#22**
+(sizing) and **#32** (ordering), and it becomes a DESIGN.md amendment when the
+owner approves it. Until then DESIGN.md's body is unchanged.
 
-**WP-V1 cannot be done off the owner's machine.** `geodesy.noaa.gov` is refused by
-the container's egress policy, so neither the three files of §2.1 nor NCAT can be
-reached, and the 20-point anchor lattice §6 requires exists nowhere in this repo —
-§2 records that the V0 scripts stayed in that session's scratchpad. **V4 was
-deliberately not built without those anchors** (§8 risk 3).
+**WP-V1 IS DONE — the block was the container, not the work.** It was recorded
+here as impossible off the owner's machine because `geodesy.noaa.gov` is refused
+by the container's egress policy. Run *on* that machine, NOAA is reachable: all
+three files of §2.1 downloaded and **every SHA-256 matched the pin**, so the
+committed files are byte-identical to what V0 measured. The 20-point lattice was
+re-captured (the V0 scripts were lost with that session's scratchpad) and is
+frozen at `tests/fixtures/vertcon_anchors.py`; it is a **recreation, not the
+original**, seeded with every position this plan records so it could be checked
+against V0, and all six of those reproduce. See the fixture's own docstring for
+what is and is not reproduced.
 
 **RESOLVED, and no longer a question for the owner:** §2.8's "0.001 m to
 0.366 m" and §2.7's "+0.000004 m to +0.365599 m" are not in conflict — they
@@ -183,7 +188,9 @@ across Michigan, our reader against NCAT:
 | `.trn` (transformation) | max 7.430 mm, mean 1.637 | **max 2.657 mm, mean 0.697** | — |
 | `.err` (uncertainty) | **max 1.526 mm, mean 0.589** | max 12.406 mm, mean 1.339 | max 14.321 mm, mean 2.184 |
 
-**The transformation is biquadratic. The error grid is bilinear.**
+~~**The transformation is biquadratic. The error grid is bilinear.**~~
+**WRONG — see §2.5a. Both grids are biquadratic, nearest-node anchored. Do not
+build this.**
 
 This matters, and it would have been got wrong. GEOID18 is biquadratic —
 established by measurement in amendment #8 — so biquadratic on both is the
@@ -200,9 +207,12 @@ non-negative, variance-like quantity, and the Lagrange biquadratic can overshoot
 and undershoot, while bilinear is monotone within its cell. The measurement is
 the authority; the reason is why the measurement is believable.
 
-**This gets pinned by a test that fails if the two are ever unified**, because
+~~**This gets pinned by a test that fails if the two are ever unified**, because
 "use the same interpolator for both grids" is exactly the tidy-looking
-simplification a future reader would make.
+simplification a future reader would make.~~
+**DO NOT WRITE THAT TEST — it would pin the defect. §2.5a, point 1, says what to
+pin instead: both grids through the nearest-node-anchored biquadratic, with the
+floor-anchored and bilinear variants shown failing the anchor lattice.**
 
 ### 2.5a THE CORRECTION — both grids are biquadratic; the asymmetry was a stencil artifact
 
@@ -399,12 +409,28 @@ in it.
 What is genuinely VERTCON's own, and not shared:
 
 - **Fortran record markers** — absent in GEOID18. Validated on the header and on
-  every row, and the total consumed byte count checked against the file length
-  (§2.2). This is a real integrity gate, not ceremony.
+  every row. This is a real integrity gate, not ceremony. **Corrected at the V4
+  review gate:** the "total consumed byte count == file length" check this line
+  originally also asked for was built and then removed as dead code — the
+  header-derived length check runs before the walk and forces it, so the second
+  refusal could not fire. A dead check advertised as an independent gate is worse
+  than no check. The property is held by the length check, and by a test that
+  walks both shipped files with its own arithmetic.
 - **Two grids, loaded as a pair**, with a check that they share geometry (§2.2)
   — a mismatched pair would report one position's shift with another's sigma.
-- **`.trn` is read biquadratically, `.err` bilinearly** (§2.5), each pinned, with
-  a test that fails if they are ever unified.
+  **The pair exposes `reading_at` only**: separate `shift_m`/`sigma_m` accessors
+  on the pair let a caller combine one position's shift with another position's
+  sigma, and were removed at the V4 review gate.
+- **Both grids are read by the nearest-node-anchored biquadratic** (§2.5a — NOT
+  §2.5, whose `.trn` biquadratic / `.err` bilinear asymmetry is superseded).
+  Pinned with the floor-anchored and bilinear variants shown failing the anchor
+  lattice. **Do not write the "fails if the two are ever unified" test §2.5 asks
+  for**: it would pin a defect.
+- **A negative interpolated uncertainty is refused, not returned and not
+  clamped** (§2.5a, V4 review). The raw interpolation stays available under a
+  name that cannot be read as a sigma; `reading_at` reports the shift with the
+  sigma marked unavailable, since the shift comes from the other grid and is
+  unaffected.
 - SHA-256 pins and a `VERTCON3_CONUS_GEOMETRY` expectation record, for the same
   reason `GEOID18_U3_GEOMETRY` exists.
 
@@ -539,9 +565,22 @@ model added to it appears with no interface change — the property
 
 ### 5.1 SETTLED — per-point sigma, on two surfaces of three
 
-**Owner's decision, 2026-08-07:** per-point σ from the `.err` grid, read
-bilinearly (§2.5). It appears on the **Single point panel** and in the
-**full-audit CSV**, and **not in the clean PNEZD export**.
+**Owner's decision, 2026-08-07:** per-point σ from the `.err` grid. It appears
+on the **Single point panel** and in the **full-audit CSV**, and **not in the
+clean PNEZD export**.
+
+> **Corrected at the V4 gate.** This line originally said "read bilinearly
+> (§2.5)". It is not: both grids are read by the nearest-node-anchored
+> biquadratic (§2.5a), and bilinear on `.err` is wrong by 4.547 mm at the frozen
+> Kalamazoo anchor where the shipped scheme is inside NCAT's 0.5 mm printing
+> quantization. The owner's decision — per-point, on two surfaces of three — is
+> unaffected; only the sentence about how the number is read was wrong.
+>
+> **WP-V7 also inherits a case this section did not anticipate:** at a small
+> fraction of Michigan positions the error model interpolates below zero, which
+> is not an uncertainty, and the reader refuses it rather than clamping. The
+> shift at such a point is valid and is still reported. What the panel and the
+> CSV say in that cell is WP-V7's to decide; what they must not say is a number.
 
 He had earlier chosen a job-level cited constant, on my advice, when I believed
 there was no error grid. There is one (§2.1), and §2.8 is what reopened it:
@@ -625,7 +664,10 @@ falsified by seeding the defect it catches; suite green in `pytest` and `-O`.
 | ~~**`.trn` biquadratic beats bilinear; `.err` bilinear beats biquadratic**~~ **SUPERSEDED, see §2.5a — do not build this pin** | ~~the §2.5 asymmetry~~ it would pin a defect | ~~2.657 vs 7.430; 1.526 vs 12.406~~ |
 | **Both grids read nearest-node-anchored biquadratic; floor-anchored and bilinear FAIL the lattice** | §2.5a. Every anchor rounds to NCAT's printed figure, 20/20 on both grids | 0.4707 mm `.trn`, 0.4716 mm `.err`, against 8.4573 / 3.0416 floor-anchored |
 | **GEOID18 still reads floor-anchored, and its suite still passes** | the new interpolator is added ALONGSIDE, never a replacement; GEOID18 measurably prefers the old anchoring | 0.595 mm vs 0.830 mm nearest-node |
-| Fortran markers on header and all 521 rows; bytes consumed == file length | the structural check #22 predicted | exact |
+| Fortran markers on header and all 521 rows; the file's length equals what its header implies | the structural check #22 predicted. **A separate "bytes consumed" refusal after the row walk is NOT to be added back** — it is forced by the length check and cannot fire (V4 review) | exact |
+| A negative interpolated σ refuses through `sigma_m`, and `reading_at` still returns the shift | a negative is not an uncertainty; the shift is a different grid and is unaffected (V4 review) | exact, at 42.87 N / 83.81 W and 42.475 N / 83.125 W |
+| The pair has no per-quantity accessor | a shift at one position must not be pairable with a σ at another (V4 review) | exact |
+| `g2012bu3.bin` matches its pinned SHA-256 | the tile is bundled and not yet read; without a pin in code, one altered float passes every check (V4 review) | exact |
 | `.trn` and `.err` share geometry | a mismatched pair cannot report one point's σ for another's shift | exact |
 | Header geometry + SHA-256, both grids | refuses a substituted or transposed grid | exact |
 | NGVD29 → NAVD88 → NGVD29 round trip | the inverse is one grid sign-reversed (§2.4) | 0.00 mm at 5 points |
@@ -647,10 +689,10 @@ Each ends with the suite green and a commit.
 | WP | Contents |
 |---|---|
 | **V0** | **DONE** — §2. Data located, downloaded, format/sign/units/interpolation/inverse verified against NCAT, sentinels scanned, σ field characterized. |
-| **V1** | **BLOCKED off Windows — needs geodesy.noaa.gov.** Commit the three files; pin SHA-256s; `michspc.spec` and `installer.iss`; freeze the 20-point NCAT lattice and the 5-point inverse set as fixtures. |
+| **V1** | **DONE** — the three files committed under NGS's own filenames, every SHA-256 matching §2.1's pin; `michspc.spec` names them all and derives `datas` from that list; `tools/build_release.py` compares the built bundle against `data/`. The 20-point NCAT lattice and the 5-point inverse set are frozen as `tests/fixtures/vertcon_anchors.py`. GEOID12B is pinned in `geoid18.py` and checked, though nothing reads it until V5. |
 | **V2** | **DONE** — `fileio/ngs_grid.py` extraction (§3.2), geoid suite passing byte-unchanged, behaviour proved identical (DESIGN.md #35). |
 | **V3** | **DONE** — `spc/vertical.py`: datums, registry, refusals, `apply_shift`. Stdlib only. Sign re-derived against #22's NCAT anchor (DESIGN.md #35). |
-| **V4** | **NOT BUILT — deliberately, pending V1's anchors.** `fileio/vertcon.py` — marker-validated reader, the grid pair, the §2.5 interpolation asymmetry, geometry and checksum pins. |
+| **V4** | **DONE** — `fileio/vertcon.py`: marker-validated reader, the grid pair, geometry and checksum pins, and the **§2.5a** interpolation (nearest-node-anchored biquadratic on both grids — *not* §2.5's asymmetry, which would pin a defect). A negative interpolated σ refuses rather than being returned or clamped. |
 | **V5** | Geoid model registry; `apply_geoid` → `geoid_model`; GEOID12B; `geoid18.py` → `geoid.py` rename as its own commit. |
 | **V6** | `job.py` wiring; step 3 before step 4; datum-tagged elevations; the four refusals. |
 | **V7** | Outputs: audit CSV, clean export, job record, results model — the disclosure of §5. |

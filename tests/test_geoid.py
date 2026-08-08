@@ -49,6 +49,37 @@ def test_the_shipped_grid_matches_the_pinned_checksum():
     assert digest == geoid18.GEOID18_TILE_SHA256
 
 
+def test_the_shipped_geoid12b_tile_matches_its_pinned_checksum():
+    """The second geoid tile is committed unmodified too, and nothing read it.
+
+    Until the WP-V4 review gate this file had no executable check on its
+    contents at all: ``michspc.spec`` bundled it, ``tests/test_selftest.py``
+    compared its NAME against the spec's list and ``tools/build_release.py``
+    checked that it was present. Its digest lived only in
+    docs/PLAN-vertical-datums.md section 2.1, so altering one payload float
+    inside it passed every check in the repo (WP-V4 review, MEDIUM 1).
+
+    No code reads the tile yet - the registry that will is WP-V5 - which is
+    exactly why the pin matters now. A tile corrupted today would be corrupted
+    when WP-V5 first reads it, and by then nothing would say when it happened.
+    """
+    digest = hashlib.sha256(geoid18.GEOID12B_TILE.read_bytes()).hexdigest()
+    assert digest == geoid18.GEOID12B_TILE_SHA256
+
+
+def test_the_two_geoid_pins_are_two_pins():
+    """Anti-vacuousness: two different tiles must carry two different digests.
+
+    The tiles are byte-for-byte the same SIZE - 4,933,728, the same tile #3
+    geometry - so a copy-paste that pinned GEOID18's digest twice would leave
+    GEOID12B unauthenticated with nothing else to notice.
+    """
+    assert geoid18.GEOID18_TILE_SHA256 != geoid18.GEOID12B_TILE_SHA256
+    assert geoid18.GEOID18_TILE != geoid18.GEOID12B_TILE
+    assert geoid18.GEOID18_TILE.stat().st_size == geoid18.GEOID12B_TILE.stat().st_size
+    assert geoid18.GEOID18_TILE.read_bytes() != geoid18.GEOID12B_TILE.read_bytes()
+
+
 def test_the_header_matches_the_documented_format(grid):
     """GEOID18 CONUS grid #3: 40-58 N, 96-77 W, one arcminute, 1081 x 1141.
 

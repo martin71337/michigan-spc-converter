@@ -96,6 +96,31 @@ Source: https://geodesy.noaa.gov/PC_PROD/GEOID18/Format_pc/g2018u3.bin
 Downloaded 2026-08-05, 4,933,728 bytes.
 """
 
+GEOID12B_TILE = DATA_DIR / "g2012bu3.bin"
+GEOID12B_TILE_SHA256 = "7ce1755c1e6ef8a1cc2909bd221e4a94fa46b2fbc33ebe4489a4973edd39b844"
+"""SHA-256 of the unmodified NGS GEOID12B tile, committed by WP-V1.
+
+Source: https://geodesy.noaa.gov/PC_PROD/GEOID12B/Format_pc/g2012bu3.bin
+Downloaded 2026-08-07, 4,933,728 bytes
+(docs/PLAN-vertical-datums.md section 2.1).
+
+**No code reads this tile yet** - the geoid model registry that reaches it is
+WP-V5, and building it here would be building that work package. The pin exists
+anyway, because until the WP-V4 review gate the digest lived only in the plan
+document: ``michspc.spec`` bundled the file, ``tests/test_selftest.py`` checked
+its NAME and ``tools/build_release.py`` checked its presence, so altering one
+float inside it passed every executable check in the repo while the spec's own
+comment claimed the file and its checksum landed together (WP-V4 review,
+MEDIUM 1). A digest that lives only in prose is not a pin.
+
+It sits beside ``GEOID18_TILE_SHA256`` because GEOID12B is a geoid tile and this
+is where the geoid model's facts live; when WP-V5 builds the registry it becomes
+that record's ``sha256`` field rather than a second statement of it. The tile is
+byte-for-byte the same size as ``g2018u3.bin`` and on the same tile #3 geometry -
+1081 x 1141, 40-58 N, 96-77 W, one arcminute - so its size alone distinguishes
+nothing and the digest is the only thing that does.
+"""
+
 GEOID_MODEL_NAME = "GEOID18"
 
 

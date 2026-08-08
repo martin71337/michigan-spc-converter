@@ -76,48 +76,76 @@ was built against it.
 **#11 finding 1 recurring**) and 2 LOW; all fixed at the root, pinned with the
 reviewer's own counterexample, every pin falsified.
 
-### STOP — why the rest is blocked, and what only the owner's machine can do
+### WP-V1 AND WP-V4 ARE NOW BUILT TOO — the block was the container, not the work
 
-**`geodesy.noaa.gov` is refused by the container's egress policy** (403 on
-CONNECT, every NOAA host). That blocks WP-V1 completely:
+The previous session recorded V1 as impossible because `geodesy.noaa.gov` is
+refused by the container's egress policy. **Run on the owner's Windows machine,
+NOAA is reachable**, and everything that block implied dissolved.
 
-1. The three files can't be fetched — both VERTCON grids and `g2012bu3.bin`.
-   Plan §2.1 wants them unmodified under NGS's own filenames; GitHub has neither.
-2. **NCAT can't be reached, so the 20-point anchor lattice can't be recreated.**
-   Plan §2 says the V0 scripts lived in that session's scratchpad, not the repo —
-   and that scratchpad was the Windows machine. The plan preserves only summary
-   statistics, the 43.0 N/84.5 W anchor, the 5-point inverse set and two σ values.
-3. **WP-V4 was therefore NOT built, deliberately.** The reader is where a sign or
-   scale error hides (§8 risk 3); the tier does not permit shipping it with only
-   self-generated fixtures under it. V0 ran first so the anchors would precede the
-   code — building V4 now would invert that.
-4. **WP-V5's dropdown is blocked too** — it must offer GEOID18 *and* GEOID12B, and
-   that tile is one of the three unreachable files.
+- **WP-V1 DONE.** All three files of plan §2.1 downloaded; **every SHA-256 matched
+  the pin**, so the committed files are byte-identical to what V0 measured.
+  `michspc.spec` names every grid and derives `datas` from that list;
+  `build_release.py` compares the built bundle against `data/` rather than one
+  hard-coded name. `installer/michspc.iss` needed no change (it copies the bundle
+  recursively) but its comment no longer claims the geoid tile is the only data
+  file. **GEOID12B is checksum-pinned in `geoid18.py` and checked**, though
+  nothing reads it until V5 — it had *no* executable check until the V4 gate.
+- **The 20-point lattice is a RECREATION, not the original**, and
+  `tests/fixtures/vertcon_anchors.py` says so. The V0 scripts and coordinates
+  were lost with that scratchpad. It was seeded with every position the plan does
+  record so the recreation could be *checked* against V0, and all six reproduce —
+  including the five-point inverse set, matching §2.4 to the last printed digit
+  and summing to exactly 0.000 m. **Two figures are NOT reproduced**: §2.5's
+  Kalamazoo and Lansing σ are at coordinates V0 never recorded.
+- **WP-V4 DONE** — `michspc/fileio/vertcon.py`, reviewed under Codex, all findings
+  fixed and every pin falsified. See **#36**.
 
-**Also substituted, and disclosed:** no Codex in the container (no binary, no
-credential), so plan §7's clause applied — two independent adversarial reviewers
-were used instead. **Weaker than the method**, since they share a model family
-with the implementers. **Run the closing gate under Codex on Windows before any
-of this ships.**
+### The finding that changed the plan, and the one still open
+
+**Plan §2.5 is superseded (§2.5a).** It said `.trn` is biquadratic and `.err`
+bilinear, and asked for a pin that fails if the two are unified. **That pin would
+have enshrined a defect.** `ngs_grid.interpolate_biquadratic` anchors its 3×3
+stencil at `int(row) - 1`, off-centre; both VERTCON grids want it centred on the
+nearest node. Then both are biquadratic and both land at **0.47 mm** against NCAT,
+20/20 exact, where the old scheme reaches 8.46 mm. **Verified bit-identical to
+NOAA's own published algorithm** — `Vertcon.java`'s `getGridRow` transcribed
+literally, max difference exactly 0.0 over 18,000 positions.
+
+**DESIGN.md #8 is corrected.** It said NGS does not document INTG's scheme. NGS
+does: NOAA TM NOS NGS-84, and `intg.f` anchors with `nint()` — nearest node. So
+**GEOID18's anchoring is not INTG's**, a claim three docstrings and the 0.1.0
+release notes carried.
+
+**OWNER'S INSTRUCTION, 2026-08-07: replicate NOAA as closely as possible, they
+are the authority.** That decides the open question — **GEOID18 is to be
+re-anchored to nearest-node**, as its own work package, because it touches
+released code and needs its own discriminating anchors (the existing 20 cannot
+tell the schemes apart; 120 points sampled where they diverge give floor rms
+0.715 mm against nearest-node 0.454). Cost of the current anchoring is ~4 mm in a
+*reported geoid separation* and ~6e-10 in an elevation factor — **no coordinate
+moves** — which is why it was not folded into a vertical-datum build.
+
+**STILL OPEN, and it is a disclosure decision for WP-V7:** the `.err` grid
+interpolates **negative** at ~0.43% of Michigan positions (956 of 223,850 sampled,
+worst −0.027 m). A negative one-sigma is not a quantity. **NOAA's own published
+code produces the same negatives; NOAA's live NCAT service returns a positive
+value there** (+0.011 m where we compute −0.00965 m), and no rule maps one to the
+other — not `abs()`, not clamping. So `sigma_m` **refuses**, `modeled_error_raw_m`
+keeps the raw value readable under a name that cannot be mistaken for an
+uncertainty, and **the shift is unaffected and still reported**. All three
+paper-overs are pinned as failures.
 
 ### Resume checklist, in order
 
-1. `git checkout claude/vertical-transformation-plan-dtxh6j` on Windows; suite
-   should be **1223 green** there (on Linux 3 `test_r3_3_*` fail — that is #20's
-   recorded Windows `os.rename` dependency, not a defect).
-2. **WP-V1.** Download the three files from plan §2.1, verify each SHA-256
-   against the pins there, commit unmodified, add to `michspc.spec` and
-   `installer/michspc.iss`. Re-run the 20-point NCAT lattice and the 5-point
-   inverse set and freeze both as `tests/fixtures/vertcon_anchors.py` — the shape
-   `tests/fixtures/ncat_anchors.py` and `geoid_anchors.py` already use.
-3. **WP-V4** on top of `ngs_grid`: Fortran markers on the header and all 521 rows,
-   bytes-consumed == file length, the grid pair sharing geometry, and §2.5's
-   asymmetry — `.trn` biquadratic, `.err` **bilinear** — pinned so unifying them
-   fails. `ngs_grid.unpack_header` already takes an `offset` for the marker layout.
-4. Then V5–V9 as the plan has them. **Interim Codex gate after V4.**
-5. One answer needed from the owner, flagged at the gate: **plan §2.7 and §2.8
-   disagree about the σ floor** (0.000004 m vs 0.001 m). §2.7's measured figure is
-   in the code and quoted into the record; confirm it and correct §2.8.
+1. **WP-V5** — geoid model registry, `apply_geoid` → `geoid_model`, GEOID12B (the
+   tile and its pin are already committed), and the `geoid18.py` → `geoid.py`
+   rename as its own commit.
+2. **Re-anchor GEOID18** to NOAA's stencil, per the owner's instruction above.
+   Own commit, own anchors, supersede #8.
+3. Then V6–V9 as the plan has them. **Closing gate under Codex** — it is
+   installed and authenticated on this machine, so the "reviewer SUBSTITUTED"
+   weakness recorded at the V2/V3 gate is closed. **If Codex usage runs out, use
+   independent Opus reviewers instead** (owner's instruction).
 
 Two notes left for V4/V6 by the reviewer, neither a defect: `signed_shift` accepts
 `grid_value_m=0.0` legitimately (the `.trn` grid genuinely crosses zero in

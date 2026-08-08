@@ -34,11 +34,21 @@ at byte 4 rather than byte 0:
     then, per row:  int32 marker = NLON*4 | real*4[NLON] | int32 marker = NLON*4
 
 Little-endian, IKIND = 1, values in METRES. The markers are a real structural
-check and not ceremony: every one is validated here, and the total byte count
-consumed is required to equal the file length. GEOID18 has nothing equivalent.
-A GEOID18 tile handed to this reader is caught by the very first marker - the
-first four bytes of ``g2018u3.bin`` are the low half of SLAT = 40.0, which is
-zero, not 44.
+check and not ceremony: every one of them is validated here, and the file's
+length is required to equal what its own header implies once the markers are
+counted in. GEOID18 has nothing equivalent. A GEOID18 tile handed to this reader
+is caught by the very first marker - the first four bytes of ``g2018u3.bin`` are
+the low half of SLAT = 40.0, which is zero, not 44.
+
+Plan section 2.2 also asked for a "bytes consumed equals file length" check after
+the row walk. That check was written, and then removed at the WP-V4 review gate
+as dead code: the length check above computes the same total from the same header
+arithmetic before the walk begins, and the walk advances by a fixed stride, so
+``offset == len(raw)`` is forced rather than tested. A refusal that cannot fire
+is worse than no refusal, because it is read as a defence that is being kept
+(WP-V4 review, LOW 2). The property itself is not lost - it is what the length
+check asserts, and ``tests/test_vertcon.py`` walks both shipped files
+independently of this reader and requires the walk to land on the last byte.
 
 **INTERPOLATION: both grids are biquadratic, anchored on the NEAREST NODE.**
 That is one measured choice with two parts, and the second part is the one that
@@ -80,6 +90,17 @@ because ``spc.vertical.signed_shift`` legitimately accepts ``grid_value_m=0.0`` 
 the ``.trn`` grid genuinely crosses zero inside Michigan - so a 0.0 invented here
 would be indistinguishable from a real reading and would silently report an
 unconverted height as converted.
+
+**The same rule is why a negative uncertainty is refused rather than repaired.**
+The uncertainty grid interpolates below zero at a small fraction of Michigan
+positions (``UncertaintyGrid``), and a negative one-sigma is not a quantity.
+Clamping it to 0.0 would fabricate certainty and taking its absolute value would
+fabricate a figure, so ``UncertaintyGrid.sigma_m`` raises there while
+``modeled_error_raw_m`` keeps the unfiltered model output readable under a name
+that cannot be mistaken for an uncertainty. **The shift at such a position is
+untouched and remains valid** - it comes from the other grid - so
+``VertconGridPair.reading_at`` still reports it, with the sigma marked
+unavailable in the shape ``job.py`` already uses for a missing geoid height.
 """
 
 from __future__ import annotations
@@ -299,6 +320,24 @@ def _require_marker(path: Path, offset: int, found: int, expected: int, what: st
         )
 
 
+def sigma_is_physical(value_m: float) -> bool:
+    """Whether an interpolated uncertainty is a quantity at all.
+
+    Stated once because two places act on it and they must not be able to
+    disagree: ``UncertaintyGrid.sigma_m``, which refuses, and
+    ``VertconGridPair.reading_at``, which reports the sigma as unavailable. If
+    the two rules drifted apart a position could be refused by one path and
+    reported by the other, which is the same value arriving two ways - the thing
+    DESIGN.md section 7 forbids.
+
+    A one-sigma uncertainty is non-negative by definition. **Exactly 0.0 is
+    admitted**, and that is not a boundary nicety: the smallest cell in the whole
+    shipped uncertainty grid IS 0.0, so zero is a reading the model genuinely
+    produces rather than an artifact of the interpolation leaving its range.
+    """
+    return value_m >= 0.0
+
+
 @dataclass(frozen=True)
 class TransformationGrid(ngs_grid.Grid):
     """The ``.trn`` grid: ``NAVD88 - NGVD29`` in metres.
@@ -320,6 +359,13 @@ class TransformationGrid(ngs_grid.Grid):
 
         The one accessor this class has, and it names no scheme in its own
         signature, so a caller cannot ask for the wrong one by accident.
+
+        **This reads ONE grid at ONE position.** It is not half of a reading: a
+        shift means little without the uncertainty that qualifies it, and a shift
+        taken here beside a sigma taken at some other position would understate
+        that uncertainty by up to 0.366 m with both numbers looking ordinary.
+        Take the pair through ``VertconGridPair.reading_at``; reach for this only
+        when the transformation grid alone is genuinely what is wanted.
         """
         return self.interpolate_biquadratic_nearest_node(latitude, longitude)
 
@@ -341,50 +387,112 @@ class UncertaintyGrid(ngs_grid.Grid):
     quadratic is not monotone within its cell, so where the field is steep the
     interpolant undershoots past zero. Measured over Michigan at the grid's own
     0.05-degree spacing, offset half a cell, 22,848 positions: **114 return a
-    negative one-sigma, worst -0.009652 m at 42.475 N, 83.125 W.** Bilinear would
+    negative value, worst -0.009652 m at 42.475 N, 83.125 W.** Bilinear would
     return none, and that is the whole of what plan section 2.5 had hold of.
+    That sweep is not a claim about an experiment run elsewhere: it is
+    ``tests/test_vertcon.py``, run against the committed grid on every suite run.
+
+    A second sweep is committed beside it, the WP-V4 review gate's own: Michigan
+    at 0.01-degree spacing, **1,848 negatives among 572,721 positions**, worst
+    -0.028879586 m. Its two named positions are what the refusal below is aimed
+    at:
+
+        42.87 N, 83.81 W    -0.028879586 m, the worst the reviewer's sweep found
+        42.475 N, 83.125 W  -0.009651646 m, where NCAT returns +0.011 m
 
     **NCAT does NOT return these negatives - that was checked, not inferred.**
     An earlier draft of this docstring reasoned that because the reader agrees
     with NCAT to 0.472 mm, NCAT must produce the same negatives and they are the
     published model's rather than ours. That inference is false. Asked directly
     at 42.475 N / 83.125 W, where this reader gives -0.00965 m, **NCAT returns
-    +0.011 m** - a 20.7 mm disagreement, far outside anything else measured
-    here. So at these positions this reader is wrong, not merely ugly.
+    +0.011 m** - a 20.7 mm disagreement, far outside anything else measured here.
+    So at these positions this reader is wrong, not merely ugly.
 
-    Their extent is measured, not guessed: sampling 223,850 Michigan positions
-    across 121 combinations of fractional cell position, **956 return a negative
-    sigma - 0.43% - worst -0.027 m.** They are NOT confined to the half-cell
-    tie-break; they occur at every fractional position, so they are a property
-    of the Lagrange quadratic meeting a steep near-zero field, exactly as plan
-    section 2.5 reasoned even though its measurement was confounded.
+    It is still not a reason to read this grid bilinearly. What is committed and
+    checkable says so: over the 20 frozen NCAT anchors this scheme's worst
+    residual is 0.4716 mm and bilinear's is 4.5468 mm, and this scheme reproduces
+    NCAT's printed figure at 20 of 20 points against bilinear's 11. Trading that
+    for the negatives would be a bad trade - although note honestly that at
+    42.475 N / 83.125 W bilinear gives 0.010947 m, which does round to NCAT's
+    0.011: the negatives are where the two schemes' overall ranking does not
+    hold, which is why those positions refuse rather than being reported.
 
-    It is still not a reason to read this grid bilinearly: bilinear is wrong by
-    up to 46 mm at the positions that discriminate, against this scheme's
-    0.495 mm over 40 such points, and trading a 0.43% pathology for a
-    hundred-fold loss of accuracy everywhere is a bad trade.
-
-    **Two things follow, both for WP-V7 and both flagged rather than decided
-    here**, because a file reader may not silently clamp a value it was asked to
-    read: what a user is shown when sigma comes out negative, and whether that
-    case should refuse rather than display. "Fail closed, never fabricate"
-    points at refusing the sigma while still reporting the shift - a negative
-    one-sigma means the interpolation has left the physically valid range and
-    the value cannot be trusted there. That is a disclosure decision and it is
-    the owner's.
+    **What the file layer does about it, decided at the WP-V4 review gate.** A
+    reader may not clamp, so it does not: ``modeled_error_raw_m`` returns the
+    unfiltered interpolation, negatives included, under a name that cannot be
+    read as an uncertainty, and ``sigma_m`` refuses. Refusing is not the same as
+    losing the point - the shift is a different grid and is unaffected, and
+    ``VertconGridPair.reading_at`` still reports it with the sigma marked
+    unavailable. How that unavailability is *shown* remains WP-V7's, and the
+    owner's; what is settled here is only that a number which cannot be a
+    one-sigma will not be handed out as one.
     """
 
     dialect = _UNCERTAINTY_DIALECT
 
+    def modeled_error_raw_m(self, latitude: float, longitude: float) -> float:
+        """The error grid interpolated at a position, raw and unfiltered, metres.
+
+        The nearest-node-anchored biquadratic applied to the ``.err`` grid and
+        returned exactly as it comes out, **including the values that are
+        negative** - the class docstring says where, how often and how far.
+
+        **Deliberately not named for sigma.** A negative number is not a
+        one-sigma uncertainty, and the whole of the defect this method exists to
+        answer was a method named ``sigma_m`` handing one out. A caller who wants
+        to say what the model produced asks for it here, where the name says the
+        value is model output rather than a quantity; a caller who wants an
+        uncertainty asks ``sigma_m`` and is refused when there is none.
+
+        Nothing is clamped and nothing is made positive. Zero would state a
+        certainty the model does not have; ``abs()`` would state a figure nothing
+        has measured - the undershoot is not a sign error and there is no
+        evidence the reflected magnitude is the truth.
+
+        **This reads ONE grid at ONE position**, exactly as
+        ``TransformationGrid.shift_m`` does, and the same warning applies: a
+        value from here does not qualify a shift read at some other position.
+        """
+        return self.interpolate_biquadratic_nearest_node(latitude, longitude)
+
     def sigma_m(self, latitude: float, longitude: float) -> float:
         """The one-sigma uncertainty of the modeled shift, in metres.
 
-        Returned exactly as the model gives it, including the rare negative
-        described in the class docstring. Not clamped here: a reader that
-        quietly replaced a modeled value with zero would be inventing a reading,
-        which is the one thing this module must never do.
+        **Fails closed where the model leaves the physically valid range.** A
+        one-sigma uncertainty is non-negative by definition, so where
+        ``modeled_error_raw_m`` comes out below zero this raises rather than
+        returning it. Not clamping was right - a zero here would be a fabricated
+        reading, which this module must never produce - but returning a negative
+        through a method with this name is equally indefensible: it puts a number
+        that cannot be an uncertainty exactly where a user reads one.
+
+        The refusal states that the shift is unaffected, in as many words,
+        because the conclusion a caller must not draw is "the elevation is bad".
+        It is not. The shift comes from the transformation grid and nothing in it
+        depends on this value; what is unavailable is the confidence figure.
+
+        **This reads ONE grid at ONE position.** See
+        ``VertconGridPair.reading_at`` for why the two halves are taken together.
         """
-        return self.interpolate_biquadratic_nearest_node(latitude, longitude)
+        value = self.modeled_error_raw_m(latitude, longitude)
+        if not sigma_is_physical(value):
+            raise VertconError(
+                f"The {VERTCON_MODEL_NAME} error model interpolates to "
+                f"{value!r} m at {latitude:.6f}, {longitude:.6f}, which cannot "
+                f"be a one-sigma uncertainty: an uncertainty is never negative. "
+                f"Every cell stored in the uncertainty grid is non-negative, but "
+                f"the biquadratic is not monotone inside a cell, so where the "
+                f"field is steep and close to zero the interpolation undershoots "
+                f"past it. "
+                f"THE SHIFT ITSELF IS STILL VALID AND UNAFFECTED: it is read "
+                f"from the separate transformation grid and nothing about it "
+                f"depends on this value. What is unavailable at this position is "
+                f"the stated confidence in that shift, not the shift. Refused "
+                f"rather than clamped to zero, which would claim a certainty the "
+                f"model does not have, and rather than made positive, which "
+                f"would state a figure nothing has measured."
+            )
+        return value
 
 
 @dataclass(frozen=True)
@@ -400,6 +508,18 @@ class VertconGridPair:
     The constructor requires the two to share geometry. A mismatched pair would
     not fail anywhere downstream: it would report one position's shift beside
     another position's sigma, both plausible.
+
+    **``reading_at`` is the only value accessor this class has**, and that is a
+    correction rather than an original design. It carried ``shift_m`` and
+    ``sigma_m`` as separate public methods, which let a caller take a shift at
+    one position and a sigma at another through the pair itself - the reviewer's
+    counterexample paired -0.143529 m at 43.05 N / 86.20 W with 0.000655 m at
+    43.00 N / 84.50 W, where the true figure is 0.365599 m, understating the
+    uncertainty by 0.365 m with both numbers looking entirely ordinary (WP-V4
+    review, LOW 1). The pair now offers no way to take half a reading. Reading
+    one grid alone is still possible and still legitimate - through
+    ``.transformation`` or ``.uncertainty``, where the expression itself says
+    which grid is being read and no pairing is implied.
     """
 
     transformation: TransformationGrid
@@ -448,26 +568,38 @@ class VertconGridPair:
             latitude, longitude
         ) and self.uncertainty.contains(latitude, longitude)
 
-    def shift_m(self, latitude: float, longitude: float) -> float:
-        """The modeled shift in metres. See ``TransformationGrid``."""
-        return self.transformation.shift_m(latitude, longitude)
+    def reading_at(
+        self, latitude: float, longitude: float
+    ) -> tuple[float, float | None]:
+        """``(shift_m, sigma_m)`` at one position, both in metres.
 
-    def sigma_m(self, latitude: float, longitude: float) -> float:
-        """The one-sigma uncertainty in metres. See ``UncertaintyGrid``."""
-        return self.uncertainty.sigma_m(latitude, longitude)
+        The front door, and the only value accessor this class has. Taking both
+        in one call is what makes it awkward to report a shift and forget the
+        figure that qualifies it, and impossible to pair the two from different
+        positions - see the class docstring. A position outside the grids refuses
+        here rather than yielding one of the two.
 
-    def reading_at(self, latitude: float, longitude: float) -> tuple[float, float]:
-        """``(shift_m, sigma_m)`` at a position, both in metres.
+        **``sigma`` is ``None`` where the error model interpolates to a negative
+        value**, which is not an uncertainty (``UncertaintyGrid.sigma_m``). The
+        shift is still returned and is still valid: it is read from the
+        transformation grid and nothing in it depends on the uncertainty. That
+        shape - the number absent, the point kept - is the one ``job.py`` already
+        uses for a point whose elevation is real but whose geoid height is not
+        available, where it sets the height to None and says so in a warning
+        rather than inventing a value or discarding the point. A caller that
+        needs to explain the absence gets the model's own words by calling
+        ``uncertainty.sigma_m`` and the raw figure from
+        ``uncertainty.modeled_error_raw_m``.
 
-        The accessor callers should reach for. Taking both in one call is what
-        makes it awkward to report a shift and forget the figure that qualifies
-        it, and a position outside the grid refuses here rather than yielding one
-        of the two.
+        No ``try`` around either read, deliberately: an outside-the-grid refusal
+        from ``.err`` must reach the caller, and a handler here that turned it
+        into a ``None`` sigma would swallow it. The negative case is decided by
+        asking ``sigma_is_physical`` directly - the same rule ``sigma_m`` raises
+        on - so the two cannot answer differently.
         """
-        return (
-            self.shift_m(latitude, longitude),
-            self.sigma_m(latitude, longitude),
-        )
+        shift = self.transformation.shift_m(latitude, longitude)
+        raw = self.uncertainty.modeled_error_raw_m(latitude, longitude)
+        return (shift, raw if sigma_is_physical(raw) else None)
 
 
 def _unpack_payload(path: Path, raw: bytes, rows: int, columns: int) -> tuple[float, ...]:
@@ -521,19 +653,19 @@ def _unpack_payload(path: Path, raw: bytes, rows: int, columns: int) -> tuple[fl
         )
         offset += MARKER_BYTES
 
-    # The bytes-consumed check plan section 2.2 asks for, kept even though the
-    # length check above already forces it: that one tests the header's
-    # arithmetic, this one tests THIS LOOP's. If a future edit walked the file by
-    # a different stride, the length check would still pass and this would not.
-    if offset != len(raw):
-        raise VertconError(
-            f"{path} was read to byte {offset} but is {len(raw)} bytes long. "
-            f"Every byte of a {VERTCON_MODEL_NAME} grid is accounted for by the "
-            f"header record and the {rows} row records; a leftover or a shortfall "
-            f"means this reader walked the file wrongly, so no value from it can "
-            f"be trusted."
-        )
-
+    # No bytes-consumed check after this loop, and its absence is deliberate.
+    # Plan section 2.2 asked for one and it was written; the WP-V4 review gate
+    # showed it could not fail. ``expected_total`` above is
+    # HEADER_BLOCK_BYTES + rows * (MARKER + row_bytes + MARKER), the loop runs
+    # exactly ``rows`` times and advances by exactly that stride, and the file
+    # has already been required to be ``expected_total`` bytes - so
+    # ``offset == len(raw)`` is arithmetic, not a test, and no input can reach
+    # the refusal. It was advertised as an independent structural gate and was
+    # not one, which is worse than not having it: a dead check reads as a
+    # defence in place. What the two would have said between them is said by the
+    # length check, and ``tests/test_vertcon.py`` walks both shipped files with
+    # its own arithmetic, independent of this function, and requires that walk to
+    # land on the last byte.
     return tuple(values)
 
 
@@ -712,12 +844,16 @@ def shift_and_sigma_m(
     latitude: float,
     longitude: float,
     grids: VertconGridPair | None = None,
-) -> tuple[float, float]:
+) -> tuple[float, float | None]:
     """``(shift_m, sigma_m)`` at a position, both metres, from the shipped pair.
 
     The module's front door, shaped like ``geoid18.geoid_height``. The shift is
     ``NAVD88 - NGVD29`` as the grid stores it; ``spc.vertical.apply_shift`` is
     what decides which way it goes and says so in words.
+
+    ``sigma`` is ``None`` where the error model interpolates to a value that
+    cannot be an uncertainty; the shift beside it is unaffected. See
+    ``VertconGridPair.reading_at``.
     """
     grids = grids or default_grids()
     return grids.reading_at(latitude, longitude)

@@ -73,6 +73,11 @@ VERTCON reader resolves its grid pair from the same directory."""
 # any code - the geoid model registry that reaches it is WP-V5 - and it is
 # bundled now rather than later so that the file, its checksum and the build
 # wiring all land in one reviewable step.
+#
+# Each of the four digests is pinned in code and checked by the suite, not merely
+# recorded in the plan: geoid18.GEOID18_TILE_SHA256, geoid18.GEOID12B_TILE_SHA256,
+# vertcon.VERTCON3_TRN_SHA256 and vertcon.VERTCON3_ERR_SHA256. This list is names
+# only - a name is what PyInstaller needs - so nothing here can stand in for that.
 NGS_GRID_FILENAMES = (
     "g2018u3.bin",  # GEOID18 CONUS tile #3
     "g2012bu3.bin",  # GEOID12B CONUS tile #3, same geometry

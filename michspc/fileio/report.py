@@ -351,8 +351,9 @@ def _vertical_elevation_block(result, transformation) -> list[str]:
                 f"0 of {len(points)} points had their elevation shifted from "
                 f"{transformation.source.code} to "
                 f"{transformation.target.code}: no point carried a "
-                f"convertible elevation. The causes are itemized above and "
-                f"under WARNINGS; the _full.csv export's shift and sigma "
+                f"convertible elevation. The causes are itemized above; any "
+                f"that raise warnings are repeated under WARNINGS. The "
+                f"_full.csv export's shift and sigma "
                 f"cells read {fmt.NOT_AVAILABLE} for every point.",
                 width=78,
             )

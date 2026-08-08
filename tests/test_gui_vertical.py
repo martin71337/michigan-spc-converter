@@ -896,6 +896,42 @@ def test_the_vertical_tables_amber_lands_on_the_warnings_column(window, tmp_path
     # The cell the amber marks really is the warning text.
     assert "vertical-sigma-unavailable" in cell(window, 1, warnings_at)
 
+    # THE TABLE'S OWN N/A PIN (closing gate, MEDIUM 1): the same row's sigma
+    # cell must read N/A, never a number - this exact cell was the one
+    # surface of the #36 rule held by nothing, and a seeded 0.0000 there
+    # survived the whole suite while the CSV and the warning beside it read
+    # N/A. Falsified with that seed: this assertion alone fails.
+    sigma_at = table_columns.index("Shift sigma (m)")
+    assert cell(window, 1, sigma_at) == "N/A"
+    # And the clean row's sigma is a real number, so the pin is not matching
+    # two absences.
+    assert cell(window, 0, sigma_at) == "0.0007"
+
+
+def test_an_identity_jobs_table_sigma_cells_read_na(window, tmp_path):
+    """The other reading whose sigma is None - every identity job. A 0.0000
+    there would claim a perfectly known modeled shift where no model ran
+    (closing gate, MEDIUM 1). The shift cell IS 0.0000 - a true statement of
+    the arithmetic - and the sigma is N/A, the two distinguishable exactly as
+    DESIGN.md #41 requires of the reading itself."""
+    job_file = tmp_path / "identity.csv"
+    job_file.write_text(
+        f"301,{ANCHOR_22.latitude},{ANCHOR_22.longitude},200.000,IDENTITY\n",
+        encoding="utf-8",
+    )
+    fill_multi_vertical(
+        window, input_path=job_file, output_directory=tmp_path / "out"
+    )
+    make_vertical(window, NAVD88, NAVD88)
+    if window.convert() is not True:
+        raise AssertionError(f"the run failed: {window.shown_failures}")
+
+    table_columns = headings(window)
+    assert cell(window, 0, table_columns.index("Shift sigma (m)")) == "N/A"
+    assert (
+        cell(window, 0, table_columns.index("Vertical shift (m)")) == "0.0000"
+    )
+
 
 def test_the_vertical_tables_numbers_are_right_aligned(window, tmp_path):
     """The cosmetic half of the same gate finding: TextAlignmentRole was

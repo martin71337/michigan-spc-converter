@@ -105,6 +105,14 @@ VERTCON_ANCHOR_LATITUDE = 43.0
 VERTCON_ANCHOR_LONGITUDE = -84.5
 VERTCON_ANCHOR_SHIFT_M = -0.140
 
+# The same anchor's two ends as a whole VERTICAL JOB (WP-V9, DESIGN.md #41's
+# note that once the GUI can reach vertical mode the bundle should convert one
+# vertical point end to end): the input height is the NCAT request's own
+# 200.000 m NGVD 29, the expected output NCAT's printed 199.860 m NAVD 88 —
+# both NGS figures, neither produced by this program.
+VERTCON_ANCHOR_SOURCE_HEIGHT_M = 200.000
+VERTCON_ANCHOR_TARGET_HEIGHT_M = 199.860
+
 # tests/fixtures/geoid12b_anchors.py, the Cadillac-area anchor — NGS geoid API,
 # model=13 (GEOID12B), captured 2026-08-07 (raw response in
 # review/wp-v5-geoid12b/). NOT the same position as the GEOID18 anchor above:
@@ -261,6 +269,79 @@ def check_vertcon_grids() -> str:
     return (
         f"{vertcon.VERTCON_MODEL_NAME} pair authenticated and returned "
         f"{shift:.4f} m against NCAT's {VERTCON_ANCHOR_SHIFT_M:.3f} m"
+    )
+
+
+def check_vertical_conversion() -> str:
+    """One vertical job, end to end, against NGS NCAT's own two figures.
+
+    ``check_vertcon_grids`` proves the pair authenticates and interpolates;
+    this proves the WHOLE vertical pipeline the GUI now reaches (WP-V8) runs
+    inside the bundle: typed point -> job.run -> a shifted, datum-tagged
+    elevation. Input 200.000 m NGVD 29 and expected 199.860 m NAVD 88 are both
+    NCAT's figures, so the bundle is checked against NGS rather than against
+    itself. A bundle missing spc/vertical, or one whose wiring lost the shift's
+    sign, fails here and nowhere else before a surveyor does.
+    """
+    from michspc.fileio import pnezd
+    from michspc.job import (
+        Direction,
+        JobSettings,
+        LongitudeConvention,
+        VerticalMode,
+        run,
+    )
+    from michspc.spc.units import METERS
+    from michspc.spc.vertical import NAVD88, NGVD29
+    from michspc.spc.zones import zone_by_code
+
+    parsed = pnezd.parse_typed_point(
+        str(VERTCON_ANCHOR_LATITUDE),
+        str(VERTCON_ANCHOR_LONGITUDE),
+        f"{VERTCON_ANCHOR_SOURCE_HEIGHT_M:.3f}",
+        source=pnezd.TYPED_POINT_SOURCE_GEODETIC,
+    )
+    result = run(
+        JobSettings(
+            input_path=None,
+            output_directory=None,
+            direction=Direction.GEODETIC_TO_ZONE,
+            source_zone=None,
+            target_zone=zone_by_code(TARGET_ZONE_CODE),
+            input_unit=METERS,
+            output_unit=METERS,
+            longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+            vertical_mode=VerticalMode.HORIZONTAL_AND_VERTICAL,
+            source_vertical_datum=NGVD29,
+            target_vertical_datum=NAVD88,
+        ),
+        source=parsed,
+    )
+    point = result.points[0]
+
+    if point.output_elevation is None or point.vertical is None:
+        raise SelfTestError(
+            "the vertical conversion produced no shifted elevation at "
+            f"{VERTCON_ANCHOR_LATITUDE}, {VERTCON_ANCHOR_LONGITUDE}. The "
+            "vertical pipeline is in this bundle but did not run."
+        )
+
+    difference = abs(point.output_elevation - VERTCON_ANCHOR_TARGET_HEIGHT_M)
+    if difference > LINEAR_TOLERANCE_M:
+        raise SelfTestError(
+            f"a vertical job converted {VERTCON_ANCHOR_SOURCE_HEIGHT_M:.3f} m "
+            f"NGVD 29 to {point.output_elevation:.4f} m at "
+            f"{VERTCON_ANCHOR_LATITUDE}, {VERTCON_ANCHOR_LONGITUDE}, where "
+            f"NGS NCAT returns {VERTCON_ANCHOR_TARGET_HEIGHT_M:.3f} m NAVD 88 "
+            f"- out by {difference:.4f} m against a tolerance of "
+            f"{LINEAR_TOLERANCE_M} m. A wrong sign lands at 200.140 and "
+            f"misses this check by 140 times the tolerance."
+        )
+
+    return (
+        f"vertical job converted {VERTCON_ANCHOR_SOURCE_HEIGHT_M:.3f} m "
+        f"NGVD 29 -> {point.output_elevation:.4f} m NAVD 88 against NCAT's "
+        f"{VERTCON_ANCHOR_TARGET_HEIGHT_M:.3f} m"
     )
 
 
@@ -587,6 +668,7 @@ CHECKS: tuple[tuple[str, object], ...] = (
     ("version and application name", check_version),
     ("bundled GEOID18 grid", check_geoid_grid),
     ("bundled VERTCON 3.0 grid pair", check_vertcon_grids),
+    ("vertical conversion against NGS NCAT", check_vertical_conversion),
     ("bundled GEOID12B tile", check_geoid12b_tile),
     ("lazily imported dependencies", check_lazy_imports),
     ("Qt startup and bundled icon", check_icon_resource),

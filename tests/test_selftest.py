@@ -109,6 +109,26 @@ def test_the_selftests_vertcon_anchor_is_the_frozen_ncat_value():
     assert selftest.VERTCON_ANCHOR_SHIFT_M == round(
         anchor.target_height_m - anchor.source_height_m, 3
     )
+    # The whole-job check's two ends (WP-V9): both are the fixture's own NCAT
+    # figures, transcribed exactly.
+    assert selftest.VERTCON_ANCHOR_SOURCE_HEIGHT_M == anchor.source_height_m
+    assert selftest.VERTCON_ANCHOR_TARGET_HEIGHT_M == anchor.target_height_m
+
+
+def test_the_vertical_conversion_check_fails_on_a_wrong_height(monkeypatch):
+    """The bundle gate can see a wrong shift, not merely a missing module.
+
+    Seeded with the sign-flipped outcome - the exact defect class #35 pinned
+    before the reader existed - by pointing the expected value at it: the
+    check must fail loudly, naming both figures.
+    """
+    monkeypatch.setattr(selftest, "VERTCON_ANCHOR_TARGET_HEIGHT_M", 200.140)
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_vertical_conversion()
+    message = str(raised.value)
+    assert "out by" in message
+    assert "200.140" in message
 
 
 def test_the_selftests_geoid12b_anchor_is_the_frozen_ngs_value():
@@ -156,6 +176,29 @@ def test_the_end_to_end_tolerance_is_two_ncat_legs_plus_the_written_place():
 # --------------------------------------------------------------------------
 # It passes from source, through the entry point the executable uses.
 # --------------------------------------------------------------------------
+
+
+def test_the_check_registry_holds_every_check_by_name():
+    """A deleted CHECKS entry must fail a test, not merely shrink a tuple.
+
+    Both tests that touch CHECKS are self-referential - they count or iterate
+    whatever the tuple holds - so removing any single check left the suite
+    green while the release notes went on claiming the bundle runs it
+    (closing gate, MEDIUM 2; the DESIGN.md #38 finding-2 discipline, applied
+    to this registry). The full ordered list is pinned: adding a check
+    updates this list consciously, deleting one fails it. Falsified by
+    removing the vertical-conversion entry: this test alone fails.
+    """
+    assert [name for name, _check in selftest.CHECKS] == [
+        "version and application name",
+        "bundled GEOID18 grid",
+        "bundled VERTCON 3.0 grid pair",
+        "vertical conversion against NGS NCAT",
+        "bundled GEOID12B tile",
+        "lazily imported dependencies",
+        "Qt startup and bundled icon",
+        "end-to-end conversion against NGS NCAT",
+    ]
 
 
 def test_every_check_passes_from_source():

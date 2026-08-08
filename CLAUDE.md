@@ -46,7 +46,30 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: vertical datums V0–V8 DONE on main; V9 NOT BUILT (2026-08-08)
+## Current state: THE VERTICAL FEATURE IS COMPLETE on main (V0–V9 + WP-G1), UNRELEASED (2026-08-08)
+
+**Every work package is built, interim-gated, and the whole feature passed
+its closing gate (DESIGN.md #44) — run on an independent Opus reviewer
+because Codex refused on quota, per the owner's standing fallback; a Codex
+re-confirmation after the reset is the owner's option.** The closing
+reviewer's own 1,113-configuration elevation sweep against the frozen NCAT
+anchors found zero wrong elevations and zero unconverted heights escaping as
+converted; its three pin-gap/wording MEDIUMs are closed and falsified. Suite
+**1506**, green in both modes; the frozen self-test passes 8/8 including a
+vertical conversion against NCAT.
+
+**NOT RELEASED — 0.3.1 remains the released version; the version literal has
+not moved.** `docs/RELEASE-NOTES-0.4.0.md` is a marked DRAFT. **Before any
+release, the owner:** (1) looks at both tabs on a real screen (#43 has the
+layouts; the Vertical method caveat row's wording is his to adjust, #42);
+(2) the clean-profile install proof (METHOD.md §6); (3) optionally a Codex
+re-confirmation; (4) the release itself — bump, `py tools/build_release.py`,
+tag. A real PNEZD file from an actual job is still worth having.
+
+**After this feature:** NAPGD2022 arrives as registry records when NGS
+publishes (backwards compatibility is a requirement, #32); SPCS2022 stays
+downstream of it (#21). The known caveats worth re-reading before then:
+#38's half-cell steps, #36's negative-σ refusal, #44's carried LOWs.
 
 **WP-V8 is DONE (DESIGN.md #43): vertical mode is reachable from both tabs**
 — mode toggle (opens Horizontal), datum dropdowns (open unanswered, usable

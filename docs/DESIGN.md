@@ -33,7 +33,12 @@ Direct consequences, adopted:
   MI North 2111, MI Central 2112, MI South 2113 — all Lambert conformal conic.
 - Geodetic (latitude/longitude) ⇄ State Plane, either direction.
 - Grid scale factor, convergence angle, elevation factor and combined factor
-  per point, with geoid separation from GEOID18.
+  per point, with geoid separation from a registry of geoid models — GEOID18
+  (default) and GEOID12B (#40).
+- Vertical datum conversion of elevations, NGVD 29 ⇄ NAVD 88, via NGS
+  VERTCON 3.0, with a per-point modeled shift and one-sigma uncertainty and
+  the disclosure surfaces of #42 (added across #40–#44; the registry design
+  is what NAPGD2022 later arrives through, #22/#32).
 - Units: International feet (default and legislated), US survey feet, meters —
   selectable independently for input and output.
 - Three outputs per run: a clean PNEZD file, a full-audit CSV, and a plain-text
@@ -77,29 +82,37 @@ frame**:
 ```
 
 Zone-to-zone inside one frame is exact and reversible; the transform step is
-currently the identity. Elevation is orthometric height and is **passed through
-unchanged** — it does not depend on the horizontal zone.
+currently the identity. Elevation is orthometric height, tagged with its
+vertical datum when the job states one. In HORIZONTAL mode it is passed
+through unchanged — it does not depend on the horizontal zone. In
+HORIZONTAL_AND_VERTICAL mode it is **shifted between the stated vertical
+datums before the geoid lookup and the factors** (plan §3.6, #41) — the
+"passed through unchanged" sentence this section carried was repealed for
+that mode at #41, and every output that carries a shifted height says so
+(#42).
 
 Result records produced by the core are frozen. UI layers never mutate them.
 
 ## 5. Core computation
 
-Two independent engines, both from the manual, both run on every point:
+**[ANNOTATED at #44: the polynomial engine described below was DELETED at
+amendment #14 (owner directive), and this section went uncorrected for three
+minor versions — found by the closing gate of the vertical feature. The
+rigorous §3.1 equations are the only computation path; what verifies them is
+external and lives in the suite: the frozen NGS NCAT anchors and the
+published Appendix C constants. CLAUDE.md's conventions section has said so
+all along; this body section now matches it.]**
 
-1. **Rigorous** — the general Lambert conformal conic mapping equations,
-   manual §3.1 (pp. 27–29). Primary. Valid everywhere. Python's doubles supply
-   the significant digits the manual warns are needed (§3, p. 25).
-2. **Polynomial coefficient method** — manual §3.4 (pp. 52–55) with the
-   Appendix C coefficients (pp. 103–104). Independent cross-check.
+The **rigorous** general Lambert conformal conic mapping equations, manual
+§3.1 (pp. 27–29), are the only engine. Valid everywhere; Python's doubles
+supply the significant digits the manual warns are needed (§3, p. 25).
 
-Disagreement beyond **0.5 mm** is a named, loud failure. The two are never
-averaged, and the polynomial result is never silently substituted.
-
-Why rigorous is primary: the Appendix C polynomials were least-squares fit to
-ten data points inside each zone's own latitude band (manual p. 54). Converting
-a point deep in one zone into a neighbouring zone's coordinates — the core use
-case of this tool — is extrapolation for the polynomials but exact for the
-rigorous equations.
+~~2. **Polynomial coefficient method** — manual §3.4 (pp. 52–55) with the
+Appendix C coefficients (pp. 103–104). Independent cross-check.
+Disagreement beyond **0.5 mm** is a named, loud failure.~~ (Deleted, #14:
+the polynomials are least-squares fits inside each zone's own latitude band,
+so cross-zone conversion — this tool's core use — is extrapolation for them;
+measured wrong by metres, #5.)
 
 ## 6. Extensibility
 
@@ -452,6 +465,92 @@ Not addressed, and still the owner's call: at 16 and 32 px the "COORD CONVERT"
 lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
+
+### #44 — 2026-08-08 — WP-V9 and the closing gate: the vertical feature is COMPLETE, unreleased
+
+**WP-V9**: the frozen self-test now converts one vertical point end to end —
+200.000 m NGVD 29 at anchor-22 → 199.8598 m against NCAT's 199.860 — inside
+the bundle, with its constants pinned `==` to the fixtures and a failure test
+seeded with the sign-flipped outcome; `docs/RELEASE-NOTES-0.4.0.md` is
+drafted, explicitly marked DRAFT: **the version literal has not moved, no
+installer is built, no tag exists — the owner reviews first**, including the
+tab layouts nobody has seen on a real screen.
+
+**The closing gate, and the reviewer substitution recorded rather than
+glossed:** Codex was invoked per the standing method and refused on quota
+("You've hit your usage limit… try again at 5:17 PM" — the log is in the
+session record). The owner's standing fallback (2026-08-07: independent Opus
+reviewers if Codex usage runs out) applied; the closing gate ran on an
+independent Opus reviewer briefed as the outsider over the full
+`3eda02a..HEAD` diff plus the working tree. **A Codex re-confirmation after
+the quota reset is available to the owner if wanted; it was not required to
+close.**
+
+**Verdict: FIX-FIRST → all findings closed → the reviewer's sign-off
+condition met. No CRITICAL, no HIGH — "no elevation is converted wrongly,
+and no unconverted height escapes as converted, through any path I could
+find."** What it verified with its own harnesses, never importing the
+suite's expected values: **1,113 elevation configurations against the frozen
+NCAT anchors — 0 failures** (all anchors × 3 directions × all 9 zone pairs ×
+all 9 unit pairs × both conventions × both datum directions × identities;
+round trips < 1e-6 m in every unit); the 42-combination datum × geoid ×
+coverage seam sweep; disclosure honesty across 11 archive shapes with the σ
+summary hand-verified character-exact; #43's "every selection discards the
+result" re-proven across all 24 widgets and 25 mutations; screen-vs-archive
+0 mismatches over 16 shapes; 28 seeded defects across 8 modules, 25 caught
+— the 3 survivors being exactly the two pin-gap MEDIUMs below.
+
+**The findings, all closed this round:**
+
+1. **MEDIUM — the Multi point table's σ cell was the ONE surface of #36's
+   "N/A, never a number" rule held by nothing**: a seeded `0.0000` there
+   survived the whole suite while the CSV and the warning beside it read
+   N/A — three surfaces of one job contradicting each other, and zero is
+   the most misleading available value where σ runs to 0.3656 m. The
+   shipped code was correct; the pin was missing. Now pinned at both
+   σ-less readings (the negative-σ position and an identity job, shift
+   `0.0000` and σ `N/A` distinguishable), falsified with the gate's own
+   seed.
+2. **MEDIUM — a `CHECKS` entry could be deleted silently**: both tests
+   touching the self-test registry were self-referential, so removing any
+   check — including the new vertical one the release notes lean on —
+   stayed green. The #38-finding-2 discipline now applies: the full
+   ordered name list is pinned; falsified by removing the vertical entry.
+3. **MEDIUM — the draft release notes claimed "horizontal mode is unchanged
+   in every byte of its output", which is false**: the gate byte-diffed
+   1,136 configurations against **released v0.3.1** — the comparison no
+   interim gate had made, each having proven only its own parent unchanged
+   — and found the audit CSV's geoid/ellipsoid heights move at 13.6% of
+   positions (WP-G1's disclosed re-anchoring, worst 4.5 mm in its sweep)
+   and one record METHOD line reworded. **The clean PNEZD export is
+   byte-identical in all 1,136 configurations; no coordinate, elevation
+   factor or combined factor changed anywhere.** The notes now say exactly
+   that. The record-keeping lesson is the finding: a chain of
+   parent-relative regression proofs does not compose into a
+   release-relative one.
+4. **LOW, fixed**: the self-test's "280 times the tolerance" was 140 (wrong
+   in the flattering direction, the #38-finding-4 class); the record's
+   all-refused paragraph pointed at a WARNINGS section that can be empty;
+   §2's scope now contains the feature; §4's repealed "passed through
+   unchanged" sentence now says when it was repealed; **§5 still described
+   the polynomial engine deleted at #14 three minor versions ago** —
+   annotated and corrected (found in passing by the gate; the body now
+   matches the conventions CLAUDE.md carried all along).
+5. **LOW, carried with reasons**: a vertical audit row on a feet job names
+   every unit but supplies no conversion factor (nothing false is
+   printed); a coverage-refused point's panel shows two bare `Elevation`
+   labels (re-confirming #42's carry, slightly broader).
+
+**Suite: 1503 → 1506**, green in `pytest` and `-O`; the frozen-source
+self-test passes 8/8 including the vertical conversion.
+
+**The feature stands complete: V0–V9 plus WP-G1, every package interim-gated,
+the whole closed by this gate.** Still owner's, before any release: look at
+the two tabs on a real screen (#43 describes the layouts); decide the
+Vertical method row's wording (#42 carried it as re-wordable); the clean-
+profile install proof (METHOD.md §6); a real PNEZD file from a job; and the
+release itself — version bump, `py tools/build_release.py`, tag — which
+nothing in this record performs.
 
 ### #43 — 2026-08-08 — WP-V8: vertical mode reaches the screen, and the gate catches a CRITICAL that shipped in 0.1.0
 

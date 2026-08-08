@@ -1010,26 +1010,33 @@ def test_the_wrong_anchoring_and_bilinear_both_fail_the_numeric_pin(trn, err):
         assert wrong > NCAT_QUANTIZATION_M * 6.0
 
 
-def test_geoid18_keeps_the_other_anchoring():
-    """The two NGS products differ, so neither anchoring may become a default.
+def test_geoid18_shares_vertcons_anchoring_since_wp_g1():
+    """Both NGS products now read the nearest-node stencil, and that is a
+    decision with a record, not a drift.
 
-    Measured against GEOID18's own frozen NGS geoid-API anchors, the anchoring
-    that ships for the geoid is the better one there - 0.595 mm maximum against
-    the nearest-node variant's 0.830, and 18 of 20 points inside NGS's 0.5 mm
-    printing quantization against 17. GEOID18 is one arcminute over a smooth
-    field where the choice barely registers; VERTCON is 0.05 degrees, three
-    times coarser, over a rougher one where it is worth 8 mm.
+    Until WP-G1 this test held the opposite: GEOID18 kept the floor-anchored
+    stencil, because on its own 20 frozen anchors that variant measures
+    fractionally better (0.595 mm maximum against nearest-node's 0.830 - both
+    figures re-asserted below, since they remain true measurements of the two
+    interpolators). Those 20 anchors are quantized to 0.001 m and cannot tell
+    the anchorings apart; 120 positions sampled where the anchorings diverge
+    most reverse the ranking (rms 0.454 mm against 0.715,
+    tests/fixtures/geoid_discriminating_anchors.py), INTG's own source anchors
+    with ``nint()``, and the owner ruled that NOAA's published programs govern
+    (DESIGN.md #37). ``geoid_height`` therefore now reads nearest-node, and
+    THIS test is what says the two products may no longer quietly differ.
 
-    This test is why ``ngs_grid`` carries both variants rather than being
-    "corrected" to one. Changing ``geoid18.geoid_height`` to match VERTCON would
-    move a released, gated number (DESIGN.md amendment #8) in the wrong
-    direction.
+    The anchoring itself is gated by the discriminating anchors in
+    tests/test_geoid.py, which fail loudly under the floor stencil. What this
+    test adds is the cross-product statement: the geoid and VERTCON readers
+    reach the same interpolator, so a future change that split them again would
+    have to come back through this record.
     """
     from tests.fixtures.geoid_anchors import GEOID_ANCHORS
 
     grid = geoid18.load_grid()
 
-    shipped = [
+    floor_anchored = [
         abs(grid.interpolate_biquadratic(a.latitude, a.longitude) - a.geoid_height_m)
         for a in GEOID_ANCHORS
     ]
@@ -1041,39 +1048,35 @@ def test_geoid18_keeps_the_other_anchoring():
         for a in GEOID_ANCHORS
     ]
 
-    assert max(shipped) == pytest.approx(0.000595, abs=1e-6)
+    # The 20-anchor measurements #36 records, still true of the interpolators:
+    # floor is fractionally better HERE, inside the quantization noise. That is
+    # exactly why these 20 could not gate the re-anchoring and the
+    # discriminating anchors exist.
+    assert max(floor_anchored) == pytest.approx(0.000595, abs=1e-6)
     assert max(nearest_node) == pytest.approx(0.000830, abs=1e-6)
-    assert max(shipped) < max(nearest_node)
+    assert max(nearest_node) < 0.001
 
-    # And ``geoid_height`` must still be reading through the one it prefers, at
-    # EVERY anchor. Checking one would be vacuous: the two anchorings coincide
-    # wherever both fractional indices are below a half, which is about a
-    # quarter of positions, and the first anchor is one of them. Seeding the
-    # defect is what found that - the single-anchor version of this test passed
-    # against ``geoid_height`` switched to nearest-node.
+    # ``geoid_height`` reads the nearest-node stencil at EVERY anchor. Checking
+    # one would be vacuous: the two anchorings coincide wherever both
+    # fractional indices are below a half, about a quarter of positions, and
+    # the first anchor is one of them. Seeding the defect is what found that.
     distinguishing = 0
     for anchor in GEOID_ANCHORS:
-        floor_anchored = grid.interpolate_biquadratic(anchor.latitude, anchor.longitude)
-        other = grid.interpolate_biquadratic_nearest_node(
+        floor_value = grid.interpolate_biquadratic(anchor.latitude, anchor.longitude)
+        nearest_value = grid.interpolate_biquadratic_nearest_node(
             anchor.latitude, anchor.longitude
         )
         assert (
             geoid18.geoid_height(anchor.latitude, anchor.longitude, grid)
-            == floor_anchored
+            == nearest_value
         )
-        if other != floor_anchored:
+        if nearest_value != floor_value:
             distinguishing += 1
 
     assert distinguishing >= 10, (
         "the anchors cannot tell the two anchorings apart, so the assertion "
         "above proves nothing"
     )
-
-    # Recorded because it is a gap this test closes rather than one it found in
-    # shipped code: tests/test_geoid.py holds the geoid anchors to 1 mm, and
-    # nearest-node anchoring lands at 0.830 mm, so the geoid suite alone would
-    # NOT notice geoid18 being re-anchored. This test is what would.
-    assert max(nearest_node) < 0.001
 
 
 # The two positions the WP-V4 review gate produced from its own sweep of

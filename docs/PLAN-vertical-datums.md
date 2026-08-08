@@ -250,21 +250,23 @@ on the same grids.
    NOT be written.** It would pin the defect. The pin to write is the opposite:
    both grids read through the nearest-node-anchored biquadratic, with the
    floor-anchored and bilinear variants failing the anchor lattice.
-2. **`ngs_grid.interpolate_biquadratic` must NOT be changed, and neither must
-   `geoid18.py`.** Measured against GEOID18's own frozen NGS geoid-API anchors,
-   floor anchoring gives max 0.595 mm / mean 0.237 / 18-of-20 within ±0.5 mm,
-   against nearest-node's 0.830 / 0.246 / 17-of-20. **GEOID18 measurably prefers
-   the anchoring that ships today**, which is released code behind amendment #8.
-   VERTCON gets a *second* interpolator added alongside, never a replacement.
-3. **The two NGS products genuinely differ in stencil convention.** A likely
-   reason, offered as explanation and not as evidence: VERTCON's 0.05° spacing
-   is three times coarser than GEOID18's one arcminute over a rougher field, so
-   the choice is decidable there and sits at the quantization floor on the
-   geoid. **Whether GEOID18 would also prefer nearest-node anchoring if the
-   truth set could resolve it is an open question** — its evidence cannot
-   currently tell, 0.595 against 0.830 mm is within the noise of a ±0.5 mm
-   truth set, and changing released code on undecidable evidence is not
-   justified. Raise it at the closing gate.
+2. ~~**`ngs_grid.interpolate_biquadratic` must NOT be changed, and neither must
+   `geoid18.py`.**~~ **SUPERSEDED for `geoid18.py` by WP-G1 (DESIGN.md #37):
+   GEOID18 now reads nearest-node too, on the owner's replicate-NOAA
+   instruction, gated by its own discriminating anchors.** What stands from
+   this point: `ngs_grid.interpolate_biquadratic` itself is unchanged and kept,
+   and no re-anchoring was folded into the vertical build — WP-G1 was its own
+   package with its own gate, exactly as required. The measurement that
+   motivated the caution stands too: against GEOID18's 20 frozen anchors, floor
+   gives max 0.595 mm against nearest-node's 0.830 — inside ±0.5 mm truth
+   noise, which is why those 20 could not decide anything.
+3. ~~**The two NGS products genuinely differ in stencil convention.**~~
+   **RESOLVED — they do not.** The open question this point raised ("whether
+   GEOID18 would also prefer nearest-node anchoring if the truth set could
+   resolve it") was answered at the WP-V4 gate by a 120-point sample where the
+   anchorings diverge (floor rms 0.715 mm, nearest-node 0.454, DESIGN.md #36),
+   corroborated by INTG's own source, and closed by WP-G1 (DESIGN.md #37).
+   Both NGS products are nearest-node.
 
 **Tolerance, derived rather than chosen:** the primary pin is exact —
 `round(grid_value, 3)` equals NCAT's printed figure, 20/20 on both grids, and it
@@ -664,7 +666,7 @@ falsified by seeding the defect it catches; suite green in `pytest` and `-O`.
 | Frozen NCAT `sigOrthoht`, same 20 points | `.err` reader | max 1.526 mm, mean 0.589 |
 | ~~**`.trn` biquadratic beats bilinear; `.err` bilinear beats biquadratic**~~ **SUPERSEDED, see §2.5a — do not build this pin** | ~~the §2.5 asymmetry~~ it would pin a defect | ~~2.657 vs 7.430; 1.526 vs 12.406~~ |
 | **Both grids read nearest-node-anchored biquadratic; floor-anchored and bilinear FAIL the lattice** | §2.5a. Every anchor rounds to NCAT's printed figure, 20/20 on both grids | 0.4707 mm `.trn`, 0.4716 mm `.err`, against 8.4573 / 3.0416 floor-anchored |
-| **GEOID18 still reads floor-anchored, and its suite still passes** | the new interpolator is added ALONGSIDE, never a replacement; GEOID18 measurably prefers the old anchoring | 0.595 mm vs 0.830 mm nearest-node |
+| ~~**GEOID18 still reads floor-anchored, and its suite still passes**~~ **SUPERSEDED by WP-G1 (DESIGN.md #37): GEOID18 reads nearest-node now, gated by its own 120-point discriminating anchor set** | at WP-V4 time the new interpolator was added alongside, never a replacement — re-anchoring released code was correctly left to its own package | 0.595 mm vs 0.830 on the 20 anchors (cannot discriminate); 0.715 vs 0.454 rms where the anchorings diverge |
 | Fortran markers on header and all 521 rows; the file's length equals what its header implies | the structural check #22 predicted. **A separate "bytes consumed" refusal after the row walk is NOT to be added back** — it is forced by the length check and cannot fire (V4 review) | exact |
 | A negative interpolated σ refuses through `sigma_m`, and `reading_at` still returns the shift | a negative is not an uncertainty; the shift is a different grid and is unaffected (V4 review) | exact, at 42.87 N / 83.81 W and 42.475 N / 83.125 W |
 | The pair has no per-quantity accessor | a shift at one position must not be pairable with a σ at another (V4 review) | exact |
@@ -726,8 +728,10 @@ deliver it.
 2. ~~**The §2.5 interpolation asymmetry being "simplified" later.** Pinned, with a
    test whose failure message says why the two differ.~~ **DISSOLVED — there is no
    asymmetry to protect (§2.5a).** Both grids are biquadratic; the risk that
-   replaces this one is the *opposite*, that someone re-anchors the stencil to
-   GEOID18's, and that is what is pinned.
+   replaces this one is the *opposite*, that someone re-anchors a stencil to
+   the floor-anchored variant, and that is what is pinned — on VERTCON by the
+   NCAT lattice, and since WP-G1 on GEOID18 by its discriminating anchors too
+   (GEOID18 no longer reads floor-anchored; DESIGN.md #37).
 3. **Sign, byte order, units, marker layout.** Four ways to produce plausible
    garbage. All four are now pinned by measurement *before* code exists — which
    is the point of running V0 first.

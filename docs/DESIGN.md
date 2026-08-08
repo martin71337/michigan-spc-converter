@@ -447,6 +447,72 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #37 — 2026-08-07 — WP-G1 executed: GEOID18 re-anchored to INTG's stencil
+
+**The work package #36 specified is built.** `geoid18.GeoidGrid.height_biquadratic`
+and with it `geoid_height` now read `ngs_grid.interpolate_biquadratic_nearest_node`
+— the 3×3 stencil centred on the nearest node, which is what NGS's own INTG
+program does (`irown = nint(...)` in `intg.f`) and what NOAA TM NOS NGS-84
+describes. The change site is one call, exactly as #36 predicted; the work was
+the anchors. Authority: the owner's 2026-08-07 instruction to replicate NOAA,
+with the tiebreak that where NOAA's published program and NOAA's web service
+disagree, **the published program governs**.
+
+**The evidence was reproduced independently before the change, not inherited.**
+The session lead re-ran the comparison from the committed truth capture
+(`review/wp-v4-anchoring/geoid18_120_discriminating_points.json`) through the
+production interpolators: floor rms 0.715 mm / 66 of 120 rounding to NGS's
+printed figure, nearest-node rms 0.454 mm / 83 of 120 — matching #36's table to
+the digit, with zero divergence between the capture's stored predictions and
+what the production code computes at all 240 evaluations.
+
+**The anchors #36 required now exist:**
+`tests/fixtures/geoid_discriminating_anchors.py`, 120 NGS geoid-API truths
+frozen verbatim from the committed capture, of which **36 discriminate exactly**:
+the nearest-node stencil rounds to NGS's printed figure there and the
+floor-anchored one does not. Two new pins in `tests/test_geoid.py`: the exact
+round-to-NGS pin over the 36, and an aggregate pin holding both schemes' rms and
+round counts over all 120 (so satisfying the 36 while degrading elsewhere would
+still show). The fixture records the honest remainder in its own docstring: 19
+of 120 round under floor and not under nearest-node — printing-boundary noise
+against 36 the other way. `tests/test_vertcon.py`'s
+`test_geoid18_keeps_the_other_anchoring`, which pinned the pre-decision status
+quo, is rewritten as `test_geoid18_shares_vertcons_anchoring_since_wp_g1`: both
+NGS products now read the same anchoring, `geoid_height` is checked against the
+nearest-node interpolator at every one of the 20 original anchors, and the
+20-anchor measurements (floor 0.595 mm, nearest 0.830 mm — floor fractionally
+better there, inside the quantization noise) stay asserted as history, because
+they are why discriminating anchors had to exist.
+
+**Falsified before acceptance:** with `geoid_height` seeded back to the floor
+stencil, all three pins fail — the 36-point exact pin on its first position, the
+aggregate pin on rms (0.715 measured against the 0.454 required), and the
+cross-product pin in `test_vertcon.py`. Restored, suite **1346 → 1348**, green in
+`pytest` and `-O`.
+
+**What it cost, measured:** worst change to a reported geoid separation ~4 mm in
+the roughest cells (#36's figure, confirmed); at the 20 frozen anchors the
+largest change is 0.83 mm; at the frozen self-test anchor (Cadillac) 0.09 mm,
+far inside its 0.002 m tolerance; ~6e-10 in an elevation factor. **No coordinate
+moves.** All figures sit far inside GEOID18's own stated 30–60 mm model
+uncertainty.
+
+**The caveat #36 required to survive, stated again rather than implied away:**
+INTG's stencil is *not* the best fit to the NGS geoid API — a bicubic 4×4 is,
+rms 0.409 mm against nearest-node's 0.454. The re-anchoring follows the owner's
+published-program rule and `intg.f`'s documented reading of exactly this `.bin`
+format; it does not claim to reproduce NGS's web service, whose engine is
+undocumented. This paragraph also lives in
+`geoid18.GeoidGrid.height_biquadratic`'s docstring.
+
+**#8's status after this:** its decision — biquadratic over bilinear — stands;
+its anchoring claim was corrected by #36; as of this amendment the shipped
+anchoring **is** INTG's, so the correction is now historical rather than a
+standing discrepancy. `ngs_grid.interpolate_biquadratic` (the floor-anchored
+variant) remains in the module deliberately: it is what the discriminating pins
+are shown failing against, and it is the recorded history of what 0.1.0 through
+0.3.1 computed.
+
 ### #36 — 2026-08-07 — WP-V1 and WP-V4: the grids land, and the interpolation stencil was wrong
 
 **Status: the vertical feature is HALF BUILT.** V0–V4 are done, gated under Codex

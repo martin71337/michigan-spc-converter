@@ -23,7 +23,10 @@ ANCHOR_IDS = [f"{a.latitude}/{a.longitude}" for a in GEOID_ANCHORS]
 
 # NGS prints geoid heights to 0.001 m, so half a unit in the last place is
 # 0.0005 m. Biquadratic interpolation reaches that floor (measured worst case
-# 0.6 mm across the anchors); 1 mm leaves a little headroom above the
+# 0.83 mm across these 20 anchors under the nearest-node anchoring WP-G1
+# shipped, 0.6 mm under the floor anchoring it replaced - both inside the
+# noise, which is why the anchoring is gated by the discriminating anchors
+# below and not by these); 1 mm leaves a little headroom above the
 # quantization without admitting a genuinely worse scheme.
 GEOID_TOLERANCE_M = 0.001
 
@@ -130,16 +133,15 @@ def test_biquadratic_beats_bilinear_against_ngs(grid):
 
     NGS documents the scheme after all - NOAA TM NOS NGS-84 and INTG's own
     Fortran source both give biquadratic on a nearest-node 3x3, which the WP-V4
-    gate established and DESIGN.md #8 now records. That confirms the choice this
-    test pins. It also shows the ANCHORING here is not INTG's, which is a
-    separate open item recorded in #8 and in
-    ``ngs_grid.interpolate_biquadratic``; it is not what this test is about.
+    gate established and DESIGN.md #8 now records. Since WP-G1 (DESIGN.md #37)
+    the anchoring is INTG's too; the anchoring is gated by the discriminating
+    anchors below, not by this test, which is about the scheme.
 
     Both candidates were implemented and measured against NGS's own service
     across the 20 Michigan anchors:
 
         bilinear      worst error 1.3 mm
-        biquadratic   worst error 0.6 mm
+        biquadratic   worst error 0.83 mm (nearest-node; 0.6 mm floor-anchored)
 
     NGS publishes to 1 mm, so biquadratic sits at the quantization floor while
     bilinear is measurably worse. This test keeps that comparison live, so a
@@ -184,6 +186,91 @@ def test_every_michigan_geoid_height_is_negative(grid):
         geoid18.geoid_height(a.latitude, a.longitude, grid) for a in GEOID_ANCHORS
     ]
     assert -40.0 < min(heights) < max(heights) < -25.0
+
+
+# --------------------------------------------------------------------------
+# The WP-G1 anchoring gate (DESIGN.md #37). The 20 anchors above cannot tell
+# the two stencil anchorings apart - every candidate sits inside NGS's 0.001 m
+# printing quantization on them, so the suite passed with geoid_height anchored
+# either way (a #31-class pin, found by seeding exactly that defect at the
+# WP-V4 gate). These anchors were frozen where the anchorings diverge, and
+# they are what fails if the geoid is ever quietly moved off INTG's stencil.
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.anchor
+def test_geoid_height_rounds_to_ngs_at_every_discriminating_anchor(grid):
+    """The exact pin #36 asked WP-G1 to freeze.
+
+    At each of these 36 positions the nearest-node (INTG) stencil rounds to
+    NGS's own printed figure and the floor-anchored stencil does not, so this
+    test cannot pass under the anchoring 0.1.0 through 0.3.1 shipped.
+    Falsified at the WP-G1 gate: with ``geoid_height`` seeded back to
+    ``interpolate_biquadratic``, all 36 fail.
+    """
+    from tests.fixtures.geoid_discriminating_anchors import DISCRIMINATING_ANCHORS
+
+    pins = [a for a in DISCRIMINATING_ANCHORS if a.discriminates]
+    assert len(pins) == 36, "the pin set itself has been altered"
+
+    for anchor in pins:
+        height = geoid18.geoid_height(anchor.latitude, anchor.longitude, grid)
+        assert round(height, 3) == round(anchor.geoid_height_m, 3), (
+            f"{anchor.latitude}, {anchor.longitude}: geoid_height gives "
+            f"{height:.6f}, which does not round to NGS's printed "
+            f"{anchor.geoid_height_m}. This position discriminates the stencil "
+            f"anchoring - the INTG nearest-node stencil reproduces NGS here "
+            f"and the floor-anchored one does not - so this failure means the "
+            f"anchoring has moved off INTG's (DESIGN.md #37)."
+        )
+
+
+@pytest.mark.anchor
+def test_nearest_node_beats_floor_where_the_anchorings_diverge(grid):
+    """The aggregate half of the WP-G1 gate, over all 120 positions.
+
+    The exact pin above names the 36 positions where the anchorings disagree
+    about NGS's printed figure. This one holds the aggregate, so a change that
+    somehow satisfied those 36 while degrading everywhere else would still
+    show. Honest remainder, recorded in the fixture: at 19 of the 120 the
+    floor anchoring rounds to NGS and nearest-node does not - printing-boundary
+    noise against 36 the other way - and the aggregate is what decides.
+
+    Measured (DESIGN.md #36, reproduced independently at the WP-G1 gate):
+
+        floor-anchored   rms 0.715 mm   66/120 round to NGS's figure
+        nearest-node     rms 0.454 mm   83/120
+    """
+    from tests.fixtures.geoid_discriminating_anchors import DISCRIMINATING_ANCHORS
+
+    def stats(interpolate):
+        residuals = [
+            interpolate(a.latitude, a.longitude) - a.geoid_height_m
+            for a in DISCRIMINATING_ANCHORS
+        ]
+        rms = (sum(r * r for r in residuals) / len(residuals)) ** 0.5
+        rounds = sum(
+            1
+            for a in DISCRIMINATING_ANCHORS
+            if round(interpolate(a.latitude, a.longitude), 3)
+            == round(a.geoid_height_m, 3)
+        )
+        return rms, rounds
+
+    shipped_rms, shipped_rounds = stats(
+        lambda lat, lon: geoid18.geoid_height(lat, lon, grid)
+    )
+    floor_rms, floor_rounds = stats(grid.interpolate_biquadratic)
+
+    # What ships must be the nearest-node figures, to the tenth of a millimetre.
+    assert shipped_rms == pytest.approx(0.000454, abs=5e-5)
+    assert shipped_rounds == 83
+    # And the floor stencil must remain measurably worse here - if this half
+    # ever fails, the fixture's premise has changed and #37 must be revisited,
+    # not the assertion loosened.
+    assert floor_rms == pytest.approx(0.000715, abs=5e-5)
+    assert floor_rounds == 66
+    assert shipped_rms < floor_rms
 
 
 def test_interpolation_reproduces_a_grid_node_exactly(grid):

@@ -210,14 +210,26 @@ class GeoidGrid(ngs_grid.Grid):
     def height_biquadratic(self, latitude: float, longitude: float) -> float:
         """Geoid height by biquadratic interpolation over a 3x3 neighbourhood.
 
-        Biquadratic IS the scheme NGS's INTG program uses. The **anchoring**
-        this inherits is not INTG's - INTG centres its stencil on the nearest
-        node and this anchors below the point. Corrected at the WP-V4 gate from
-        a claim that stood for three releases; the evidence, the measured cost
-        (about 4 mm at worst in a reported separation) and the reason it is left
-        alone for now are in ``ngs_grid.interpolate_biquadratic``.
+        Anchored on the NEAREST node, which is what NGS's own INTG program does
+        (``irown = nint(...)`` in intg.f) and what NOAA TM NOS NGS-84 describes:
+        "the nearest 3x3 set of grid points". Re-anchored at WP-G1 on the
+        owner's instruction to replicate NOAA (DESIGN.md #37); for three
+        releases this read the floor-anchored stencil while claiming to be
+        INTG's, a claim corrected at the WP-V4 gate (DESIGN.md #36). Measured
+        against NGS's own geoid API at 120 positions chosen where the two
+        anchorings diverge most, nearest-node is the better fit - rms 0.454 mm
+        against 0.715, 83 against 66 of 120 reproducing NGS's printed figure -
+        and the worst change to a reported separation is about 4 mm, far inside
+        GEOID18's own 30-60 mm model uncertainty. No coordinate moves.
+
+        The honest caveat, from #36 and kept here on purpose: INTG's stencil is
+        NOT the best fit to the NGS geoid API - a bicubic is, by a visible
+        margin (rms 0.409 mm). This anchoring is used because the owner ruled
+        that NOAA's published program governs where NOAA's program and NOAA's
+        service disagree, and ``intg.f`` is the documented reader for exactly
+        this ``.bin`` format while the API's engine is undocumented.
         """
-        return self.interpolate_biquadratic(latitude, longitude)
+        return self.interpolate_biquadratic_nearest_node(latitude, longitude)
 
 
 def load_grid(
@@ -354,11 +366,11 @@ def default_grid() -> GeoidGrid:
 def geoid_height(latitude: float, longitude: float, grid: GeoidGrid | None = None) -> float:
     """Geoid height at a position, meters, negative in Michigan.
 
-    Uses biquadratic interpolation, which is the scheme NGS's own INTG program
-    uses. See docs/DESIGN.md amendment #8 for the evidence behind that choice,
-    and its correction: the stencil ANCHORING here is not INTG's, and
-    ``ngs_grid.interpolate_biquadratic`` records what that costs and why it has
-    not been changed inside a vertical-datum build.
+    Uses biquadratic interpolation on a 3x3 stencil anchored at the nearest
+    node - the scheme AND the anchoring of NGS's own INTG program. See
+    docs/DESIGN.md amendment #8 for the evidence behind the scheme, #36 for
+    the discovery that the anchoring shipped wrong for three releases, and #37
+    for the re-anchoring (WP-G1) and the anchors that gate it.
     """
     grid = grid or default_grid()
     return grid.height_biquadratic(latitude, longitude)

@@ -270,17 +270,19 @@ class Grid:
         docs/DESIGN.md amendment #8's statement that NGS does not document the
         scheme is likewise wrong, and is corrected there.
 
-        **This method is nevertheless what GEOID18 keeps**, on the measurement
-        below, and changing it is a separate owner-gated decision rather than a
-        silent consequence of this discovery - see the table.
+        **No production reader uses this method any more.** GEOID18 shipped
+        through it for three releases while its docstring claimed the anchoring
+        was INTG's; WP-G1 re-anchored the geoid to
+        ``interpolate_biquadratic_nearest_node`` on the owner's instruction to
+        replicate NOAA (DESIGN.md #37), and both VERTCON grids were nearest-node
+        from the start (WP-V4). This method stays because it is the thing the
+        discriminating anchors have to be shown failing against - deleting it
+        would delete the defect the WP-G1 pins catch - and because it is the
+        recorded history of what 0.1.0 through 0.3.1 actually computed.
 
-        **Anchoring is a second choice, independent of the scheme, and the two
-        NGS products this program reads want different answers to it.** The
-        alternative anchors on the nearest node instead, putting the local
-        coordinate in [0.5, 1.5]; it is
-        ``interpolate_biquadratic_nearest_node`` below. Measured against each
-        product's own frozen anchors (max absolute residual, and how many of the
-        20 points land inside the source's printed half-unit):
+        **Anchoring is a second choice, independent of the scheme.** Measured
+        against each product's own frozen anchors (max absolute residual, and
+        how many of the 20 points land inside the source's printed half-unit):
 
             GEOID18, against the NGS geoid API
                 this method (floor)   0.595 mm, 18/20 within 0.5 mm
@@ -292,34 +294,18 @@ class Grid:
                 this method (floor)   3.042 mm, 14/20
                 nearest-node          0.472 mm, 20/20
 
-        So GEOID18 keeps this method and both VERTCON grids take the other one.
-        The difference is detectable on VERTCON and at the quantization floor on
-        the geoid, which is what one would expect: VERTCON's 0.05-degree spacing
-        is three times coarser than GEOID18's arcminute, over a rougher field.
-
-        Which grid wants which scheme, and which anchoring, is the *caller's*
-        choice and is not obvious. GEOID18 is biquadratic, floor-anchored, by
-        measurement (docs/DESIGN.md amendment #8); both VERTCON grids are
-        biquadratic, nearest-node anchored, by measurement (WP-V4, superseding
-        docs/PLAN-vertical-datums.md section 2.5, whose "the uncertainty grid is
-        bilinear" finding was measuring this anchoring difference rather than a
-        property of the two grids). Every variant lives here; none is a default.
-
-        **The GEOID18 row of that table is weak evidence and is recorded as
-        such.** The 20 geoid anchors are quantized to 0.001 m, and all four
-        candidate schemes sit within that noise on them (rms 0.29 to 0.53 mm
-        against a 0.289 mm quantization floor). A 120-point sample taken
-        deliberately where the two anchorings diverge most - fractional cell
-        position 0.9, highest-curvature Michigan cells - reverses the ranking:
-        floor rms 0.715 mm against nearest-node 0.454. Combined with the INTG
-        source above, the likelihood is that **GEOID18 should also be
-        nearest-node anchored**, and that this method is simply wrong. It is
-        left in place because it is released code whose worst measured error is
-        about 4 mm in a reported geoid separation - roughly 6e-10 in an
-        elevation factor, and far inside GEOID18's own 30-60 mm model
-        uncertainty - so nothing on a sealed survey moves, and re-anchoring it
-        deserves its own work package, its own anchors and the owner's decision
-        rather than being folded into a vertical-datum build.
+        **The GEOID18 row of that table is why the geoid's re-anchoring needed
+        its own anchors.** The 20 geoid anchors are quantized to 0.001 m and
+        every candidate scheme sits inside that noise on them, so that row
+        cannot discriminate. A 120-point sample taken deliberately where the
+        two anchorings diverge most - fractional cell position 0.9,
+        highest-curvature Michigan cells - reverses its ranking: floor rms
+        0.715 mm against nearest-node 0.454, 66 against 83 of 120 reproducing
+        NGS's printed figure. Those positions are frozen as
+        ``tests/fixtures/geoid_discriminating_anchors.py`` and are what now
+        pins the anchoring. The worst change re-anchoring made to a reported
+        separation is about 4 mm - roughly 6e-10 in an elevation factor, far
+        inside GEOID18's own 30-60 mm model uncertainty. No coordinate moved.
         """
         row, column = self._require_inside(latitude, longitude)
 
@@ -351,18 +337,22 @@ class Grid:
         accurate near its centre, which is why the placement is worth a method of
         its own rather than being treated as an implementation detail.
 
-        This is what both VERTCON 3.0 grids are read through, measured against
-        NGS NCAT at 0.471 mm and 0.472 mm maximum residual over the 20 frozen
-        Michigan anchors, where the floor-anchored variant reaches 8.457 mm and
-        3.042 mm. See ``interpolate_biquadratic`` for the full table and for why
-        GEOID18 keeps the other one.
+        This is the anchoring NGS's own programs use - INTG for the geoid
+        (``irown = nint(...)`` in intg.f) and VERTCON's published Vertcon.java,
+        whose ``getGridRow`` this reproduces bit-identically over 18,000
+        Michigan positions (DESIGN.md #36). Every production reader now comes
+        through here: both VERTCON 3.0 grids from WP-V4 (0.471 mm and 0.472 mm
+        maximum residual against NGS NCAT over the 20 frozen Michigan anchors,
+        where the floor-anchored variant reaches 8.457 mm and 3.042 mm) and
+        GEOID18 since WP-G1 (DESIGN.md #37). See ``interpolate_biquadratic``
+        for the full table and for why that variant is kept at all.
 
         **The five lines of evaluation below are deliberately not shared with
-        ``interpolate_biquadratic``.** That method is released code standing
-        behind DESIGN.md amendment #8 and a Michigan geoid height in every
-        elevation factor this program has ever printed; factoring its body out to
-        serve a new caller would edit it to no behavioural purpose. The
-        duplication is two lines of arithmetic and it is the cheaper risk.
+        ``interpolate_biquadratic``.** The two anchorings must stay separately
+        readable and separately failable: the WP-G1 anchors gate exactly the
+        difference between them, and factoring the bodies together would leave
+        one arithmetic expression wearing two names. The duplication is two
+        lines and it is the cheaper risk.
         """
         row, column = self._require_inside(latitude, longitude)
 

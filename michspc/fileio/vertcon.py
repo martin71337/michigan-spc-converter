@@ -56,10 +56,11 @@ independently of this reader and requires the walk to land on the last byte.
 **INTERPOLATION: both grids are biquadratic, anchored on the NEAREST NODE.**
 That is one measured choice with two parts, and the second part is the one that
 is easy to get wrong. The scheme is the same tensor product of Lagrange
-quadratics GEOID18 uses; the *anchoring* is not GEOID18's. GEOID18 places its 3x3
-stencil at ``int(row) - 1``, which puts the target in the stencil's upper
-interval; both VERTCON grids want it at ``int(row + 0.5) - 1``, which puts the
-target in the middle. Measured against the 20 frozen NGS NCAT anchors:
+quadratics GEOID18 uses, and since WP-G1 the anchoring is shared too:
+``int(row + 0.5) - 1``, the stencil centred on the nearest node, target in the
+middle. (When WP-V4 was built GEOID18 still shipped the floor-anchored
+``int(row) - 1`` stencil; DESIGN.md #37 records its re-anchoring.) Measured
+against the 20 frozen NGS NCAT anchors:
 
     .trn   nearest-node   0.471 mm max      floor-anchored   8.457 mm max
     .err   nearest-node   0.472 mm max      floor-anchored   3.042 mm max
@@ -67,10 +68,12 @@ target in the middle. Measured against the 20 frozen NGS NCAT anchors:
     .err   bilinear       4.547 mm max
 
 Nearest-node anchoring reproduces NCAT's printed figure at 20 of 20 points on
-both grids; nothing else reproduces it at more than 14. GEOID18 measurably
-prefers the other anchoring on its own anchors (0.595 mm against 0.830), so the
-two NGS products genuinely differ and ``ngs_grid`` carries both variants with
-neither as a default.
+both grids; nothing else reproduces it at more than 14. GEOID18 now reads
+through the same anchoring - re-anchored at WP-G1 (DESIGN.md #37), after its
+own discriminating anchors showed nearest-node the better fit there too and
+the owner ruled that NOAA's published programs govern. ``ngs_grid`` still
+carries both variants, with the floor-anchored one kept as the measured
+history and the thing the anchoring pins are shown failing against.
 
 **This supersedes docs/PLAN-vertical-datums.md section 2.5**, which recorded that
 the ``.trn`` grid is biquadratic and the ``.err`` grid bilinear and asked for a
@@ -346,8 +349,8 @@ class TransformationGrid(ngs_grid.Grid):
     """The ``.trn`` grid: ``NAVD88 - NGVD29`` in metres.
 
     Read by the nearest-node-anchored biquadratic - see the module docstring for
-    the measurement, and ``ngs_grid.interpolate_biquadratic`` for why GEOID18
-    does not use the same anchoring.
+    the measurement. Since WP-G1 (DESIGN.md #37) GEOID18 reads through the same
+    anchoring; ``ngs_grid.interpolate_biquadratic`` records the history.
     """
 
     dialect = _TRANSFORMATION_DIALECT

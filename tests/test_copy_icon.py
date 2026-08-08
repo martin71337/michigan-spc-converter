@@ -129,12 +129,59 @@ def test_the_glyph_is_drawn_in_the_colour_it_was_asked_for(qapp):
 
 def test_a_high_dpi_screen_gets_real_pixels_not_a_scaled_up_one(qapp):
     """Windows laptops default to 150% or 200%. A 14 px pixmap stretched to 28
-    is a blurred glyph; this asks for 28 real pixels and says it is worth 14."""
+    is a blurred glyph; this asks for 28 real pixels and says it is worth 14.
+
+    Dimensions only. That this pixmap's CONTENT is right is the next test's
+    job, and for three releases it was nobody's: this one passed while every
+    scaled display showed a glyph with its bottom and right cut off.
+    """
     pixmap = glyph.copy_pixmap(14, BLACK, device_pixel_ratio=2.0)
 
     assert pixmap.width() == 28
     assert pixmap.height() == 28
     assert pixmap.devicePixelRatio() == 2.0
+
+
+@pytest.mark.parametrize("device_pixel_ratio", [1.25, 1.5, 2.0])
+@pytest.mark.parametrize("size", [11, 14])
+def test_a_scaled_display_gets_the_same_picture_a_100_percent_one_does(
+    qapp, size, device_pixel_ratio
+):
+    """The whole glyph, at every Windows display scale — byte-identical.
+
+    A pixmap asked for at ``size`` logical pixels under a device pixel ratio
+    carries ``round(size * ratio)`` physical pixels, and its content must be
+    EXACTLY the content a 100% display gets when it asks for that many pixels
+    outright: same canvas, same scale, same bytes. That identity is what the
+    fix restores, so it is what is pinned — no probe positions to drift, no
+    antialiasing tolerance to go stale (the #31 class).
+
+    What it catches, because it caught it: ``copy_pixmap`` stamped the device
+    pixel ratio on the pixmap BEFORE opening the painter, so the painter
+    arrived pre-scaled by the ratio and the canvas scale compounded with it —
+    the 16-unit canvas mapped onto 17.5 device pixels of a 14-pixel pixmap at
+    125%, and every copy button on the results panel lost the bottom and right
+    of its glyph. At 100%, and on this offscreen test platform, both scales
+    are 1.0 and nothing showed; the owner's 125% display is where it was
+    found (DESIGN.md amendment #39). Falsified by seeding that order back:
+    all six parametrizations fail.
+
+    ``11`` is COPY_ICON_SIZE, the size the panel actually asks for; ``1.25``
+    is the display it was found on. The ratios cover the scales Windows
+    actually offers.
+    """
+    physical = round(size * device_pixel_ratio)
+
+    reference = glyph.copy_pixmap(physical, BLACK).toImage()
+    scaled = glyph.copy_pixmap(size, BLACK, device_pixel_ratio).toImage()
+
+    # The ratio itself is not under test here (the test above pins it), and
+    # QImage equality compares it; neutralize it so the comparison is the
+    # pixels and nothing else.
+    scaled.setDevicePixelRatio(1.0)
+    reference.setDevicePixelRatio(1.0)
+
+    assert scaled == reference
 
 
 def test_the_same_request_returns_the_same_icon(qapp):

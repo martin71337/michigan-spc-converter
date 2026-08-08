@@ -453,6 +453,46 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #39 — 2026-08-08 — The copy glyph lost its bottom on every scaled display, and the suite could not see it
+
+**Reported by the owner** — "the copy buttons might be getting cut off on the
+edges in the results" — and reproduced by grabbing the real Single point tab on
+the real `windows` platform rather than the offscreen one: at this machine's
+125% display scale every copy button rendered the glyph with its bottom and
+right edges missing, an "n" where two sheets belong.
+
+**The defect, one ordering.** `copy_pixmap` stamped the device pixel ratio on
+the pixmap **before** opening the painter. A `QPainter` on a pixmap that
+already carries a ratio works in logical coordinates — it arrives pre-scaled
+by the ratio — and the function then applied its own canvas scale
+(`physical / CANVAS`) on top, so the two scales compounded: at 125% the
+16-unit canvas mapped onto 17.5 device pixels of a 14-pixel pixmap, cutting
+~20% off the bottom and right; at 150% a third; at 200% half. At 100% both
+scales are 1.0 and the glyph is perfect — and the offscreen test platform runs
+at ratio 1.0, which is why the suite's 12 glyph tests (including one named
+`test_a_high_dpi_screen_gets_real_pixels_not_a_scaled_up_one`, which pinned
+the pixmap's *dimensions* and never its content) stayed green for three
+releases while every scaled Windows laptop showed the truncated glyph. **This
+is #31's lesson again from a new direction**: the test platform's honest
+difference from the shipped platform (there, font metrics; here, device pixel
+ratio) turned a real defect invisible.
+
+**The fix is to stamp the ratio after painting** — the painter then works in
+device pixels, the canvas scale is the only scale, and the fractional-ratio
+render becomes **byte-identical** to a 100%-display render of the same
+physical size. That identity is the new pin: parametrized over ratios 1.25 /
+1.5 / 2.0 and sizes 11 (the panel's actual `COPY_ICON_SIZE`) and 14, the
+scaled image must equal the same-physical-size unscaled one exactly — no probe
+positions to drift, no antialiasing tolerance to go stale. Falsified by
+seeding the old ordering: all six parametrizations fail, nothing else does.
+Verified visually on the real platform before and after via `QWidget.grab()`
+of the actual panel.
+
+`result_panel.py` is untouched; no layout, size or placement changed — the
+buttons were never clipped by the layout (checked: every button sits at its
+`sizeHint`, no horizontal scroll), only the picture inside them was cut.
+Suite 1390 → 1396, green in both modes.
+
 ### #38 — 2026-08-07 — The merge gate: two independent Opus reviews before V0–V4 and WP-G1 reach main
 
 **Why Opus reviewers:** the owner's standing instruction (2026-08-07, recorded

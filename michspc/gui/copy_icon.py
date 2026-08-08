@@ -79,9 +79,18 @@ def copy_pixmap(size: int, color: QColor, device_pixel_ratio: float = 1.0) -> QP
     """
     physical = max(1, round(size * device_pixel_ratio))
     pixmap = QPixmap(physical, physical)
-    pixmap.setDevicePixelRatio(device_pixel_ratio)
     pixmap.fill(Qt.GlobalColor.transparent)
 
+    # The device pixel ratio is stamped on the pixmap AFTER painting, at the
+    # bottom - and the order is load-bearing, not style. A QPainter opened on
+    # a pixmap that already carries a ratio works in logical coordinates: it
+    # arrives pre-scaled by that ratio, and the canvas scale below then
+    # compounds with it. At a 125% Windows display that mapped the 16-unit
+    # canvas onto 17.5 device pixels of a 14-pixel pixmap, so every button on
+    # the results panel showed a glyph with its bottom and right cut off - at
+    # 150% a third of it, at 200% half - while 100% displays and the offscreen
+    # test platform (both ratio 1.0) rendered it perfectly, which is why no
+    # test saw it and the owner did (DESIGN.md amendment #39).
     painter = QPainter(pixmap)
     try:
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
@@ -118,6 +127,7 @@ def copy_pixmap(size: int, color: QColor, device_pixel_ratio: float = 1.0) -> QP
         # platforms, leaves the pixmap unfinished.
         painter.end()
 
+    pixmap.setDevicePixelRatio(device_pixel_ratio)
     return pixmap
 
 

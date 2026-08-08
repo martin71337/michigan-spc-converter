@@ -17,11 +17,12 @@ convert" behaviour honest - what is previewed is what is written.
 from __future__ import annotations
 
 import hashlib
+import math
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
-from michspc.fileio import formatting, geoid, pnezd
+from michspc.fileio import formatting, geoid, pnezd, vertcon
 from michspc.spc.convert import (
     ConversionWarning,
     PointConversion,
@@ -33,6 +34,13 @@ from michspc.spc.convert import (
 from michspc.spc.factors import Factors, factors_at
 from michspc.spc.frames import NAD83_2011, ReferenceFrame
 from michspc.spc.units import LinearUnit
+from michspc.spc.vertical import (
+    VerticalDatum,
+    VerticalTransformation,
+    apply_shift,
+    require_vertical_pair,
+    signed_shift,
+)
 from michspc.spc.zones import Zone
 
 
@@ -42,6 +50,22 @@ class Direction(Enum):
     ZONE_TO_ZONE = "zone to zone"
     GEODETIC_TO_ZONE = "geodetic to State Plane"
     ZONE_TO_GEODETIC = "State Plane to geodetic"
+
+
+class VerticalMode(Enum):
+    """Whether this job converts elevations between vertical datums.
+
+    ``HORIZONTAL`` is today's behaviour, exactly: no vertical datum is asked
+    for, nothing is tagged, and the Z column is re-expressed in the output unit
+    but never shifted (DESIGN.md #35; plan section 1, the owner's decision that
+    horizontal mode is unchanged). ``HORIZONTAL_AND_VERTICAL`` additionally
+    moves every elevation from the source vertical datum to the target one
+    through the registry in ``michspc/spc/vertical.py``, and reports the
+    modeled shift and its per-point uncertainty beside it.
+    """
+
+    HORIZONTAL = "horizontal"
+    HORIZONTAL_AND_VERTICAL = "horizontal and vertical"
 
 
 class LongitudeConvention(Enum):
@@ -173,6 +197,150 @@ class JobSettings:
     not a record.
     """
 
+    vertical_mode: VerticalMode = VerticalMode.HORIZONTAL
+    """Whether elevations are converted between vertical datums.
+
+    Defaults to ``HORIZONTAL`` because that default preserves every existing
+    caller's behaviour exactly - it is today's job, and it asserts nothing
+    about a vertical datum. The GUI toggle that offers the other mode is
+    WP-V8's (docs/PLAN-vertical-datums.md section 4.1).
+    """
+
+    source_vertical_datum: VerticalDatum | None = None
+    """The vertical datum the input file's elevations are expressed in.
+
+    ``None`` is a statement, not an absence - "this job does not consult a
+    vertical datum" - the idiom ``longitude_convention`` established. Only a
+    ``HORIZONTAL`` job may say it, and a ``HORIZONTAL_AND_VERTICAL`` job must
+    not arrive without it: NGVD 29 and NAVD 88 heights differ by up to 0.41 m
+    across Michigan while looking identical, so ``run`` refuses rather than
+    assumes, in both directions (a vertical job missing a datum, and a
+    horizontal job supplied with one).
+    """
+
+    target_vertical_datum: VerticalDatum | None = None
+    """The vertical datum the output elevations are expressed in.
+
+    Same contract as ``source_vertical_datum``: ``None`` is the statement a
+    horizontal job makes, and ``run`` refuses every other combination.
+    """
+
+
+_IDENTITY_SIGMA_REASON = (
+    "no modeled transformation was applied, so no model uncertainty exists"
+)
+"""Why an identity reading carries no sigma. NOT sigma 0.0: a zero would state
+that the conversion's uncertainty was measured and found to be nothing, when in
+truth no model ran and there is no model uncertainty to state - fabricating a
+zero uncertainty is the same class of invented number as fabricating a zero
+shift, and this program refuses both."""
+
+
+@dataclass(frozen=True)
+class VerticalReading:
+    """The vertical half of one converted point: what moved the Z, how far,
+    and how well that movement is known.
+
+    ``sigma_m`` and ``sigma_unavailable_reason`` are exclusive by construction,
+    because the two absences they distinguish must never blur: an identity job
+    has no sigma because *no model ran*, and a modeled job at a position where
+    the error grid interpolates negative has no sigma because *the model's
+    output there cannot be an uncertainty* (docs/DESIGN.md #36). A bare None
+    with no reason would collapse those into one silence.
+
+    # WP-V7: the job record, the audit CSV and the Single point panel do not
+    # yet state these fields; that disclosure - wording, columns, and the
+    # negative-sigma decision - is WP-V7's and the owner's, deliberately.
+    """
+
+    transformation: VerticalTransformation
+    """The registry record this shift was applied under. Checked against the
+    job's settings per row (``_require_transformation_matches_settings``), not
+    merely carried - the #36 reviewer note that ``apply_shift`` takes a bare
+    float, so nothing downstream could notice a mismatch on its own."""
+
+    shift_m: float
+    """The shift APPLIED to the source height, metres:
+    ``sign * grid_value``, from ``spc.vertical.signed_shift`` - never the raw
+    grid value, whose sign is the same in both directions. Exactly 0.0 for an
+    identity."""
+
+    sigma_m: float | None
+    """One-sigma uncertainty of the modeled shift, metres, from the companion
+    error grid. None when no uncertainty exists or none can be stated - the
+    reason beside it says which."""
+
+    sigma_unavailable_reason: str | None
+    """Why ``sigma_m`` is None, when it is. None when a sigma is present."""
+
+    def __post_init__(self) -> None:
+        # if/raise, never assert: the suite and the shipped program run
+        # under -O, which strips asserts (docs/DESIGN.md section 7).
+        if not isinstance(self.transformation, VerticalTransformation):
+            # The #11-finding-1 guard, matching every neighbouring field: a
+            # string spelling "NGVD29 -> NAVD88" duck-types deep into an
+            # output layer before anything asks it for a direction_statement
+            # (WP-V6 review gate, MEDIUM 4).
+            raise TypeError(
+                f"VerticalReading.transformation must be a "
+                f"michspc.spc.vertical.VerticalTransformation record; got "
+                f"{type(self.transformation).__name__} "
+                f"({self.transformation!r}). The record is what the output "
+                f"layers quote - its direction_statement, model, release and "
+                f"caveat - so a stand-in cannot say what was done to the "
+                f"height."
+            )
+        if self.sigma_m is None and self.sigma_unavailable_reason is None:
+            raise ValueError(
+                "A VerticalReading with no sigma must say why - an identity "
+                "carries no model uncertainty, a negative interpolation "
+                "cannot be one - so sigma_unavailable_reason is required "
+                "whenever sigma_m is None. A silent absence is "
+                "indistinguishable from a value nobody looked up."
+            )
+        if self.sigma_m is not None and self.sigma_unavailable_reason is not None:
+            raise ValueError(
+                f"A VerticalReading carries sigma_m={self.sigma_m!r} AND a "
+                f"reason it is unavailable "
+                f"({self.sigma_unavailable_reason!r}). These contradict each "
+                f"other: one of them is false, and an output layer could "
+                f"print either."
+            )
+        if self.sigma_m is not None and not vertcon.sigma_is_physical(self.sigma_m):
+            # The one rule, stated once (vertcon.sigma_is_physical) and now
+            # applied at its third site, so this record and the reader cannot
+            # disagree about what a sigma is. A negative one-sigma reaching a
+            # screen is the defect #36 spent a work package refusing; this
+            # frozen record is what WP-V7's output layer will print from
+            # (WP-V6 review gate, MEDIUM 4). NaN fails this check too - it
+            # compares False against zero - and +inf falls to the next one.
+            raise ValueError(
+                f"A VerticalReading cannot carry sigma_m={self.sigma_m!r}: a "
+                f"one-sigma uncertainty is a non-negative, finite number of "
+                f"metres. Where the error model interpolates below zero, pass "
+                f"sigma_m=None with the reason - never the raw figure under "
+                f"this name (michspc.fileio.vertcon.UncertaintyGrid)."
+            )
+        if self.sigma_m is not None and not math.isfinite(self.sigma_m):
+            raise ValueError(
+                f"A VerticalReading cannot carry sigma_m={self.sigma_m!r}: a "
+                f"non-finite value is not an uncertainty, and printed beside "
+                f"a shift it would read as one."
+            )
+        if (
+            self.sigma_unavailable_reason is not None
+            and not self.sigma_unavailable_reason.strip()
+        ):
+            # The rule VerticalTransformation.__post_init__ already applies to
+            # its citation and caveat: an empty reason is a silence wearing
+            # the shape of an explanation.
+            raise ValueError(
+                "A VerticalReading's sigma_unavailable_reason is empty. The "
+                "reason is what an output layer prints in place of the "
+                "number; an empty one collapses the two absences this field "
+                "exists to distinguish."
+            )
+
 
 @dataclass(frozen=True)
 class ConvertedPoint:
@@ -187,8 +355,27 @@ class ConvertedPoint:
     """In the OUTPUT unit, ready to format."""
 
     output_elevation: float | None
-    """In the output unit. Unchanged by the conversion - orthometric height does
-    not depend on the horizontal zone - but re-expressed if the units differ."""
+    """In the output unit.
+
+    For a HORIZONTAL job this is the input elevation re-expressed if the units
+    differ, and nothing else - orthometric height does not depend on the
+    horizontal zone. For a HORIZONTAL_AND_VERTICAL job it is the SHIFTED
+    height, expressed in the target vertical datum ``vertical`` names:
+    docs/PLAN-vertical-datums.md section 3.6 explicitly repeals the "unchanged
+    by the conversion" sentence this field carried for the Z column. None when
+    the point carried no elevation - or when the vertical shift was
+    unavailable (``WarningCode.VERTICAL_SHIFT_UNAVAILABLE``), because an
+    unconverted height printed as converted is the tier sentence's failure
+    mode.
+    """
+
+    vertical: VerticalReading | None = None
+    """The vertical transformation evidence for this point, or None.
+
+    None on every point of a HORIZONTAL job, on a vertical job's point that
+    carried no elevation (there is no height to shift), and on a point whose
+    shift was unavailable (the warning beside it says so).
+    """
 
     warnings: tuple[ConversionWarning, ...] = field(default_factory=tuple)
 
@@ -305,6 +492,12 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
             "moves a Michigan point about 340 miles."
         )
 
+    # Every vertical-settings refusal fires here, before any file is read and
+    # long before any point converts (docs/PLAN-vertical-datums.md section
+    # 3.5). None for a horizontal job; the registry's record for a vertical
+    # one.
+    transformation = _require_vertical_settings(settings)
+
     if source is None and settings.input_path is None:
         # ``input_path`` is None only because the caller stated this job came
         # from no file, and no rows arrived either - so there is nothing to
@@ -362,15 +555,65 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
             f"michspc.fileio.geoid, or geoid_model_by_name()."
         )
 
+    if transformation is not None and settings.geoid_model is not None:
+        # Plan section 3.5's fourth refusal, WIDENED at the WP-V6 review gate
+        # (DESIGN.md #41, superseding the plan's target-datum-only rule): the
+        # geoid model's datum must match EITHER endpoint of the vertical
+        # conversion, because the factors are computed from the height in the
+        # model's own era - the shifted height when the target matches, the
+        # source height when the source does (_convert_row). The plan's rule
+        # would have refused NAVD88 -> NGVD29 outright, dead-ending WP-V8's
+        # dropdowns for every NGVD 29 target with advice no interface offers;
+        # under this rule both modeled directions carry a NAVD 88 leg and
+        # work with both shipped models, and the era mixing #32 forbids never
+        # happens. What still refuses: a pair whose endpoints BOTH differ
+        # from the model's datum - today, only an NGVD29 -> NGVD29 identity
+        # job with a geoid model attached, where no NAVD 88 height exists at
+        # any stage. After the job's own geoid_model guards above, so a geoid
+        # impostor is still refused by the job's own message first.
+        model = settings.geoid_model
+        endpoint_codes = {
+            settings.source_vertical_datum.code,
+            settings.target_vertical_datum.code,
+        }
+        if model.vertical_datum.code not in endpoint_codes:
+            raise geoid.GeoidError(
+                f"The {model.name} geoid model publishes separations for "
+                f"heights in {model.vertical_datum.code}, but no stage of "
+                f"this job's elevations is in that datum "
+                f"({settings.source_vertical_datum.code} -> "
+                f"{settings.target_vertical_datum.code}), so there is no "
+                f"height the model's separations can honestly combine with - "
+                f"an elevation factor built from the two would mix eras "
+                f"inside one number (DESIGN.md #32). Run this job in "
+                f"horizontal mode, which converts the coordinates and "
+                f"carries the elevation through unchanged, or convert the "
+                f"elevations to {model.vertical_datum.code} in a job that "
+                f"targets it."
+            )
+
     grid = (
         geoid.default_grid(settings.geoid_model)
         if settings.geoid_model is not None
         else None
     )
 
+    # The VERTCON pair, loaded ONCE per job exactly as the geoid grid above is
+    # - not per row (two 2.4 MB files re-read per point), and NOT for an
+    # identity: an identity applies no grid, apply_shift refuses a grid value
+    # for one, and a NAVD 88 to NAVD 88 job must succeed with the VERTCON
+    # files absent entirely.
+    vertcon_grids = (
+        vertcon.default_grids()
+        if transformation is not None and not transformation.is_identity
+        else None
+    )
+
     points: list[ConvertedPoint] = []
     for row in parsed.rows:
-        points.append(_convert_row(row, settings, grid))
+        points.append(
+            _convert_row(row, settings, grid, transformation, vertcon_grids)
+        )
 
     return JobResult(
         settings=settings,
@@ -388,10 +631,194 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
     )
 
 
+def _require_vertical_settings(
+    settings: JobSettings,
+) -> VerticalTransformation | None:
+    """The vertical transformation this job will apply per point, or None.
+
+    Every settings-level vertical refusal, in one place, before any point
+    converts (docs/PLAN-vertical-datums.md section 3.5):
+
+    * a vertical job missing either datum - refused naming which, in the style
+      of the longitude-convention refusal;
+    * a HORIZONTAL job SUPPLIED with either datum - refused too: a datum
+      handed to a job that will never apply or record it is a contradiction,
+      and silently ignoring it would let a caller believe an elevation
+      conversion happened (the mirror of longitude_convention's None-is-a-
+      statement rule);
+    * a non-``VerticalDatum`` in either field - the #11-finding-1 impostor
+      class, refused by name exactly as ``geoid_model`` is beside it;
+    * ``require_vertical_pair``'s own two refusals (a datum declared but not
+      usable; a pair with no published transformation) propagate UNTOUCHED -
+      they already name the offending datum and teach, and wrapping them
+      would hide the classes ``spc.vertical`` tells callers to catch.
+    """
+    mode = settings.vertical_mode
+    if not isinstance(mode, VerticalMode):
+        # The #11-finding-1 class for this field: `vertical_mode=True` is the
+        # habit a boolean toggle teaches, and `is` comparison would silently
+        # treat any impostor as a mode nobody chose. if/raise, never assert.
+        raise TypeError(
+            f"JobSettings.vertical_mode must be a michspc.job.VerticalMode; "
+            f"got {type(mode).__name__} ({mode!r}). In particular True is "
+            f"not 'vertical on': an impostor compares unequal to both "
+            f"members and would be treated as whichever branch its identity "
+            f"check happened to miss. Pass VerticalMode.HORIZONTAL or "
+            f"VerticalMode.HORIZONTAL_AND_VERTICAL."
+        )
+
+    fields = (
+        ("source_vertical_datum", settings.source_vertical_datum),
+        ("target_vertical_datum", settings.target_vertical_datum),
+    )
+    for label, datum in fields:
+        if datum is not None and not isinstance(datum, VerticalDatum):
+            raise TypeError(
+                f"JobSettings.{label} must be a michspc.spc.vertical."
+                f"VerticalDatum record, or None to state that this job does "
+                f"not consult a vertical datum; got {type(datum).__name__} "
+                f"({datum!r}). Every record in this program's core carries "
+                f"code, name and citation, so a zone, a reference frame or a "
+                f"geoid model duck-types a long way before failing on an "
+                f"attribute nobody catches (docs/DESIGN.md amendment #11, "
+                f"finding 1). Pass michspc.spc.vertical.NGVD29 or NAVD88."
+            )
+
+    if mode is VerticalMode.HORIZONTAL:
+        supplied = [label for label, datum in fields if datum is not None]
+        if supplied:
+            names = " and ".join(supplied)
+            verb = "were" if len(supplied) > 1 else "was"
+            raise ValueError(
+                f"This job is horizontal-only, but {names} {verb} supplied. "
+                f"A horizontal job never applies or records a vertical "
+                f"datum, so accepting one would let a caller believe an "
+                f"elevation conversion happened when none did - an "
+                f"unconverted height wearing a datum tag is exactly the "
+                f"ordinary-looking wrong number this program refuses. Set "
+                f"vertical_mode=VerticalMode.HORIZONTAL_AND_VERTICAL to "
+                f"convert elevations, or state None for both datums."
+            )
+        return None
+
+    missing = [label for label, datum in fields if datum is None]
+    if missing:
+        names = " and ".join(missing)
+        verb = "were" if len(missing) > 1 else "was"
+        raise ValueError(
+            f"A horizontal-and-vertical job needs both vertical datums, and "
+            f"{names} {verb} not stated. Neither has a default: NGVD 29 and "
+            f"NAVD 88 heights differ by up to 0.41 m across Michigan while "
+            f"looking identical, so assuming a datum would silently relabel "
+            f"every elevation in the job. Pass michspc.spc.vertical.NGVD29 "
+            f"or NAVD88 for each."
+        )
+
+    return require_vertical_pair(
+        settings.source_vertical_datum, settings.target_vertical_datum
+    )
+
+
+def _require_transformation_matches_settings(
+    transformation: VerticalTransformation, settings: JobSettings
+) -> None:
+    """The datum tag is CHECKED, not carried (DESIGN.md #36 reviewer note).
+
+    ``apply_shift`` takes a bare float, so nothing downstream could notice a
+    transformation looked up for one pair of datums being applied to a job
+    that stated another - the shifted height would look entirely ordinary.
+    ``run`` passes down the record ``require_vertical_pair`` returned for the
+    settings' own datums; this holds that wiring at the point of use, by
+    ``code``, the rule the registry itself resolves by. if/raise, never
+    assert: the suite and the shipped program run under -O.
+    """
+    stated_source = settings.source_vertical_datum
+    stated_target = settings.target_vertical_datum
+    source_code = stated_source.code if stated_source is not None else None
+    target_code = stated_target.code if stated_target is not None else None
+    if (
+        transformation.source.code != source_code
+        or transformation.target.code != target_code
+    ):
+        raise ValueError(
+            f"The vertical transformation applied to this row converts "
+            f"{transformation.source.code} -> {transformation.target.code}, "
+            f"but the job's settings state {source_code} -> {target_code}. "
+            f"Applying it would move every elevation between datums nobody "
+            f"chose, and nothing downstream could tell: the shift is a bare "
+            f"number and the shifted height looks ordinary. The record must "
+            f"be the one require_vertical_pair returned for the settings' "
+            f"own datums."
+        )
+
+
+def _require_geodetic_in_range(
+    latitude: float,
+    longitude: float,
+    longitude_as_written: float,
+    settings: JobSettings,
+    context: str,
+) -> None:
+    """Refuse a latitude or longitude no signed geodetic position can carry.
+
+    Placed here - the single entry point where the file's longitude sign
+    convention is applied - rather than left to the core, so the refusal can
+    name the row, the value as the file wrote it, and the convention in
+    force, none of which ``lambert._require_valid_geodetic`` (which guards
+    the same domain and still runs after this) can see.
+
+    Recorded against DESIGN.md #38's note to WP-V6: the NGS grid readers
+    accept 0-360 east longitudes silently - ``to_east_longitude`` adjusts
+    only negatives, so ``shift_m(43.0, 275.5)`` equals
+    ``shift_m(43.0, -84.5)`` byte-identically. Through ``job.run`` the
+    horizontal conversion's own domain gate already refused such a value
+    before any grid was consulted; this refusal keeps that property stated
+    at the boundary that owns it instead of inherited from the projection's
+    internals, and says which ROW is wrong, which a file of thousands of
+    points needs.
+
+    The bounds are the core's exactly - latitude strictly inside (-90, 90),
+    longitude within [-180, 180] - so no value can pass here and refuse
+    there, or the reverse. NaN fails both comparisons and is refused too.
+    """
+    convention = settings.longitude_convention.value
+    if not (-90.0 < latitude < 90.0):
+        raise ValueError(
+            f"{context}: the latitude column reads {latitude!r}, which is "
+            f"not a geodetic latitude - it must lie strictly between -90 and "
+            f"90 degrees. Check that the file's second column really holds "
+            f"latitudes in decimal degrees, and that the latitude and "
+            f"longitude columns are not swapped. Refused rather than "
+            f"converted, because a coordinate computed from it would look "
+            f"ordinary and be meaningless."
+        )
+    if not (-180.0 <= longitude <= 180.0):
+        advice = (
+            f"Subtract 360 from it ({longitude - 360.0:.6f} here), or export "
+            f"the file again with signed longitudes."
+            if 180.0 < longitude < 360.0
+            else "Correct the file, or the convention selected for it."
+        )
+        raise ValueError(
+            f"{context}: the longitude column reads {longitude_as_written!r}, "
+            f"which under the '{convention}' convention this job states is a "
+            f"signed longitude of {longitude!r} - outside the -180 to 180 "
+            f"range a signed longitude can have. A value between 180 and 360 "
+            f"is the 0-360 EAST convention, which this program deliberately "
+            f"does not read from a file: 275.5 east and -84.5 both name the "
+            f"same meridian, and the NGS grid files use 0-360 internally, so "
+            f"an unconverted 0-360 longitude would look up plausible geoid "
+            f"and VERTCON values while the State Plane conversion placed the "
+            f"point thousands of kilometres away. " + advice
+        )
+
+
 def _convert_row(
     row: pnezd.PnezdRow,
     settings: JobSettings,
     grid,
+    transformation: VerticalTransformation | None,
+    vertcon_grids: vertcon.VertconGridPair | None,
 ) -> ConvertedPoint:
     context = f"point {row.point_id}"
     warnings: list[ConversionWarning] = []
@@ -402,6 +829,9 @@ def _convert_row(
         # convention here, at the boundary, and nowhere else.
         latitude = row.northing
         longitude = settings.longitude_convention.to_signed(row.easting)
+        _require_geodetic_in_range(
+            latitude, longitude, row.easting, settings, context
+        )
         conversion = project_point(
             latitude,
             longitude,
@@ -482,14 +912,192 @@ def _convert_row(
         if row.elevation is not None
         else None
     )
+
+    # ----------------------------------------------------------------------
+    # Vertical shift - plan section 3.6 step 3, and it MUST run before the
+    # geoid lookup and the factors below, because GEOID18/GEOID12B N and the
+    # elevation factor are defined against the TARGET-era (NAVD 88) height.
+    # The ordering's effect on the elevation factor is ~0.02 ppm - negligible,
+    # and nobody should mistake the factor for the reason. The reason is the
+    # Z VALUE ITSELF: an unshifted height is out by ~0.46 ft across Michigan
+    # (plan section 3.6).
+    #
+    # ``height_m`` is the height everything downstream uses - the geoid gate,
+    # the factors, and the Z column. For a horizontal job it IS elevation_m,
+    # untouched, so that path is byte-identical to what shipped.
+    # ----------------------------------------------------------------------
+    height_m = elevation_m
+    vertical_reading: VerticalReading | None = None
+    if transformation is None and settings.vertical_mode is (
+        VerticalMode.HORIZONTAL_AND_VERTICAL
+    ):
+        # The mirror of _require_transformation_matches_settings (WP-V6 review
+        # gate, LOW 6): that check catches the wrong record arriving, this
+        # catches NO record arriving on settings that promise a shift. Without
+        # it an unshifted source-datum height flows into a Z column the
+        # settings claim is target-datum, with no reading and no warning -
+        # unreachable through run(), which always derives the record from the
+        # same settings, but this function is the thing the check exists to
+        # hold, not run()'s good manners.
+        raise ValueError(
+            f"{context}: this job's settings state a vertical conversion "
+            f"({settings.source_vertical_datum.code} -> "
+            f"{settings.target_vertical_datum.code}) but no transformation "
+            f"record was supplied to apply it. Refused rather than writing "
+            f"an unconverted {settings.source_vertical_datum.code} height "
+            f"into a Z column that would claim "
+            f"{settings.target_vertical_datum.code}."
+        )
+    if transformation is not None:
+        _require_transformation_matches_settings(transformation, settings)
+        if elevation_m is not None:
+            if transformation.is_identity:
+                # An identity reads NO grid - apply_shift refuses a grid value
+                # for one - and shifts by exactly 0.0, so the height is
+                # bit-identical. Sigma is None WITH a reason, never 0.0: no
+                # model ran, so there is no model uncertainty to state.
+                height_m = apply_shift(
+                    elevation_m, grid_value_m=None, transformation=transformation
+                )
+                vertical_reading = VerticalReading(
+                    transformation=transformation,
+                    shift_m=0.0,
+                    sigma_m=None,
+                    sigma_unavailable_reason=_IDENTITY_SIGMA_REASON,
+                )
+            else:
+                if vertcon_grids is None:
+                    # run() loads the pair once for every modeled job; a None
+                    # arriving here is a wiring defect, and shift_and_sigma_m's
+                    # own default would paper over it by silently loading the
+                    # pair per row - "loaded ONCE per job" held as a guarantee
+                    # rather than a convention (WP-V6 review gate, LOW 8).
+                    raise ValueError(
+                        f"{context}: a modeled vertical transformation "
+                        f"({transformation}) reached the row with no VERTCON "
+                        f"grid pair. run() loads the pair once per job; this "
+                        f"is an internal wiring defect, not a data problem."
+                    )
+                if not vertcon_grids.contains(
+                    conversion.latitude, conversion.longitude
+                ):
+                    # Outside the pair's coverage - decided by asking, not by
+                    # catching: a VertconError from the read below is now a
+                    # STRUCTURAL failure (a broken grid object) and propagates
+                    # loudly, where the old catch-all claimed "the grids do
+                    # not cover this point" for a truncated file too - a false
+                    # headline over a true footnote (WP-V6 review gate, LOW
+                    # 7). The GEOID_UNAVAILABLE shape: the horizontal result
+                    # stands, and the elevation is REFUSED rather than passed
+                    # through unshifted. The height this program holds is in
+                    # the SOURCE datum and every vertical output of this job
+                    # claims the target one, so height_m goes to None: no Z
+                    # is written, and the elevation-dependent factors read
+                    # N/A rather than being built from a height in the wrong
+                    # era.
+                    height_m = None
+                    warnings.append(
+                        ConversionWarning(
+                            code=WarningCode.VERTICAL_SHIFT_UNAVAILABLE,
+                            message=(
+                                f"{context}: the elevation "
+                                f"{row.elevation:,.3f} "
+                                f"{settings.input_unit.code} was supplied, "
+                                f"but the {transformation.model} grids do "
+                                f"not cover "
+                                f"{conversion.latitude:.6f}, "
+                                f"{conversion.longitude:.6f}, so no "
+                                f"{transformation.source.code} -> "
+                                f"{transformation.target.code} shift can be "
+                                f"looked up there. The elevation was NOT "
+                                f"converted: rather than print the "
+                                f"unconverted {transformation.source.code} "
+                                f"height in a Z column that claims "
+                                f"{transformation.target.code}, this point's "
+                                f"output elevation is blank and its "
+                                f"elevation and combined factors are "
+                                f"{formatting.NOT_AVAILABLE}. The HORIZONTAL "
+                                f"coordinates are unaffected and stand: they "
+                                f"do not depend on elevation at all."
+                            ),
+                        )
+                    )
+                else:
+                    grid_value_m, sigma_m = vertcon.shift_and_sigma_m(
+                        conversion.latitude, conversion.longitude, vertcon_grids
+                    )
+                    height_m = apply_shift(
+                        elevation_m,
+                        grid_value_m=grid_value_m,
+                        transformation=transformation,
+                    )
+                    reason = None
+                    if sigma_m is None:
+                        # The error model interpolated negative here - a
+                        # value that cannot be a one-sigma (DESIGN.md #36).
+                        # Distinguished from the identity's None by a reason
+                        # that names the position and points at the raw
+                        # figure; the shift beside it comes from the other
+                        # grid and is unaffected.
+                        raw = vertcon_grids.uncertainty.modeled_error_raw_m(
+                            conversion.latitude, conversion.longitude
+                        )
+                        reason = (
+                            f"the {transformation.model} error model "
+                            f"interpolates to a value that cannot be a "
+                            f"one-sigma uncertainty at "
+                            f"{conversion.latitude:.6f}, "
+                            f"{conversion.longitude:.6f} (raw model output "
+                            f"{raw!r} m, readable via michspc.fileio."
+                            f"vertcon.UncertaintyGrid.modeled_error_raw_m). "
+                            f"The shift is read from the separate "
+                            f"transformation grid and is unaffected."
+                        )
+                    vertical_reading = VerticalReading(
+                        transformation=transformation,
+                        shift_m=signed_shift(
+                            grid_value_m=grid_value_m,
+                            transformation=transformation,
+                        ),
+                        sigma_m=sigma_m,
+                        sigma_unavailable_reason=reason,
+                    )
+
     output_elevation = (
-        settings.output_unit.from_meters(elevation_m)
-        if elevation_m is not None
+        settings.output_unit.from_meters(height_m)
+        if height_m is not None
         else None
     )
 
+    # ----------------------------------------------------------------------
+    # The height the FACTORS use - era consistency (DESIGN.md #41, superseding
+    # plan section 3.5's target-datum-only rule). The geoid separation N is
+    # defined against the geoid model's own vertical datum (NAVD 88 for both
+    # shipped models), so h = H + N is honest only when H is in that same
+    # datum. For an NGVD29 -> NAVD88 job that is the SHIFTED height, which is
+    # why the shift precedes the factors; for a NAVD88 -> NGVD29 job it is the
+    # SOURCE height - using the shifted NGVD 29 height there would mix the
+    # eras by exactly the shift (~0.02 ppm in the factor; small, but wrong in
+    # a number this program prints to its last digit). A job whose geoid
+    # model matches NEITHER endpoint datum was refused before any point
+    # converted (_require_vertical_settings). A coverage-refused point keeps
+    # factor_height_m None deliberately: its factors read N/A with the
+    # warning, era-splitting a half-failed point would be cleverness in an
+    # audit trail.
+    # ----------------------------------------------------------------------
+    factor_height_m = height_m
+    if (
+        vertical_reading is not None
+        and settings.geoid_model is not None
+        and height_m is not None
+        and settings.geoid_model.vertical_datum.code
+        == vertical_reading.transformation.source.code
+        != vertical_reading.transformation.target.code
+    ):
+        factor_height_m = elevation_m
+
     geoid_height = None
-    if grid is not None and elevation_m is not None:
+    if grid is not None and factor_height_m is not None:
         try:
             geoid_height = geoid.geoid_height(
                 conversion.latitude, conversion.longitude, grid
@@ -529,8 +1137,11 @@ def _convert_row(
                 )
             )
 
+    # The height in the geoid model's own era - plan section 3.6 step 5 as
+    # amended by #41. For a horizontal job factor_height_m is elevation_m
+    # untouched, so nothing changes.
     factors = factors_at(
-        conversion.target_scale_factor, elevation_m, geoid_height
+        conversion.target_scale_factor, factor_height_m, geoid_height
     )
 
     return ConvertedPoint(
@@ -540,5 +1151,6 @@ def _convert_row(
         output_northing=output_northing,
         output_easting=output_easting,
         output_elevation=output_elevation,
+        vertical=vertical_reading,
         warnings=tuple(warnings) + conversion.warnings,
     )

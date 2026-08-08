@@ -608,15 +608,17 @@ def require_geoid_matches_datum(
 
     DESIGN.md #32's rule: an elevation factor built from a height in one
     vertical datum and a geoid separation defined against another mixes two
-    eras inside one number - the number looks exact and cites nothing. Both
-    models shipped today are NAVD 88, so this guard is **latent**: it exists
-    now, before the case that needs it (GEOID2022, whose heights are NAPGD2022)
-    arrives, because a guard added after the case arrives is added after the
-    defect ships.
+    eras inside one number - the number looks exact and cites nothing.
 
-    **Nothing in production calls this yet.** WP-V6 wires it into ``job.run``
-    when the job learns its target vertical datum; until then it is exercised
-    directly by the suite (docs/PLAN-vertical-datums.md sections 3.4 and 3.5).
+    **This is the one-datum primitive; production applies a rule DERIVED from
+    it, not this function.** The WP-V6 review gate showed that comparing the
+    model against the job's *target* datum alone (plan section 3.5's rule)
+    would refuse NAVD88 -> NGVD29 outright with advice nothing offers, so
+    ``job.run`` widened it: the model's datum must match EITHER endpoint of
+    the vertical conversion, and the factors are computed from the height in
+    the model's own era (DESIGN.md #41). This primitive remains for callers
+    that genuinely have one height in one datum - the shape the GEOID2022 /
+    NAPGD2022 era will need - and its refusal teaches the same rule.
 
     Compared by ``code`` rather than object identity, the rule the vertical
     registry already follows, so a datum record rebuilt from a saved job still
@@ -646,8 +648,23 @@ def require_geoid_matches_datum(
             f"two eras inside one number: an elevation factor whose H is "
             f"{target_datum.code} and whose N is {model.vertical_datum.code} "
             f"looks exact and is neither (docs/DESIGN.md amendment #32). "
-            f"Convert the elevations to {model.vertical_datum.code} first, or "
-            f"choose a geoid model published for {target_datum.code}."
+            f"Use a height in {model.vertical_datum.code}, or apply no geoid "
+            f"model, in which case the elevation-dependent factors read N/A "
+            f"rather than mixing eras. "
+            + (
+                f"Models published for {target_datum.code} heights: "
+                f"{', '.join(alternatives)}."
+                if (
+                    alternatives := [
+                        m.name
+                        for m in ALL_GEOID_MODELS
+                        if m.vertical_datum.code == target_datum.code
+                    ]
+                )
+                else f"No geoid model in this program's registry is "
+                f"published for {target_datum.code} heights - the advice "
+                f"above is the whole of the way forward."
+            )
         )
 
 

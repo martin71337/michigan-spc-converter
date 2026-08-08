@@ -453,6 +453,111 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #41 — 2026-08-08 — WP-V6: the vertical shift reaches the job, and the geoid guard learns which era a height is in
+
+**What was built** (plan §3.5–3.6, implemented by a work-package subagent to
+the session lead's settled judgment calls, then gated): `VerticalMode` on
+`JobSettings` (default `HORIZONTAL` — today's behaviour exactly, the GUI
+toggle is WP-V8), both vertical datum fields with `None` as a statement, the
+§3.6 ordering — **shift before geoid lookup before factors** — pinned by
+recording what `factors_at` actually receives, `VerticalReading` on
+`ConvertedPoint` (transformation record, applied shift, σ or a reason it is
+unavailable — identity and negative-σ **distinguishable by construction**),
+the coverage-refused per-point shape (horizontal stands, Z deliberately
+absent, factors N/A, a warning that teaches), the settings refusal matrix
+(missing datum, datum-on-horizontal, the registry's own two classes
+propagating unwrapped, impostor guards on all three new fields), and the #38
+longitude-boundary refusal — where the investigation found **the feared gap
+was already closed**: `lambert._require_valid_geodetic` refused out-of-range
+geodetics all along, so the new row-level refusal adds the row and the
+convention to the message and changes no accepted range (proven: 34 boundary
+cases behave identically to HEAD).
+
+**End to end against NCAT**: 200.000 m NGVD 29 at 43.0 N / 84.5 W → 199.8598
+through a real file → `job.run` → written ZIP, against NCAT's 199.860; all
+20 forward anchors in one job; the five-point inverse set round-trips within
+1e-9; the max-σ anchor carries σ ≈ 0.3656 per point. Both directions, four
+unit paths.
+
+**The gate (independent Opus): FIX-FIRST — the mathematics sound, the record
+not.** It re-derived the sign from the raw `.trn` cell before touching
+`job.run`, byte-compared five job configurations against a HEAD worktree
+(15/15 output digests identical — the horizontal regression is exact), ran
+the refusal matrix at 16 cases, confirmed the #38 claim independently, and
+seeded 8 defects with 8 caught (one behaviourally-inert geoid-gate seed
+verified inert, not missed). Findings, every one closed this round:
+
+1. **HIGH — the job record called a populated Z field "Blank elevation
+   field"** for a coverage-refused point: WP-R2 fix C's defect through a new
+   door, unpinned because nothing in the suite read a vertical job's report.
+   The ELEVATIONS section now has a **fourth bucket** — "Elevation recorded,
+   but not convertible between vertical datums" — keyed on `row.elevation`,
+   with wording that says the Z was read and deliberately not written.
+   Pinned; falsified by reverting the bucketing.
+2. **HIGH — a vertical job's Z moves ~0.46 ft and no output says so.**
+   Acknowledged deferral, resolved as a **hard sequencing constraint**: WP-V7
+   (the disclosure package) lands before WP-V8 (the GUI), in this same
+   continuous build, so no build in which vertical mode is *reachable* can
+   fail to state the datum, the shift and NGS's caveat. Vertical mode today
+   is reachable from no interface (verified by the gate).
+3. **MEDIUM — the record's "H = orthometric height from the input file" was
+   made false by the shift.** Now "as used for the factors".
+4. **MEDIUM — `VerticalReading` accepted a negative or NaN σ, an empty
+   reason, and a string transformation.** All refused in `__post_init__`:
+   `vertcon.sigma_is_physical` applied at its third site so the record and
+   the reader cannot disagree, finiteness beside it, the empty-reason rule
+   `VerticalTransformation` already applies to its own citation, and the
+   #11-finding-1 guard on the transformation field. Falsified.
+5. **MEDIUM — the geoid-vs-datum guard's rule superseded** (this amendment's
+   substantive decision, superseding plan §3.5's fourth refusal). The plan
+   compared the geoid model against the *target* datum alone, which would
+   have refused NAVD88 → NGVD29 outright — dead-ending WP-V8's dropdowns for
+   every NGVD 29 target with advice that named a geoid model that does not
+   exist and a setting no interface offers. **The rule is now
+   either-endpoint**: the model's datum must match the source or the target,
+   and `_convert_row` computes the factors from **the height in the model's
+   own era** — the shifted height when the target matches, the source height
+   when the source does. For NAVD88 → NGVD29 that is *more* correct than the
+   plan's rule, which would have combined a shifted NGVD 29 height with a
+   NAVD 88 separation; the era mixing #32 forbids now never happens in any
+   accepted configuration. What still refuses: a pair whose endpoints both
+   differ from the model's datum — today exactly the NGVD29 → NGVD29
+   identity job with a geoid model, whose refusal now gives achievable
+   advice (horizontal mode). `geoid.require_geoid_matches_datum` remains as
+   the one-datum primitive with its docstring saying production applies the
+   derived rule; its own message no longer suggests the impossible.
+   **Recorded asymmetry, deliberate:** a HORIZONTAL job performs the
+   identical mixed-era arithmetic silently whenever its file happens to hold
+   NGVD 29 heights — that is the owner's "horizontal mode unchanged, nothing
+   asked, nothing tagged" decision (plan §1), and the guard governs only
+   jobs that *declare* their datums. The gate measured the stake either way
+   at ~0.02 ppm in the elevation factor; the guard is about the record being
+   honest, not about the magnitude.
+6. **LOW, all closed**: the datum-tag check gained its mirror (vertical
+   settings arriving with NO transformation record refuse, rather than
+   passing an unshifted height); coverage is now decided by
+   `pair.contains` — asked, not caught — so a structural `VertconError`
+   propagates loudly instead of being headlined as a coverage gap; the
+   VERTCON pair argument is required, not silently defaulted, holding
+   "loaded once per job" as a guarantee.
+7. **Recorded, not fixed here**: a shifted height that lands within 0.0005
+   of exactly 0.000 formats as `0.0000`, reads back as "not recorded", and
+   the round-trip gate refuses the whole export — fail-closed, pre-existing
+   class, not a Michigan case (Lake Erie ≈ 571 ft). **For WP-V7**: the
+   negative-σ case carries its reason on the reading but raises no warning —
+   the disclosure layer must not assume a warning already flags it. **For
+   WP-V9**: the frozen self-test should convert one vertical point end to
+   end once the GUI can reach the mode.
+
+**Falsified this round beyond the implementer's own eight**: the report
+bucketing, the factor-era override, the either-endpoint guard, the mirror
+check, the σ-physicality check, and the structural-propagation behaviour —
+each seeded, each failing exactly its own pin, the tree swept for leftover
+seeds afterwards.
+
+**Suite: 1397 → 1441**, green in `pytest` and `-O`. Committed to `main` and
+pushed; no release — WP-V7 next, per finding 2's sequencing constraint.
+
 ### #40 — 2026-08-08 — WP-V5: the geoid model registry, and GEOID12B becomes real
 
 **Two commits, as the plan required.** WP-V5a renamed `geoid18.py` to

@@ -354,7 +354,11 @@ def build_report(result: JobResult) -> str:
         add("")
         add("Elevation factor   R / (R + H + N), manual section 4.1")
         add(f"                   R = {MEAN_EARTH_RADIUS_M:,.0f} m mean earth radius")
-        add("                   H = orthometric height from the input file")
+        # "from the input file" was true until WP-V6: a vertical job shifts
+        # the height between datums BEFORE the factors are computed, so the H
+        # here is the height the factors actually used, which the audit CSV
+        # carries per point.
+        add("                   H = orthometric height as used for the factors")
         add("                   N = geoid height, interpolated from the grid above")
         add("Combined factor    grid scale factor x elevation factor")
         add("")
@@ -395,6 +399,16 @@ def build_report(result: JobResult) -> str:
     # result's own and the sentence would otherwise have read "the None grid").
     no_geoid = [p for p in missing if p.factors.orthometric_height is not None]
     absent = [p for p in missing if p.factors.orthometric_height is None]
+    # The FOURTH cause, WP-V6's: the Z field was read perfectly well, but the
+    # vertical shift could not be computed (the point sits outside the VERTCON
+    # grids), so no target-datum height exists and the elevation was REFUSED
+    # rather than passed through unshifted. Calling that a "blank elevation
+    # field" would be a false statement about a populated field in an audit
+    # document - the exact defect WP-R2 fix C removed for the geoid, arriving
+    # through a new door (WP-V6 review gate, HIGH 1). ``row.elevation`` is what
+    # separates it: None for a genuinely blank or zeroed field, present here.
+    unshifted = [p for p in absent if p.row.elevation is not None]
+    absent = [p for p in absent if p.row.elevation is None]
 
     if not missing:
         add(f"All {len(result.points)} points carried a usable elevation.")
@@ -403,6 +417,15 @@ def build_report(result: JobResult) -> str:
             add(
                 f"{len(absent)} of {len(result.points)} points had NO usable "
                 f"elevation."
+            )
+        if unshifted:
+            add(
+                f"{len(unshifted)} of {len(result.points)} points carried an "
+                f"elevation that could NOT be converted between vertical "
+                f"datums: the point lies outside the VERTCON grids. The Z "
+                f"field was read; the elevation is deliberately not written, "
+                f"because the height in hand is in the source vertical datum "
+                f"and every elevation this job writes claims the target one."
             )
         if no_geoid and result.geoid_model:
             add(
@@ -460,6 +483,22 @@ def build_report(result: JobResult) -> str:
             add("  HORIZONTAL coordinate of each point is unaffected and stands: it")
             add("  does not depend on elevation at all. Each point is named again,")
             add("  with its position, under WARNINGS below.")
+        if unshifted:
+            add("")
+            add(
+                f"  Elevation recorded, but not convertible between vertical "
+                f"datums ({len(unshifted)}):"
+            )
+            lines.extend(_point_id_block(unshifted))
+            add("")
+            add("  These Z fields were read. They are NOT blank and they are NOT")
+            add("  zero. The position lies outside the VERTCON grids, so no shift")
+            add("  to the target vertical datum exists, and the elevation is")
+            add("  deliberately absent from the exports rather than written")
+            add("  unconverted: an unconverted height in a column that claims the")
+            add("  target datum would look ordinary and be wrong. The HORIZONTAL")
+            add("  coordinate of each point is unaffected and stands. Each point is")
+            add("  named again, with its position, under WARNINGS below.")
     add("")
 
     # ------------------------------------------------------------- warnings

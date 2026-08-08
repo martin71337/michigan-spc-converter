@@ -46,7 +46,21 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: vertical datums V0–V5 DONE on main; V6–V9 NOT BUILT (2026-08-08)
+## Current state: vertical datums V0–V6 DONE on main; V7–V9 NOT BUILT (2026-08-08)
+
+**WP-V6 is DONE (DESIGN.md #41): the vertical shift is wired into `job.run`**
+— `VerticalMode` (default HORIZONTAL, byte-identical to before, proven 15/15
+output digests against a HEAD worktree), shift before geoid lookup before
+factors (pinned), `VerticalReading` on every shifted point, coverage-refused
+points keep their horizontal result and refuse the elevation, the full
+refusal matrix, and NCAT anchors green through real files end to end. The
+gate's substantive decision: **the geoid guard is either-endpoint (#41,
+superseding plan §3.5)** — factors come from the height in the geoid model's
+own era, so NAVD88 → NGVD29 works and no accepted configuration mixes eras.
+**Sequencing constraint from the gate: WP-V7 (disclosure) MUST land before
+WP-V8 (GUI)** — vertical mode is currently reachable from no interface, and
+must not become reachable before the outputs state the datum, the shift and
+NGS's caveat. Suite **1441**.
 
 **`main` carries the vertical work through WP-V5 plus WP-G1, all gated. Suite
 1397, green in both `pytest` and `-O`. NOT RELEASED — 0.3.1 is still the

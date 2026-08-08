@@ -480,7 +480,11 @@ owner's "no none." It is a capability of the core, not an option on the screen.
 
 - vertical mode on, either datum absent;
 - a `(source, target)` pair with no published transformation;
-- a geoid model whose `vertical_datum` is not the job's target vertical datum;
+- ~~a geoid model whose `vertical_datum` is not the job's target vertical
+  datum;~~ **SUPERSEDED (DESIGN.md #41): the rule is either-endpoint — the
+  model's datum must match the source or the target, and the factors are
+  computed from the height in the model's own era. The target-only rule would
+  have refused NAVD88 → NGVD29 outright with advice nothing offers;**
 - a point outside the VERTCON grid, where the horizontal result still stands and
   only the elevation is refused — the shape `GEOID_UNAVAILABLE` already has.
 

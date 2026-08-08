@@ -62,6 +62,22 @@ class WarningCode(Enum):
     point whose elevation was recorded perfectly well.
     """
 
+    VERTICAL_SHIFT_UNAVAILABLE = "vertical-shift-unavailable"
+    """A vertical job's point carried a usable elevation, but the VERTCON grid
+    pair does not cover its position, so the elevation was NOT converted.
+
+    Raised by michspc.job, like GEOID_UNAVAILABLE above. The horizontal
+    coordinates are unaffected and stand; the point's output elevation is
+    left blank rather than filled with the unshifted source-datum height,
+    because an unconverted height printed in a Z column labelled with the
+    target datum is exactly the ordinary-looking wrong number this program
+    exists to refuse. VERTCON 3.0's CONUS grid covers all of Michigan
+    (docs/PLAN-vertical-datums.md section 2.2), so this is only reachable for
+    a point already far outside the zone extents - but "unreachable in
+    practice" is not a reason to pass a height through silently when it is
+    reached.
+    """
+
 
 @dataclass(frozen=True)
 class ConversionWarning:

@@ -21,10 +21,12 @@ from __future__ import annotations
 import traceback
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QComboBox, QMessageBox
+from PySide6.QtWidgets import QButtonGroup, QComboBox, QMessageBox, QRadioButton
 
-from michspc.job import Direction, LongitudeConvention
+from michspc.fileio import geoid
+from michspc.job import Direction, LongitudeConvention, VerticalMode
 from michspc.spc.units import ALL_UNITS, INTERNATIONAL_FEET
+from michspc.spc.vertical import ALL_VERTICAL_DATUMS, VerticalDatum
 from michspc.spc.zones import ALL_ZONES, Zone
 
 UNCHOSEN = "unchosen"
@@ -169,6 +171,142 @@ def longitude_combo(parent, on_change) -> QComboBox:
     # tests/test_gui.py and tests/test_gui_single_point.py so it does not come
     # back by accident.
     combo.currentIndexChanged.connect(on_change)
+    return combo
+
+
+VERTICAL_MODE_LABEL = "Mode:"
+HORIZONTAL_MODE_TEXT = "Horizontal"
+VERTICAL_MODE_TEXT = "Horizontal + Vertical"
+"""The mode toggle's two captions (docs/PLAN-vertical-datums.md section 4.1).
+
+"Horizontal" is today's job, exactly - no vertical datum is asked for and
+nothing is tagged. "Horizontal + Vertical" additionally converts every
+elevation between the two vertical datums the revealed dropdowns name. The
+toggle opens on Horizontal because that asserts nothing about a vertical
+datum; it is a starting state, not an answer to the datum question, which the
+two dropdowns still refuse to assume.
+"""
+
+VERTICAL_SOURCE_LABEL = "Vertical datum from:"
+VERTICAL_TARGET_LABEL = "Vertical datum to:"
+
+GEOID_MODEL_LABEL = "Geoid model:"
+
+
+def vertical_mode_buttons(
+    parent, on_change
+) -> tuple[QRadioButton, QRadioButton, QButtonGroup]:
+    """The Horizontal / Horizontal + Vertical toggle, one per tab.
+
+    Two ``QRadioButton``s in an exclusive ``QButtonGroup`` - the repo's
+    existing idiom (``elevation_in_file``), native per METHOD.md section 5.
+    Built here so both tabs get the *same* control rather than a lookalike
+    pair, exactly as ``longitude_combo`` serves them both; the handler is
+    passed in because the tabs share no state (docs/DESIGN.md amendment #26)
+    and each connects its own.
+
+    Opens on Horizontal (plan section 4.1): today's behaviour, asserting
+    nothing about a vertical datum.
+
+    Only the Horizontal button's ``toggled`` signal carries the handler. The
+    two buttons are exclusive, so every mode change toggles BOTH - connecting
+    both would fire the handler twice per click, and connecting one is exactly
+    once. The handlers this reaches are idempotent either way; once is simply
+    the honest count.
+    """
+    horizontal = QRadioButton(HORIZONTAL_MODE_TEXT, parent)
+    vertical = QRadioButton(VERTICAL_MODE_TEXT, parent)
+    group = QButtonGroup(parent)
+    group.addButton(horizontal)
+    group.addButton(vertical)
+    horizontal.setChecked(True)
+    horizontal.toggled.connect(on_change)
+    return horizontal, vertical, group
+
+
+def vertical_mode_for(
+    horizontal: QRadioButton, vertical: QRadioButton
+) -> VerticalMode:
+    """The mode a tab's toggle currently states.
+
+    The rule lives here, beside the builder, so the two tabs cannot read the
+    same pair of buttons two different ways. Exactly one button is checked at
+    all times - the group is exclusive and the builder checks Horizontal - so
+    the neither-checked branch below is unreachable through the interface; it
+    refuses rather than guessing because a mode guessed here would silently
+    decide whether elevations are converted.
+    """
+    if horizontal.isChecked():
+        return VerticalMode.HORIZONTAL
+    if vertical.isChecked():
+        return VerticalMode.HORIZONTAL_AND_VERTICAL
+    raise ValueError(
+        "Neither mode button is checked, so the vertical mode is unknown. "
+        "The toggle is built with Horizontal checked and the group is "
+        "exclusive, so this state should be unreachable; refusing rather "
+        "than assuming a mode."
+    )
+
+
+def vertical_datum_combo(parent, on_change) -> QComboBox:
+    """A vertical datum dropdown, built from the registry.
+
+    Opens **unanswered**, per docs/DESIGN.md section 7: NGVD 29 and NAVD 88
+    heights differ by up to 0.41 m across Michigan while looking identical,
+    so the two entries are indistinguishable from the numbers on screen and a
+    preselected one would be an answer to a question the user was never
+    asked. Amendment #29's positive-west preselect is a narrow, recorded
+    exception; this control is not it (plan section 4.2).
+
+    Only USABLE datums are offered, by asking each record rather than naming
+    names: NAPGD2022 is declared-not-usable in ``spc.vertical`` and must not
+    appear until its status changes there - at which point it appears with no
+    interface change, the property ``zone_combo`` already has. Both usable
+    datums are offered on both ends: an identity pair (NAVD88 to NAVD88) is a
+    legitimate job that *states* the datum, and the registry, not this
+    dropdown, owns which pairs convert.
+    """
+    combo = QComboBox(parent)
+    combo.addItem("— choose —", UNCHOSEN)
+    for datum in ALL_VERTICAL_DATUMS:
+        if datum.is_usable:
+            # "National Geodetic Vertical Datum of 1929 (NGVD29)" - the
+            # record's own name and code, via its __str__, never typed here.
+            combo.addItem(str(datum), datum)
+    combo.currentIndexChanged.connect(on_change)
+    return combo
+
+
+def vertical_datum_for(data) -> VerticalDatum | None:
+    """The datum a dropdown's current data names, or None while unanswered."""
+    return data if isinstance(data, VerticalDatum) else None
+
+
+def geoid_combo(parent) -> QComboBox:
+    """A geoid model dropdown, built from the registry.
+
+    Every model in ``geoid.ALL_GEOID_MODELS``, in declaration order, and
+    nothing else - a model added to the registry appears with no interface
+    change (plan section 4.3). **No "none" entry**, the owner's decision
+    (plan section 5): the core can state ``geoid_model=None``, but no
+    interface offers it.
+
+    Opens on GEOID18, the model this program has shipped since 0.1.0. A
+    default is defensible here as it is for the units and not for the
+    vertical datums: the model in force is named in the job record and the
+    audit CSV, so the answer is stated in every output rather than silently
+    assumed. No handler parameter, matching ``unit_combo``: the Single point
+    tab connects its own invalidation, and the Multi point tab - whose table
+    describes a written archive, not the current controls - connects nothing.
+    """
+    combo = QComboBox(parent)
+    for model in geoid.ALL_GEOID_MODELS:
+        combo.addItem(model.name, model)
+    combo.setCurrentIndex(combo.findData(geoid.GEOID18_MODEL))
+    combo.setToolTip(
+        "Geoid separation is looked up per point from the selected model's "
+        "bundled grid."
+    )
     return combo
 
 

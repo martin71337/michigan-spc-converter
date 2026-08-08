@@ -53,7 +53,7 @@ from PySide6.QtWidgets import (
 )
 
 from michspc import APP_FULL_NAME, APP_NAME
-from michspc.fileio import exports, geoid
+from michspc.fileio import exports
 # Re-exported deliberately, not merely used: these names were defined here
 # before the two-tab split (docs/DESIGN.md amendment #26) and importing them
 # at module level keeps ``michspc.gui.window.UNCHOSEN`` and its neighbours
@@ -62,21 +62,38 @@ from michspc.fileio import exports, geoid
 from michspc.gui.controls import (
     AMBER,
     GEODETIC,
+    GEOID_MODEL_LABEL,
     RED,
     UNCHOSEN,
     UNITS_LABEL,
     UNITS_LABEL_ELEVATION_ONLY,
+    VERTICAL_MODE_LABEL,
+    VERTICAL_SOURCE_LABEL,
+    VERTICAL_TARGET_LABEL,
     direction_for,
+    geoid_combo,
     longitude_combo,
     longitude_is_relevant,
     show_failure_dialog,
     unit_combo,
+    vertical_datum_combo,
+    vertical_datum_for,
+    vertical_mode_buttons,
+    vertical_mode_for,
     zone_combo,
 )
 from michspc.gui.icon import application_icon
 from michspc.gui.results_model import ResultsModel
 from michspc.gui.single_point import SinglePointTab
-from michspc.job import Direction, JobResult, JobSettings, LongitudeConvention, run
+from michspc.job import (
+    Direction,
+    JobResult,
+    JobSettings,
+    LongitudeConvention,
+    VerticalMode,
+    run,
+)
+from michspc.spc.vertical import VerticalDatum
 from michspc.spc.zones import Zone
 
 WINDOW_TITLE = f"{APP_NAME} - {APP_FULL_NAME}"
@@ -175,6 +192,7 @@ class MainWindow(QMainWindow):
         self._update_input_hint()
         self._update_unit_labels()
         self._update_longitude_relevance()
+        self._update_vertical_rows()
         self._update_convert_enabled()
         self.resize(1000, 640)
 
@@ -223,6 +241,20 @@ class MainWindow(QMainWindow):
         box = QGroupBox("Conversion", self)
         grid = QGridLayout(box)
 
+        # --- horizontal / horizontal + vertical -------------------------
+        # The first row of the Conversion box, per plan section 4.1 - and on
+        # THIS tab, not the window: a window-level toggle would be state
+        # shared between the tabs, which amendment #26 forbids.
+        self.mode_horizontal, self.mode_vertical, self._mode_group = (
+            vertical_mode_buttons(box, self._on_vertical_mode_changed)
+        )
+        mode_row = QHBoxLayout()
+        mode_row.addWidget(self.mode_horizontal)
+        mode_row.addWidget(self.mode_vertical)
+        mode_row.addStretch(1)
+        grid.addWidget(QLabel(VERTICAL_MODE_LABEL, box), 0, 0)
+        grid.addLayout(mode_row, 0, 1, 1, 3)
+
         # --- input file -------------------------------------------------
         self.input_edit = QLineEdit(box)
         # No placeholder path. The owner asked for the box to start empty
@@ -235,9 +267,9 @@ class MainWindow(QMainWindow):
         self.input_browse.clicked.connect(self._choose_input_file)
 
         self.input_label = QLabel(INPUT_LABEL, box)
-        grid.addWidget(self.input_label, 0, 0)
-        grid.addWidget(self.input_edit, 0, 1, 1, 3)
-        grid.addWidget(self.input_browse, 0, 4)
+        grid.addWidget(self.input_label, 1, 0)
+        grid.addWidget(self.input_edit, 1, 1, 1, 3)
+        grid.addWidget(self.input_browse, 1, 4)
 
         # The format hint sits under the field rather than inside it as
         # placeholder text, because a placeholder disappears the moment a path
@@ -245,7 +277,7 @@ class MainWindow(QMainWindow):
         # file is about to be read as.
         self.input_hint = QLabel(INPUT_HINT_UNCHOSEN, box)
         self.input_hint.setTextFormat(Qt.TextFormat.PlainText)
-        grid.addWidget(self.input_hint, 1, 1, 1, 3)
+        grid.addWidget(self.input_hint, 2, 1, 1, 3)
 
         # --- from / to --------------------------------------------------
         self.from_zone = zone_combo(box, self._on_direction_changed)
@@ -258,22 +290,43 @@ class MainWindow(QMainWindow):
         self.input_unit_label = QLabel(UNITS_LABEL, box)
         self.output_unit_label = QLabel(UNITS_LABEL, box)
 
-        grid.addWidget(QLabel("From zone:", box), 2, 0)
-        grid.addWidget(self.from_zone, 2, 1)
-        grid.addWidget(self.input_unit_label, 2, 2)
-        grid.addWidget(self.input_unit, 2, 3)
+        grid.addWidget(QLabel("From zone:", box), 3, 0)
+        grid.addWidget(self.from_zone, 3, 1)
+        grid.addWidget(self.input_unit_label, 3, 2)
+        grid.addWidget(self.input_unit, 3, 3)
 
-        grid.addWidget(QLabel("To zone:", box), 3, 0)
-        grid.addWidget(self.to_zone, 3, 1)
-        grid.addWidget(self.output_unit_label, 3, 2)
-        grid.addWidget(self.output_unit, 3, 3)
+        grid.addWidget(QLabel("To zone:", box), 4, 0)
+        grid.addWidget(self.to_zone, 4, 1)
+        grid.addWidget(self.output_unit_label, 4, 2)
+        grid.addWidget(self.output_unit, 4, 3)
+
+        # --- vertical datums --------------------------------------------
+        # Directly under the To zone row: they are the vertical job's own
+        # from/to pair. Revealed by Horizontal + Vertical and hidden - not
+        # disabled - by Horizontal (plan section 4.2): a disabled control that
+        # never becomes relevant in this mode is clutter, where the longitude
+        # selector is disabled because it becomes relevant again. Both open
+        # unanswered; the datum combos gate Convert through settings().
+        self.vertical_source_label = QLabel(VERTICAL_SOURCE_LABEL, box)
+        self.vertical_source_combo = vertical_datum_combo(
+            box, self._update_convert_enabled
+        )
+        self.vertical_target_label = QLabel(VERTICAL_TARGET_LABEL, box)
+        self.vertical_target_combo = vertical_datum_combo(
+            box, self._update_convert_enabled
+        )
+
+        grid.addWidget(self.vertical_source_label, 5, 0)
+        grid.addWidget(self.vertical_source_combo, 5, 1, 1, 3)
+        grid.addWidget(self.vertical_target_label, 6, 0)
+        grid.addWidget(self.vertical_target_combo, 6, 1, 1, 3)
 
         # --- longitude sign convention ----------------------------------
         self.longitude_label = QLabel("Longitude sign:", box)
         self.longitude_combo = longitude_combo(box, self._update_convert_enabled)
 
-        grid.addWidget(self.longitude_label, 4, 0)
-        grid.addWidget(self.longitude_combo, 4, 1, 1, 3)
+        grid.addWidget(self.longitude_label, 7, 0)
+        grid.addWidget(self.longitude_combo, 7, 1, 1, 3)
 
         # --- elevations -------------------------------------------------
         self.elevation_in_file = QRadioButton("in file", box)
@@ -283,15 +336,19 @@ class MainWindow(QMainWindow):
             "through unchanged; a blank or 0.00 Z means 'not recorded' and its "
             "factor columns read N/A."
         )
-        geoid_label = QLabel(f"Geoid: {geoid.GEOID_MODEL_NAME} (auto)", box)
-        geoid_label.setToolTip(
-            "Geoid separation is looked up per point from the bundled "
-            f"{geoid.GEOID_MODEL_NAME} grid."
-        )
+        # The geoid model dropdown, replacing the static "Geoid: GEOID18
+        # (auto)" label (WP-V8, plan section 4.3). Visible in BOTH modes: the
+        # geoid governs the elevation and combined factors whether or not the
+        # elevations are converted between vertical datums. No handler - this
+        # tab's table describes the archive a run wrote, not the current
+        # controls, and the model reaches the job through settings().
+        self.geoid_label = QLabel(GEOID_MODEL_LABEL, box)
+        self.geoid_combo = geoid_combo(box)
 
-        grid.addWidget(QLabel("Elevations:", box), 5, 0)
-        grid.addWidget(self.elevation_in_file, 5, 1)
-        grid.addWidget(geoid_label, 5, 2, 1, 2)
+        grid.addWidget(QLabel("Elevations:", box), 8, 0)
+        grid.addWidget(self.elevation_in_file, 8, 1)
+        grid.addWidget(self.geoid_label, 8, 2)
+        grid.addWidget(self.geoid_combo, 8, 3)
 
         # --- output folder ----------------------------------------------
         self.output_edit = QLineEdit(box)
@@ -306,9 +363,9 @@ class MainWindow(QMainWindow):
         self.output_browse.setToolTip("Choose where the output archive goes")
         self.output_browse.clicked.connect(self._choose_output_directory)
 
-        grid.addWidget(QLabel("Output folder:", box), 6, 0)
-        grid.addWidget(self.output_edit, 6, 1, 1, 3)
-        grid.addWidget(self.output_browse, 6, 4)
+        grid.addWidget(QLabel("Output folder:", box), 9, 0)
+        grid.addWidget(self.output_edit, 9, 1, 1, 3)
+        grid.addWidget(self.output_browse, 9, 4)
 
         # --- convert ----------------------------------------------------
         self.convert_button = QPushButton("Convert", box)
@@ -317,7 +374,7 @@ class MainWindow(QMainWindow):
         buttons.addStretch(1)
         buttons.addWidget(self.convert_button)
         self.convert_button.clicked.connect(self.convert)
-        grid.addLayout(buttons, 7, 0, 1, 5)
+        grid.addLayout(buttons, 10, 0, 1, 5)
 
         grid.setColumnStretch(1, 3)
         grid.setColumnStretch(3, 2)
@@ -381,6 +438,16 @@ class MainWindow(QMainWindow):
         data = self.longitude_combo.currentData()
         return data if isinstance(data, LongitudeConvention) else None
 
+    def vertical_mode(self) -> VerticalMode:
+        """What the mode toggle states; ``controls.vertical_mode_for`` owns the rule."""
+        return vertical_mode_for(self.mode_horizontal, self.mode_vertical)
+
+    def source_vertical_datum(self) -> VerticalDatum | None:
+        return vertical_datum_for(self.vertical_source_combo.currentData())
+
+    def target_vertical_datum(self) -> VerticalDatum | None:
+        return vertical_datum_for(self.vertical_target_combo.currentData())
+
     def settings(self) -> JobSettings | None:
         """Assemble the job settings, or None if the form is not yet complete."""
         direction = self.direction()
@@ -388,6 +455,24 @@ class MainWindow(QMainWindow):
             return None
         if self.input_path is None or self.output_directory is None:
             return None
+
+        # A vertical job needs both datums answered before it is a job at all
+        # (plan section 4.4); a horizontal job states None for both, which is
+        # the statement job.run requires of it - a horizontal job supplied
+        # with a datum is refused there. The refusal matrix itself stays in
+        # job.run: this method only decides whether the form is complete,
+        # never whether a completed form's combination is convertible, so a
+        # pair the registry refuses reaches the job and comes back as the
+        # registry's own teaching message rather than a greyed-out control.
+        mode = self.vertical_mode()
+        if mode is VerticalMode.HORIZONTAL_AND_VERTICAL:
+            source_datum = self.source_vertical_datum()
+            target_datum = self.target_vertical_datum()
+            if source_datum is None or target_datum is None:
+                return None
+        else:
+            source_datum = None
+            target_datum = None
 
         source = self.from_zone.currentData()
         target = self.to_zone.currentData()
@@ -402,10 +487,13 @@ class MainWindow(QMainWindow):
             target_zone=target_zone,
             input_unit=self.input_unit.currentData(),
             output_unit=self.output_unit.currentData(),
-            # Stated, not defaulted: the tab's static label names GEOID18, so
-            # the settings say the same thing explicitly. The model dropdown
-            # that makes this a choice is WP-V8 (plan section 4.3).
-            geoid_model=geoid.GEOID18_MODEL,
+            # From the dropdown (WP-V8, plan section 4.3), exactly as the two
+            # unit combos are read: the combo offers only registry records,
+            # and job.run refuses an impostor by name.
+            geoid_model=self.geoid_combo.currentData(),
+            vertical_mode=mode,
+            source_vertical_datum=source_datum,
+            target_vertical_datum=target_datum,
         )
 
         if direction is Direction.ZONE_TO_ZONE:
@@ -478,6 +566,27 @@ class MainWindow(QMainWindow):
         self.longitude_label.setEnabled(relevant)
         self.longitude_combo.setEnabled(relevant)
 
+    def _on_vertical_mode_changed(self) -> None:
+        self._update_vertical_rows()
+        self._update_convert_enabled()
+
+    def _update_vertical_rows(self) -> None:
+        """Show the two datum rows in vertical mode; hide them otherwise.
+
+        Hidden, not disabled (plan section 4.2). The combos keep whatever
+        answer they held, so toggling to Horizontal and back does not silently
+        discard a chosen datum - but a Horizontal job never reads them:
+        ``settings`` states None for both in that mode.
+        """
+        vertical = self.vertical_mode() is VerticalMode.HORIZONTAL_AND_VERTICAL
+        for widget in (
+            self.vertical_source_label,
+            self.vertical_source_combo,
+            self.vertical_target_label,
+            self.vertical_target_combo,
+        ):
+            widget.setVisible(vertical)
+
     def _update_convert_enabled(self) -> None:
         self.convert_button.setEnabled(self.settings() is not None)
 
@@ -528,8 +637,9 @@ class MainWindow(QMainWindow):
                 ValueError(
                     "The conversion settings are incomplete, so nothing was "
                     "run. Choose an input file, an output folder, both ends of "
-                    "the conversion, and — when geodetic coordinates are "
-                    "involved — the longitude sign convention."
+                    "the conversion, the longitude sign convention when "
+                    "geodetic coordinates are involved, and both vertical "
+                    "datums when vertical mode is on."
                 )
             )
             return False

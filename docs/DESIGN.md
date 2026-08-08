@@ -453,6 +453,76 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #43 — 2026-08-08 — WP-V8: vertical mode reaches the screen, and the gate catches a CRITICAL that shipped in 0.1.0
+
+**What was built** (plan §4, plus #42 finding 4): the Horizontal /
+Horizontal + Vertical toggle as the Conversion box's first row on **both
+tabs** (per-tab, never window-level — #26 forbids shared state; proven
+independent), the two vertical datum dropdowns revealed by the toggle
+(hidden, not disabled; **opening unanswered** per §7's no-default rule;
+offering exactly the registry's *usable* datums — NAPGD2022 excluded by its
+own `is_usable`, not by name), the geoid dropdown built from
+`ALL_GEOID_MODELS` in declaration order (GEOID18 first, no "none") replacing
+the Multi point tab's static label and newly added to Single point, Convert
+gated on both datums, refusals surfaced verbatim (the GUI greys out no
+combination — the refusals teach), and **the Multi point table's vertical
+columns**: the Elevation heading names the target datum, shift and σ columns
+sit directly after it with the audit CSV's own wordings, and the
+table-vs-CSV pin is parametrized over BOTH directions — because the raw grid
+value and the applied shift are the same number under sign +1 and negatives
+of each other under −1, so only the inverse direction discriminates a shift
+cell fed from the wrong source. `ResultsModel` now derives its
+warnings-column and alignment indexes from its own header: the old fixed
+index 6, applied to the nine-column vertical table, painted the wrong cell
+amber.
+
+**The gate (independent Opus): FIX-FIRST — the WP-V8 diff itself held** ("I
+could not break it"): 13 controls × 2 result kinds driven adversarially with
+copy paths checked after each, 64 two-tab configurations with 320 cell
+comparisons bitwise against the panel, the table AND the written audit CSV
+(zero disagreements), settings honesty under exhaustive mode sequences
+(hidden combos never leak), refusals character-identical through the real
+Convert click, horizontal GUI regression exact to the cell and the archive
+digest, and 12 seeded defects — 11 caught by exactly their claimed pins.
+What it found:
+
+1. **CRITICAL, inherited — live in released 0.3.1 and every release since
+   0.1.0: the longitude sign dropdown never invalidated a displayed result
+   on the Single point tab.** Wired to Convert-gating only; every other
+   control reaches `_invalidate_result`. Flip the convention after a
+   geodetic conversion and the old convention's result stays on screen
+   captioned "Converted", both copy paths armed — the gate measured a stale
+   northing **9,756,797 m out**, the largest magnitude the #26 class has
+   produced, dwarfing #26's own 100,001 ft counterexample. **#26's fix text
+   — "every entry field and every selection discards the result" — was
+   false for exactly this control**, and #26's own test parametrized zones
+   and units and never the convention. (That the *preselect* debate of
+   #29/#33 orbited this exact control for three rounds while the
+   invalidation gap sat unnoticed is recorded without comment.) Fixed: the
+   combo now drives gating AND invalidation; pinned
+   (`test_flipping_the_longitude_convention_discards_the_result`);
+   falsified by rewiring the shipped 0.3.1 connection — the pin alone
+   fails. **#26 is annotated in place.**
+2. **MEDIUM — the derived amber index was unpinned**: seeding the fixed
+   index back survived all 1500 tests while painting every Grid scale
+   factor cell amber on a vertical job, and `TextAlignmentRole` was
+   asserted nowhere. Both now pinned on a vertical job with a genuinely
+   warned row (the frozen negative-σ position); falsified — the seed now
+   fails exactly the two new tests.
+3. **LOW, carried**: `WARNINGS_COLUMN` remains as the horizontal layout's
+   documented constant (one pre-existing horizontal test uses it
+   correctly); `vertical_mode_for`'s neither-checked branch is unreachable
+   by construction; a post-run mode flip leaving the previous job's headers
+   on the Multi table is the standing describe-the-written-archive
+   behaviour, confirmed intentional.
+
+**Suite: 1474 → 1503**, green in `pytest` and `-O`; the implementer's nine
+falsifications, the gate's twelve seeds, and this round's three (the
+longitude rewiring, the fixed amber index, the alignment set). Committed to
+`main` and pushed; no release. WP-V9 remains: end-to-end + the frozen
+self-test's vertical conversion, build gates, release notes, and the closing
+gate over the whole feature.
+
 ### #42 — 2026-08-08 — WP-V7: the disclosure — every surface now says what was done to the height
 
 **What was built** (plan §5, implemented by a work-package subagent to the
@@ -2015,6 +2085,12 @@ Fixed, each pinned and each pin falsified:
   selection discards the result, clears the panel, disables Copy all and says
   "Input changed. Press Convert." Clearing rather than annotating: a greyed-out
   number is still a number beside a Copy button.
+  **[ANNOTATED at #43: "every selection" was FALSE.** The longitude sign
+  dropdown — the very control of the "second shape" above — was wired to
+  Convert-gating only and never invalidated; the fix and this record's test
+  covered zones and units and missed it. It shipped that way from 0.1.0
+  through 0.3.1, capable of a stale result 9,756,797 m out, and was found by
+  the WP-V8 review gate. Fixed and pinned at #43.]
 - **Two warnings told a typed-point user to check a file that does not exist** —
   "the ones this file is actually in" and "was read from the file". Reworded for
   both callers; the wrong-source-zone warning is the likeliest a typed point

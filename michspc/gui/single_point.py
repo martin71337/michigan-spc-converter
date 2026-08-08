@@ -56,18 +56,27 @@ from PySide6.QtWidgets import (
 )
 
 from michspc import APP_NAME
-from michspc.fileio import dms, geoid, pnezd
+from michspc.fileio import dms, pnezd
 from michspc.gui.controls import (
     AMBER,
     GEODETIC,
+    GEOID_MODEL_LABEL,
     RED,
     UNITS_LABEL,
     UNITS_LABEL_ELEVATION_ONLY,
+    VERTICAL_MODE_LABEL,
+    VERTICAL_SOURCE_LABEL,
+    VERTICAL_TARGET_LABEL,
     direction_for,
+    geoid_combo,
     longitude_combo,
     longitude_is_relevant,
     show_failure_dialog,
     unit_combo,
+    vertical_datum_combo,
+    vertical_datum_for,
+    vertical_mode_buttons,
+    vertical_mode_for,
     zone_combo,
 )
 from michspc.gui.dms_entry import DmsEntry
@@ -78,7 +87,15 @@ from michspc.gui.results_model import (
     single_point_sections,
     single_point_warnings,
 )
-from michspc.job import Direction, JobResult, JobSettings, LongitudeConvention, run
+from michspc.job import (
+    Direction,
+    JobResult,
+    JobSettings,
+    LongitudeConvention,
+    VerticalMode,
+    run,
+)
+from michspc.spc.vertical import VerticalDatum
 from michspc.spc.zones import Zone
 
 TAB_TITLE = f"{APP_NAME} — single point"
@@ -149,8 +166,9 @@ would otherwise get wrong.
 
 INCOMPLETE_FORM = (
     "The conversion settings are incomplete, so nothing was run. Choose both "
-    "ends of the conversion, type both coordinate values, and — when geodetic "
-    "coordinates are involved — choose the longitude sign convention."
+    "ends of the conversion, type both coordinate values, choose the "
+    "longitude sign convention when geodetic coordinates are involved, and "
+    "choose both vertical datums when vertical mode is on."
 )
 
 WARNINGS_TITLE = "Warnings"
@@ -218,6 +236,7 @@ class SinglePointTab(QWidget):
         self._update_unit_labels()
         self._update_longitude_relevance()
         self._update_angle_format_relevance()
+        self._update_vertical_rows()
         self._update_convert_enabled()
 
     # ------------------------------------------------------------------
@@ -244,6 +263,20 @@ class SinglePointTab(QWidget):
         box = QGroupBox("Conversion", self)
         grid = QGridLayout(box)
 
+        # --- horizontal / horizontal + vertical -------------------------
+        # The first row of the Conversion box, per plan section 4.1 - and on
+        # THIS tab, not the window: a window-level toggle would be state
+        # shared between the tabs, which amendment #26 forbids.
+        self.mode_horizontal, self.mode_vertical, self._mode_group = (
+            vertical_mode_buttons(box, self._on_vertical_mode_changed)
+        )
+        mode_row = QHBoxLayout()
+        mode_row.addWidget(self.mode_horizontal)
+        mode_row.addWidget(self.mode_vertical)
+        mode_row.addStretch(1)
+        grid.addWidget(QLabel(VERTICAL_MODE_LABEL, box), 0, 0)
+        grid.addLayout(mode_row, 0, 1, 1, 3)
+
         # --- from / to --------------------------------------------------
         self.from_zone = zone_combo(box, self._on_direction_changed)
         self.to_zone = zone_combo(box, self._on_direction_changed)
@@ -260,22 +293,66 @@ class SinglePointTab(QWidget):
         self.input_unit_label = QLabel(UNITS_LABEL, box)
         self.output_unit_label = QLabel(UNITS_LABEL, box)
 
-        grid.addWidget(QLabel("From zone:", box), 0, 0)
-        grid.addWidget(self.from_zone, 0, 1)
-        grid.addWidget(self.input_unit_label, 0, 2)
-        grid.addWidget(self.input_unit, 0, 3)
+        grid.addWidget(QLabel("From zone:", box), 1, 0)
+        grid.addWidget(self.from_zone, 1, 1)
+        grid.addWidget(self.input_unit_label, 1, 2)
+        grid.addWidget(self.input_unit, 1, 3)
 
-        grid.addWidget(QLabel("To zone:", box), 1, 0)
-        grid.addWidget(self.to_zone, 1, 1)
-        grid.addWidget(self.output_unit_label, 1, 2)
-        grid.addWidget(self.output_unit, 1, 3)
+        grid.addWidget(QLabel("To zone:", box), 2, 0)
+        grid.addWidget(self.to_zone, 2, 1)
+        grid.addWidget(self.output_unit_label, 2, 2)
+        grid.addWidget(self.output_unit, 2, 3)
+
+        # --- vertical datums --------------------------------------------
+        # Directly under the To zone row: they are the vertical job's own
+        # from/to pair. Revealed by Horizontal + Vertical and hidden - not
+        # disabled - by Horizontal (plan section 4.2). Both open unanswered,
+        # gate Convert through settings(), and - like every control that can
+        # change the answer - discard a displayed result (amendment #26).
+        self.vertical_source_label = QLabel(VERTICAL_SOURCE_LABEL, box)
+        self.vertical_source_combo = vertical_datum_combo(
+            box, self._on_vertical_datum_changed
+        )
+        self.vertical_target_label = QLabel(VERTICAL_TARGET_LABEL, box)
+        self.vertical_target_combo = vertical_datum_combo(
+            box, self._on_vertical_datum_changed
+        )
+
+        grid.addWidget(self.vertical_source_label, 3, 0)
+        grid.addWidget(self.vertical_source_combo, 3, 1, 1, 3)
+        grid.addWidget(self.vertical_target_label, 4, 0)
+        grid.addWidget(self.vertical_target_combo, 4, 1, 1, 3)
+
+        # --- geoid model ------------------------------------------------
+        # New to this tab, which had no geoid control at all (plan section
+        # 4.3). Visible in BOTH modes: the geoid governs the elevation and
+        # combined factors whether or not the elevations are converted
+        # between vertical datums. Like the unit combos it does not gate
+        # Convert - it always holds a model - so its one connection is the
+        # invalidation, without which a GEOID18-to-GEOID12B change would
+        # leave the previous model's factors on screen (the amendment #26
+        # CRITICAL class).
+        self.geoid_label = QLabel(GEOID_MODEL_LABEL, box)
+        self.geoid_combo = geoid_combo(box)
+        self.geoid_combo.currentIndexChanged.connect(self._invalidate_result)
+
+        grid.addWidget(self.geoid_label, 5, 0)
+        grid.addWidget(self.geoid_combo, 5, 1, 1, 3)
 
         # --- longitude sign convention ----------------------------------
         self.longitude_label = QLabel("Longitude sign:", box)
-        self.longitude_combo = longitude_combo(box, self._update_convert_enabled)
+        # BOTH gating and invalidation. The invalidation was missing from
+        # amendment #26's fix - its "every entry field and every selection
+        # discards the result" was false for exactly this control - and the
+        # WP-V8 review gate reproduced the consequence live in released
+        # 0.3.1: flip the convention after a geodetic conversion and a result
+        # 9,756,797 m out stays on screen captioned "Converted", both copy
+        # paths armed. The largest stale-result magnitude this class has
+        # produced (DESIGN.md #43, correcting #26).
+        self.longitude_combo = longitude_combo(box, self._on_longitude_changed)
 
-        grid.addWidget(self.longitude_label, 2, 0)
-        grid.addWidget(self.longitude_combo, 2, 1, 1, 3)
+        grid.addWidget(self.longitude_label, 6, 0)
+        grid.addWidget(self.longitude_combo, 6, 1, 1, 3)
 
         # --- how a latitude and longitude are typed ----------------------
         self.angle_format_label = QLabel(ANGLE_FORMAT_LABEL, box)
@@ -284,8 +361,8 @@ class SinglePointTab(QWidget):
         self.angle_format.addItem(ANGLE_FORMAT_DMS, DMS_PAGE)
         self.angle_format.currentIndexChanged.connect(self._on_angle_format_changed)
 
-        grid.addWidget(self.angle_format_label, 3, 0)
-        grid.addWidget(self.angle_format, 3, 1, 1, 3)
+        grid.addWidget(self.angle_format_label, 7, 0)
+        grid.addWidget(self.angle_format, 7, 1, 1, 3)
 
         # --- the typed coordinate ---------------------------------------
         # Each coordinate row is a two-page stack: one decimal box, or four DMS
@@ -318,12 +395,12 @@ class SinglePointTab(QWidget):
         self.second_edit.textChanged.connect(self._invalidate_result)
         self.elevation_edit.textChanged.connect(self._invalidate_result)
 
-        grid.addWidget(self.first_label, 4, 0)
-        grid.addWidget(self.first_stack, 4, 1, 1, 3)
-        grid.addWidget(self.second_label, 5, 0)
-        grid.addWidget(self.second_stack, 5, 1, 1, 3)
-        grid.addWidget(self.elevation_label, 6, 0)
-        grid.addWidget(self.elevation_edit, 6, 1, 1, 3)
+        grid.addWidget(self.first_label, 8, 0)
+        grid.addWidget(self.first_stack, 8, 1, 1, 3)
+        grid.addWidget(self.second_label, 9, 0)
+        grid.addWidget(self.second_stack, 9, 1, 1, 3)
+        grid.addWidget(self.elevation_label, 10, 0)
+        grid.addWidget(self.elevation_edit, 10, 1, 1, 3)
 
         # --- convert ----------------------------------------------------
         self.convert_button = QPushButton("Convert", box)
@@ -331,7 +408,7 @@ class SinglePointTab(QWidget):
         buttons.addStretch(1)
         buttons.addWidget(self.convert_button)
         self.convert_button.clicked.connect(self.convert)
-        grid.addLayout(buttons, 7, 0, 1, 4)
+        grid.addLayout(buttons, 11, 0, 1, 4)
 
         grid.setColumnStretch(1, 3)
         grid.setColumnStretch(3, 2)
@@ -457,18 +534,46 @@ class SinglePointTab(QWidget):
         data = self.longitude_combo.currentData()
         return data if isinstance(data, LongitudeConvention) else None
 
+    def vertical_mode(self) -> VerticalMode:
+        """What the mode toggle states; ``controls.vertical_mode_for`` owns the rule."""
+        return vertical_mode_for(self.mode_horizontal, self.mode_vertical)
+
+    def source_vertical_datum(self) -> VerticalDatum | None:
+        return vertical_datum_for(self.vertical_source_combo.currentData())
+
+    def target_vertical_datum(self) -> VerticalDatum | None:
+        return vertical_datum_for(self.vertical_target_combo.currentData())
+
     def settings(self) -> JobSettings | None:
         """Assemble the job settings, or None if the form is not yet complete.
 
         Mirrors ``MainWindow.settings`` exactly, including the zone-to-zone
-        branch that states ``longitude_convention=None``, and differs in one
-        respect only: ``input_path`` and ``output_directory`` are ``None`` and
-        are not gated on. That is a statement, not an absence — this job came
-        from no file and produces none (docs/DESIGN.md amendment #26).
+        branch that states ``longitude_convention=None`` and the vertical
+        branch that gates on both datums, and differs in one respect only:
+        ``input_path`` and ``output_directory`` are ``None`` and are not gated
+        on. That is a statement, not an absence — this job came from no file
+        and produces none (docs/DESIGN.md amendment #26).
         """
         direction = self.direction()
         if direction is None:
             return None
+
+        # A vertical job needs both datums answered before it is a job at all
+        # (plan section 4.4); a horizontal job states None for both. The
+        # refusal matrix stays in job.run: this method decides whether the
+        # form is complete, never whether a completed form's combination is
+        # convertible, so a pair the registry refuses reaches the job and
+        # comes back as the registry's own teaching message rather than a
+        # greyed-out control.
+        mode = self.vertical_mode()
+        if mode is VerticalMode.HORIZONTAL_AND_VERTICAL:
+            source_datum = self.source_vertical_datum()
+            target_datum = self.target_vertical_datum()
+            if source_datum is None or target_datum is None:
+                return None
+        else:
+            source_datum = None
+            target_datum = None
 
         source = self.from_zone.currentData()
         target = self.to_zone.currentData()
@@ -483,10 +588,13 @@ class SinglePointTab(QWidget):
             target_zone=target_zone,
             input_unit=self.input_unit.currentData(),
             output_unit=self.output_unit.currentData(),
-            # Stated, not defaulted, matching MainWindow.settings. The model
-            # dropdown that makes this a choice is WP-V8 (plan section 4.3);
-            # WP-V7 built the disclosure surfaces, not the controls.
-            geoid_model=geoid.GEOID18_MODEL,
+            # From the dropdown (WP-V8, plan section 4.3), exactly as the two
+            # unit combos are read and exactly as MainWindow.settings reads
+            # its own.
+            geoid_model=self.geoid_combo.currentData(),
+            vertical_mode=mode,
+            source_vertical_datum=source_datum,
+            target_vertical_datum=target_datum,
         )
 
         if direction is Direction.ZONE_TO_ZONE:
@@ -575,6 +683,49 @@ class SinglePointTab(QWidget):
         """What every DMS box is wired to: the same pair the decimal box uses."""
         self._update_convert_enabled()
         self._invalidate_result()
+
+    def _on_longitude_changed(self) -> None:
+        """Gating AND invalidation, like every other selection on this tab.
+
+        The convention decides which point the typed longitude names - the two
+        readings are 340 miles apart - so a result computed under the old
+        convention no longer describes what the controls say (DESIGN.md #43,
+        closing the control amendment #26's fix missed).
+        """
+        self._update_convert_enabled()
+        self._invalidate_result()
+
+    def _on_vertical_mode_changed(self) -> None:
+        """The toggle reveals or hides the datum rows - and, like every
+        control that changes what the job IS, discards a displayed result:
+        the same numbers under a different mode describe a different job
+        (amendment #26)."""
+        self._update_vertical_rows()
+        self._update_convert_enabled()
+        self._invalidate_result()
+
+    def _on_vertical_datum_changed(self) -> None:
+        """What both datum combos are wired to: the gate and the invalidation,
+        the same pair the coordinate entries use."""
+        self._update_convert_enabled()
+        self._invalidate_result()
+
+    def _update_vertical_rows(self) -> None:
+        """Show the two datum rows in vertical mode; hide them otherwise.
+
+        Hidden, not disabled (plan section 4.2). The combos keep whatever
+        answer they held, so toggling to Horizontal and back does not silently
+        discard a chosen datum - but a Horizontal job never reads them:
+        ``settings`` states None for both in that mode.
+        """
+        vertical = self.vertical_mode() is VerticalMode.HORIZONTAL_AND_VERTICAL
+        for widget in (
+            self.vertical_source_label,
+            self.vertical_source_combo,
+            self.vertical_target_label,
+            self.vertical_target_combo,
+        ):
+            widget.setVisible(vertical)
 
     def entering_dms(self) -> bool:
         """True when the two coordinate rows are showing their four-box page.

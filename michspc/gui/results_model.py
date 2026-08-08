@@ -20,7 +20,7 @@ from PySide6.QtGui import QBrush, QColor
 from michspc.fileio import formatting as fmt
 from michspc.fileio import pnezd
 from michspc.gui.controls import zone_label
-from michspc.job import Direction, JobResult, LongitudeConvention
+from michspc.job import Direction, JobResult, LongitudeConvention, VerticalMode
 
 COLUMNS: tuple[str, ...] = (
     "Point",
@@ -52,16 +52,57 @@ the two names move, and only for the one direction whose values are degrees.
 """
 
 
+VERTICAL_SHIFT_COLUMN_HEADING = "Vertical shift (m)"
+"""The table's shift column heading on a vertical job - the audit CSV's own
+(exports.audit_columns), per the #17 standing choice of one wording on every
+surface. The sigma column reuses ``VERTICAL_SIGMA_LABEL`` below, which is the
+same CSV heading already serving as the Single point panel's row label."""
+
+
+def _elevation_heading(base: str, settings) -> str:
+    """``Elevation (NAVD88)`` - the ordinary heading with the TARGET datum.
+
+    Vertical jobs only. The table's elevation cells hold the SHIFTED height
+    (``row_strings`` renders ``point.output_elevation``, which _convert_row
+    moved into the target datum), so a bare "Elevation" over them names the
+    number without saying which surface it is on - the WP-V7 review gate's
+    finding 4, assigned to WP-V8. The datum comes from the settings the job
+    actually ran with, never from a dropdown's current state.
+    """
+    return f"{base} ({settings.target_vertical_datum.code})"
+
+
 def columns_for(result: JobResult | None) -> tuple[str, ...]:
     """The header row for a job's direction. ``COLUMNS`` until a job says else.
 
     An empty table shows the ordinary headings: nothing has been converted, so
     naming the columns after a direction the user has not run would be the
     interface answering a question it was not asked.
+
+    A HORIZONTAL_AND_VERTICAL job renames the Elevation heading with the
+    target datum and gains the shift and sigma columns directly after it -
+    mirroring ``exports.audit_columns``, whose vertical block also sits
+    directly after Elevation, so the table and the audit CSV read in the same
+    order. A horizontal job's header is ``COLUMNS`` (or ``GEODETIC_COLUMNS``)
+    unchanged, to the string: horizontal mode asked no vertical question and
+    its table must not claim a datum nobody stated (plan section 1).
     """
-    if result is not None and result.settings.direction is Direction.ZONE_TO_GEODETIC:
-        return GEODETIC_COLUMNS
-    return COLUMNS
+    if result is None:
+        return COLUMNS
+    settings = result.settings
+    columns = list(
+        GEODETIC_COLUMNS
+        if settings.direction is Direction.ZONE_TO_GEODETIC
+        else COLUMNS
+    )
+    if settings.vertical_mode is VerticalMode.HORIZONTAL_AND_VERTICAL:
+        at = columns.index("Elevation")
+        columns[at] = _elevation_heading(columns[at], settings)
+        columns[at + 1 : at + 1] = [
+            VERTICAL_SHIFT_COLUMN_HEADING,
+            VERTICAL_SIGMA_LABEL,
+        ]
+    return tuple(columns)
 
 POINT_COLUMN = 0
 NORTHING_COLUMN = 1
@@ -70,16 +111,28 @@ ELEVATION_COLUMN = 3
 GRID_FACTOR_COLUMN = 4
 COMBINED_FACTOR_COLUMN = 5
 WARNINGS_COLUMN = 6
+"""The HORIZONTAL layout's column indexes - the table every release since
+0.1.0 has shown, unchanged by WP-V8. A vertical job's table carries two more
+columns after Elevation, so the model derives that job's warnings and
+alignment positions from its own header in ``set_result`` rather than from
+these constants; a fixed index applied to the wider table would paint the
+wrong cell amber."""
 
-_RIGHT_ALIGNED = frozenset(
-    {
-        NORTHING_COLUMN,
-        EASTING_COLUMN,
-        ELEVATION_COLUMN,
-        GRID_FACTOR_COLUMN,
-        COMBINED_FACTOR_COLUMN,
-    }
-)
+
+def _warnings_index(columns: tuple[str, ...]) -> int:
+    """Where the Warnings column sits in this header."""
+    return columns.index("Warnings")
+
+
+def _right_aligned(columns: tuple[str, ...]) -> frozenset[int]:
+    """Which columns hold numbers, derived from the header itself.
+
+    Every column except Point and Warnings - exactly the set the old
+    module-level constant froze for the seven-column layout (indexes 1-5),
+    restated as a rule so the vertical layout's shift and sigma columns
+    right-align without a second hand-kept index list to drift.
+    """
+    return frozenset(range(len(columns))) - {POINT_COLUMN, _warnings_index(columns)}
 
 AMBER = QColor(255, 233, 178)
 """The one colour this table paints, and it means exactly one thing.
@@ -108,6 +161,7 @@ def row_strings(result: JobResult) -> tuple[tuple[str, ...], ...]:
     """
     settings = result.settings
     to_geodetic = settings.direction is Direction.ZONE_TO_GEODETIC
+    vertical = settings.vertical_mode is VerticalMode.HORIZONTAL_AND_VERTICAL
 
     rows: list[tuple[str, ...]] = []
 
@@ -119,19 +173,41 @@ def row_strings(result: JobResult) -> tuple[tuple[str, ...], ...]:
             northing = fmt.coordinate(point.output_northing, settings.output_unit)
             easting = fmt.coordinate(point.output_easting, settings.output_unit)
 
-        rows.append(
-            (
-                point.point_id,
-                northing,
-                easting,
-                fmt.coordinate(point.output_elevation, settings.output_unit),
-                fmt.factor(point.factors.grid_scale_factor),
-                # combined_factor is None for a point with no usable elevation;
-                # fmt.factor renders that as "N/A", never as 1.0.
-                fmt.factor(point.factors.combined_factor),
-                "; ".join(warning.code.value for warning in point.warnings),
-            )
-        )
+        cells = [
+            point.point_id,
+            northing,
+            easting,
+            fmt.coordinate(point.output_elevation, settings.output_unit),
+            fmt.factor(point.factors.grid_scale_factor),
+            # combined_factor is None for a point with no usable elevation;
+            # fmt.factor renders that as "N/A", never as 1.0.
+            fmt.factor(point.factors.combined_factor),
+            "; ".join(warning.code.value for warning in point.warnings),
+        ]
+
+        if vertical:
+            # Directly after the Elevation cell, under the two headings
+            # columns_for inserts at the same position. The None handling is
+            # deliberately identical to exports.audit_rows' vertical block: a
+            # reading is None on a point that carried no elevation and on a
+            # coverage-refused point (the warnings cell says which), so
+            # neither number exists and both render N/A; sigma_m is None on
+            # an identity and where the error model interpolates below zero
+            # (DESIGN.md #36) - never the raw figure, which is not an
+            # uncertainty. The values come from the READING - the shift the
+            # job actually applied - not from any grid value, so this cell
+            # and the audit CSV's cannot disagree (#26's property).
+            reading = point.vertical
+            cells[ELEVATION_COLUMN + 1 : ELEVATION_COLUMN + 1] = [
+                fmt.vertical_metres(
+                    reading.shift_m if reading is not None else None
+                ),
+                fmt.vertical_metres(
+                    reading.sigma_m if reading is not None else None
+                ),
+            ]
+
+        rows.append(tuple(cells))
 
     return tuple(rows)
 
@@ -657,12 +733,19 @@ class ResultsModel(QAbstractTableModel):
         self._rows: tuple[tuple[str, ...], ...] = ()
         self._warning_messages: tuple[str, ...] = ()
         self._columns: tuple[str, ...] = COLUMNS
+        self._warnings_column: int = _warnings_index(COLUMNS)
+        self._aligned_right: frozenset[int] = _right_aligned(COLUMNS)
 
     def set_result(self, result: JobResult | None) -> None:
         self.beginResetModel()
         # The headings are settled here, with the rows, so the two can never
-        # describe different jobs: a model reset repaints both together.
+        # describe different jobs: a model reset repaints both together. The
+        # warnings and alignment positions are derived from the header at the
+        # same moment, because a vertical job's table is two columns wider
+        # and a fixed index would paint the wrong cell amber.
         self._columns = columns_for(result)
+        self._warnings_column = _warnings_index(self._columns)
+        self._aligned_right = _right_aligned(self._columns)
         if result is None:
             self._rows = ()
             self._warning_messages = ()
@@ -696,11 +779,14 @@ class ResultsModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.DisplayRole:
             return self._rows[row][column]
 
-        if role == Qt.ItemDataRole.TextAlignmentRole and column in _RIGHT_ALIGNED:
+        if role == Qt.ItemDataRole.TextAlignmentRole and column in self._aligned_right:
             return int(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         if role == Qt.ItemDataRole.BackgroundRole:
-            if column == WARNINGS_COLUMN and self._rows[row][WARNINGS_COLUMN]:
+            if (
+                column == self._warnings_column
+                and self._rows[row][self._warnings_column]
+            ):
                 return QBrush(AMBER)
             return None
 

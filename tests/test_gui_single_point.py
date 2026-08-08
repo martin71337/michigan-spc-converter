@@ -1046,6 +1046,35 @@ def test_every_selection_discards_the_result(tab, control, data):
     assert tab.copy_all_button.isEnabled() is False
 
 
+def test_flipping_the_longitude_convention_discards_the_result(tab):
+    """The control amendment #26's fix missed, found live in released 0.3.1
+    by the WP-V8 review gate (DESIGN.md #43). The convention decides which
+    point the typed longitude names - the two readings are 340 miles apart -
+    yet flipping it left the old convention's result on screen captioned
+    "Converted", both copy paths armed: a stale northing 9,756,797 m out, the
+    largest magnitude this defect class has produced. #26's own test
+    parametrized zones and units and never this control.
+
+    Falsified by rewiring the combo to gating only (the shipped 0.3.1
+    wiring): this test alone fails.
+    """
+    fill_single(tab, case_named("geodetic_to_zone"))
+    if tab.convert() is not True:
+        raise AssertionError(f"the run failed: {tab.shown_failures}")
+    assert tab.result is not None
+
+    flipped = tab.longitude_combo.findData(LongitudeConvention.POSITIVE_WEST)
+    assert flipped >= 0
+    assert tab.longitude_combo.currentIndex() != flipped, (
+        "the case must start on the other convention or the flip is a no-op"
+    )
+    tab.longitude_combo.setCurrentIndex(flipped)
+
+    assert tab.result is None
+    assert tab.sections is None
+    assert tab.copy_all_button.isEnabled() is False
+
+
 def test_the_copy_tooltip_says_which_section_the_value_came_from(tab):
     """Both sections carry a row called "Northing" in a zone-to-zone job.
 

@@ -46,7 +46,21 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: vertical datums V0–V7 DONE on main; V8–V9 NOT BUILT (2026-08-08)
+## Current state: vertical datums V0–V8 DONE on main; V9 NOT BUILT (2026-08-08)
+
+**WP-V8 is DONE (DESIGN.md #43): vertical mode is reachable from both tabs**
+— mode toggle (opens Horizontal), datum dropdowns (open unanswered, usable
+registry only), geoid dropdown (ALL_GEOID_MODELS, no "none") on both tabs,
+Multi point table with datum-named Elevation heading plus shift/σ columns
+pinned cell-for-cell against the audit CSV in both directions. **The gate
+found a CRITICAL that shipped in 0.1.0 and survived #26's own fix: the
+longitude sign dropdown never invalidated a displayed result** — stale
+northing 9,756,797 m out, one click from the clipboard; fixed, pinned,
+falsified, #26 annotated in place. Suite **1503**. Remaining: **WP-V9**
+(frozen self-test converts one vertical point; build gates; release notes;
+closing gate over the whole vertical feature), then the owner's release
+review. The tab layouts are described in #43 — THE OWNER HAS NOT SEEN THEM
+on a real screen.
 
 **WP-V7 is DONE (DESIGN.md #42): every surface discloses the vertical
 conversion.** Job record (datums, quoted direction statement, both digests,

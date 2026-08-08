@@ -46,14 +46,36 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: vertical datums V0–V4 + WP-G1 MERGED TO MAIN; V5–V9 NOT BUILT (2026-08-07)
+## Current state: vertical datums V0–V5 DONE on main; V6–V9 NOT BUILT (2026-08-08)
 
-**`main` now carries the vertical branch, WP-G1 and the merge gate. Suite
-1358, green in both `pytest` and `-O`. NOT RELEASED — 0.3.1 is still the
+**`main` carries the vertical work through WP-V5 plus WP-G1, all gated. Suite
+1397, green in both `pytest` and `-O`. NOT RELEASED — 0.3.1 is still the
 released version, the version literal has not moved, and the owner reviews
-before any release is cut.** Read DESIGN.md **#36–#38** before touching this
+before any release is cut.** Read DESIGN.md **#36–#40** before touching this
 work; the plan (`docs/PLAN-vertical-datums.md`) remains a proposal whose
 §2.5a/§7/§8 carry supersession annotations.
+
+**WP-V5 is DONE (DESIGN.md #40), two commits as the plan required:** the
+`geoid18.py` → `geoid.py` rename (pure, byte-identical content), then the
+`GeoidModel` registry — GEOID18 and GEOID12B records carrying name, tile,
+digest, geometry, vertical datum and citation as THE authoritative
+representation; `apply_geoid: bool` → `geoid_model: GeoidModel | None` (None
+= "no geoid applied", a core capability no interface offers); GEOID12B
+genuinely read and gated by 20 NGS anchors captured live before the code
+existed (`tests/fixtures/geoid12b_anchors.py`, provenance in
+`review/wp-v5-geoid12b/`, 18 of 20 discriminate the models at NGS's printed
+mm — the anti-swap pin, falsified with a swap that passes both authentication
+gates); the latent `require_geoid_matches_datum` guard (#32's two-eras rule,
+wired at V6); the bundle self-test reads GEOID12B through the registry; the
+spec and release manifest derive from the registries. Gate verdict MERGE:
+GEOID18 output proven byte-identical across five job configurations, all
+findings closed in #40.
+
+**Also fixed on main (DESIGN.md #39): the copy glyph was cut off on every
+scaled display** — the device pixel ratio was stamped on the pixmap before
+painting, so the scales compounded; invisible at 100% and on the offscreen
+test platform (the #31 class). Fixed, pinned by byte-identity across ratios,
+falsified.
 
 **This session (the merge session) did, in order:**
 
@@ -90,18 +112,22 @@ work; the plan (`docs/PLAN-vertical-datums.md`) remains a proposal whose
 
 ### Resume here, in order
 
-1. **WP-V5** — geoid model registry, `apply_geoid` → `geoid_model`, GEOID12B
-   (tile and pin committed; selftest now authenticates it in the bundle), and
-   the `geoid18.py` → `geoid.py` rename as its own commit. **WP-V5 must put
-   the GEOID12B digest into its runtime model record** — today's pin is
-   suite-plus-selftest only, adequate only while nothing loads the tile.
-2. **WP-V6** — file wiring. Note from #38: `to_east_longitude` accepts 0–360
-   east longitudes silently; the file layer must settle the accepted range
-   before these readers see a CSV's longitude.
-3. **WP-V7** — the disclosure package, owner's decisions: negative σ
-   presentation AND the half-cell discontinuity; also `reading_at`'s
+1. **WP-V6** — `job.py` wiring: vertical shift before geoid lookup (plan
+   §3.6), datum-tagged elevations, the four refusals, and wiring
+   `geoid.require_geoid_matches_datum` in. Notes from the gates: `to_east_longitude`
+   accepts 0–360 east longitudes silently — the file layer must settle the
+   accepted range before these readers see a CSV's longitude (#38); a
+   non-registry `geoid_model` now refuses in `job.run` before converting
+   (#40).
+2. **WP-V7** — the disclosure package, owner's decisions: negative σ
+   presentation, the half-cell discontinuity (#38), AND whether `_full.csv`
+   names the geoid model beside `Geoid height (m)` — model-dependent since
+   V5, 32 mm between the models at the Houghton anchor (#40). `reading_at`'s
    `sigma=None` needs a distinguishable signal by then (#38).
-4. Then V8–V9; closing gate under Codex, or independent Opus reviewers if
+3. **WP-V8** — GUI: mode toggle, geoid dropdown (GEOID18 + GEOID12B, no
+   "none"), both tabs. The registry's `ALL_GEOID_MODELS` is the dropdown's
+   source, in declaration order.
+4. Then V9; closing gate under Codex, or independent Opus reviewers if
    Codex usage runs out (owner's instruction, 2026-08-07).
 
 **Still human, still outstanding:** install on a clean profile and run one

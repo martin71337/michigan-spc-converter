@@ -56,7 +56,7 @@ from PySide6.QtWidgets import (
 )
 
 from michspc import APP_NAME
-from michspc.fileio import dms, pnezd
+from michspc.fileio import dms, geoid, pnezd
 from michspc.gui.controls import (
     AMBER,
     GEODETIC,
@@ -483,7 +483,9 @@ class SinglePointTab(QWidget):
             target_zone=target_zone,
             input_unit=self.input_unit.currentData(),
             output_unit=self.output_unit.currentData(),
-            apply_geoid=True,
+            # Stated, not defaulted, matching MainWindow.settings. The model
+            # dropdown that makes this a choice is WP-V7 (plan section 4.3).
+            geoid_model=geoid.GEOID18_MODEL,
         )
 
         if direction is Direction.ZONE_TO_ZONE:

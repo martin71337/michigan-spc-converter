@@ -111,6 +111,29 @@ def test_the_selftests_vertcon_anchor_is_the_frozen_ncat_value():
     )
 
 
+def test_the_selftests_geoid12b_anchor_is_the_frozen_ngs_value():
+    """The transcription check for the GEOID12B anchor, same rule as GEOID18's.
+
+    ``==`` because the claim is "these are the same number", not "these agree
+    to within something" (docs/method/METHOD.md section 4). The position is
+    NOT the S2 crosscheck point: the GEOID12B lattice reuses the GEOID18
+    ANCHOR positions (44.2542 N), where S2 sits at 44.252 N, and a tolerance
+    here would have let that near-miss transcription slip through.
+    """
+    from tests.fixtures.geoid12b_anchors import GEOID12B_ANCHORS
+
+    anchor = next(
+        a
+        for a in GEOID12B_ANCHORS
+        if (a.latitude, a.longitude)
+        == (selftest.GEOID12B_ANCHOR_LATITUDE, selftest.GEOID12B_ANCHOR_LONGITUDE)
+    )
+
+    assert selftest.GEOID12B_ANCHOR_LATITUDE == anchor.latitude
+    assert selftest.GEOID12B_ANCHOR_LONGITUDE == anchor.longitude
+    assert selftest.GEOID12B_ANCHOR_HEIGHT_M == anchor.geoid_height_m
+
+
 def test_the_end_to_end_tolerance_is_two_ncat_legs_plus_the_written_place():
     """Hand-derived, in the unit the export is written in.
 
@@ -295,6 +318,27 @@ def test_the_geoid12b_check_fails_on_a_tampered_tile(tmp_path, monkeypatch):
     assert "does not match" in str(raised.value)
 
 
+def test_the_geoid12b_check_fails_when_the_height_is_wrong(monkeypatch):
+    """The tile loads and authenticates, and still answers wrongly.
+
+    The failure the checksum cannot see: a byte-identical tile read through
+    different code - the same class the GEOID18 check's wrong-height test
+    covers. (A swapped TILE is not this check's to catch: at the anchor
+    position the two models differ by only 1.2 mm, inside the 2 mm tolerance.
+    The suite's anti-swap pin in test_geoid.py holds that line, across the 18
+    of 20 anchor positions where the models differ at the printed millimetre.)
+    """
+    monkeypatch.setattr(
+        geoid, "geoid_height", lambda lat, lon, grid=None: -33.796
+    )
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_geoid12b_tile()
+    message = str(raised.value)
+    assert "-33.7960" in message
+    assert "out by" in message
+
+
 def test_the_lazy_import_check_fails_on_a_module_that_is_not_there(monkeypatch):
     monkeypatch.setattr(
         selftest,
@@ -464,31 +508,55 @@ def test_the_spec_reads_the_version_rather_than_restating_it():
 
 
 def test_the_spec_bundles_the_geoid_tile_where_the_reader_looks():
-    """``shipped_data_directory`` reads ``sys._MEIPASS/data``; the spec must put it there."""
+    """``shipped_data_directory`` reads ``sys._MEIPASS/data``; the spec must put it there.
+
+    The filename itself is no longer a literal in the spec - since WP-V5 the
+    spec derives every geoid filename from ``geoid.ALL_GEOID_MODELS`` - so this
+    pins the derivation and checks the record it derives from still names the
+    tile the reader looks for.
+    """
     assert 'DATA_DESTINATION = "data"' in SPEC_SOURCE
-    assert '"g2018u3.bin"' in SPEC_SOURCE
+    assert "tile_filename for model in ALL_GEOID_MODELS" in SPEC_SOURCE
+    assert "from michspc.fileio.geoid import ALL_GEOID_MODELS" in SPEC_SOURCE
+    assert geoid.GEOID18_MODEL.tile_filename == "g2018u3.bin"
+    assert geoid.GEOID18_TILE.name == "g2018u3.bin"
 
 
 def test_the_spec_bundles_every_ngs_grid_the_source_tree_carries():
-    """Every file in ``data/`` must be named in the spec.
+    """Every file in ``data/`` must be carried by the spec's derived list.
 
-    ``data/`` holds exactly the NGS grids this program ships, so this compares
-    the spec against the source tree rather than against a second list that
-    would have to be maintained beside it. WP-V1 added three files here - the
-    GEOID12B tile and the VERTCON 3.0 transformation and error grids - and a
-    fourth added later without touching ``michspc.spec`` would otherwise build
-    a bundle that looks complete and refuses the first job that needs it.
+    ``data/`` holds exactly the NGS grids this program ships. Since WP-V5 the
+    spec does not restate their names: it derives the geoid filenames from
+    ``geoid.ALL_GEOID_MODELS`` and the VERTCON pair from the vertcon module's
+    own tile constants, so a third geoid model cannot be added to the registry
+    without the bundle following. This test holds the other direction - a file
+    added to ``data/`` that no registry record and no vertcon constant names
+    would build a bundle that looks complete and refuses the first job that
+    needs it - and pins that the spec actually derives rather than restates.
 
-    ``tools/build_release.py`` makes the same comparison against the *built*
-    bundle. This one fails in the suite, seconds after the omission, rather than
-    twenty minutes into a release build.
+    ``tools/build_release.py`` makes the equivalent comparison against the
+    *built* bundle. This one fails in the suite, seconds after the omission,
+    rather than twenty minutes into a release build.
     """
-    for source in sorted((REPO_ROOT / "data").iterdir()):
-        if source.is_file():
-            assert f'"{source.name}"' in SPEC_SOURCE, (
-                f"data/{source.name} is not named in michspc.spec, so the "
-                f"frozen bundle will not carry it."
-            )
+    from michspc.fileio import vertcon
+
+    derived = {model.tile_filename for model in geoid.ALL_GEOID_MODELS} | {
+        vertcon.VERTCON3_TRN_TILE.name,
+        vertcon.VERTCON3_ERR_TILE.name,
+    }
+    on_disk = {
+        source.name for source in (REPO_ROOT / "data").iterdir() if source.is_file()
+    }
+    assert on_disk == derived, (
+        f"data/ and the registries disagree about what ships: only in data/ "
+        f"{sorted(on_disk - derived)}, only in the registries "
+        f"{sorted(derived - on_disk)}."
+    )
+
+    # And the spec builds its list from those same sources, not from a copy.
+    assert "tile_filename for model in ALL_GEOID_MODELS" in SPEC_SOURCE
+    assert "VERTCON3_TRN_TILE.name" in SPEC_SOURCE
+    assert "VERTCON3_ERR_TILE.name" in SPEC_SOURCE
 
 
 def test_the_spec_bundles_the_icon_where_the_loader_looks():

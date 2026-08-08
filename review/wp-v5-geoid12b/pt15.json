@@ -1,0 +1,11 @@
+{
+  "geoidModel": "GEOID12B",
+  "station": "UserStation",
+  "lat": 46.5436,
+  "latDms": "N463236.96000",
+  "lon": -87.3954,
+  "lonDms": "W0872343.44000",
+  "units": "m",
+  "geoidHeight": -34.751,
+  "error": 0.044
+}

@@ -1035,6 +1035,7 @@ def test_the_core_has_no_longitude_default_even_though_the_dropdown_does(
     from becoming a program-wide assumption if the GUI is ever bypassed - by a
     test, by a script, or by a later feature.
     """
+    from michspc.fileio.geoid import GEOID18_MODEL
     from michspc.job import Direction, JobSettings, run
 
     settings = JobSettings(
@@ -1046,7 +1047,7 @@ def test_the_core_has_no_longitude_default_even_though_the_dropdown_does(
         input_unit=INTERNATIONAL_FEET,
         output_unit=INTERNATIONAL_FEET,
         longitude_convention=None,
-        apply_geoid=True,
+        geoid_model=GEOID18_MODEL,
     )
 
     with pytest.raises(ValueError) as raised:
@@ -1066,7 +1067,7 @@ def test_the_core_has_no_longitude_default_even_though_the_dropdown_does(
             target_zone=MI_CENTRAL,
             input_unit=INTERNATIONAL_FEET,
             output_unit=INTERNATIONAL_FEET,
-            apply_geoid=True,
+            geoid_model=GEOID18_MODEL,
         )
 
 

@@ -1,4 +1,4 @@
-"""The GEOID18 grid reader, its interpolation, and the factor chain."""
+"""The geoid grid reader, the model registry, interpolation, the factor chain."""
 
 from __future__ import annotations
 
@@ -17,9 +17,12 @@ from michspc.spc.factors import (
     factors_at,
 )
 from michspc.spc.units import INTERNATIONAL_FEET
+from michspc.spc.vertical import NAVD88, NGVD29
+from tests.fixtures.geoid12b_anchors import GEOID12B_ANCHORS
 from tests.fixtures.geoid_anchors import GEOID_ANCHORS
 
 ANCHOR_IDS = [f"{a.latitude}/{a.longitude}" for a in GEOID_ANCHORS]
+ANCHOR_12B_IDS = [f"{a.latitude}/{a.longitude}" for a in GEOID12B_ANCHORS]
 
 # NGS prints geoid heights to 0.001 m, so half a unit in the last place is
 # 0.0005 m. Biquadratic interpolation reaches that floor (measured worst case
@@ -34,6 +37,12 @@ GEOID_TOLERANCE_M = 0.001
 @pytest.fixture(scope="module")
 def grid():
     return geoid.load_grid()
+
+
+@pytest.fixture(scope="module")
+def grid12b():
+    """The GEOID12B tile, through the same authenticated path a job takes."""
+    return geoid.load_shipped_grid(model=geoid.GEOID12B_MODEL)
 
 
 # --------------------------------------------------------------------------
@@ -53,7 +62,7 @@ def test_the_shipped_grid_matches_the_pinned_checksum():
 
 
 def test_the_shipped_geoid12b_tile_matches_its_pinned_checksum():
-    """The second geoid tile is committed unmodified too, and nothing read it.
+    """The second geoid tile is committed unmodified too.
 
     Until the WP-V4 review gate this file had no executable check on its
     contents at all: ``michspc.spec`` bundled it, ``tests/test_selftest.py``
@@ -62,25 +71,79 @@ def test_the_shipped_geoid12b_tile_matches_its_pinned_checksum():
     docs/PLAN-vertical-datums.md section 2.1, so altering one payload float
     inside it passed every check in the repo (WP-V4 review, MEDIUM 1).
 
-    No code reads the tile yet - the registry that will is WP-V5 - which is
-    exactly why the pin matters now. A tile corrupted today would be corrupted
-    when WP-V5 first reads it, and by then nothing would say when it happened.
+    Since WP-V5 the digest lives in the runtime record
+    (``GEOID12B_MODEL.sha256``, which this alias derives from) and every load
+    through the registry authenticates against it; this test keeps the direct
+    tile-against-pin comparison so a corrupted commit is named the moment it
+    lands, not at the first job that selects GEOID12B.
     """
     digest = hashlib.sha256(geoid.GEOID12B_TILE.read_bytes()).hexdigest()
     assert digest == geoid.GEOID12B_TILE_SHA256
 
 
-def test_the_two_geoid_pins_are_two_pins():
-    """Anti-vacuousness: two different tiles must carry two different digests.
+def test_the_registry_records_are_distinct_authenticated_and_navd88():
+    """The registry pins, in one place - the WP-V5 shape of the old two-pins test.
 
-    The tiles are byte-for-byte the same SIZE - 4,933,728, the same tile #3
-    geometry - so a copy-paste that pinned GEOID18's digest twice would leave
-    GEOID12B unauthenticated with nothing else to notice.
+    Exactly two models today, and every fact a record states must be checked
+    against the tree it describes: distinct names (a registry keyed by name
+    cannot hold a collision), distinct filenames, distinct digests (the tiles
+    are byte-for-byte the same SIZE on the same tile #3 geometry, so a
+    copy-paste that pinned GEOID18's digest twice would leave GEOID12B
+    unauthenticated with nothing else to notice), each tile present in data/
+    and hashing to its own record's digest, and both vertical datums NAVD 88 -
+    the fact ``require_geoid_matches_datum`` makes load-bearing.
     """
-    assert geoid.GEOID18_TILE_SHA256 != geoid.GEOID12B_TILE_SHA256
+    models = geoid.ALL_GEOID_MODELS
+    assert len(models) == 2
+    assert [m.name for m in models] == ["GEOID18", "GEOID12B"]
+
+    assert len({m.name for m in models}) == len(models)
+    assert len({m.tile_filename for m in models}) == len(models)
+    assert len({m.sha256 for m in models}) == len(models)
+
+    for model in models:
+        tile = geoid.DATA_DIR / model.tile_filename
+        assert tile.is_file(), f"{model.name}'s tile {tile} is not committed"
+        digest = hashlib.sha256(tile.read_bytes()).hexdigest()
+        assert digest == model.sha256, f"{model.name}'s tile does not match its pin"
+        assert model.vertical_datum is NAVD88
+        assert model.citation.strip(), f"{model.name} has no citation"
+
+    # The anti-vacuousness half the old test held: same size, different bytes.
     assert geoid.GEOID18_TILE != geoid.GEOID12B_TILE
     assert geoid.GEOID18_TILE.stat().st_size == geoid.GEOID12B_TILE.stat().st_size
     assert geoid.GEOID18_TILE.read_bytes() != geoid.GEOID12B_TILE.read_bytes()
+
+
+def test_the_module_constants_are_derived_from_the_records():
+    """One authoritative representation: the aliases must BE the record fields.
+
+    ``is`` where identity is expressible, because a second literal that merely
+    compares equal today is exactly the drift the rule forbids
+    (docs/DESIGN.md section 7).
+    """
+    assert geoid.GEOID18_TILE_SHA256 is geoid.GEOID18_MODEL.sha256
+    assert geoid.GEOID12B_TILE_SHA256 is geoid.GEOID12B_MODEL.sha256
+    assert geoid.GEOID18_U3_GEOMETRY is geoid.GEOID18_MODEL.geometry
+    assert geoid.GEOID_MODEL_NAME is geoid.GEOID18_MODEL.name
+    assert geoid.GEOID18_TILE == geoid.DATA_DIR / geoid.GEOID18_MODEL.tile_filename
+    assert geoid.GEOID12B_TILE == geoid.DATA_DIR / geoid.GEOID12B_MODEL.tile_filename
+
+
+def test_geoid_model_by_name_returns_records_and_refuses_unknowns():
+    """The registry lookup, in the style of ``vertical_datum_by_code``."""
+    assert geoid.geoid_model_by_name("GEOID18") is geoid.GEOID18_MODEL
+    assert geoid.geoid_model_by_name("GEOID12B") is geoid.GEOID12B_MODEL
+    # Incidental whitespace is not a different model.
+    assert geoid.geoid_model_by_name(" GEOID18 ") is geoid.GEOID18_MODEL
+
+    with pytest.raises(KeyError) as raised:
+        geoid.geoid_model_by_name("GEOID2022")
+
+    message = str(raised.value)
+    assert "GEOID2022" in message
+    assert "GEOID18" in message
+    assert "GEOID12B" in message
 
 
 def test_the_header_matches_the_documented_format(grid):
@@ -186,6 +249,154 @@ def test_every_michigan_geoid_height_is_negative(grid):
         geoid.geoid_height(a.latitude, a.longitude, grid) for a in GEOID_ANCHORS
     ]
     assert -40.0 < min(heights) < max(heights) < -25.0
+
+
+# --------------------------------------------------------------------------
+# GEOID12B: the registry's second model against NGS's own service (WP-V5).
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.anchor
+@pytest.mark.parametrize("anchor", GEOID12B_ANCHORS, ids=ANCHOR_12B_IDS)
+def test_geoid12b_height_matches_ngs(anchor, grid12b):
+    """Expected values computed by NGS's own geoid service, model 13.
+
+    Same positions, same interpolation and the same 1 mm tolerance rationale as
+    the GEOID18 anchors above: NGS prints to 0.001 m, the committed tile
+    reproduced every figure at worst 0.543 mm at capture (the fixture's own
+    measurement, before any registry code existed), and 1 mm leaves headroom
+    over the quantization without admitting a genuinely worse reading.
+    """
+    height = geoid.geoid_height(anchor.latitude, anchor.longitude, grid12b)
+    assert height == pytest.approx(anchor.geoid_height_m, abs=GEOID_TOLERANCE_M)
+
+
+@pytest.mark.anchor
+def test_a_swapped_tile_fails_the_other_models_anchors(grid, grid12b):
+    """The ANTI-SWAP pin. Nothing structural can tell these two tiles apart.
+
+    Byte-for-byte the same size, the same tile #3 geometry - so a GEOID18 tile
+    served under the GEOID12B name (a mispinned record, a copied file in
+    data/) passes every format check and differs only in what it answers. The
+    fixtures discriminate: 18 of the 20 positions differ between the models at
+    NGS's printed millimetre (tests/fixtures/geoid12b_anchors.py), so each
+    grid read against the OTHER model's anchors must miss the printed figure
+    at 10 or more of the 20, while matching its own set inside the anchor
+    tolerance (the parametrized tests above).
+
+    **Falsified with the swap that passes BOTH authentication gates**: the
+    GEOID12B record's filename AND digest pointed at GEOID18's, so the load
+    authenticates cleanly and only the answers are wrong - this test's own
+    second assertion fails (3 misses where 10 are required). Pointing only
+    the filename is NOT the falsification: the digest check then errors in
+    fixture setup and this assertion never runs, which demonstrates the
+    checksum pin, not this one (WP-V5 review gate, LOW 4 - an
+    under-specified falsification is the #31 failure mode).
+    """
+
+    def printed_mm_misses(loaded, anchors):
+        return sum(
+            1
+            for anchor in anchors
+            if round(loaded.height_biquadratic(anchor.latitude, anchor.longitude), 3)
+            != round(anchor.geoid_height_m, 3)
+        )
+
+    assert printed_mm_misses(grid, GEOID12B_ANCHORS) >= 10
+    assert printed_mm_misses(grid12b, GEOID_ANCHORS) >= 10
+
+
+def test_geoid12b_refusals_name_geoid12b(grid12b):
+    """A refusal about the GEOID12B tile must not call it GEOID18.
+
+    The dialect is per model since WP-V5; "outside the GEOID18 tile" for a
+    lookup that consulted g2012bu3.bin would be a false statement about which
+    grid refused.
+    """
+    with pytest.raises(geoid.GeoidError) as caught:
+        grid12b.height_biquadratic(35.0, -84.0)  # Tennessee, south of the tile
+
+    message = str(caught.value)
+    assert "outside the GEOID12B tile" in message
+    assert "GEOID18" not in message
+
+
+def test_default_grid_is_cached_per_model():
+    """One authenticated load per model per process, keyed on the record.
+
+    ``default_grid()`` and ``default_grid(GEOID18_MODEL)`` must be ONE cache
+    entry - the default is normalized before the cache, so the same 4.7 MB is
+    not unpacked twice under two keys - and the GEOID12B entry is its own.
+    """
+    first = geoid.default_grid(geoid.GEOID12B_MODEL)
+    assert geoid.default_grid(geoid.GEOID12B_MODEL) is first
+    assert first.path.name == geoid.GEOID12B_MODEL.tile_filename
+
+    assert geoid.default_grid() is geoid.default_grid(geoid.GEOID18_MODEL)
+    assert geoid.default_grid() is not first
+
+
+# --------------------------------------------------------------------------
+# The latent datum guard (plan section 3.4). Nothing in production calls it
+# until WP-V6; it is tested directly so it is proven before it is wired.
+# --------------------------------------------------------------------------
+
+
+def test_both_shipped_models_pass_the_datum_guard_against_navd88():
+    """The live case: every model this program carries is NAVD 88 today."""
+    for model in geoid.ALL_GEOID_MODELS:
+        geoid.require_geoid_matches_datum(model, NAVD88)
+
+
+def test_the_datum_guard_refuses_ngvd29_and_teaches_why():
+    """DESIGN.md #32's rule, enforced: no two eras inside one number.
+
+    An NGVD 29 orthometric height with a NAVD 88 geoid separation produces an
+    elevation factor that looks exact and cites nothing. The refusal must name
+    the model, name the datum, and say what to do instead.
+    """
+    with pytest.raises(geoid.GeoidError) as raised:
+        geoid.require_geoid_matches_datum(geoid.GEOID18_MODEL, NGVD29)
+
+    message = str(raised.value)
+    assert "GEOID18" in message
+    assert "NGVD29" in message
+    assert "NAVD88" in message
+    assert "two eras inside one number" in message
+
+    with pytest.raises(geoid.GeoidError):
+        geoid.require_geoid_matches_datum(geoid.GEOID12B_MODEL, NGVD29)
+
+
+def test_the_datum_guard_refuses_impostor_records_by_name():
+    """The #11-finding-1 duck-typing class, closed at this door too.
+
+    Every core record carries ``name`` and ``citation``, so a ``VerticalDatum``
+    passed as the model - or a model passed as the datum, or a ``Zone`` as
+    either - would duck-type into the comparison and fail as an
+    ``AttributeError`` (or worse, compare codes that both exist and pass).
+    Falsified at the WP-V5 gate by deleting the isinstance guards: the swapped
+    call below then raises AttributeError instead of TypeError.
+    """
+    from michspc.spc.zones import MI_SOUTH
+
+    # A VerticalDatum where the model belongs.
+    with pytest.raises(TypeError, match="GeoidModel"):
+        geoid.require_geoid_matches_datum(NAVD88, NAVD88)
+
+    # The two arguments transposed - the likeliest real mistake.
+    with pytest.raises(TypeError):
+        geoid.require_geoid_matches_datum(NAVD88, geoid.GEOID18_MODEL)
+
+    # A model where the datum belongs.
+    with pytest.raises(TypeError, match="VerticalDatum"):
+        geoid.require_geoid_matches_datum(geoid.GEOID18_MODEL, geoid.GEOID12B_MODEL)
+
+    # A Zone as either - the record class finding 1 was originally about.
+    with pytest.raises(TypeError, match="GeoidModel"):
+        geoid.require_geoid_matches_datum(MI_SOUTH, NAVD88)
+    with pytest.raises(TypeError, match="VerticalDatum"):
+        geoid.require_geoid_matches_datum(geoid.GEOID18_MODEL, MI_SOUTH)
 
 
 # --------------------------------------------------------------------------

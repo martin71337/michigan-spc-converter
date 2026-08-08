@@ -402,7 +402,10 @@ class MainWindow(QMainWindow):
             target_zone=target_zone,
             input_unit=self.input_unit.currentData(),
             output_unit=self.output_unit.currentData(),
-            apply_geoid=True,
+            # Stated, not defaulted: the tab's static label names GEOID18, so
+            # the settings say the same thing explicitly. The model dropdown
+            # that makes this a choice is WP-V7 (plan section 4.3).
+            geoid_model=geoid.GEOID18_MODEL,
         )
 
         if direction is Direction.ZONE_TO_ZONE:

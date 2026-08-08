@@ -286,8 +286,11 @@ def gate_bundle() -> Path:
     if absent:
         raise BuildError(
             f"the bundle is missing NGS grid files that data/ carries: "
-            f"{', '.join(absent)}. Expected them under {bundled_data}. Add "
-            f"them to NGS_GRID_FILENAMES in michspc.spec."
+            f"{', '.join(absent)}. Expected them under {bundled_data}. The "
+            f"spec derives NGS_GRID_FILENAMES from geoid.ALL_GEOID_MODELS "
+            f"and vertcon's tile constants, so a missing file means a grid "
+            f"landed in data/ without a registry record - add the record, "
+            f"not a filename literal."
         )
 
     print(
@@ -388,16 +391,23 @@ def gate_checksums(installer: Path, version: str, revision: str) -> Path:
     announce(8, "SHA-256 of every shipped artifact")
     CHECKSUM_FILE.unlink(missing_ok=True)
 
-    from michspc.fileio.geoid import GEOID18_TILE, GEOID18_TILE_SHA256
+    from michspc.fileio.geoid import ALL_GEOID_MODELS
+    from michspc.fileio.vertcon import (
+        VERTCON3_ERR_FILENAME,
+        VERTCON3_ERR_SHA256,
+        VERTCON3_TRN_FILENAME,
+        VERTCON3_TRN_SHA256,
+    )
 
     artifacts = [installer]
     lines = [
         f"# {APP_NAME} {version}",
         f"# built {time.strftime('%Y-%m-%d %H:%M:%S')} from git {revision}",
         "#",
-        "# The installer is the release artifact. The GEOID18 digest below is",
-        "# the NGS tile the bundle carries, restated here so it can be checked",
-        "# against NGS's own published file without unpacking anything.",
+        "# The installer is the release artifact. The NGS grid digests below",
+        "# are the tiles the bundle carries, restated here so each can be",
+        "# checked against NGS's own published file without unpacking",
+        "# anything.",
         "",
     ]
     for artifact in artifacts:
@@ -405,15 +415,27 @@ def gate_checksums(installer: Path, version: str, revision: str) -> Path:
         lines.append(f"{digest}  {artifact.name}")
         print(f"    {digest}  {artifact.name}")
 
-    bundled_tile = BUNDLE_DIR / "_internal" / "data" / GEOID18_TILE.name
-    bundled_digest = sha256_of(bundled_tile)
-    if bundled_digest != GEOID18_TILE_SHA256:
-        raise BuildError(
-            f"the GEOID18 tile inside the bundle hashes to {bundled_digest}, "
-            f"not the pinned {GEOID18_TILE_SHA256}. Nothing is written."
-        )
-    lines.append(f"{bundled_digest}  {bundled_tile.name}  (bundled NGS GEOID18 tile)")
-    print(f"    {bundled_digest}  {bundled_tile.name}  (bundled GEOID18 tile)")
+    # Every NGS grid the bundle carries, from the same registries the spec
+    # derives its bundling list from - a fifth grid cannot be added without
+    # this manifest following (WP-V5 review gate, LOW 6; previously GEOID18
+    # alone was manifested and re-hashed here).
+    shipped_grids = [
+        (model.tile_filename, model.sha256, f"bundled NGS {model.name} tile")
+        for model in ALL_GEOID_MODELS
+    ] + [
+        (VERTCON3_TRN_FILENAME, VERTCON3_TRN_SHA256, "bundled NGS VERTCON 3.0 shift grid"),
+        (VERTCON3_ERR_FILENAME, VERTCON3_ERR_SHA256, "bundled NGS VERTCON 3.0 uncertainty grid"),
+    ]
+    for filename, pinned, label in shipped_grids:
+        bundled_tile = BUNDLE_DIR / "_internal" / "data" / filename
+        bundled_digest = sha256_of(bundled_tile)
+        if bundled_digest != pinned:
+            raise BuildError(
+                f"{filename} inside the bundle hashes to {bundled_digest}, "
+                f"not the pinned {pinned}. Nothing is written."
+            )
+        lines.append(f"{bundled_digest}  {filename}  ({label})")
+        print(f"    {bundled_digest}  {filename}  ({label})")
 
     CHECKSUM_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return CHECKSUM_FILE

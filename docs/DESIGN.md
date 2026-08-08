@@ -50,11 +50,11 @@ two-point azimuth/distance computation.
 |---|---|---|
 | NOAA Manual NOS NGS 5, *State Plane Coordinate System of 1983*, Stem, Jan 1989, reprinted with minor corrections Mar 1990 | `docs/NOAA_Manual_NOS_NGS_0005.pdf` (committed) | All projection math, zone constants, factor definitions |
 | NGS GEOID18 model, grid tile `g2018u3.bin` | `data/` (committed unmodified, SHA-256 pinned) | Geoid separation |
-| NGS GEOID12B model, grid tile `g2012bu3.bin` | `data/` (committed unmodified, SHA-256 pinned; read by nothing until WP-V5) | Geoid model registry (planned) |
+| NGS GEOID12B model, grid tile `g2012bu3.bin` | `data/` (committed unmodified, SHA-256 pinned in its `GeoidModel` record) | Second geoid model in the registry (WP-V5, #40) |
 | NGS VERTCON 3.0, release 20190601, `.trn.b` and `.err.b` CONUS grids | `data/` (committed unmodified under NGS's own filenames, SHA-256 pinned) | NGVD 29 ⇄ NAVD 88 shift and its one-sigma uncertainty |
 | NOAA TM NOS NGS-84 and `intg.f`; NOAA's published `Vertcon.java` | Read from `ngs.noaa.gov`; findings recorded in #36/#37, harnesses in `review/wp-v4-anchoring/` | The biquadratic scheme and its nearest-node stencil anchoring |
 | NGS NCAT service | Frozen fixtures in `tests/fixtures/` | Independent verification anchors, horizontal and vertical |
-| NGS geoid height API (`model=14`) | Frozen fixtures in `tests/fixtures/` | Geoid interpolation anchors |
+| NGS geoid height API (`model=14` GEOID18, `model=13` GEOID12B — each response names its own model and the captures refuse a mismatch) | Frozen fixtures in `tests/fixtures/` | Geoid interpolation anchors, both models |
 | Prior MATLAB implementation | `docs/reference/SPC_converter_AllZones_Elev.m` | Supplemental only, not authoritative |
 
 Page citations in code comments refer to the **PDF's own page numbering**, not
@@ -452,6 +452,115 @@ Not addressed, and still the owner's call: at 16 and 32 px the "COORD CONVERT"
 lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
+
+### #40 — 2026-08-08 — WP-V5: the geoid model registry, and GEOID12B becomes real
+
+**Two commits, as the plan required.** WP-V5a renamed `geoid18.py` to
+`geoid.py` — `git mv`, byte-identical content, every reference updated by
+word-boundary rewrite so the symbols carrying GEOID18 as a *model* name were
+structurally untouchable. WP-V5b built the registry inside it.
+
+**The anchors preceded the code, as V0's order requires.** Before any registry
+existed, the session lead captured 20 GEOID12B anchors live from NGS's geoid
+service at the exact positions of the 20 GEOID18 anchors — `model=13` never
+assumed: every response names its own model and the capture harness
+(`review/wp-v5-geoid12b/`, raw bodies committed) refuses a mismatch — and
+verified the committed tile reproduces every figure through the INTG stencil
+at worst **0.543 mm**, NGS's own printing floor. **18 of the 20 anchors differ
+between the models at the printed millimetre**, which matters because the two
+tiles are byte-for-byte the same size on the same geometry: the digest and the
+anchors are the only things that can tell them apart. Frozen as
+`tests/fixtures/geoid12b_anchors.py`.
+
+**What was built** (plan §3.4 and the `geoid_model` half of §3.5):
+
+- **`GeoidModel`** — name, tile filename, SHA-256, geometry, vertical datum,
+  citation — with `GEOID18_MODEL` and `GEOID12B_MODEL` records,
+  `ALL_GEOID_MODELS`, and `geoid_model_by_name` refusing unknowns by listing
+  what it knows. The records are THE authoritative representation: the old
+  module constants are derived aliases, pinned by identity, and each digest
+  literal appears exactly once in production code. **The GEOID12B digest now
+  lives in the runtime record the loader authenticates against** — the WP-V4
+  gate's standing instruction, discharged.
+- **`vertical_datum` on the record is load-bearing**: `require_geoid_matches_datum`
+  refuses a geoid model applied against heights in a datum it is not for —
+  #32's "two eras inside one number" — latent today (both models are NAVD 88),
+  wired into `job.run` at WP-V6, guarded against the #11-finding-1 impostor
+  class on both arguments.
+- **`JobSettings.apply_geoid: bool` → `geoid_model: GeoidModel | None`**,
+  default `GEOID18_MODEL`; `None` is the statement "no geoid was applied",
+  kept as a core capability no interface offers (owner's "no none").
+  `job.run` refuses `geoid_model=True` — the exact habit the retired bool
+  leaves behind — by name, and refuses a non-registry record *before any
+  point converts* (see the gate's LOW 1 below).
+- **Per-model refusal dialect**: a GEOID12B refusal names GEOID12B — "outside
+  the GEOID18 tile" for a lookup that consulted `g2012bu3.bin` would be a
+  false statement — via a subclass so `dialect` stays the ClassVar the
+  substrate declares and the suite pins.
+- **The frozen bundle reads GEOID12B**: `check_geoid12b_tile` now loads
+  through the registry and checks the frozen anchor at 44.2542 N / −85.4012 W
+  → −33.285 m, constants transcribed and pinned `==` to the fixture. The
+  spec's `NGS_GRID_FILENAMES` and the release manifest both derive from the
+  registries, so a grid cannot be added without the bundle and the manifest
+  following.
+- **report.py**: the geoid block resolves the record through the registry —
+  character-identical for GEOID18 jobs; a GEOID12B job cites its own tile and
+  digest. One latent defect found by the rename: a geoid-disabled job's
+  ELEVATIONS section claimed elevation-carrying points sat "outside the grid
+  tile" when no grid was consulted at all; now an honest "no geoid model was
+  applied" branch, pinned.
+
+**The review gate (independent Opus): verdict MERGE, no CRITICAL, no HIGH.**
+What it verified independently rather than trusting: **GEOID18 output
+byte-identical** across five job configurations run side by side against the
+pre-registry commit, every geoid-touching record branch fired; the GEOID12B
+tile digest, geometry and **all 20 anchors reproduced by the reviewer's own
+reader written from the format spec with no `michspc` import** (worst
+0.543 mm, and the 18/20 discrimination claim confirmed); rename completeness;
+one-authoritative-representation held; nine seeded defects all caught, four
+by exactly the single pin claimed. Findings, all closed in the same pass:
+
+1. **MEDIUM — this amendment did not exist yet** and §3's table still said
+   GEOID12B was read by nothing. Fixed: §3 now records both API model ids
+   and the registry.
+2. **LOW — a hand-built `GeoidModel` converted a whole job and then died at
+   the record write** with a bare `KeyError` (the loaders accept hand-built
+   records on purpose — the suite reads tampered tiles through them — but
+   `report.py` cites only registry members). `job.run` now refuses a
+   non-registry record by name before converting; membership is by equality,
+   so a record rebuilt with a registry model's exact facts is accepted —
+   identical facts are the same model. Pinned, falsified.
+3. **LOW — the anti-swap pin's recorded falsification was under-specified**:
+   pointing only the GEOID12B record's filename at GEOID18's tile trips the
+   digest check in fixture setup, so the pin's own assertion never ran — the
+   #31 failure mode, caught by the gate re-running it properly. Re-falsified
+   with the swap that passes BOTH authentication gates (filename and digest
+   together): the pin's own assertion fails, 3 misses where 10 are required.
+   The docstring now records the stronger seeding and why the weaker one
+   proves the wrong thing.
+4. **LOW — housekeeping**: the capture harness notes it ran pre-rename; the
+   release manifest derives from the registries (it manifested GEOID18
+   alone); `build_release.py`'s missing-grid advice no longer tells the
+   reader to add a filename literal the spec deliberately no longer holds;
+   the shipped-grid cache is bounded at 8 (its "bounded by the registry"
+   claim was not enforceable — `default_grid` is public) and hand-built
+   models get one cached class per name instead of a fresh type per call.
+5. **LOW, recorded for WP-V7 rather than fixed**: `_full.csv` carries
+   `Geoid height (m)` with no model column — model-dependent since this
+   amendment, 32 mm apart between the models at the Houghton anchor.
+   Mitigated by the ZIP travelling with the job record that names the model
+   (#17); the disclosure decision belongs with WP-V7's others.
+
+**The selftest's honest limit, disclosed where it lives:** the bundle anchor
+check cannot catch a swapped tile — the models differ by only 1.2 mm at the
+Cadillac anchor against a 2 mm tolerance. The suite-level anti-swap pin is
+the real line, proven to discriminate under a fully-authenticating swap, and
+the digest is checked twice in the bundle path besides.
+
+**Suite: 1358 → 1397** across WP-V5 (V5a adds none — a rename may not — V5b
+adds 38, the gate's fixes 1; #39's six glyph pins landed between them), green
+in `pytest` and `-O`. Pushed to `main`; still no release — the owner reviews
+first.
 
 ### #39 — 2026-08-08 — The copy glyph lost its bottom on every scaled display, and the suite could not see it
 

@@ -49,6 +49,8 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from michspc import APP_FULL_NAME, APP_NAME, APP_PUBLISHER, __version__  # noqa: E402
+from michspc.fileio.geoid import ALL_GEOID_MODELS  # noqa: E402
+from michspc.fileio.vertcon import VERTCON3_ERR_TILE, VERTCON3_TRN_TILE  # noqa: E402
 from michspc.selftest import LAZY_IMPORTS  # noqa: E402
 from tools import make_icon  # noqa: E402
 
@@ -68,21 +70,21 @@ both the geoid and VERTCON policy layers resolve their grids through it."""
 # can list it, hash it and compare it against NGS's published file without
 # unpacking anything (see the one-folder decision in the module docstring).
 #
-# The GEOID12B tile and the two VERTCON 3.0 grids are committed and bundled by
-# WP-V1 (docs/PLAN-vertical-datums.md section 2.1). GEOID12B is not yet read by
-# any code - the geoid model registry that reaches it is WP-V5 - and it is
-# bundled now rather than later so that the file, its checksum and the build
-# wiring all land in one reviewable step.
+# DERIVED from the program's own registries, never restated (WP-V5): the geoid
+# filenames come from geoid.ALL_GEOID_MODELS, so a third geoid model cannot be
+# added to the registry without the bundle following - the spec refuses below
+# if the tile is missing from data/, and the suite refuses if data/ carries a
+# grid this derivation does not name. The two VERTCON 3.0 grids come from the
+# vertcon module's own tile constants for the same reason.
 #
-# Each of the four digests is pinned in code and checked by the suite, not merely
-# recorded in the plan: geoid.GEOID18_TILE_SHA256, geoid.GEOID12B_TILE_SHA256,
-# vertcon.VERTCON3_TRN_SHA256 and vertcon.VERTCON3_ERR_SHA256. This list is names
-# only - a name is what PyInstaller needs - so nothing here can stand in for that.
-NGS_GRID_FILENAMES = (
-    "g2018u3.bin",  # GEOID18 CONUS tile #3
-    "g2012bu3.bin",  # GEOID12B CONUS tile #3, same geometry
-    "vertcon_3.0_20190601.ngvd29.navd88.conus.oht.trn.b",  # the shift
-    "vertcon_3.0_20190601.ngvd29.navd88.conus.oht.err.b",  # its uncertainty
+# Each digest is pinned in code and checked by the suite, not merely recorded
+# in the plan: GeoidModel.sha256 on each registry record (authenticated at
+# every load), vertcon.VERTCON3_TRN_SHA256 and vertcon.VERTCON3_ERR_SHA256.
+# This list is names only - a name is what PyInstaller needs - so nothing here
+# can stand in for that.
+NGS_GRID_FILENAMES = tuple(model.tile_filename for model in ALL_GEOID_MODELS) + (
+    VERTCON3_TRN_TILE.name,  # the shift
+    VERTCON3_ERR_TILE.name,  # its uncertainty
 )
 
 NGS_GRID_SOURCES = [REPO_ROOT / "data" / name for name in NGS_GRID_FILENAMES]

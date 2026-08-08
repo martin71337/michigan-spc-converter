@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 
 from michspc import APP_NAME, __version__
 from michspc.fileio import formatting as fmt
-from michspc.fileio.geoid import GEOID18_TILE_SHA256, GEOID_MODEL_NAME
+from michspc.fileio.geoid import geoid_model_by_name
 from michspc.job import Direction, JobResult
 from michspc.spc.convert import WarningCode
 from michspc.spc.factors import MEAN_EARTH_RADIUS_M
@@ -339,8 +339,16 @@ def build_report(result: JobResult) -> str:
     add("")
 
     if result.geoid_model:
-        add(f"Geoid model        {GEOID_MODEL_NAME}, NGS grid tile g2018u3.bin")
-        add(f"                   SHA-256 {GEOID18_TILE_SHA256}")
+        # Resolved through the registry so the tile name and digest printed
+        # here are the record's own - a GEOID12B job must not be documented
+        # with GEOID18's file and checksum (WP-V5). For a GEOID18 job every
+        # character below is what this record printed before the registry.
+        geoid_record = geoid_model_by_name(result.geoid_model)
+        add(
+            f"Geoid model        {geoid_record.name}, NGS grid tile "
+            f"{geoid_record.tile_filename}"
+        )
+        add(f"                   SHA-256 {geoid_record.sha256}")
         add("                   Geoid heights are NEGATIVE throughout Michigan:")
         add("                   the ellipsoid lies above the geoid here.")
         add("")
@@ -378,7 +386,13 @@ def build_report(result: JobResult) -> str:
     #
     # ``Factors.orthometric_height`` is what separates them: it is the height
     # the job read, present whether or not a geoid height was found, so a
-    # factor-less point that still carries one is a geoid miss and nothing else.
+    # factor-less point that still carries one is a geoid miss - OR, on a job
+    # that applied no geoid model at all, simply a point nothing was looked up
+    # for. Those are different statements and the record must make the right
+    # one: "the grid does not reach this point" is false when no grid was ever
+    # consulted, and the old wording made exactly that claim on a
+    # geoid-disabled job (found at WP-V5, when the model name became the
+    # result's own and the sentence would otherwise have read "the None grid").
     no_geoid = [p for p in missing if p.factors.orthometric_height is not None]
     absent = [p for p in missing if p.factors.orthometric_height is None]
 
@@ -390,10 +404,18 @@ def build_report(result: JobResult) -> str:
                 f"{len(absent)} of {len(result.points)} points had NO usable "
                 f"elevation."
             )
-        if no_geoid:
+        if no_geoid and result.geoid_model:
             add(
                 f"{len(no_geoid)} of {len(result.points)} points carried an "
-                f"elevation the {GEOID_MODEL_NAME} grid does not reach."
+                # A geoid miss with a model applied: result.geoid_model names
+                # the grid that was actually consulted.
+                f"elevation the {result.geoid_model} grid does not reach."
+            )
+        elif no_geoid:
+            add(
+                f"{len(no_geoid)} of {len(result.points)} points carried an "
+                f"elevation, but no geoid model was applied to this job, so "
+                f"no geoid height was looked up for any of them."
             )
         add("")
         add("For those points the elevation factor and combined factor are written")
@@ -418,11 +440,15 @@ def build_report(result: JobResult) -> str:
             if zeroed:
                 add(f"  Elevation field held exactly 0.00 ({len(zeroed)}):")
                 lines.extend(_point_id_block(zeroed))
-            if no_geoid:
+            if no_geoid and result.geoid_model:
                 add("")
-        if no_geoid:
+        if no_geoid and result.geoid_model:
+            # Only when a model was applied: on a no-geoid-model job the count
+            # line above already says why the factors are absent, and this
+            # block's "position lies outside the grid tile" would be a false
+            # statement about a lookup that never happened.
             add(
-                f"  Elevation recorded, but no {GEOID_MODEL_NAME} geoid height at "
+                f"  Elevation recorded, but no {result.geoid_model} geoid height at "
                 f"this position ({len(no_geoid)}):"
             )
             lines.extend(_point_id_block(no_geoid))

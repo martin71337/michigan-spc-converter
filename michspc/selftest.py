@@ -14,8 +14,9 @@ So the shipped executable answers ``--selftest`` by exercising itself:
 1. every bundled NGS grid is present and authenticates: the GEOID18 tile
    against its pinned SHA-256 and canonical geometry, returning a geoid height
    NGS agrees with; the VERTCON 3.0 pair the same way, returning a shift NCAT
-   agrees with; and the GEOID12B tile against its digest (nothing reads it
-   until WP-V5, so the digest is the only executable statement about it);
+   agrees with; and the GEOID12B tile through the geoid model registry
+   (WP-V5) - digest, geometry, and a height NGS's own geoid service agrees
+   with;
 2. every module the program reaches for lazily — PySide6 above all — actually
    imports out of the bundle;
 3. Qt starts far enough to build a real ``QApplication`` and read the bundled
@@ -103,6 +104,15 @@ ANCHOR_ELEVATION_M = 397.0
 VERTCON_ANCHOR_LATITUDE = 43.0
 VERTCON_ANCHOR_LONGITUDE = -84.5
 VERTCON_ANCHOR_SHIFT_M = -0.140
+
+# tests/fixtures/geoid12b_anchors.py, the Cadillac-area anchor — NGS geoid API,
+# model=13 (GEOID12B), captured 2026-08-07 (raw response in
+# review/wp-v5-geoid12b/). NOT the same position as the GEOID18 anchor above:
+# the GEOID12B lattice reuses the GEOID18 ANCHOR positions (44.2542), where
+# the S2 crosscheck point is 44.252.
+GEOID12B_ANCHOR_LATITUDE = 44.2542
+GEOID12B_ANCHOR_LONGITUDE = -85.4012
+GEOID12B_ANCHOR_HEIGHT_M = -33.285
 
 # tests/fixtures/ncat_crosscheck.py, CROSSCHECK_TOLERANCES. NCAT publishes to
 # 0.001 m, so one printed figure carries +-0.0005 m; 0.002 m is four times that.
@@ -255,14 +265,15 @@ def check_vertcon_grids() -> str:
 
 
 def check_geoid12b_tile() -> str:
-    """The GEOID12B tile ships and matches its pinned digest.
+    """The GEOID12B tile ships, authenticates, and answers like NGS.
 
-    No code reads this tile yet - the geoid model registry that will is WP-V5 -
-    so this is purely a bundle-integrity check: the digest is the only
-    executable statement about the file's contents, and a tile corrupted during
-    packaging today would otherwise first be noticed by whichever surveyor
-    first selects GEOID12B after WP-V5 ships, with nothing to say when the
-    corruption happened.
+    The same three failure modes as the GEOID18 check: absent from the bundle,
+    present and altered (the SHA-256 catches any changed byte), or intact and
+    read wrongly - which is why a height is checked against a frozen NGS
+    figure rather than the tile merely loading. Until WP-V5 nothing read this
+    tile and the digest was the only executable statement about it; the geoid
+    model registry now loads it exactly the way a job that selects GEOID12B
+    does, so this check exercises that path from inside the bundle.
     """
     import hashlib
 
@@ -272,20 +283,52 @@ def check_geoid12b_tile() -> str:
     if not tile.is_file():
         raise SelfTestError(
             f"the GEOID12B tile is not in this bundle. Looked for {tile}. "
-            f"Nothing reads it until WP-V5, but the bundle claims to carry it "
-            f"and does not. The bundle is incomplete."
+            f"Without it no job that selects GEOID12B can compute an elevation "
+            f"or combined factor. The bundle is incomplete."
         )
 
     digest = hashlib.sha256(tile.read_bytes()).hexdigest()
-    if digest != geoid.GEOID12B_TILE_SHA256:
+    if digest != geoid.GEOID12B_MODEL.sha256:
         raise SelfTestError(
             f"the bundled GEOID12B tile does not match the grid this program "
             f"was built against.\n  expected SHA-256 "
-            f"{geoid.GEOID12B_TILE_SHA256}\n  found    SHA-256 {digest}\n"
+            f"{geoid.GEOID12B_MODEL.sha256}\n  found    SHA-256 {digest}\n"
             f"The file was corrupted or substituted during packaging."
         )
 
-    return "GEOID12B tile authenticated (not yet read by any code; WP-V5)"
+    try:
+        grid = geoid.load_shipped_grid(tile, model=geoid.GEOID12B_MODEL)
+    except geoid.GeoidError as error:
+        raise SelfTestError(
+            f"the bundled GEOID12B tile did not pass its own checks: {error}"
+        ) from error
+
+    try:
+        height = geoid.geoid_height(
+            GEOID12B_ANCHOR_LATITUDE, GEOID12B_ANCHOR_LONGITUDE, grid
+        )
+    except geoid.GeoidError as error:
+        raise SelfTestError(
+            f"the bundled GEOID12B tile loaded but could not be interpolated "
+            f"at {GEOID12B_ANCHOR_LATITUDE}, {GEOID12B_ANCHOR_LONGITUDE}: "
+            f"{error}"
+        ) from error
+
+    difference = abs(height - GEOID12B_ANCHOR_HEIGHT_M)
+    if difference > GEOID_TOLERANCE_M:
+        raise SelfTestError(
+            f"the bundled GEOID12B tile returned {height:.4f} m at "
+            f"{GEOID12B_ANCHOR_LATITUDE}, {GEOID12B_ANCHOR_LONGITUDE}, where "
+            f"NGS's own geoid service returns {GEOID12B_ANCHOR_HEIGHT_M:.3f} m "
+            f"- out by {difference:.4f} m, against a tolerance of "
+            f"{GEOID_TOLERANCE_M} m. The grid in this bundle is not being read "
+            f"the way the source tree reads it."
+        )
+
+    return (
+        f"GEOID12B tile authenticated through the registry and returned "
+        f"{height:.4f} m against NGS's {GEOID12B_ANCHOR_HEIGHT_M:.3f} m"
+    )
 
 
 #: Everything the program imports late, or imports only from one branch. A name

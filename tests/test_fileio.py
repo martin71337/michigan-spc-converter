@@ -2596,8 +2596,17 @@ def test_the_job_result_records_the_input_hash_and_row_counts(tmp_path):
     assert result.geoid_model == "GEOID18"
 
 
-def test_a_job_with_the_geoid_disabled_reports_no_model_and_no_factors(tmp_path):
-    result = _south_to_central(tmp_path, apply_geoid=False)
+def test_a_job_with_no_geoid_model_reports_no_model_and_no_factors(tmp_path):
+    """``geoid_model=None`` is the statement ``apply_geoid=False`` used to make.
+
+    WP-V5 replaced the bool with the registry record
+    (docs/PLAN-vertical-datums.md section 3.5); ``None`` must behave exactly as
+    the disabled bool did - no model named, no grid loaded, no elevation or
+    combined factors - while the horizontal conversion is untouched. No
+    interface offers None (the owner's "no none"); it is a capability of the
+    core, and this test plus the report test below are what keep it honest.
+    """
+    result = _south_to_central(tmp_path, geoid_model=None)
 
     # Hand-derived from run(): grid is None, so geoid_height stays None for
     # every point and factors_at short-circuits to None factors.
@@ -2608,6 +2617,131 @@ def test_a_job_with_the_geoid_disabled_reports_no_model_and_no_factors(tmp_path)
         # ...but the horizontal conversion is untouched.
         assert math.isfinite(point.output_northing)
         assert math.isfinite(point.output_easting)
+
+    # And the job record says so, in the words report.py has always used for
+    # a geoid-less job - the branch WP-V5 must not orphan. What it must NOT
+    # say is that any grid failed to "reach" these points: no grid was
+    # consulted, and the old wording made exactly that false claim.
+    text = report.build_report(result)
+    assert "Geoid model        not applied" in text
+    assert "no geoid model was applied to this job" in text
+    assert "grid does not reach" not in text
+
+
+def test_a_bool_in_the_geoid_model_field_is_refused_by_name(tmp_path):
+    """``geoid_model=True`` is the exact habit apply_geoid leaves behind.
+
+    Truthiness would accept it and the loader would then fail attribute by
+    attribute somewhere inside the cache - an AttributeError nobody catches -
+    so ``job.run`` refuses it by name before any grid is touched
+    (the #11-finding-1 duck-typing class, at this field's likeliest call site).
+    """
+    with pytest.raises(TypeError) as raised:
+        _south_to_central(tmp_path, geoid_model=True)
+
+    message = str(raised.value)
+    assert "GeoidModel" in message
+    assert "True" in message
+    assert "apply_geoid" in message
+
+
+def test_a_job_refuses_a_geoid_model_the_registry_does_not_hold(tmp_path):
+    """A hand-built record converts nowhere, and it refuses BEFORE converting.
+
+    The loaders accept a hand-built ``GeoidModel`` on purpose - the suite
+    reads tampered tiles through one - but ``report.py`` resolves the model
+    back from the registry by name to cite its tile and digest. Without this
+    gate a job carrying a non-registry record converted every point and then
+    died at the record write with a bare ``KeyError``, the whole conversion
+    discarded at the last step (WP-V5 review gate, LOW 1). Falsified by
+    removing the membership check: this test fails and the reviewer's
+    reproduction returns.
+
+    A record equal to a registry one is NOT refused - membership is by
+    equality, because identical facts are the same model. That branch is
+    asserted too, so the gate cannot quietly tighten into identity.
+    """
+    import dataclasses
+
+    from michspc.fileio import geoid
+
+    imposter = dataclasses.replace(geoid.GEOID18_MODEL, name="GEOID18-LOCAL")
+    with pytest.raises(ValueError) as raised:
+        _south_to_central(tmp_path, geoid_model=imposter)
+
+    message = str(raised.value)
+    assert "GEOID18-LOCAL" in message
+    assert "not a registered geoid model" in message
+    assert "GEOID18" in message and "GEOID12B" in message
+
+    # The equal-record branch: same facts, same model, accepted.
+    rebuilt = dataclasses.replace(geoid.GEOID18_MODEL)
+    assert rebuilt == geoid.GEOID18_MODEL
+    result = _south_to_central(tmp_path, geoid_model=rebuilt)
+    assert result.geoid_model == "GEOID18"
+
+
+def test_a_geoid12b_job_reports_geoid12b_separations_not_geoid18s(tmp_path):
+    """The registry choice reaches the audit CSV - the point of WP-V5.
+
+    Position 47.1211 N, 88.5694 W (Houghton, Michigan North) is one of the 20
+    frozen anchor positions where the two models differ at NGS's printed
+    millimetre: NGS's own geoid service returns -33.828 m for GEOID12B and
+    -33.796 m for GEOID18 (tests/fixtures/geoid12b_anchors.py and
+    geoid_anchors.py, both captured from the live service). A job run with the
+    GEOID12B record must put GEOID12B's figure in the audit file; the same job
+    under the default must put GEOID18's. 32 mm apart, so the assertion cannot
+    be satisfied by interpolation noise.
+    """
+    from michspc.fileio.geoid import GEOID12B_MODEL, GEOID18_MODEL
+    from michspc.spc.zones import MI_NORTH
+
+    def run_with(model, workspace):
+        workspace.mkdir()
+        path = workspace / "houghton.csv"
+        path.write_text("1,47.1211,-88.5694,300.00,ANCHOR\n", encoding="utf-8")
+        settings = JobSettings(
+            input_path=path,
+            output_directory=workspace / "out",
+            direction=Direction.GEODETIC_TO_ZONE,
+            source_zone=None,
+            target_zone=MI_NORTH,
+            input_unit=METERS,
+            output_unit=METERS,
+            longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+            geoid_model=model,
+        )
+        return run(settings)
+
+    result_12b = run_with(GEOID12B_MODEL, tmp_path / "g12b")
+    result_18 = run_with(GEOID18_MODEL, tmp_path / "g18")
+
+    assert result_12b.geoid_model == "GEOID12B"
+    assert result_18.geoid_model == "GEOID18"
+
+    def audit_geoid_cell(result, workspace):
+        written = exports.write_all(result)
+        audit = extract_member(written["archive"], "_full.csv", workspace / "unzipped")
+        with open(audit, newline="", encoding="utf-8") as handle:
+            rows = list(csv.reader(handle))
+        header, data = rows[0], rows[1]
+        return data[header.index("Geoid height (m)")]
+
+    cell_12b = audit_geoid_cell(result_12b, tmp_path / "g12b")
+    cell_18 = audit_geoid_cell(result_18, tmp_path / "g18")
+
+    # Each audit value is its own model's NGS figure to the printed millimetre...
+    assert float(cell_12b) == pytest.approx(-33.828, abs=0.001)
+    assert float(cell_18) == pytest.approx(-33.796, abs=0.001)
+    # ...and could not be the other model's: they are 32 mm apart here.
+    assert abs(float(cell_12b) - float(cell_18)) > 0.02
+
+    # The job record names the model AND its own tile and digest - a GEOID12B
+    # job documented with GEOID18's file would cite the wrong evidence.
+    text = report.build_report(result_12b)
+    assert "GEOID12B, NGS grid tile g2012bu3.bin" in text
+    assert "7ce1755c1e6ef8a1cc2909bd221e4a94fa46b2fbc33ebe4489a4973edd39b844" in text
+    assert "g2018u3.bin" not in text
 
 
 # ==========================================================================

@@ -135,7 +135,22 @@ class JobSettings:
     that arrives with None rather than choosing one.
     """
 
-    apply_geoid: bool = True
+    geoid_model: geoid.GeoidModel | None = geoid.GEOID18_MODEL
+    """The geoid model whose separations this job's factors are computed from.
+
+    Replaces ``apply_geoid: bool`` (WP-V5, docs/PLAN-vertical-datums.md section
+    3.5): a bool could say only that *some* geoid was applied, and the job
+    record then named the model from a module constant that a second model
+    made ambiguous. The record chosen here is the one the audit CSV and the
+    job record report, so the settings and the outputs cannot disagree about
+    which grid the factors came from.
+
+    ``None`` is a statement, not an absence - "no geoid was applied to this
+    job" - the idiom ``input_path`` and ``output_directory`` already use. No
+    interface offers it (the owner's "no none", plan section 5); it is a
+    capability of the core, kept so report.py's "Geoid model not applied"
+    branch stays honest and tested rather than dead.
+    """
 
     geodetic_frame: ReferenceFrame = NAD83_2011
     """The reference frame a geodetic INPUT file's latitudes and longitudes are
@@ -305,7 +320,53 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
 
     parsed = source or pnezd.read(settings.input_path)
 
-    grid = geoid.default_grid() if settings.apply_geoid else None
+    if settings.geoid_model is not None and not isinstance(
+        settings.geoid_model, geoid.GeoidModel
+    ):
+        # The #11-finding-1 class, at this field's likeliest call site: the
+        # argument replaced ``apply_geoid: bool``, so ``geoid_model=True`` is
+        # the exact habit a caller carries forward - and truthiness would
+        # accept it here, then fail attribute-by-attribute somewhere inside
+        # the loader. if/raise, never assert (-O strips asserts).
+        raise TypeError(
+            f"JobSettings.geoid_model must be a michspc.fileio.geoid."
+            f"GeoidModel record, or None to state that no geoid is applied; "
+            f"got {type(settings.geoid_model).__name__} "
+            f"({settings.geoid_model!r}). In particular True is not 'the "
+            f"default model' - that was apply_geoid's contract, retired by "
+            f"WP-V5. Pass geoid.GEOID18_MODEL, geoid.GEOID12B_MODEL, or a "
+            f"record from geoid.geoid_model_by_name()."
+        )
+
+    if (
+        settings.geoid_model is not None
+        and settings.geoid_model not in geoid.ALL_GEOID_MODELS
+    ):
+        # Registry membership, checked BEFORE any point converts. The loaders
+        # deliberately accept a hand-built record (the suite exercises
+        # tampered tiles through one), but a JOB may not: report.py resolves
+        # the record back from the registry by name to cite the tile and its
+        # digest, so a non-registry record would convert every point and then
+        # fail with a bare KeyError at the record write - a whole conversion
+        # discarded at the last step, found by the WP-V5 review gate (LOW 1).
+        # Membership is by equality, so a caller who rebuilt a record with a
+        # registry model's exact facts is accepted: identical facts ARE the
+        # model. What is refused is a record whose facts the registry does
+        # not hold - a model this program cannot cite.
+        known = ", ".join(model.name for model in geoid.ALL_GEOID_MODELS)
+        raise ValueError(
+            f"JobSettings.geoid_model {settings.geoid_model.name!r} is not a "
+            f"registered geoid model, so the job record could not cite its "
+            f"tile and checksum. A job converts only against the models this "
+            f"program ships: {known}. Use the records in "
+            f"michspc.fileio.geoid, or geoid_model_by_name()."
+        )
+
+    grid = (
+        geoid.default_grid(settings.geoid_model)
+        if settings.geoid_model is not None
+        else None
+    )
 
     points: list[ConvertedPoint] = []
     for row in parsed.rows:
@@ -319,7 +380,11 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
         input_sha256=parsed.sha256,
         input_row_count=len(parsed.rows),
         skipped_blank_lines=parsed.skipped_blank_lines,
-        geoid_model=geoid.GEOID_MODEL_NAME if settings.apply_geoid else None,
+        # The NAME, not the record: JobResult's contract predates the registry
+        # and report.py resolves the record back through geoid_model_by_name.
+        geoid_model=(
+            settings.geoid_model.name if settings.geoid_model is not None else None
+        ),
     )
 
 
@@ -449,7 +514,9 @@ def _convert_row(
                         f"{context}: the elevation "
                         # Not "read from the file": a typed point has none.
                         f"{row.elevation:,.3f} {settings.input_unit.code} was "
-                        f"supplied, but no {geoid.GEOID_MODEL_NAME} "
+                        # The model this job actually consulted: grid is only
+                        # ever non-None when settings.geoid_model is a record.
+                        f"supplied, but no {settings.geoid_model.name} "
                         f"geoid height is available at "
                         f"{conversion.latitude:.6f}, {conversion.longitude:.6f}, "
                         f"so the elevation factor and combined factor for this "

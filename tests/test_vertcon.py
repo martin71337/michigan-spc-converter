@@ -36,7 +36,7 @@ from pathlib import Path
 
 import pytest
 
-from michspc.fileio import geoid18, ngs_grid, vertcon
+from michspc.fileio import geoid, ngs_grid, vertcon
 from michspc.spc import vertical
 from tests.fixtures.vertcon_anchors import (
     NAVD88_TO_NGVD29_ANCHORS,
@@ -226,13 +226,13 @@ def test_the_header_sits_behind_a_marker_where_geoid18s_does_not():
     for tile in (vertcon.VERTCON3_TRN_TILE, vertcon.VERTCON3_ERR_TILE):
         assert struct.unpack_from("<i", tile.read_bytes(), 0)[0] == 44
 
-    assert struct.unpack_from("<i", geoid18.GEOID18_TILE.read_bytes(), 0)[0] == 0
+    assert struct.unpack_from("<i", geoid.GEOID18_TILE.read_bytes(), 0)[0] == 0
 
 
 def test_a_geoid18_tile_is_refused_by_this_reader():
     """The live consequence of the byte-0 difference above."""
     with pytest.raises(vertcon.VertconError) as caught:
-        vertcon.load_grid(geoid18.GEOID18_TILE, vertcon.TransformationGrid)
+        vertcon.load_grid(geoid.GEOID18_TILE, vertcon.TransformationGrid)
 
     message = str(caught.value)
     assert "bad Fortran record marker at byte 0" in message
@@ -615,7 +615,7 @@ def test_load_grid_refuses_a_kind_it_does_not_know(tmp_path):
     path = _tiny(tmp_path)
 
     with pytest.raises(TypeError, match="TransformationGrid or"):
-        vertcon.load_grid(path, geoid18.GeoidGrid)
+        vertcon.load_grid(path, geoid.GeoidGrid)
 
 
 # ==========================================================================
@@ -1034,7 +1034,7 @@ def test_geoid18_shares_vertcons_anchoring_since_wp_g1():
     """
     from tests.fixtures.geoid_anchors import GEOID_ANCHORS
 
-    grid = geoid18.load_grid()
+    grid = geoid.load_grid()
 
     floor_anchored = [
         abs(grid.interpolate_biquadratic(a.latitude, a.longitude) - a.geoid_height_m)
@@ -1067,7 +1067,7 @@ def test_geoid18_shares_vertcons_anchoring_since_wp_g1():
             anchor.latitude, anchor.longitude
         )
         assert (
-            geoid18.geoid_height(anchor.latitude, anchor.longitude, grid)
+            geoid.geoid_height(anchor.latitude, anchor.longitude, grid)
             == nearest_value
         )
         if nearest_value != floor_value:
@@ -1744,8 +1744,8 @@ def test_both_dialects_carry_the_class_this_modules_callers_catch():
     """
     assert vertcon.TransformationGrid.dialect.error is vertcon.VertconError
     assert vertcon.UncertaintyGrid.dialect.error is vertcon.VertconError
-    assert not issubclass(vertcon.VertconError, geoid18.GeoidError)
-    assert not issubclass(geoid18.GeoidError, vertcon.VertconError)
+    assert not issubclass(vertcon.VertconError, geoid.GeoidError)
+    assert not issubclass(geoid.GeoidError, vertcon.VertconError)
 
 
 def test_the_two_dialects_speak_of_two_different_quantities():

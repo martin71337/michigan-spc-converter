@@ -17,7 +17,7 @@ from datetime import datetime, timezone
 
 from michspc import APP_NAME, __version__
 from michspc.fileio import formatting as fmt
-from michspc.fileio.geoid18 import GEOID18_TILE_SHA256, GEOID_MODEL_NAME
+from michspc.fileio.geoid import GEOID18_TILE_SHA256, GEOID_MODEL_NAME
 from michspc.job import Direction, JobResult
 from michspc.spc.convert import WarningCode
 from michspc.spc.factors import MEAN_EARTH_RADIUS_M

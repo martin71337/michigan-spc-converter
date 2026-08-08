@@ -7,7 +7,7 @@ import struct
 
 import pytest
 
-from michspc.fileio import geoid18
+from michspc.fileio import geoid
 from michspc.spc.factors import (
     MEAN_EARTH_RADIUS_IFT,
     MEAN_EARTH_RADIUS_M,
@@ -33,7 +33,7 @@ GEOID_TOLERANCE_M = 0.001
 
 @pytest.fixture(scope="module")
 def grid():
-    return geoid18.load_grid()
+    return geoid.load_grid()
 
 
 # --------------------------------------------------------------------------
@@ -48,8 +48,8 @@ def test_the_shipped_grid_matches_the_pinned_checksum():
     heights that nothing downstream could catch, so the file is pinned by hash
     rather than trusted.
     """
-    digest = hashlib.sha256(geoid18.GEOID18_TILE.read_bytes()).hexdigest()
-    assert digest == geoid18.GEOID18_TILE_SHA256
+    digest = hashlib.sha256(geoid.GEOID18_TILE.read_bytes()).hexdigest()
+    assert digest == geoid.GEOID18_TILE_SHA256
 
 
 def test_the_shipped_geoid12b_tile_matches_its_pinned_checksum():
@@ -66,8 +66,8 @@ def test_the_shipped_geoid12b_tile_matches_its_pinned_checksum():
     exactly why the pin matters now. A tile corrupted today would be corrupted
     when WP-V5 first reads it, and by then nothing would say when it happened.
     """
-    digest = hashlib.sha256(geoid18.GEOID12B_TILE.read_bytes()).hexdigest()
-    assert digest == geoid18.GEOID12B_TILE_SHA256
+    digest = hashlib.sha256(geoid.GEOID12B_TILE.read_bytes()).hexdigest()
+    assert digest == geoid.GEOID12B_TILE_SHA256
 
 
 def test_the_two_geoid_pins_are_two_pins():
@@ -77,10 +77,10 @@ def test_the_two_geoid_pins_are_two_pins():
     geometry - so a copy-paste that pinned GEOID18's digest twice would leave
     GEOID12B unauthenticated with nothing else to notice.
     """
-    assert geoid18.GEOID18_TILE_SHA256 != geoid18.GEOID12B_TILE_SHA256
-    assert geoid18.GEOID18_TILE != geoid18.GEOID12B_TILE
-    assert geoid18.GEOID18_TILE.stat().st_size == geoid18.GEOID12B_TILE.stat().st_size
-    assert geoid18.GEOID18_TILE.read_bytes() != geoid18.GEOID12B_TILE.read_bytes()
+    assert geoid.GEOID18_TILE_SHA256 != geoid.GEOID12B_TILE_SHA256
+    assert geoid.GEOID18_TILE != geoid.GEOID12B_TILE
+    assert geoid.GEOID18_TILE.stat().st_size == geoid.GEOID12B_TILE.stat().st_size
+    assert geoid.GEOID18_TILE.read_bytes() != geoid.GEOID12B_TILE.read_bytes()
 
 
 def test_the_header_matches_the_documented_format(grid):
@@ -123,7 +123,7 @@ def test_the_grid_covers_all_of_michigan(grid):
 @pytest.mark.parametrize("anchor", GEOID_ANCHORS, ids=ANCHOR_IDS)
 def test_geoid_height_matches_ngs(anchor, grid):
     """Expected values computed by NGS, at deliberately off-node positions."""
-    height = geoid18.geoid_height(anchor.latitude, anchor.longitude, grid)
+    height = geoid.geoid_height(anchor.latitude, anchor.longitude, grid)
     assert height == pytest.approx(anchor.geoid_height_m, abs=GEOID_TOLERANCE_M)
 
 
@@ -162,7 +162,7 @@ def test_biquadratic_beats_bilinear_against_ngs(grid):
 
     # And geoid_height() must actually be using the better one.
     for anchor in GEOID_ANCHORS[:3]:
-        assert geoid18.geoid_height(
+        assert geoid.geoid_height(
             anchor.latitude, anchor.longitude, grid
         ) == grid.height_biquadratic(anchor.latitude, anchor.longitude)
 
@@ -179,11 +179,11 @@ def test_every_michigan_geoid_height_is_negative(grid):
     """
     for anchor in GEOID_ANCHORS:
         assert anchor.geoid_height_m < 0.0
-        assert geoid18.geoid_height(anchor.latitude, anchor.longitude, grid) < 0.0
+        assert geoid.geoid_height(anchor.latitude, anchor.longitude, grid) < 0.0
 
     # Across Michigan the value runs roughly -30 to -37 m.
     heights = [
-        geoid18.geoid_height(a.latitude, a.longitude, grid) for a in GEOID_ANCHORS
+        geoid.geoid_height(a.latitude, a.longitude, grid) for a in GEOID_ANCHORS
     ]
     assert -40.0 < min(heights) < max(heights) < -25.0
 
@@ -214,7 +214,7 @@ def test_geoid_height_rounds_to_ngs_at_every_discriminating_anchor(grid):
     assert len(pins) == 36, "the pin set itself has been altered"
 
     for anchor in pins:
-        height = geoid18.geoid_height(anchor.latitude, anchor.longitude, grid)
+        height = geoid.geoid_height(anchor.latitude, anchor.longitude, grid)
         assert round(height, 3) == round(anchor.geoid_height_m, 3), (
             f"{anchor.latitude}, {anchor.longitude}: geoid_height gives "
             f"{height:.6f}, which does not round to NGS's printed "
@@ -258,7 +258,7 @@ def test_nearest_node_beats_floor_where_the_anchorings_diverge(grid):
         return rms, rounds
 
     shipped_rms, shipped_rounds = stats(
-        lambda lat, lon: geoid18.geoid_height(lat, lon, grid)
+        lambda lat, lon: geoid.geoid_height(lat, lon, grid)
     )
     floor_rms, floor_rounds = stats(grid.interpolate_biquadratic)
 
@@ -303,19 +303,19 @@ def test_lagrange_quadratic_is_exact_on_a_quadratic():
         f(1.5) = 2(2.25) - 4.5 + 5 = 5.0
     """
     values = [5.0, 4.0, 7.0]
-    assert geoid18._lagrange3(values, 0.0) == pytest.approx(5.0)
-    assert geoid18._lagrange3(values, 1.0) == pytest.approx(4.0)
-    assert geoid18._lagrange3(values, 2.0) == pytest.approx(7.0)
-    assert geoid18._lagrange3(values, 0.5) == pytest.approx(4.0)
-    assert geoid18._lagrange3(values, 1.5) == pytest.approx(5.0)
+    assert geoid._lagrange3(values, 0.0) == pytest.approx(5.0)
+    assert geoid._lagrange3(values, 1.0) == pytest.approx(4.0)
+    assert geoid._lagrange3(values, 2.0) == pytest.approx(7.0)
+    assert geoid._lagrange3(values, 0.5) == pytest.approx(4.0)
+    assert geoid._lagrange3(values, 1.5) == pytest.approx(5.0)
 
 
 def test_longitude_convention_round_trips():
     """The file stores 0-360 east; the program uses signed, negative west."""
-    assert geoid18._to_east_longitude(-84.5) == pytest.approx(275.5)
-    assert geoid18._to_east_longitude(12.0) == pytest.approx(12.0)
-    assert geoid18._to_signed_longitude(275.5) == pytest.approx(-84.5)
-    assert geoid18._to_signed_longitude(12.0) == pytest.approx(12.0)
+    assert geoid._to_east_longitude(-84.5) == pytest.approx(275.5)
+    assert geoid._to_east_longitude(12.0) == pytest.approx(12.0)
+    assert geoid._to_signed_longitude(275.5) == pytest.approx(-84.5)
+    assert geoid._to_signed_longitude(12.0) == pytest.approx(12.0)
 
 
 # --------------------------------------------------------------------------
@@ -325,8 +325,8 @@ def test_longitude_convention_round_trips():
 
 def test_a_point_outside_the_tile_is_refused_by_name(grid):
     """Fails closed, and says what it means for the output."""
-    with pytest.raises(geoid18.GeoidError) as caught:
-        geoid18.geoid_height(35.0, -84.0, grid)  # Tennessee, south of the tile
+    with pytest.raises(geoid.GeoidError) as caught:
+        geoid.geoid_height(35.0, -84.0, grid)  # Tennessee, south of the tile
 
     message = str(caught.value)
     assert "outside the GEOID18 tile" in message
@@ -334,20 +334,20 @@ def test_a_point_outside_the_tile_is_refused_by_name(grid):
 
 
 def test_a_truncated_grid_is_refused(tmp_path):
-    original = geoid18.GEOID18_TILE.read_bytes()
+    original = geoid.GEOID18_TILE.read_bytes()
     truncated = tmp_path / "short.bin"
     truncated.write_bytes(original[: 44 + 1000])
 
-    with pytest.raises(geoid18.GeoidError, match="truncated or corrupt"):
-        geoid18.load_grid(truncated)
+    with pytest.raises(geoid.GeoidError, match="truncated or corrupt"):
+        geoid.load_grid(truncated)
 
 
 def test_a_file_too_short_for_a_header_is_refused(tmp_path):
     stub = tmp_path / "stub.bin"
     stub.write_bytes(b"\x00" * 12)
 
-    with pytest.raises(geoid18.GeoidError, match="too short"):
-        geoid18.load_grid(stub)
+    with pytest.raises(geoid.GeoidError, match="too short"):
+        geoid.load_grid(stub)
 
 
 def test_a_big_endian_grid_is_refused(tmp_path):
@@ -357,13 +357,13 @@ def test_a_big_endian_grid_is_refused(tmp_path):
     wrong = tmp_path / "be.bin"
     wrong.write_bytes(header + b"\x00" * 16)
 
-    with pytest.raises(geoid18.GeoidError, match="IKIND"):
-        geoid18.load_grid(wrong)
+    with pytest.raises(geoid.GeoidError, match="IKIND"):
+        geoid.load_grid(wrong)
 
 
 def test_a_missing_grid_is_refused_with_a_useful_message(tmp_path):
-    with pytest.raises(geoid18.GeoidError, match="installation is incomplete"):
-        geoid18.load_grid(tmp_path / "not-here.bin")
+    with pytest.raises(geoid.GeoidError, match="installation is incomplete"):
+        geoid.load_grid(tmp_path / "not-here.bin")
 
 
 def test_checksum_verification_catches_a_tampered_grid(tmp_path):
@@ -372,17 +372,17 @@ def test_checksum_verification_catches_a_tampered_grid(tmp_path):
     The production path (``load_shipped_grid`` / ``default_grid``) turns it on
     unconditionally - see the finding-6 tests below.
     """
-    original = bytearray(geoid18.GEOID18_TILE.read_bytes())
+    original = bytearray(geoid.GEOID18_TILE.read_bytes())
     original[100] ^= 0xFF  # flip a byte in the payload
     tampered = tmp_path / "tampered.bin"
     tampered.write_bytes(bytes(original))
 
     # It still loads and still produces numbers - which is exactly why the
     # checksum matters.
-    geoid18.load_grid(tampered)
+    geoid.load_grid(tampered)
 
-    with pytest.raises(geoid18.GeoidError, match="does not match"):
-        geoid18.load_grid(tampered, verify_checksum=True)
+    with pytest.raises(geoid.GeoidError, match="does not match"):
+        geoid.load_grid(tampered, verify_checksum=True)
 
 
 # --------------------------------------------------------------------------
@@ -408,7 +408,7 @@ def _tile_with_header(
     Built in tmp_path. ``data/g2018u3.bin`` is never modified; it is the NGS
     original and its hash is pinned.
     """
-    payload = geoid18.GEOID18_TILE.read_bytes()[44:]
+    payload = geoid.GEOID18_TILE.read_bytes()[44:]
     path = tmp_path / name
     path.write_bytes(
         struct.pack("<4d3i", south, west, dlat, dlon, rows, columns, ikind) + payload
@@ -435,7 +435,7 @@ def test_a_row_column_swap_survives_every_structural_check(tmp_path):
     swapped = _tile_with_header(tmp_path, "swapped.bin", rows=1141, columns=1081)
 
     # No expectation passed: this is the reader as any other tile would use it.
-    grid_swapped = geoid18.load_grid(swapped)
+    grid_swapped = geoid.load_grid(swapped)
     wrong = grid_swapped.height_biquadratic(43.0, -84.5)
 
     # 5 mm of slack on a 5.158 m discrepancy - loose enough not to pin the
@@ -443,7 +443,7 @@ def test_a_row_column_swap_survives_every_structural_check(tmp_path):
     # produces it.
     assert wrong == pytest.approx(-27.927, abs=0.005)
 
-    truth = geoid18.load_grid().height_biquadratic(43.0, -84.5)
+    truth = geoid.load_grid().height_biquadratic(43.0, -84.5)
     assert truth == pytest.approx(-33.085, abs=0.005)
     assert abs(truth - wrong) == pytest.approx(5.158, abs=0.01)
 
@@ -457,8 +457,8 @@ def test_a_row_column_swap_is_refused_when_the_tile_is_the_shipped_one(tmp_path)
     """
     swapped = _tile_with_header(tmp_path, "swapped.bin", rows=1141, columns=1081)
 
-    with pytest.raises(geoid18.GeoidError) as caught:
-        geoid18.load_grid(swapped, expect_geometry=geoid18.GEOID18_U3_GEOMETRY)
+    with pytest.raises(geoid.GeoidError) as caught:
+        geoid.load_grid(swapped, expect_geometry=geoid.GEOID18_U3_GEOMETRY)
 
     message = str(caught.value)
     # Names what is wrong, with both numbers, and what it means for the output.
@@ -467,8 +467,8 @@ def test_a_row_column_swap_is_refused_when_the_tile_is_the_shipped_one(tmp_path)
     assert "wrong cell" in message
 
     # And the production entry point refuses it too, by the same rule.
-    with pytest.raises(geoid18.GeoidError):
-        geoid18.load_shipped_grid(swapped)
+    with pytest.raises(geoid.GeoidError):
+        geoid.load_shipped_grid(swapped)
 
 
 def test_the_production_path_authenticates_the_grid(tmp_path):
@@ -483,22 +483,22 @@ def test_the_production_path_authenticates_the_grid(tmp_path):
     left to this docstring: ``test_the_cached_grid_comes_through_the_authenticated_path``
     below pins the wiring itself.
     """
-    original = bytearray(geoid18.GEOID18_TILE.read_bytes())
+    original = bytearray(geoid.GEOID18_TILE.read_bytes())
     original[100] ^= 0xFF  # flip a byte in the payload, leaving the header valid
     tampered = tmp_path / "tampered.bin"
     tampered.write_bytes(bytes(original))
 
     # Same file the unchecked reader accepted in
     # test_checksum_verification_catches_a_tampered_grid.
-    geoid18.load_grid(tampered)
+    geoid.load_grid(tampered)
 
-    with pytest.raises(geoid18.GeoidError, match="does not match"):
-        geoid18.load_shipped_grid(tampered)
+    with pytest.raises(geoid.GeoidError, match="does not match"):
+        geoid.load_shipped_grid(tampered)
 
     # The real file passes both gates, so the check is not simply refusing
     # everything.
-    assert geoid18.load_shipped_grid().row_count == 1081
-    assert geoid18.default_grid().column_count == 1141
+    assert geoid.load_shipped_grid().row_count == 1081
+    assert geoid.default_grid().column_count == 1141
 
 
 def test_the_cached_grid_comes_through_the_authenticated_path(monkeypatch):
@@ -515,19 +515,19 @@ def test_the_cached_grid_comes_through_the_authenticated_path(monkeypatch):
     the monkeypatch.
     """
     called: list[bool] = []
-    real = geoid18.load_shipped_grid
+    real = geoid.load_shipped_grid
 
     def recording(*args, **kwargs):
         called.append(True)
         return real(*args, **kwargs)
 
-    monkeypatch.setattr(geoid18, "load_shipped_grid", recording)
-    geoid18.default_grid.cache_clear()
+    monkeypatch.setattr(geoid, "load_shipped_grid", recording)
+    geoid.default_grid.cache_clear()
     try:
-        geoid18.default_grid()
+        geoid.default_grid()
         assert called == [True]
     finally:
-        geoid18.default_grid.cache_clear()
+        geoid.default_grid.cache_clear()
 
 
 def test_the_canonical_geometry_is_the_one_the_readme_documents(grid):
@@ -538,7 +538,7 @@ def test_the_canonical_geometry_is_the_one_the_readme_documents(grid):
         north = 40.0 + (1081 - 1) / 60 = 40 + 18 = 58 N
         east  = 264.0 + (1141 - 1) / 60 = 264 + 19 = 283 E = 283 - 360 = 77 W
     """
-    expected = geoid18.GEOID18_U3_GEOMETRY
+    expected = geoid.GEOID18_U3_GEOMETRY
 
     assert expected.row_count == 1081
     assert expected.column_count == 1141
@@ -563,16 +563,16 @@ def test_the_geometry_tolerance_admits_the_real_file_and_little_else(tmp_path):
     confusion - is refused.
     """
     # The real file, with the canonical expectation applied: accepted.
-    geoid18.load_shipped_grid()
+    geoid.load_shipped_grid()
 
     nudged = _tile_with_header(tmp_path, "nudged.bin", dlat=1 / 60 + 1e-7)
-    with pytest.raises(geoid18.GeoidError, match="DLAT"):
-        geoid18.load_grid(nudged, expect_geometry=geoid18.GEOID18_U3_GEOMETRY)
+    with pytest.raises(geoid.GeoidError, match="DLAT"):
+        geoid.load_grid(nudged, expect_geometry=geoid.GEOID18_U3_GEOMETRY)
 
     # A shifted origin is caught the same way.
     shifted = _tile_with_header(tmp_path, "shifted.bin", south=41.0)
-    with pytest.raises(geoid18.GeoidError, match="SLAT"):
-        geoid18.load_grid(shifted, expect_geometry=geoid18.GEOID18_U3_GEOMETRY)
+    with pytest.raises(geoid.GeoidError, match="SLAT"):
+        geoid.load_grid(shifted, expect_geometry=geoid.GEOID18_U3_GEOMETRY)
 
 
 def test_a_non_positive_or_non_finite_spacing_is_refused(tmp_path):
@@ -583,12 +583,12 @@ def test_a_non_positive_or_non_finite_spacing_is_refused(tmp_path):
     """
     for value, label in ((0.0, "DLAT"), (-1 / 60, "DLAT")):
         path = _tile_with_header(tmp_path, f"dlat{value}.bin", dlat=value)
-        with pytest.raises(geoid18.GeoidError, match=label):
-            geoid18.load_grid(path)
+        with pytest.raises(geoid.GeoidError, match=label):
+            geoid.load_grid(path)
 
     path = _tile_with_header(tmp_path, "dlon_nan.bin", dlon=float("nan"))
-    with pytest.raises(geoid18.GeoidError, match="DLON"):
-        geoid18.load_grid(path)
+    with pytest.raises(geoid.GeoidError, match="DLON"):
+        geoid.load_grid(path)
 
 
 def test_a_grid_too_small_to_interpolate_in_is_refused(tmp_path):
@@ -603,8 +603,8 @@ def test_a_grid_too_small_to_interpolate_in_is_refused(tmp_path):
     path = tmp_path / "tiny.bin"
     path.write_bytes(header + struct.pack("<4f", -33.0, -33.1, -33.2, -33.3))
 
-    with pytest.raises(geoid18.GeoidError, match="NLAT=2"):
-        geoid18.load_grid(path)
+    with pytest.raises(geoid.GeoidError, match="NLAT=2"):
+        geoid.load_grid(path)
 
 
 def test_a_non_finite_payload_value_is_refused(tmp_path):
@@ -615,15 +615,15 @@ def test_a_non_finite_payload_value_is_refused(tmp_path):
     the checksum on the shipped tile, and not redundant for any other file
     ``load_grid`` is pointed at.
     """
-    payload = bytearray(geoid18.GEOID18_TILE.read_bytes()[44:])
+    payload = bytearray(geoid.GEOID18_TILE.read_bytes()[44:])
     payload[0:4] = struct.pack("<f", float("nan"))
     path = tmp_path / "nan.bin"
     path.write_bytes(
         struct.pack("<4d3i", 40.0, 264.0, 1 / 60, 1 / 60, 1081, 1141, 1) + bytes(payload)
     )
 
-    with pytest.raises(geoid18.GeoidError, match="non-finite geoid height"):
-        geoid18.load_grid(path)
+    with pytest.raises(geoid.GeoidError, match="non-finite geoid height"):
+        geoid.load_grid(path)
 
 
 # --------------------------------------------------------------------------
@@ -779,12 +779,14 @@ def test_a_real_point_through_the_whole_factor_chain(grid):
     point = project_point(latitude, longitude, NAD83_2011, MI_SOUTH)
 
     orthometric = INTERNATIONAL_FEET.to_meters(800.0)
-    geoid = geoid18.geoid_height(latitude, longitude, grid)
+    # The local was named ``geoid`` before the module rename (WP-V5a); it now
+    # carries a suffix so it cannot shadow the ``geoid`` module it is read from.
+    geoid_height_m = geoid.geoid_height(latitude, longitude, grid)
 
     assert orthometric == pytest.approx(243.84, abs=1e-9)
-    assert geoid == pytest.approx(-33.637, abs=GEOID_TOLERANCE_M)
+    assert geoid_height_m == pytest.approx(-33.637, abs=GEOID_TOLERANCE_M)
 
-    factors = factors_at(point.target_scale_factor, orthometric, geoid)
+    factors = factors_at(point.target_scale_factor, orthometric, geoid_height_m)
 
     assert factors.ellipsoid_height == pytest.approx(210.203, abs=0.002)
     assert factors.elevation_factor == pytest.approx(0.99996701, abs=1e-8)

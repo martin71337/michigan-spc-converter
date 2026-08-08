@@ -32,7 +32,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 import pytest  # noqa: E402
 
 from michspc import selftest  # noqa: E402
-from michspc.fileio import geoid18  # noqa: E402
+from michspc.fileio import geoid  # noqa: E402
 from tests.fixtures.ncat_crosscheck import (  # noqa: E402
     CROSSCHECK_FORWARD,
     CROSSCHECK_GEOID,
@@ -213,7 +213,7 @@ def test_the_selftest_runs_as_its_own_process_and_exits_zero(tmp_path):
 
 
 def test_the_geoid_check_fails_when_the_tile_is_missing(tmp_path, monkeypatch):
-    monkeypatch.setattr(geoid18, "GEOID18_TILE", tmp_path / "no-such-grid.bin")
+    monkeypatch.setattr(geoid, "GEOID18_TILE", tmp_path / "no-such-grid.bin")
 
     with pytest.raises(selftest.SelfTestError) as raised:
         selftest.check_geoid_grid()
@@ -227,7 +227,7 @@ def test_the_geoid_check_fails_when_the_height_is_wrong(monkeypatch):
     byte-identical and the program reads it through different code.
     """
     monkeypatch.setattr(
-        geoid18, "geoid_height", lambda lat, lon, grid=None: -27.927
+        geoid, "geoid_height", lambda lat, lon, grid=None: -27.927
     )
 
     with pytest.raises(selftest.SelfTestError) as raised:
@@ -269,7 +269,7 @@ def test_the_vertcon_check_fails_when_the_shift_is_wrong(monkeypatch):
 
 
 def test_the_geoid12b_check_fails_when_the_tile_is_missing(tmp_path, monkeypatch):
-    monkeypatch.setattr(geoid18, "GEOID12B_TILE", tmp_path / "no-such-grid.bin")
+    monkeypatch.setattr(geoid, "GEOID12B_TILE", tmp_path / "no-such-grid.bin")
 
     with pytest.raises(selftest.SelfTestError) as raised:
         selftest.check_geoid12b_tile()
@@ -284,11 +284,11 @@ def test_the_geoid12b_check_fails_on_a_tampered_tile(tmp_path, monkeypatch):
     because the digest was only ever checked against the source tree
     (independent review of the vertical branch, MEDIUM 3).
     """
-    tampered = bytearray(geoid18.GEOID12B_TILE.read_bytes())
+    tampered = bytearray(geoid.GEOID12B_TILE.read_bytes())
     tampered[100] ^= 0xFF
     path = tmp_path / "g2012bu3.bin"
     path.write_bytes(bytes(tampered))
-    monkeypatch.setattr(geoid18, "GEOID12B_TILE", path)
+    monkeypatch.setattr(geoid, "GEOID12B_TILE", path)
 
     with pytest.raises(selftest.SelfTestError) as raised:
         selftest.check_geoid12b_tile()
@@ -414,7 +414,7 @@ def test_the_grids_are_found_beside_the_source_tree_when_not_frozen(monkeypatch)
     # the private copies each carried were extracted at the #38 merge gate.
     from michspc.fileio import vertcon
 
-    assert geoid18.GEOID18_TILE.parent == geoid18.DATA_DIR
+    assert geoid.GEOID18_TILE.parent == geoid.DATA_DIR
     assert vertcon.VERTCON3_TRN_TILE.parent == vertcon.DATA_DIR
 
 

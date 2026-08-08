@@ -149,31 +149,31 @@ def check_geoid_grid() -> str:
     can be present and intact and still be read wrongly. The last is why the
     height itself is checked against NGS rather than merely loading the grid.
     """
-    from michspc.fileio import geoid18
+    from michspc.fileio import geoid
 
-    tile = geoid18.GEOID18_TILE
+    tile = geoid.GEOID18_TILE
     if not tile.is_file():
         raise SelfTestError(
-            f"the {geoid18.GEOID_MODEL_NAME} grid is not in this bundle. "
+            f"the {geoid.GEOID_MODEL_NAME} grid is not in this bundle. "
             f"Looked for {tile}. Without it no elevation factor and no combined "
             f"factor can be computed for any point. The bundle is incomplete."
         )
 
     try:
-        grid = geoid18.load_shipped_grid()
-    except geoid18.GeoidError as error:
+        grid = geoid.load_shipped_grid()
+    except geoid.GeoidError as error:
         raise SelfTestError(
-            f"the bundled {geoid18.GEOID_MODEL_NAME} grid did not pass its own "
+            f"the bundled {geoid.GEOID_MODEL_NAME} grid did not pass its own "
             f"checks: {error}"
         ) from error
 
     try:
-        height = geoid18.geoid_height(
+        height = geoid.geoid_height(
             GEOID_ANCHOR_LATITUDE, GEOID_ANCHOR_LONGITUDE, grid
         )
-    except geoid18.GeoidError as error:
+    except geoid.GeoidError as error:
         raise SelfTestError(
-            f"the bundled {geoid18.GEOID_MODEL_NAME} grid loaded but could not "
+            f"the bundled {geoid.GEOID_MODEL_NAME} grid loaded but could not "
             f"be interpolated at {GEOID_ANCHOR_LATITUDE}, "
             f"{GEOID_ANCHOR_LONGITUDE}: {error}"
         ) from error
@@ -181,7 +181,7 @@ def check_geoid_grid() -> str:
     difference = abs(height - GEOID_ANCHOR_HEIGHT_M)
     if difference > GEOID_TOLERANCE_M:
         raise SelfTestError(
-            f"the bundled {geoid18.GEOID_MODEL_NAME} grid returned "
+            f"the bundled {geoid.GEOID_MODEL_NAME} grid returned "
             f"{height:.4f} m at {GEOID_ANCHOR_LATITUDE}, "
             f"{GEOID_ANCHOR_LONGITUDE}, where NGS's own geoid service returns "
             f"{GEOID_ANCHOR_HEIGHT_M:.3f} m - out by {difference:.4f} m, "
@@ -190,7 +190,7 @@ def check_geoid_grid() -> str:
         )
 
     return (
-        f"{geoid18.GEOID_MODEL_NAME} tile authenticated "
+        f"{geoid.GEOID_MODEL_NAME} tile authenticated "
         f"({grid.row_count} x {grid.column_count} cells) and returned "
         f"{height:.4f} m against NGS's {GEOID_ANCHOR_HEIGHT_M:.3f} m"
     )
@@ -266,9 +266,9 @@ def check_geoid12b_tile() -> str:
     """
     import hashlib
 
-    from michspc.fileio import geoid18
+    from michspc.fileio import geoid
 
-    tile = geoid18.GEOID12B_TILE
+    tile = geoid.GEOID12B_TILE
     if not tile.is_file():
         raise SelfTestError(
             f"the GEOID12B tile is not in this bundle. Looked for {tile}. "
@@ -277,11 +277,11 @@ def check_geoid12b_tile() -> str:
         )
 
     digest = hashlib.sha256(tile.read_bytes()).hexdigest()
-    if digest != geoid18.GEOID12B_TILE_SHA256:
+    if digest != geoid.GEOID12B_TILE_SHA256:
         raise SelfTestError(
             f"the bundled GEOID12B tile does not match the grid this program "
             f"was built against.\n  expected SHA-256 "
-            f"{geoid18.GEOID12B_TILE_SHA256}\n  found    SHA-256 {digest}\n"
+            f"{geoid.GEOID12B_TILE_SHA256}\n  found    SHA-256 {digest}\n"
             f"The file was corrupted or substituted during packaging."
         )
 

@@ -75,7 +75,7 @@ both the geoid and VERTCON policy layers resolve their grids through it."""
 # wiring all land in one reviewable step.
 #
 # Each of the four digests is pinned in code and checked by the suite, not merely
-# recorded in the plan: geoid18.GEOID18_TILE_SHA256, geoid18.GEOID12B_TILE_SHA256,
+# recorded in the plan: geoid.GEOID18_TILE_SHA256, geoid.GEOID12B_TILE_SHA256,
 # vertcon.VERTCON3_TRN_SHA256 and vertcon.VERTCON3_ERR_SHA256. This list is names
 # only - a name is what PyInstaller needs - so nothing here can stand in for that.
 NGS_GRID_FILENAMES = (

@@ -1,6 +1,6 @@
 """The shared NGS binary-grid substrate, exercised on its own terms.
 
-``tests/test_geoid.py`` drives this code through ``geoid18``'s public API, which
+``tests/test_geoid.py`` drives this code through ``geoid``'s public API, which
 is what proves the extraction changed no behaviour. These tests do the opposite:
 they hand the substrate a grid that is **not** a geoid - a 3x3 lattice of made-up
 numbers under a made-up dialect - so the parts that are genuinely generic are
@@ -10,7 +10,7 @@ That distinction is the point of the extraction (docs/PLAN-vertical-datums.md
 section 3.2). The VERTCON reader WP-V4 adds needs the same header record, the
 same geometry checking and both interpolators, and it must raise **its own**
 exception class carrying **its own** wording - because ``michspc/job.py`` catches
-``geoid18.GeoidError`` by name and a shared base class would stop being caught.
+``geoid.GeoidError`` by name and a shared base class would stop being caught.
 The dialect seam is what makes that true, so it is tested here directly, with an
 anti-vacuousness check proving a second dialect really does get its own class.
 
@@ -26,7 +26,7 @@ from pathlib import Path
 
 import pytest
 
-from michspc.fileio import geoid18, ngs_grid
+from michspc.fileio import geoid, ngs_grid
 
 # --------------------------------------------------------------------------
 # A dialect and a grid that have nothing to do with geoid heights.
@@ -356,7 +356,7 @@ def test_both_interpolators_refuse_an_outside_position():
 def test_the_substrate_raises_the_dialects_class_and_not_a_shared_one():
     """Anti-vacuousness for the seam, and the reason the seam exists.
 
-    ``michspc/job.py`` catches ``geoid18.GeoidError`` by name. If the substrate
+    ``michspc/job.py`` catches ``geoid.GeoidError`` by name. If the substrate
     raised a class of its own - even a base class - that except clause would
     stop catching, and a missing geoid height would escape as an unhandled
     exception instead of becoming a named refusal on one row. So the same
@@ -376,12 +376,12 @@ def test_the_geoid_dialect_carries_the_class_job_py_catches():
     """The live instance of the property above.
 
     Stated here rather than left implicit: this one identity is what keeps
-    ``except geoid18.GeoidError`` in ``job.py`` and in ``selftest.py`` correct
+    ``except geoid.GeoidError`` in ``job.py`` and in ``selftest.py`` correct
     now that the refusals are raised from another module.
     """
-    assert geoid18.GEOID_DIALECT.error is geoid18.GeoidError
-    assert geoid18.GEOID_DIALECT.model_name == geoid18.GEOID_MODEL_NAME
-    assert geoid18.GeoidGrid.dialect is geoid18.GEOID_DIALECT
+    assert geoid.GEOID_DIALECT.error is geoid.GeoidError
+    assert geoid.GEOID_DIALECT.model_name == geoid.GEOID_MODEL_NAME
+    assert geoid.GeoidGrid.dialect is geoid.GEOID_DIALECT
 
 
 # --------------------------------------------------------------------------
@@ -691,7 +691,7 @@ def test_the_substrate_names_no_model_file_or_checksum():
         __import__("pathlib").Path(ngs_grid.__file__).read_text(encoding="utf-8")
     )
     assert "g2018u3" not in source
-    assert geoid18.GEOID18_TILE_SHA256 not in source
+    assert geoid.GEOID18_TILE_SHA256 not in source
 
     names = set(vars(ngs_grid))
     assert "GEOID18_TILE" not in names
@@ -739,9 +739,9 @@ def test_no_refusal_message_names_a_model():
             )
 
     # Anti-vacuousness: the scanner must actually see a model name when one is
-    # present. ``geoid18``'s own dialect carries several.
-    assert "geoid height" in geoid18.GEOID_DIALECT.value_noun
-    assert re.search(r"GEOID18", geoid18.GEOID_DIALECT.model_name)
+    # present. ``geoid``'s own dialect carries several.
+    assert "geoid height" in geoid.GEOID_DIALECT.value_noun
+    assert re.search(r"GEOID18", geoid.GEOID_DIALECT.model_name)
 
 
 def test_the_dialect_is_not_a_field_of_the_grid_record():
@@ -763,7 +763,7 @@ def test_the_dialect_is_not_a_field_of_the_grid_record():
         "values",
     ]
     assert "dialect" not in field_names
-    assert [f.name for f in dataclasses.fields(geoid18.GeoidGrid)] == field_names
+    assert [f.name for f in dataclasses.fields(geoid.GeoidGrid)] == field_names
 
 
 def test_a_loaded_grid_is_frozen():

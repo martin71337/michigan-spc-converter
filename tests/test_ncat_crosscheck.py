@@ -3,7 +3,7 @@
 Two layers, and the second is the one that was missing.
 
 1. **Core anchors.** The thirteen fresh cross-check points against
-   ``lambert.forward`` / ``lambert.inverse`` and ``geoid18.geoid_height``,
+   ``lambert.forward`` / ``lambert.inverse`` and ``geoid.geoid_height``,
    exactly as ``test_lambert.py`` does for the 2026-08-05 lattice.
 
 2. **End-to-end anchors.** The same NGS numbers driven through the production
@@ -42,7 +42,7 @@ from tests.fixtures.ncat_crosscheck import (
     CROSSCHECK_TOLERANCES,
 )
 
-from michspc.fileio import exports, geoid18, pnezd
+from michspc.fileio import exports, geoid, pnezd
 from michspc.job import Direction, JobSettings, LongitudeConvention, run
 from michspc.spc.lambert import constants_for, forward, inverse
 from michspc.spc.units import INTERNATIONAL_FEET, METERS, US_SURVEY_FEET, LinearUnit
@@ -304,7 +304,7 @@ def test_crosscheck_geoid_heights_match_the_ngs_geoid_api(anchor):
     ellipsoid lies above the geoid, so every Michigan separation is negative
     (manual PDF p. 57). A positive one is always an error.
     """
-    height = geoid18.geoid_height(anchor.latitude, anchor.longitude)
+    height = geoid.geoid_height(anchor.latitude, anchor.longitude)
 
     assert height == pytest.approx(anchor.geoid_height_m, abs=GEOID_TOLERANCE_M)
     assert height < 0.0

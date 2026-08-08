@@ -1,7 +1,7 @@
 """The substrate shared by every NGS binary grid this program reads.
 
 NGS publishes several gridded models in one family of little-endian binary
-formats: the GEOID18 geoid separation tiles read by ``geoid18.py``, and the
+formats: the GEOID18 geoid separation tiles read by ``geoid.py``, and the
 VERTCON 3.0 vertical transformation and uncertainty grids. They share more than
 a resemblance - the header is the **identical** ``<4d3i`` record, IKIND
 included, the longitude convention is the identical 0-360 east one, the
@@ -24,7 +24,7 @@ caller. Those are the things that differ between one grid and the next, and a
 substrate that guessed at any of them would be a second place a model is
 described. What a caller must supply is a ``GridDialect``: the exception class
 its callers already catch by name, and the sentences its refusals say. See
-``geoid18.GEOID_DIALECT`` for the worked example.
+``geoid.GEOID_DIALECT`` for the worked example.
 
 The prose and comments below *do* name GEOID18 and VERTCON, deliberately: a
 constant whose value was chosen by measuring one particular file has to say
@@ -33,13 +33,13 @@ must never name a model is a **message a user reads**, and the test
 ``test_no_refusal_message_names_a_model`` is what holds that line.
 
 **Why the dialect carries the exception class rather than this module defining
-one.** ``michspc/job.py`` catches ``geoid18.GeoidError`` by name, and the suite
+one.** ``michspc/job.py`` catches ``geoid.GeoidError`` by name, and the suite
 matches on it. A refusal raised from here must therefore *be* that class, not a
 base class of it and not a sibling - so the policy layer hands its own exception
 type down and this module raises exactly what the caller already handles. The
 same seam serves ``vertcon`` without either module learning about the other.
 
-Extracted from ``geoid18.py`` unchanged (docs/PLAN-vertical-datums.md section
+Extracted from ``geoid.py`` unchanged (docs/PLAN-vertical-datums.md section
 3.2). Every behaviour, every message and every tolerance below is the one that
 module already shipped; the geoid suite passing untouched is what says so.
 """
@@ -71,7 +71,7 @@ def shipped_data_directory() -> Path:
     This is environment plumbing, not model policy, which is why it may live in
     the substrate: it says where the ``data`` directory is, never which files a
     model reads from it - each policy layer still names its own files and
-    checksums. Extracted from the identical private copies ``geoid18.py`` and
+    checksums. Extracted from the identical private copies ``geoid.py`` and
     ``vertcon.py`` carried (the extraction vertcon's own note deferred as not
     that work package's to do, done at the #38 merge gate).
     """
@@ -126,7 +126,7 @@ class GridDialect:
     error: type[Exception]
     """The exception class the policy layer's own callers catch by name.
 
-    Load-bearing: ``job.py`` catches ``geoid18.GeoidError``, so a refusal raised
+    Load-bearing: ``job.py`` catches ``geoid.GeoidError``, so a refusal raised
     from this module has to be that exact class.
     """
 

@@ -21,7 +21,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 
-from michspc.fileio import formatting, geoid18, pnezd
+from michspc.fileio import formatting, geoid, pnezd
 from michspc.spc.convert import (
     ConversionWarning,
     PointConversion,
@@ -305,7 +305,7 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
 
     parsed = source or pnezd.read(settings.input_path)
 
-    grid = geoid18.default_grid() if settings.apply_geoid else None
+    grid = geoid.default_grid() if settings.apply_geoid else None
 
     points: list[ConvertedPoint] = []
     for row in parsed.rows:
@@ -319,7 +319,7 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
         input_sha256=parsed.sha256,
         input_row_count=len(parsed.rows),
         skipped_blank_lines=parsed.skipped_blank_lines,
-        geoid_model=geoid18.GEOID_MODEL_NAME if settings.apply_geoid else None,
+        geoid_model=geoid.GEOID_MODEL_NAME if settings.apply_geoid else None,
     )
 
 
@@ -426,10 +426,10 @@ def _convert_row(
     geoid_height = None
     if grid is not None and elevation_m is not None:
         try:
-            geoid_height = geoid18.geoid_height(
+            geoid_height = geoid.geoid_height(
                 conversion.latitude, conversion.longitude, grid
             )
-        except geoid18.GeoidError as error:
+        except geoid.GeoidError as error:
             # Outside the shipped tile. The horizontal conversion is unaffected
             # and stands; only the elevation-dependent factors are unavailable,
             # and factors_at reports that as None rather than inventing one.
@@ -449,7 +449,7 @@ def _convert_row(
                         f"{context}: the elevation "
                         # Not "read from the file": a typed point has none.
                         f"{row.elevation:,.3f} {settings.input_unit.code} was "
-                        f"supplied, but no {geoid18.GEOID_MODEL_NAME} "
+                        f"supplied, but no {geoid.GEOID_MODEL_NAME} "
                         f"geoid height is available at "
                         f"{conversion.latitude:.6f}, {conversion.longitude:.6f}, "
                         f"so the elevation factor and combined factor for this "

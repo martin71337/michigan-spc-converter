@@ -16,7 +16,7 @@ R a mean radius of the earth. h = H + N is the ellipsoid height (PDF p. 57).
 
 This module takes the geoid height as a **parameter** rather than looking it up.
 The computation core does no file I/O, and the GEOID18 grid is a file; the
-caller reads it (michspc.fileio.geoid18) and passes the value in. That keeps the
+caller reads it (michspc.fileio.geoid) and passes the value in. That keeps the
 core pure and testable without the 4.7 MB grid present.
 
 **Missing elevations produce None, never a number.** A PNEZD file with a blank

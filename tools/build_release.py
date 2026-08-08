@@ -388,7 +388,7 @@ def gate_checksums(installer: Path, version: str, revision: str) -> Path:
     announce(8, "SHA-256 of every shipped artifact")
     CHECKSUM_FILE.unlink(missing_ok=True)
 
-    from michspc.fileio.geoid18 import GEOID18_TILE, GEOID18_TILE_SHA256
+    from michspc.fileio.geoid import GEOID18_TILE, GEOID18_TILE_SHA256
 
     artifacts = [installer]
     lines = [

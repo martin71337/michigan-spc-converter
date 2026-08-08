@@ -53,7 +53,7 @@ from PySide6.QtWidgets import (
 )
 
 from michspc import APP_FULL_NAME, APP_NAME
-from michspc.fileio import exports, geoid18
+from michspc.fileio import exports, geoid
 # Re-exported deliberately, not merely used: these names were defined here
 # before the two-tab split (docs/DESIGN.md amendment #26) and importing them
 # at module level keeps ``michspc.gui.window.UNCHOSEN`` and its neighbours
@@ -283,10 +283,10 @@ class MainWindow(QMainWindow):
             "through unchanged; a blank or 0.00 Z means 'not recorded' and its "
             "factor columns read N/A."
         )
-        geoid_label = QLabel(f"Geoid: {geoid18.GEOID_MODEL_NAME} (auto)", box)
+        geoid_label = QLabel(f"Geoid: {geoid.GEOID_MODEL_NAME} (auto)", box)
         geoid_label.setToolTip(
             "Geoid separation is looked up per point from the bundled "
-            f"{geoid18.GEOID_MODEL_NAME} grid."
+            f"{geoid.GEOID_MODEL_NAME} grid."
         )
 
         grid.addWidget(QLabel("Elevations:", box), 5, 0)

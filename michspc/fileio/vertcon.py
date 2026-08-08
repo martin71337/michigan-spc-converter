@@ -129,9 +129,10 @@ from michspc.fileio.ngs_grid import TileGeometry
 
 
 DATA_DIR = ngs_grid.shipped_data_directory()
-"""From the substrate, not from ``geoid18``: a sibling importing a sibling for
+"""From the substrate, not from ``geoid``: a sibling importing a sibling for
 a path would couple two models that share only a directory, and would break at
-the ``geoid18.py`` to ``geoid.py`` rename plan section 3.4 calls for. The
+the ``geoid18.py`` to ``geoid.py`` rename plan section 3.4 called for,
+done at WP-V5. The
 private copy this module carried is extracted to
 ``ngs_grid.shipped_data_directory`` (#38 merge gate), which its own note
 deferred as not WP-V4's to do."""
@@ -182,7 +183,7 @@ against each other so they cannot drift.
 class VertconError(Exception):
     """A VERTCON grid could not be read, or does not cover the point asked for.
 
-    One class for the whole surface, for the reason ``geoid18.GeoidError`` is one
+    One class for the whole surface, for the reason ``geoid.GeoidError`` is one
     class: a caller keeps a single ``except`` clause, and the substrate raises
     exactly what that clause catches. This is the class carried in the dialects
     below, so a structural refusal raised inside ``ngs_grid`` *is* a
@@ -838,7 +839,7 @@ def default_grids() -> VertconGridPair:
     A file of several thousand points would otherwise re-read, re-hash and
     re-unpack two 2.4 MB files per row.
 
-    **Authenticated**, for the reason ``geoid18.default_grid`` is: this is the
+    **Authenticated**, for the reason ``geoid.default_grid`` is: this is the
     path production actually takes, so it takes the checked one. The alternative
     is a running program that trusts whatever bytes are on disk, which is
     DESIGN.md amendment #11's finding 6.
@@ -853,7 +854,7 @@ def shift_and_sigma_m(
 ) -> tuple[float, float | None]:
     """``(shift_m, sigma_m)`` at a position, both metres, from the shipped pair.
 
-    The module's front door, shaped like ``geoid18.geoid_height``. The shift is
+    The module's front door, shaped like ``geoid.geoid_height``. The shift is
     ``NAVD88 - NGVD29`` as the grid stores it; ``spc.vertical.apply_shift`` is
     what decides which way it goes and says so in words.
 

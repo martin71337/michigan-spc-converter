@@ -1282,8 +1282,10 @@ def test_sigma_m_returns_the_reading_wherever_it_is_a_quantity(err):
     """Anti-vacuousness: the refusal must not have become a refusal of everything.
 
     43.0 N / 84.5 W is the amendment #22 anchor; 43.05 N / 86.20 W is the
-    disclosure position where sigma is 249% of the shift. Both are ordinary
-    positive readings and must come straight through, identical to the raw one.
+    disclosure position where sigma is 255% of the shift (DESIGN.md #36; plan
+    section 2.8's 249% used a shift figure corrected at the WP-V4 gate). Both are
+    ordinary positive readings and must come straight through, identical to the
+    raw one.
     """
     for latitude, longitude in ((43.0, -84.5), (43.05, -86.20)):
         assert err.sigma_m(latitude, longitude) == err.modeled_error_raw_m(

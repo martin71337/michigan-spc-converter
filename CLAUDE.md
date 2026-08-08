@@ -46,7 +46,7 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current build: vertical datums — V2 and V3 DONE, V1 and V4+ BLOCKED (2026-08-07)
+## Current build: vertical datums — V0–V4 DONE, V5+ NOT BUILT (2026-08-07)
 
 **Branch `claude/vertical-transformation-plan-dtxh6j`. Read
 `docs/PLAN-vertical-datums.md` and DESIGN.md **#35** before touching this work.**
@@ -137,15 +137,28 @@ paper-overs are pinned as failures.
 
 ### Resume checklist, in order
 
-1. **WP-V5** — geoid model registry, `apply_geoid` → `geoid_model`, GEOID12B (the
+1. **WP-G1 — re-anchor GEOID18 to INTG's stencil. SPECIFIED, NOT BUILT.** The
+   owner instructed it and then instructed that this session log it rather than
+   execute it, so **no line of `geoid18.py` or `ngs_grid.py` was re-anchored.**
+   The full specification, the measured evidence and the caveats are DESIGN.md
+   **#36**, section "WP-G1 (specified, not built)". The change itself is one call
+   site; **the work is the anchors**, because the existing 20 cannot tell the
+   schemes apart and the geoid suite passes re-anchored either way. **Do this
+   BEFORE WP-V5**, which renames the same file.
+2. **WP-V5** — geoid model registry, `apply_geoid` → `geoid_model`, GEOID12B (the
    tile and its pin are already committed), and the `geoid18.py` → `geoid.py`
-   rename as its own commit.
-2. **Re-anchor GEOID18** to NOAA's stencil, per the owner's instruction above.
-   Own commit, own anchors, supersede #8.
-3. Then V6–V9 as the plan has them. **Closing gate under Codex** — it is
-   installed and authenticated on this machine, so the "reviewer SUBSTITUTED"
-   weakness recorded at the V2/V3 gate is closed. **If Codex usage runs out, use
-   independent Opus reviewers instead** (owner's instruction).
+   rename as its own commit. Note the re-confirmation's instruction: **WP-V5 must
+   put the GEOID12B digest into its runtime model record** — today's pin is
+   suite-only, which is adequate only while nothing loads the tile.
+3. Then V6–V9 as the plan has them. **WP-V7 owns the negative-σ disclosure
+   decision, and it is the owner's** — see #36.
+4. **Closing gate under Codex** — installed and authenticated on this machine, so
+   the "reviewer SUBSTITUTED" weakness recorded at the V2/V3 gate is closed.
+   **If Codex usage runs out, use independent Opus reviewers instead** (owner's
+   instruction, 2026-08-07).
+
+**Branch is NOT merged, on the owner's instruction.** `claude/vertical-transformation-plan-dtxh6j`
+carries V0–V4 and is pushed; `main` is untouched.
 
 Two notes left for V4/V6 by the reviewer, neither a defect: `signed_shift` accepts
 `grid_value_m=0.0` legitimately (the `.trn` grid genuinely crosses zero in
@@ -164,13 +177,15 @@ otherwise be assumed wrong:
 - **The grids are in the VERTCON 3.0 Digital Archive**, not `/PC_PROD/VERTCON/`
   and **not VDatum**. Both of those lead to **VERTCON 2.0** (`released=02/24/2011`),
   which is off by up to 43.85 mm across Michigan where 3.0 is off by 2.657 mm.
-  URLs, byte counts and SHA-256s are in plan §2.1. **The grids are NOT committed
-  yet** — that is WP-V1.
-- **The two grids need DIFFERENT interpolators**, measured against NCAT:
-  `.trn` biquadratic (2.657 mm max), `.err` **bilinear** (1.526 mm max vs
-  12.406 biquadratic). Biquadratic on both — the obvious choice, since GEOID18 is
-  biquadratic — reports *double* the true σ at Kalamazoo and *less* than the true
-  σ at Lansing. Plan §2.5.
+  URLs, byte counts and SHA-256s are in plan §2.1. ~~**The grids are NOT
+  committed yet** — that is WP-V1.~~ **They are committed now (WP-V1), every
+  SHA-256 matching.**
+- ~~**The two grids need DIFFERENT interpolators**, measured against NCAT:
+  `.trn` biquadratic, `.err` **bilinear**.~~ **WRONG, AND SUPERSEDED — do not
+  build this.** Both grids are biquadratic with the stencil anchored on the
+  NEAREST NODE; the apparent asymmetry was measuring an off-centre stencil, not
+  the grids. Plan §2.5a, DESIGN.md **#36**. Verified bit-identical to NOAA's own
+  published algorithm.
 - **One CONUS grid covers all of Michigan**, so there is no 84 W seam, and the
   `-88.8888` null sentinel is a VDatum convention absent from the NGS files. Two
   risks that dissolved rather than needing mitigation.
@@ -182,11 +197,15 @@ with **no "none"**; **per-point σ on the Single point panel and in
 unchanged, because a sixth column breaks the CAD import.
 
 **The disclosure fact that shaped §5:** at 43.05 N, 86.20 W the modeled shift is
-−0.1466 m and its uncertainty is **±0.366 m — 249% of the shift**. Across
-Michigan σ runs 0.001 to 0.366 m. A job-level constant would have hidden that.
+**−0.1435 m** and its uncertainty is **±0.3656 m — 255% of the shift** (corrected
+from −0.1466 and 249% at the WP-V4 gate; that point is an exact grid node, so the
+stored value settles it and NCAT independently returns −0.144 m). Across Michigan
+σ runs **0.000004 to 0.3656 m** in the grid — NCAT *prints* to 0.001 m, which is
+what §2.8's "0.001" was. A job-level constant would have hidden all of it.
 
-**Superseded by the resume checklist above.** V2 is done; V5's registry half is
-still open and its dropdown half is blocked on `g2012bu3.bin`. Pick up at WP-V1.
+**Superseded by the resume checklist above.** V0–V4 are done and pushed; pick up
+at WP-V5, whose dropdown half is no longer blocked — `g2012bu3.bin` is committed
+and checksum-pinned.
 
 ## Superseded status (2026-08-07, 0.3.0 RELEASED)
 

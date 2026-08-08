@@ -585,7 +585,8 @@ clean PNEZD export**.
 He had earlier chosen a job-level cited constant, on my advice, when I believed
 there was no error grid. There is one (§2.1), and §2.8 is what reopened it:
 across Michigan σ runs **0.001 m to 0.366 m** — a factor of 366 — and at
-43.05 N / 86.20 W the uncertainty is **249% of the shift**. A single constant
+43.05 N / 86.20 W the uncertainty is **255% of the shift** (corrected from 249%
+at the WP-V4 gate — see the note in §2.8). A single constant
 would understate that point by two orders of magnitude while the shift beside it
 was printed to the millimetre. The earlier reasoning against a per-point number
 was that NCAT's `sigOrthoht` looked like a constant 0.001 interpolation figure;
@@ -722,8 +723,11 @@ deliver it.
    by §2.8: there is a place in Michigan where the uncertainty is 2.5× the shift.
    §5 is the whole answer to it, and it is the part most worth an adversarial
    reviewer's attention.
-2. **The §2.5 interpolation asymmetry being "simplified" later.** Pinned, with a
-   test whose failure message says why the two differ.
+2. ~~**The §2.5 interpolation asymmetry being "simplified" later.** Pinned, with a
+   test whose failure message says why the two differ.~~ **DISSOLVED — there is no
+   asymmetry to protect (§2.5a).** Both grids are biquadratic; the risk that
+   replaces this one is the *opposite*, that someone re-anchors the stencil to
+   GEOID18's, and that is what is pinned.
 3. **Sign, byte order, units, marker layout.** Four ways to produce plausible
    garbage. All four are now pinned by measurement *before* code exists — which
    is the point of running V0 first.

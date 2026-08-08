@@ -12,8 +12,11 @@ job is to get it off the disk correctly.
 **Two grids, and they are read as a pair.** NGS publishes the transformation
 (``.trn``) beside a companion uncertainty grid (``.err``) on the identical
 geometry. The uncertainty is not decoration: at 43.05 N, 86.20 W the modeled
-shift is -0.1466 m and its one-sigma uncertainty is 0.3656 m, which is 249% of
-the shift itself (plan section 2.8, measured against NGS NCAT). A shift reported
+shift is -0.1435 m and its one-sigma uncertainty is 0.3656 m, which is 255% of
+the shift itself. (Plan section 2.8 says -0.1466 m and 249%; that point is an
+exact grid node - row 381, column 776 - so no interpolation is involved and the
+stored value settles it, and NGS NCAT independently returns -0.144 m there.
+Corrected at the WP-V4 gate, DESIGN.md #36.) A shift reported
 without it would be a modeled number wearing the clothes of a measured one. The
 pair is loaded together and checked to share geometry, because a mismatched pair
 would report one position's shift with another position's sigma.
@@ -503,7 +506,8 @@ class VertconGridPair:
     the shift and the sigma are one reading: a shift published without its
     uncertainty is a modeled number presented as a measured one, which is the top
     risk DESIGN.md amendment #22 records against this whole feature. At 43.05 N,
-    86.20 W the uncertainty is 249% of the shift (plan section 2.8).
+    86.20 W the uncertainty is 255% of the shift (DESIGN.md #36; plan section
+    2.8's 249% used a shift figure corrected at the WP-V4 gate).
 
     The constructor requires the two to share geometry. A mismatched pair would
     not fail anywhere downstream: it would report one position's shift beside
@@ -516,10 +520,18 @@ class VertconGridPair:
     counterexample paired -0.143529 m at 43.05 N / 86.20 W with 0.000655 m at
     43.00 N / 84.50 W, where the true figure is 0.365599 m, understating the
     uncertainty by 0.365 m with both numbers looking entirely ordinary (WP-V4
-    review, LOW 1). The pair now offers no way to take half a reading. Reading
-    one grid alone is still possible and still legitimate - through
-    ``.transformation`` or ``.uncertainty``, where the expression itself says
-    which grid is being read and no pairing is implied.
+    review, LOW 1).
+
+    **This is a mitigation, not a guarantee, and it is worth being exact about
+    the difference.** ``.transformation`` and ``.uncertainty`` remain public, so
+    ``pair.transformation.shift_m(A)`` beside ``pair.uncertainty.sigma_m(B)``
+    still reproduces the mistake one attribute deeper - the narrowing
+    re-confirmation said so, and an earlier draft of this docstring claimed the
+    pair "offers no way to take half a reading", which was not true. What changed
+    is that the *shortest* path no longer does it: taking half a reading now
+    requires naming the grid, so the expression says which grid is being read and
+    no pairing is implied. Making it structurally impossible would mean hiding the
+    two grids, and the suite legitimately exercises them one at a time.
     """
 
     transformation: TransformationGrid
@@ -575,9 +587,11 @@ class VertconGridPair:
 
         The front door, and the only value accessor this class has. Taking both
         in one call is what makes it awkward to report a shift and forget the
-        figure that qualifies it, and impossible to pair the two from different
-        positions - see the class docstring. A position outside the grids refuses
-        here rather than yielding one of the two.
+        figure that qualifies it: through *this* method the two cannot come from
+        different positions. It does not make that impossible in general - the
+        class docstring is exact about what remains reachable through
+        ``.transformation`` and ``.uncertainty``. A position outside the grids
+        refuses here rather than yielding one of the two.
 
         **``sigma`` is ``None`` where the error model interpolates to a negative
         value**, which is not an uncertainty (``UncertaintyGrid.sigma_m``). The

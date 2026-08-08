@@ -447,6 +447,241 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #36 — 2026-08-07 — WP-V1 and WP-V4: the grids land, and the interpolation stencil was wrong
+
+**Status: the vertical feature is HALF BUILT.** V0–V4 are done, gated under Codex
+and pushed; V5–V9 are not. `docs/PLAN-vertical-datums.md` is still a proposal and
+the sections of this document above the amendment log are unchanged.
+
+**The block recorded in #35 was the container, not the work.** #35 said WP-V1
+could not be done because `geodesy.noaa.gov` is refused by the container's egress
+policy. Run on the owner's Windows machine, NOAA is reachable, and every
+consequence #35 drew from that block dissolved.
+
+**WP-V1.** All three files of plan §2.1 downloaded and **every SHA-256 matched the
+pin**, so the committed files are byte-identical to what the V0 gate measured —
+independent confirmation that §2.1 was recorded correctly. Committed unmodified
+under NGS's own filenames (§3). `michspc.spec` names every grid in
+`NGS_GRID_FILENAMES` and derives `datas` from that list; `tools/build_release.py`
+compares the built bundle against `data/` rather than one hard-coded name, so a
+grid added and forgotten fails the build. `installer/michspc.iss` needed no change
+— it copies the bundle recursively — but its comment no longer claims the geoid
+tile is the only data file.
+
+**The anchor lattice is a RECREATION and the fixture says so.** The V0 scripts and
+their coordinates were lost with that session's scratchpad. The new 20-point
+lattice was seeded with every position the plan does record, so the recreation
+could be *checked* against V0 rather than merely replacing it, and all six
+reproduce — including the five-point inverse set, matching §2.4 to the last
+printed digit and summing to exactly 0.000 m. **Two figures are not reproduced and
+must not be cited as though they were:** §2.5's Kalamazoo and Lansing σ are at
+coordinates V0 never recorded.
+
+#### The finding: plan §2.5 was wrong, and the pin it asked for would have enshrined a defect
+
+§2.5 said the `.trn` grid is read biquadratically and the `.err` grid
+**bilinearly**, and §6 asked for a test that fails if the two are ever unified.
+
+`ngs_grid.interpolate_biquadratic` anchors its 3×3 stencil at `int(row) - 1`,
+which puts the target in the stencil's **upper interval** — the stencil reaches a
+full cell below the point and none above it. Anchoring on the nearest node centres
+it. Max absolute residual against the frozen NCAT lattice:
+
+| Grid | floor-anchored | **nearest-node** | bilinear | nearest |
+|---|---|---|---|---|
+| `.trn` | 8.4573 mm | **0.4707 mm** | 17.7262 mm | 32.5466 mm |
+| `.err` | 3.0416 mm | **0.4716 mm** | 4.5468 mm | 14.3214 mm |
+
+**Both grids are biquadratic.** Centred, every one of the 20 anchors reproduces
+NCAT's printed figure exactly on both grids, and all 40 residuals fall below
+NCAT's own 0.5 mm printing quantization. §2.5's asymmetry was a real measurement
+of an off-centre stencil: bilinear only beat "biquadratic" on `.err` because it
+was racing a mis-anchored one. Confirmed at 40 further points chosen where the
+schemes diverge most — nearest-node 40/40 exact, bilinear wrong by up to 46 mm.
+
+**Measured four times independently** before acceptance: a measurement agent that
+never saw the production code, the session lead, the implementer, and Codex — all
+agreeing to four decimal places.
+
+**Every figure in this amendment is reproducible from `review/wp-v4-anchoring/`**,
+which carries the harnesses and the captured NGS truth data, with a README
+mapping each claim to the script that proves it. That directory exists because
+the narrowing re-confirmation caught this amendment citing experiments whose
+harnesses had never been committed — a design-log claim nobody else could check,
+which is the same defect this amendment records against the *plan* below. The
+discriminating samples select positions using the grids and score them against
+NGS, so selection is by predictor disagreement and the outcome is external; they
+are good discrimination and **not** an unbiased estimate of typical error, which
+is what the 20-anchor table in the suite is for.
+
+**Then verified against NOAA's own source rather than only against its outputs.**
+`Vertcon.java`'s `getGridRow`/`getGridColumn` were transcribed literally,
+including Java's truncating `(int)` cast and integer division, and compared with
+this reader over 18,000 Michigan positions spanning the half-cell boundary where
+the stencil switches: **max difference exactly 0.000000000000 m.** The reader is
+not close to NOAA's algorithm, it *is* NOAA's algorithm. `GridManager.java` also
+shows NOAA's bilinear fallback fires only on a `MISSING_DATA_INDICATOR` of −999,
+which these grids do not contain, so the biquadratic path is always taken here.
+
+#### Amendment #8 is corrected, and GEOID18's anchoring is probably wrong
+
+#8 states that NGS does not document INTG's interpolation scheme. **It does.**
+NOAA TM NOS NGS-84, *Biquadratic Interpolation*, describes "the nearest 3×3 set of
+grid points", and `intg.f` anchors with `irown = nint(...)` then reads
+`irown-1, irown, irown+1`. Read directly from `ngs.noaa.gov`, not via a summary.
+
+What #8 actually decided — biquadratic over bilinear — **survives**. What does not
+is the claim that this program's *anchoring* is INTG's; it was repeated in three
+docstrings and the 0.1.0 release notes, all corrected.
+
+**GEOID18 was deliberately left on the old anchoring in this build.** Its 20
+anchors cannot discriminate — quantized to 0.001 m, all candidates sit inside that
+noise — but 120 points sampled where the anchorings diverge most reverse the
+ranking (floor rms 0.715 mm against nearest-node 0.454). The cost of not changing
+it is about 4 mm in a *reported geoid separation* and ~6e-10 in an elevation
+factor, inside GEOID18's own 30–60 mm model uncertainty: **no coordinate moves.**
+Re-anchoring released code deserved its own package rather than being folded into
+a vertical-datum build.
+
+**The owner has since decided it, and named the tiebreak.** Instructed 2026-08-07:
+replicate NOAA, they are the authority; and where NOAA's published program and
+NOAA's web service disagree — as they do for the geoid, whose API matches neither
+scheme and is best fitted by a bicubic — **use the published program.**
+
+**LOGGED, NOT EXECUTED — the owner's instruction at the close of this session.**
+No line of `geoid18.py` or `ngs_grid.py` was re-anchored here. What follows is the
+specification for the work package that will do it, recorded now while the
+measurements are fresh.
+
+#### WP-G1 (specified, not built) — re-anchor GEOID18 to INTG's stencil
+
+**The change.** `geoid_height` and `GeoidGrid.height_biquadratic` move from
+`interpolate_biquadratic` to `interpolate_biquadratic_nearest_node`, which already
+exists and is already exercised by the VERTCON reader. `ngs_grid` needs no new
+code. The floor-anchored method stays, because removing it would delete the thing
+the new anchors have to be shown failing against.
+
+**The evidence, all of it already captured** in `review/wp-v4-anchoring/`:
+
+| | max | mean | rms | rounds to NGS |
+|---|---|---|---|---|
+| floor-anchored (ships today) | 2.177 mm | 0.556 | **0.715** | 66/120 |
+| **nearest-node (INTG)** | 1.368 mm | 0.368 | **0.454** | 83/120 |
+| bicubic 4×4 | 1.136 mm | 0.328 | 0.409 | 91/120 |
+| bilinear | 2.510 mm | 0.804 | 0.942 | 37/120 |
+
+over 120 points sampled where the anchorings diverge — fractional cell position
+0.9, highest-curvature Michigan cells. Against the 20 frozen anchors all four
+schemes sit inside the 0.001 m quantization and nothing can be concluded.
+
+**The honest caveat, which must survive into the amendment that supersedes #8:**
+INTG's stencil is *not* the best fit to the NGS geoid API — a bicubic is, and by a
+visible margin. This is done because the owner ruled that the published program
+governs where NOAA's two answers differ, and because `intg.f` is the documented
+reader for exactly this `.bin` format while the API's engine is undocumented.
+Chasing the API would mean guessing at it. **Say so in the record rather than
+implying INTG reproduces NGS's service.**
+
+**What must NOT be reused: the existing 20 anchors cannot gate this change.**
+`tests/fixtures/geoid_anchors.py` cannot tell the schemes apart — 16 of its 20
+positions differ between them at all, and `tests/test_geoid.py`'s 1 mm tolerance
+admits both — so the geoid suite passes with `geoid_height` re-anchored either
+way. That is a #31-class pin that has stopped discriminating, and it was found by
+seeding exactly that defect. **New anchors must be frozen at max-divergence
+positions with an exact round-to-NGS pin**, and the 120-point capture in
+`review/wp-v4-anchoring/geoid18_120_discriminating_points.json` already holds NGS
+truth for such positions.
+
+**What it costs and does not cost.** Worst measured change to a *reported geoid
+separation* is about 4 mm, in the roughest cells; roughly 6e-10 in an elevation
+factor, which is nothing. Both figures are far inside GEOID18's own stated 30–60 mm
+model uncertainty. **No coordinate moves and no combined factor changes
+meaningfully** — this is a disclosure-accuracy improvement, not a correction to a
+survey result. It is nevertheless a change to released computation, so it takes
+its own commit, its own falsified pins and its own gate, and it must not be
+folded into a vertical-datum package.
+
+**Ordering.** WP-V5 renames `geoid18.py` to `geoid.py` and builds the geoid model
+registry inside it. Doing WP-G1 **first** means the rename lands on settled code;
+doing them in parallel means two sessions editing a file one of them renames.
+
+#### The Codex gate: verdict FIX, one HIGH, three MEDIUM, two LOW, no CRITICAL
+
+Codex independently confirmed the sign and direction — the defect class #1 records
+— and confirmed the anchoring conclusion is sound and its sampling not circular.
+
+**HIGH — a negative value was returned as a one-sigma uncertainty.** The `.err`
+grid interpolates below zero at ~0.43% of Michigan positions (956 of 223,850
+sampled, worst −0.027 m). A negative one-sigma is not a quantity. `sigma_m` now
+**refuses**, naming the position and the value and stating that **the shift itself
+is valid and unaffected**, so a caller cannot conclude the elevation is bad;
+`modeled_error_raw_m` keeps the unfiltered output under a name that cannot be
+mistaken for an uncertainty; `reading_at` still reports the shift with the sigma
+marked unavailable, the shape `job.py` already uses for a missing geoid height.
+
+**Why not simply match NCAT.** NOAA's own published source produces these
+negatives too — `Vertcon.java` applies no clamp, floor or `abs` to the error grid
+— yet the live service returns +0.011 m at 42.475 N / 83.125 W where both NOAA's
+algorithm and this reader give −0.00965 m. **NOAA's source and NOAA's service
+disagree there and no rule maps one to the other.** Refusing is the only option
+that neither invents a number nor hides the disagreement. All three paper-overs —
+return it, clamp it, `abs()` it — are pinned as failures. **The disclosure
+decision belongs to WP-V7 and is the owner's.**
+
+**MEDIUM — the GEOID12B checksum could not fail.** `michspc.spec` claimed the file
+and its digest landed together but stored only the filename; the digest lived only
+in the plan. Altering one payload float passed every executable check. Now pinned
+as `geoid18.GEOID12B_TILE_SHA256`, with a test that the file matches it and a
+second that the two geoid pins are two pins — the tiles are byte-for-byte the same
+size, so pinning GEOID18's digest twice would leave GEOID12B unauthenticated with
+nothing to notice.
+
+**MEDIUM — docstrings cited evidence the repo did not hold.** The 40-point
+experiment and the 223,850-position sweep were described but their coordinates
+were not committed. Added an offline scheme-separation pin at the reviewer's own
+uncovered position, 42.87 N / 83.81 W, checkable from the committed grids with no
+network.
+
+**MEDIUM — the plan still instructed downstream work to use the superseded
+algorithm**, at §3.3, §5.1 and the §7 table, despite the banner. A later package
+following it literally would have reintroduced the defect. Corrected in place; the
+superseded text stays visible where it is historically useful, as §2.6 does for
+the VDatum wrong turn, but no sentence still reads as an instruction.
+
+**LOW — the pair API** let a caller combine a shift at one position with a sigma
+at another, understating uncertainty by up to 0.365 m with both numbers looking
+plausible. The pair-level `shift_m` and `sigma_m` were removed and `reading_at`
+is now the only value method on `VertconGridPair`. **The fix is real but partial,
+and the docstrings must not claim more:** `.transformation` and `.uncertainty`
+remain public, so `pair.transformation.shift_m(A)` beside
+`pair.uncertainty.sigma_m(B)` still reproduces the mistake one attribute deeper.
+Making that structurally impossible would mean hiding the two grids, which the
+suite legitimately exercises one at a time. Recorded as mitigated, not closed.
+
+**LOW — the bytes-consumed refusal was unreachable.** The header-derived length
+check forces it. Removed along with the claim: a refusal that cannot fire is worse
+than none, because it reads as a defence being kept. The property is not lost —
+the suite walks both shipped files independently of this reader.
+
+**Verification.** Suite **1223 → 1346**, green in `pytest` and `-O`. Eight seeded
+defects at the fix stage, all caught, including all three ways of papering over
+the negative sigma. Plan §2.7's Michigan window figures re-measured from the
+committed grids and reproducing exactly, at the same two nodes.
+
+**Two plan figures corrected.** The shift at the max-σ point is **−0.1435 m**, not
+§2.8's −0.1466: that point is an exact grid node, so no interpolation is involved,
+and NCAT independently returns −0.144. The ratio is **255%** of the shift, not
+249%, and that sentence is quoted verbatim into the job record. And §2.7 vs §2.8
+on the σ floor was **never a conflict** — 0.000004 m is the grid's own minimum,
+0.001 m is NCAT's print resolution; at 43.0 N / 84.5 W the grid holds 0.00065542
+where NCAT shows 0.001. **This closes the question #35 left open for the owner.**
+
+**A trap worth remembering, and it generalises #34.** A PowerShell
+`Get-Content -Raw` / `WriteAllText` round-trip used to seed a falsification
+silently mangled six em-dashes in `michspc.spec`. #34 recorded `Set-Content`;
+the rule is broader — **any** read-modify-write through PowerShell re-encodes.
+Caught by byte-counting the file, not by a test, exactly as #34 predicts.
+
 ### #35 — 2026-08-07 — The vertical build starts: WP-V2 and WP-V3, and the two work packages that cannot be built off Windows
 
 **Status: the vertical feature is STARTED, not finished, and `docs/PLAN-vertical-datums.md`

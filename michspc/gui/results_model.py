@@ -290,28 +290,15 @@ in their own field (#30). That is also why it belongs in
 ``single_point_clipboard_text`` (plan section 6's pin) while warnings do not."""
 
 VERTICAL_METHOD_LABEL = "Vertical method"
-"""The caveat row's label.
+"""The label of a caveat row that no longer exists.
 
-The Single point tab writes nothing, so a caveat not on screen does not exist
-for that user (plan section 5.2's own words) - and until this row existed the
-tab showed a modeled shift to four decimals with no caveat anywhere on the
-surface (WP-V7 review gate, HIGH 1; the condition #41's sequencing constraint
-exists to prevent). The value is the transformation record's own words -
-model, release and ``caveat`` for a modeled shift, the identity's caveat for
-an identity - never re-drafted here, so this row and the job record cannot
-disagree about what was done to the height. It is an ordinary row with a copy
-button and it rides into Copy all deliberately: numbers that leave this panel
-by clipboard take the caveat with them."""
-
-
-def vertical_method_text(transformation) -> str:
-    """The caveat row's value, from the record and nothing else."""
-    if transformation.is_identity:
-        return transformation.caveat
-    return (
-        f"{transformation.model} release {transformation.release}. "
-        f"{transformation.caveat}"
-    )
+The row stood between the WP-V7 gate (its HIGH 1: the tab writes nothing, so
+a caveat not on screen does not exist for that user) and the owner's
+instruction of 2026-08-09 removing it (DESIGN.md #45) — the same ruling as
+#33/#34: verification is the user's responsibility, and the record carries
+the caveat for every written job. The constant remains so the suite can pin
+the ABSENCE by name — a row that quietly returned would be a decision nobody
+made."""
 
 
 def vertical_shift_label(transformation) -> str:
@@ -357,10 +344,15 @@ def _vertical_rows(reading) -> tuple[ResultValue, ...]:
             fmt.vertical_metres(reading.shift_m),
         ),
         ResultValue(VERTICAL_SIGMA_LABEL, fmt.vertical_metres(reading.sigma_m)),
-        ResultValue(
-            VERTICAL_METHOD_LABEL,
-            vertical_method_text(reading.transformation),
-        ),
+        # The "Vertical method" caveat row that stood here was REMOVED at the
+        # owner's instruction (DESIGN.md #45, 2026-08-09), reversing the #42
+        # gate's on-screen-caveat resolution under the owner's #33 ruling
+        # that verification is the user's responsibility. The caveat itself
+        # is not deleted from the program: the job record's METHOD block
+        # still quotes it in full for every written job, and the
+        # sigma-unavailable warning still reaches the panel's warnings
+        # field. What is gone is the caveat as a panel row and from Copy
+        # all.
     )
 
 

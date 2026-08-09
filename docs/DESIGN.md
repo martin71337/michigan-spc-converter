@@ -466,6 +466,30 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #45 — 2026-08-09 — Owner removes the Vertical method row from the results panel
+
+**Owner's instruction.** The "Vertical method" caveat row — added at the
+WP-V7 gate's HIGH 1 as the on-screen carrier of the modeled-not-measured
+caveat, on the reasoning that the Single point tab writes nothing — is
+removed from the OUTPUT section and, with it, from Copy all. This reverses
+the #42 gate's resolution **under the owner's own standing ruling** (#33:
+verification is the user's responsibility; #34 applied the same ruling to
+three tooltips).
+
+**Text was removed, not information.** The transformation record's caveat
+still reaches every *written* job in full through the record's METHOD block
+(pinned, unchanged); the σ-unavailable warning still reaches the panel's
+warnings field; the shift and σ rows still name their datums. What no longer
+exists is any caveat on the Single point screen for an unwritten conversion
+— that is the owner's decision, made with #42's reasoning in front of him,
+and it is recorded rather than argued with.
+
+**The removal is pinned** (`test_the_vertical_method_row_stays_removed`): a
+row that quietly returned would be a decision nobody made. The label
+constant survives for that pin to name. #42 finding 1 is annotated by this
+amendment; suite 1506 → 1505 (two caveat-content tests replaced by the
+absence pin), green in both modes.
+
 ### #44 — 2026-08-08 — WP-V9 and the closing gate: the vertical feature is COMPLETE, unreleased
 
 **WP-V9**: the frozen self-test now converts one vertical point end to end —

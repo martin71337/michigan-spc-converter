@@ -702,9 +702,8 @@ def test_the_vertical_rows_join_the_owners_layout():
         "Elevation (NAVD88)",
         "Vertical shift NGVD29 -> NAVD88 (m)",
         "Shift sigma (m)",
-        # The caveat row (WP-V7 gate, HIGH 1): the tab writes nothing, so a
-        # caveat not on screen does not exist for that user.
-        "Vertical method",
+        # No "Vertical method" caveat row: it stood here between the WP-V7
+        # gate and the owner's removal instruction (DESIGN.md #45).
         "Grid scale factor",
         "Convergence",
         "Geoid height (m)",
@@ -837,42 +836,16 @@ def test_a_horizontal_single_point_carries_no_vertical_rows():
 # ==========================================================================
 
 
-def test_the_panel_carries_the_vertical_method_caveat():
-    """The gate's HIGH 1: the tab writes nothing, so a caveat not on screen
-    does not exist for that user (plan section 5.2's own words) - and the
-    panel showed a modeled shift to four decimals with no caveat anywhere.
-    The Vertical method row is the transformation record's own words - model,
-    release, MODELED-not-measured, the supersession caveat - and it rides
-    into Copy all with the numbers. Falsified by dropping the row: this test
-    and the layout pin both fail."""
+def test_the_vertical_method_row_stays_removed():
+    """The owner removed the caveat row (DESIGN.md #45), reversing the WP-V7
+    gate's on-screen-caveat resolution under his #33 ruling. This pins the
+    REMOVAL: a row that quietly returned would be a decision nobody made.
+    The caveat itself still reaches every written job through the record's
+    METHOD block, which test_a_vertical_record_quotes... continue to hold."""
     sections = rm.single_point_sections(_typed_vertical_job())
-    _, target = sections
-    by_label = {value.label: value.text for value in target.values}
-
-    caveat = by_label["Vertical method"]
-    assert "VERTCON 3.0" in caveat and "20190601" in caveat
-    assert "MODELED, not measured" in caveat
-    assert "supersedes a modeled shift" in caveat
-    assert "20 cm" in caveat
-
-    # And it leaves the panel with the numbers.
-    clipboard = rm.single_point_clipboard_text(sections)
-    assert "Vertical method" in clipboard
-    assert "supersedes a modeled shift" in clipboard
-
-
-def test_an_identity_panel_caveat_says_no_shift_and_names_no_model():
-    """An identity's caveat is ITS record's words: no VERTCON, no release -
-    naming a model would certify a grid the conversion never opened."""
-    result = _typed_vertical_job(
-        source_vertical_datum=NAVD88, target_vertical_datum=NAVD88
-    )
-    _, target = rm.single_point_sections(result)
-    by_label = {value.label: value.text for value in target.values}
-
-    caveat = by_label["Vertical method"]
-    assert "no shift is applied" in caveat
-    assert "VERTCON" not in caveat and "20190601" not in caveat
+    for section in sections:
+        assert rm.VERTICAL_METHOD_LABEL not in [v.label for v in section.values]
+    assert rm.VERTICAL_METHOD_LABEL not in rm.single_point_clipboard_text(sections)
 
 
 def test_the_sigma_warning_prints_no_raw_figure_and_no_api_path(tmp_path):

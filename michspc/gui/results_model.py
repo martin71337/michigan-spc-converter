@@ -19,6 +19,7 @@ from PySide6.QtGui import QBrush, QColor
 
 from michspc.fileio import formatting as fmt
 from michspc.fileio import pnezd
+from michspc.fileio.exports import vertical_shift_heading, vertical_sigma_heading
 from michspc.gui.controls import zone_label
 from michspc.job import Direction, JobResult, LongitudeConvention
 
@@ -52,11 +53,12 @@ the two names move, and only for the one direction whose values are degrees.
 """
 
 
-VERTICAL_SHIFT_COLUMN_HEADING = "Vertical shift (m)"
-"""The table's shift column heading on a vertical job - the audit CSV's own
-(exports.audit_columns), per the #17 standing choice of one wording on every
-surface. The sigma column reuses ``VERTICAL_SIGMA_LABEL`` below, which is the
-same CSV heading already serving as the Single point panel's row label."""
+# The table's shift and sigma column headings on a vertical job are the audit
+# CSV's own - ``exports.vertical_shift_heading`` and ``vertical_sigma_heading``
+# imported above, per the #17 standing choice of one wording on every surface.
+# They are functions of the unit, not constants: since the owner's units
+# instruction (2026-08-09) both headings carry the JOB'S INPUT UNIT, so the
+# table cannot restate the CSV's wording and drift from it.
 
 
 def _geodetic_display_columns(settings) -> bool:
@@ -77,16 +79,23 @@ def _geodetic_display_columns(settings) -> bool:
 
 
 def _elevation_heading(base: str, settings) -> str:
-    """``Elevation (NAVD88)`` - the ordinary heading with the TARGET datum.
+    """``Elevation (NAVD88, m)`` - the ordinary heading with the TARGET datum
+    and the OUTPUT unit.
 
     Vertical jobs only. The table's elevation cells hold the SHIFTED height
     (``row_strings`` renders ``point.output_elevation``, which _convert_row
     moved into the target datum), so a bare "Elevation" over them names the
     number without saying which surface it is on - the WP-V7 review gate's
-    finding 4, assigned to WP-V8. The datum comes from the settings the job
-    actually ran with, never from a dropdown's current state.
+    finding 4, assigned to WP-V8. The unit is the OUTPUT unit - the unit the
+    cells beneath are actually rendered in (``row_strings`` formats them with
+    ``settings.output_unit``), NOT the input unit that governs the shift and
+    sigma columns beside it. The datum and unit come from the settings the
+    job actually ran with, never from a dropdown's current state.
     """
-    return f"{base} ({settings.target_vertical_datum.code})"
+    return (
+        f"{base} ({settings.target_vertical_datum.code}, "
+        f"{settings.output_unit.code})"
+    )
 
 
 def columns_for(result: JobResult | None) -> tuple[str, ...]:
@@ -113,9 +122,16 @@ def columns_for(result: JobResult | None) -> tuple[str, ...]:
     if settings.vertical_mode.converts_elevations:
         at = columns.index("Elevation")
         columns[at] = _elevation_heading(columns[at], settings)
+        # The shift and sigma headings carry the INPUT unit - the unit the
+        # elevations were supplied in, the owner's instruction (2026-08-09).
+        # In vertical-only mode input and output units are equal by
+        # construction; in Horizontal + Vertical they can differ, and the
+        # input unit still governs these two columns while the Elevation
+        # heading beside them names the output unit its own cells are in.
+        # ``row_strings`` converts the cells with the same unit object.
         columns[at + 1 : at + 1] = [
-            VERTICAL_SHIFT_COLUMN_HEADING,
-            VERTICAL_SIGMA_LABEL,
+            vertical_shift_heading(settings.input_unit),
+            vertical_sigma_heading(settings.input_unit),
         ]
     return tuple(columns)
 
@@ -211,14 +227,20 @@ def row_strings(result: JobResult) -> tuple[tuple[str, ...], ...]:
             # (DESIGN.md #36) - never the raw figure, which is not an
             # uncertainty. The values come from the READING - the shift the
             # job actually applied - not from any grid value, so this cell
-            # and the audit CSV's cannot disagree (#26's property).
+            # and the audit CSV's cannot disagree (#26's property). Both are
+            # converted into the INPUT unit - the same unit object
+            # ``columns_for`` built the two headings from (and the same one
+            # ``exports.audit_rows`` converts its cells with), so heading
+            # and value cannot claim different units.
             reading = point.vertical
             cells[ELEVATION_COLUMN + 1 : ELEVATION_COLUMN + 1] = [
-                fmt.vertical_metres(
-                    reading.shift_m if reading is not None else None
+                fmt.vertical_quantity(
+                    reading.shift_m if reading is not None else None,
+                    settings.input_unit,
                 ),
-                fmt.vertical_metres(
-                    reading.sigma_m if reading is not None else None
+                fmt.vertical_quantity(
+                    reading.sigma_m if reading is not None else None,
+                    settings.input_unit,
                 ),
             ]
 
@@ -296,13 +318,14 @@ ELLIPSOID_HEIGHT_LABEL = "Ellipsoid height (m)"
 ELEVATION_FACTOR_LABEL = "Elevation factor"
 COMBINED_FACTOR_LABEL = "Combined factor"
 
-VERTICAL_SIGMA_LABEL = "Shift sigma (m)"
-"""The sigma row's label - the audit CSV's own column heading, per the #17
-standing choice of one wording on every surface. It is a labelled row with its
-own copy button, exactly like every other value, because a sigma is a NUMBER a
-surveyor carries into a report - unlike the warnings, which are prose and live
-in their own field (#30). That is also why it belongs in
-``single_point_clipboard_text`` (plan section 6's pin) while warnings do not."""
+# The sigma row's label is ``exports.vertical_sigma_heading(settings.input_unit)``
+# - the audit CSV's own column heading, per the #17 standing choice of one
+# wording on every surface, now a function of the job's input unit rather than
+# a constant (owner's units instruction, 2026-08-09). It is a labelled row with
+# its own copy button, exactly like every other value, because a sigma is a
+# NUMBER a surveyor carries into a report - unlike the warnings, which are
+# prose and live in their own field (#30). That is also why it belongs in
+# ``single_point_clipboard_text`` (plan section 6's pin) while warnings do not.
 
 VERTICAL_METHOD_LABEL = "Vertical method"
 """The label of a caveat row that no longer exists.
@@ -316,36 +339,48 @@ the ABSENCE by name — a row that quietly returned would be a decision nobody
 made."""
 
 
-def vertical_shift_label(transformation) -> str:
-    """``Vertical shift NGVD29 -> NAVD88 (m)`` - both datums in the label.
+def vertical_shift_label(transformation, unit) -> str:
+    """``Vertical shift NGVD29 -> NAVD88 (ift)`` - both datums in the label,
+    and the unit the value is rendered in.
 
     The datums are IN the label, not implied by the section, because the shift
     is the one value on this panel that belongs to neither section alone: it is
     what moved the INPUT elevation to the OUTPUT one, and a bare "Shift" copied
-    into a spreadsheet says nothing about which way.
+    into a spreadsheet says nothing about which way. ``unit`` is the job's
+    input unit (the owner's instruction, 2026-08-09), the same one the value
+    beside this label is converted with.
     """
     return (
         f"Vertical shift {transformation.source.code} -> "
-        f"{transformation.target.code} (m)"
+        f"{transformation.target.code} ({unit.code})"
     )
 
 
-def _datum_elevation_label(datum) -> str:
-    """``Elevation (NAVD88)`` - the ordinary label, with its datum named.
+def _datum_elevation_label(datum, unit) -> str:
+    """``Elevation (NAVD88, m)`` - the ordinary label, with its datum and its
+    unit named.
 
     Only a vertical conversion uses this: a horizontal job asked no vertical
     question and its rows must not claim a datum nobody stated (plan section
-    1, the owner's decision that horizontal mode is unchanged).
+    1, the owner's decision that horizontal mode is unchanged) - which is
+    also why a horizontal row's plain "Elevation" gains no unit here: the
+    Units row already serves it, and nothing about horizontal output may
+    change. ``unit`` is the unit the row's VALUE is rendered in - the input
+    unit for the INPUT section's elevation, the output unit for the OUTPUT
+    section's - passed by the caller that formats the value, so label and
+    value cannot name different units.
     """
-    return f"{ELEVATION_LABEL} ({datum.code})"
+    return f"{ELEVATION_LABEL} ({datum.code}, {unit.code})"
 
 
-def _vertical_rows(reading) -> tuple[ResultValue, ...]:
+def _vertical_rows(reading, unit) -> tuple[ResultValue, ...]:
     """The shift row and the sigma row, or nothing at all.
 
     Empty when the point carries no ``VerticalReading`` - a horizontal job, a
     vertical point with no elevation, or a coverage-refused point whose
-    warning says why. The sigma renders through ``fmt.vertical_metres``, which
+    warning says why. ``unit`` is the job's INPUT unit - the unit both labels
+    name and both values are converted into (the owner's instruction,
+    2026-08-09). The sigma renders through ``fmt.vertical_quantity``, which
     prints N/A for a None - the ONLY thing an unavailable sigma may print
     (docs/DESIGN.md #36); the reason it is unavailable reaches the warnings
     field through ``WarningCode.VERTICAL_SIGMA_UNAVAILABLE``, raised beside
@@ -355,10 +390,13 @@ def _vertical_rows(reading) -> tuple[ResultValue, ...]:
         return ()
     return (
         ResultValue(
-            vertical_shift_label(reading.transformation),
-            fmt.vertical_metres(reading.shift_m),
+            vertical_shift_label(reading.transformation, unit),
+            fmt.vertical_quantity(reading.shift_m, unit),
         ),
-        ResultValue(VERTICAL_SIGMA_LABEL, fmt.vertical_metres(reading.sigma_m)),
+        ResultValue(
+            vertical_sigma_heading(unit),
+            fmt.vertical_quantity(reading.sigma_m, unit),
+        ),
         # The "Vertical method" caveat row that stood here was REMOVED at the
         # owner's instruction (DESIGN.md #45, 2026-08-09), reversing the #42
         # gate's on-screen-caveat resolution under the owner's #33 ruling
@@ -542,15 +580,24 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
     # the INPUT elevation is labelled with the source datum and the OUTPUT one
     # with the target datum, because the two rows now hold heights on two
     # different surfaces and unlabelled they would read as the same quantity
-    # re-expressed.
+    # re-expressed. Each label carries the unit its own VALUE is rendered in
+    # - the input unit for the INPUT row, the output unit for the OUTPUT row
+    # (they can differ in a Horizontal + Vertical job): symmetric on purpose,
+    # because a unit on the output row alone would invite "in what?" of the
+    # input one. The shift and sigma rows carry the INPUT unit (the owner's
+    # instruction, 2026-08-09).
     reading = point.vertical
     if reading is not None:
-        input_elevation_label = _datum_elevation_label(reading.transformation.source)
-        output_elevation_label = _datum_elevation_label(reading.transformation.target)
+        input_elevation_label = _datum_elevation_label(
+            reading.transformation.source, settings.input_unit
+        )
+        output_elevation_label = _datum_elevation_label(
+            reading.transformation.target, settings.output_unit
+        )
     else:
         input_elevation_label = ELEVATION_LABEL
         output_elevation_label = ELEVATION_LABEL
-    vertical_rows = _vertical_rows(reading)
+    vertical_rows = _vertical_rows(reading, settings.input_unit)
 
     if settings.direction is Direction.VERTICAL_ONLY:
         # The vertical-only layouts (the owner's feature, 2026-08-09). The

@@ -142,6 +142,30 @@ pair and so the audit CSV and the results table now agree on what the columns
 are called.
 """
 
+def vertical_shift_heading(unit) -> str:
+    """``Vertical shift (ift)`` - the audit CSV's shift column heading.
+
+    THE authoritative wording: the Multi point table and the Single point
+    panel's shift-row suffix carry this unit code too, per #17's standing
+    choice of one wording on every surface (the table imports this function
+    rather than restating it). The unit passed is the JOB'S INPUT UNIT - the
+    owner's instruction (2026-08-09): the shift is read against the elevation
+    the surveyor supplied, so it is stated in the unit that elevation was
+    typed in. The value under this heading converts with it, in
+    ``audit_rows`` - a heading claiming feet over a metre value would be the
+    worst outcome of this change, so the two are built from the same unit
+    object and pinned together.
+    """
+    return f"Vertical shift ({unit.code})"
+
+
+def vertical_sigma_heading(unit) -> str:
+    """``Shift sigma (ift)`` - the sigma column heading, same rule as the
+    shift's: the job's input unit, one wording on every surface (#17), the
+    cell converted by the same unit object."""
+    return f"Shift sigma ({unit.code})"
+
+
 AUDIT_COLUMNS = [
     "Point",
     "Source zone",
@@ -185,12 +209,18 @@ def audit_columns(result: JobResult) -> list[str]:
       supplied it, so this file answers "how was this Z derived" without
       re-running anything. The existing ``Elevation`` column keeps the TARGET
       height, which is what the clean export carries.
-    * ``Vertical shift (m)`` - the modeled shift applied. 0.0000 for an
-      identity, which really is a zero shift, not an absence.
-    * ``Shift sigma (m)`` - its one-sigma uncertainty, and
-      ``formatting.NOT_AVAILABLE`` where none can be stated (an identity ran
-      no model; where the error model interpolates below zero there is no
-      physical sigma) - NEVER a number in either case (docs/DESIGN.md #36).
+    * ``Vertical shift (<input unit>)`` - the modeled shift applied,
+      converted into the job's input unit (the owner's instruction,
+      2026-08-09 - the unit the elevations were supplied in; in vertical-only
+      mode input and output units are equal by construction, and in
+      Horizontal + Vertical the input unit still governs these two columns
+      while the Elevation column stays in the output unit as always). 0.0000
+      for an identity, which really is a zero shift, not an absence.
+    * ``Shift sigma (<input unit>)`` - its one-sigma uncertainty, same unit
+      as the shift it qualifies, and ``formatting.NOT_AVAILABLE`` where none
+      can be stated (an identity ran no model; where the error model
+      interpolates below zero there is no physical sigma) - NEVER a number in
+      either case (docs/DESIGN.md #36).
     * ``Geoid model`` - which model's separations the factor columns were
       computed from. Two shipped models now differ by up to 32 mm at one
       Michigan anchor (DESIGN.md #40 LOW 5), so a vertical CSV names its own.
@@ -214,8 +244,8 @@ def audit_columns(result: JobResult) -> list[str]:
             "Source vertical datum",
             "Target vertical datum",
             f"Source elevation ({settings.input_unit.code})",
-            "Vertical shift (m)",
-            "Shift sigma (m)",
+            vertical_shift_heading(settings.input_unit),
+            vertical_sigma_heading(settings.input_unit),
         ]
         columns.insert(columns.index("Geoid height (m)"), "Geoid model")
     return columns
@@ -316,15 +346,18 @@ def audit_rows(result: JobResult) -> list[list[str]]:
                 # on a coverage-refused point (the warnings cell says which):
                 # no shift was applied, so neither number exists. An identity
                 # reading carries shift_m=0.0 - a real zero, printed as one.
-                fmt.vertical_metres(
-                    reading.shift_m if reading is not None else None
+                # Both cells are converted into IN_UNIT - the same unit
+                # object the two headings above were built from, so heading
+                # and value cannot claim different units.
+                fmt.vertical_quantity(
+                    reading.shift_m if reading is not None else None, in_unit
                 ),
                 # sigma_m is None on an identity (no model ran) and where the
                 # error model interpolates below zero (DESIGN.md #36); both
                 # render N/A through the formatter - never the raw figure,
                 # which is not an uncertainty.
-                fmt.vertical_metres(
-                    reading.sigma_m if reading is not None else None
+                fmt.vertical_quantity(
+                    reading.sigma_m if reading is not None else None, in_unit
                 ),
             ]
             row.insert(

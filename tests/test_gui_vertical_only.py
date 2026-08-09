@@ -41,14 +41,16 @@ import pytest  # noqa: E402
 from PySide6.QtCore import Qt  # noqa: E402
 
 from michspc.fileio import exports, formatting as fmt, pnezd  # noqa: E402
+from michspc.fileio.exports import (  # noqa: E402
+    vertical_shift_heading,
+    vertical_sigma_heading,
+)
 from michspc.gui import controls  # noqa: E402
 from michspc.gui import single_point as single_point_module  # noqa: E402
 from michspc.gui.app import build_application  # noqa: E402
 from michspc.gui.results_model import (  # noqa: E402
     INPUT_TITLE,
     OUTPUT_TITLE,
-    VERTICAL_SHIFT_COLUMN_HEADING,
-    VERTICAL_SIGMA_LABEL,
 )
 from michspc.gui.window import UNCHOSEN, MainWindow  # noqa: E402
 from michspc.job import (  # noqa: E402
@@ -65,6 +67,13 @@ from tests.fixtures.vertcon_anchors import (  # noqa: E402
 
 ANCHOR_22 = next(a for a in NGVD29_TO_NAVD88_ANCHORS if a.name == "anchor-22")
 SHIFT_TOLERANCE_M = 0.0005
+
+# Every vertical-only job in this module runs in metres (and in this mode the
+# input and output units are equal by construction), so the shared headings -
+# the audit CSV's own, in the job's INPUT unit per the owner's units
+# instruction (2026-08-09) - are the metre spellings throughout.
+VERTICAL_SHIFT_COLUMN_HEADING = vertical_shift_heading(METERS)
+VERTICAL_SIGMA_LABEL = vertical_sigma_heading(METERS)
 
 # Anchor-22's Michigan South position, metres - the derivation is in
 # tests/test_vertical_only.py, whose constants these deliberately repeat so a
@@ -454,14 +463,14 @@ def test_the_output_section_holds_exactly_the_vertical_rows(tab):
         raise AssertionError(f"the run failed: {tab.shown_failures}")
 
     assert section_labels(tab.sections, OUTPUT_TITLE) == [
-        "Elevation (NAVD88)",
+        "Elevation (NAVD88, m)",
         "Vertical shift NGVD29 -> NAVD88 (m)",
         VERTICAL_SIGMA_LABEL,
     ]
 
     # And the values are the anchor's: the elevation is the shifted height,
     # the shift is NCAT's own figure, both through the standard formatters.
-    shown = value_of(tab.sections, OUTPUT_TITLE, "Elevation (NAVD88)")
+    shown = value_of(tab.sections, OUTPUT_TITLE, "Elevation (NAVD88, m)")
     assert shown == fmt.coordinate(
         tab.result.points[0].output_elevation, METERS
     )
@@ -484,7 +493,7 @@ def test_the_geodetic_input_section_carries_the_point_and_its_factors(tab):
         "Latitude (DMS)",
         "Longitude",
         "Longitude (DMS)",
-        "Elevation (NGVD29)",
+        "Elevation (NGVD29, m)",
         "Units",
         "Geoid height (m)",
         "Ellipsoid height (m)",
@@ -516,7 +525,7 @@ def test_the_zone_input_section_carries_the_input_zones_factors(tab):
         "Units",
         "Northing",
         "Easting",
-        "Elevation (NGVD29)",
+        "Elevation (NGVD29, m)",
         "Grid scale factor",
         "Convergence",
         "Geoid height (m)",
@@ -527,7 +536,7 @@ def test_the_zone_input_section_carries_the_input_zones_factors(tab):
     assert value_of(tab.sections, INPUT_TITLE, "Grid scale factor") != fmt.NOT_AVAILABLE
     assert value_of(tab.sections, INPUT_TITLE, "Combined factor") != fmt.NOT_AVAILABLE
     assert section_labels(tab.sections, OUTPUT_TITLE) == [
-        "Elevation (NAVD88)",
+        "Elevation (NAVD88, m)",
         "Vertical shift NGVD29 -> NAVD88 (m)",
         VERTICAL_SIGMA_LABEL,
     ]
@@ -620,14 +629,14 @@ def test_the_vertical_only_table_and_the_audit_csv_cannot_disagree(
     header = rows[0]
 
     table_columns = headings(window)
-    assert "Elevation (NAVD88)" in table_columns
+    assert "Elevation (NAVD88, m)" in table_columns
     assert "Latitude" in table_columns and "Longitude" in table_columns
 
     correspondence = {
         "Point": "Point",
         "Latitude": "Target latitude",
         "Longitude": "Target longitude (as written)",
-        "Elevation (NAVD88)": "Elevation",
+        "Elevation (NAVD88, m)": "Elevation",
         VERTICAL_SHIFT_COLUMN_HEADING: VERTICAL_SHIFT_COLUMN_HEADING,
         VERTICAL_SIGMA_LABEL: VERTICAL_SIGMA_LABEL,
         "Grid scale factor": "Grid scale factor",
@@ -678,7 +687,7 @@ def test_the_vertical_only_tables_coordinates_are_the_inputs_own(
         ANCHOR_22.longitude
     )
     # The blank-Z row passes its coordinates through too, with N/A verticals.
-    at = table_columns.index("Elevation (NAVD88)")
+    at = table_columns.index("Elevation (NAVD88, m)")
     assert cell(window, 1, at) == fmt.NOT_AVAILABLE
     assert cell(window, 1, at + 1) == fmt.NOT_AVAILABLE
     assert cell(window, 1, at + 2) == fmt.NOT_AVAILABLE

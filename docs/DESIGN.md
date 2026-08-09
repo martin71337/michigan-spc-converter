@@ -466,6 +466,56 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #47 — 2026-08-09 — Owner's units instruction: shift and σ in the job's input unit, units on the elevation output
+
+**Owner's instruction**: add units to the elevation output, and present the
+shift and shift sigma in the job's input units instead of defaulting to
+metres.
+
+**What changed — presentation only, the internals stay metres.**
+`VerticalReading.shift_m`/`sigma_m` are untouched; conversion happens at the
+display boundary through one new formatter, `formatting.vertical_quantity
+(value_m, unit)`, rendering at the unit's own declared precision.
+`vertical_metres` is deleted, not delegated — a unit-less shift formatter is
+the door this defect class walks through. The heading authority lives in
+`exports.py` (`vertical_shift_heading`/`vertical_sigma_heading`, functions
+of the unit) and the table imports it, so per #17 the panel, the table and
+the audit CSV move together and a heading can never claim a unit its cells
+are not in — the headings and the cell conversions take the same unit
+object. The record's σ summary converts likewise; its σ>|shift| comparison
+stays in metres (unit-invariant). **The display unit for shift and σ is
+`settings.input_unit`** — the owner's words; in vertical-only mode input and
+output units are equal by construction, and in Horizontal + Vertical the
+input unit governs these two quantities while the Elevation heading names
+the output unit its own cells are in. Datum-tagged elevation labels gain
+their unit — `Elevation (NAVD88, m)` — INPUT label with the input unit,
+OUTPUT with the output unit; horizontal jobs' plain labels are untouched by
+a byte.
+
+**What the change corrected on its way in**: two pre-existing tests pinned
+`(m)` shift labels over FEET jobs — the exact mislabel the instruction
+removes, live on screen for any feet-unit vertical job until now.
+
+**Verification.** Hand-derived pins at the anchors: −0.14019644 m →
+`-0.460` ift and `-0.460` usft (the two foot definitions differ in the 7th
+significant digit; the pin asserts the floats differ so the usft case is not
+vacuously the ift one), σ 0.0006554 m → `0.002` ift, max-σ 0.3656 m →
+`1.199` ift; metre jobs render exactly as before — the metre path is the
+regression floor, and written outputs of metre vertical jobs are
+byte-identical. Four falsifications, each caught by name: the from/to
+conversion swapped (the feared defect — produces −0.043 where −0.460 is
+pinned; the metre pins alone would NOT see it, which is why the feet pins
+exist); σ converted but the shift left metres; CSV headings converted with
+metre values beneath; the OUTPUT elevation label fed from the input unit in
+a differing-units job. **Independently re-verified by the session lead**
+with a from-scratch script: hand conversion, panel/table cell and audit CSV
+cell agree in all three units at anchor-22, and a 200.000 ift elevation
+lands at 199.540 ift through the whole job (200 ift = 60.96 m, −0.140196 m,
+back out).
+
+**Suite: 1553 → 1563**, green in `pytest` and `-O`. Committed to `main` and
+pushed; no release.
+
 ### #46 — 2026-08-09 — Owner's feature: a vertical-only mode on both tabs
 
 **The owner's instruction**: a third mode, **Vertical**, on both tabs. The

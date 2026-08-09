@@ -543,8 +543,8 @@ def test_the_geodetic_audit_csv_says_nothing_moved(tmp_path):
     # The vertical block is present, with real numbers on the anchor row.
     assert audit["Source vertical datum"] == "NGVD29"
     assert audit["Target vertical datum"] == "NAVD88"
-    assert audit["Vertical shift (m)"] == fmt.vertical_metres(
-        result.points[0].vertical.shift_m
+    assert audit["Vertical shift (m)"] == fmt.vertical_quantity(
+        result.points[0].vertical.shift_m, METERS
     )
     assert audit["Vertical shift (m)"] != fmt.NOT_AVAILABLE
     # No zone anywhere: the factor cells are honest absences.

@@ -261,29 +261,48 @@ def geoid_height(value: float | None) -> str:
     return f"{value:.3f}"
 
 
-def vertical_metres(value: float | None) -> str:
-    """A vertical datum shift, or its one-sigma uncertainty, in metres to 4
-    decimal places.
+def vertical_quantity(value_m: float | None, unit: LinearUnit) -> str:
+    """A vertical datum shift, or its one-sigma uncertainty, converted into
+    ``unit`` and rendered at that unit's own declared precision.
 
-    Why 4: it is the metre unit's own declared coordinate precision
-    (``METERS.decimals``), so the shift is stated to exactly the resolution a
-    metre elevation is written to - a shift printed coarser than the Z column
-    it moved could not be reconciled against it, and one printed finer would
-    claim more than the model resolves (the reader's measured agreement with
-    NCAT is 0.47 mm, docs/PLAN-vertical-datums.md section 2.5a, so the fourth
-    decimal is the last honest one). One function for both quantities on
-    purpose: the shift and its sigma are compared against each other by the
-    reader of every surface (plan section 2.8's sigma-exceeds-shift case), and
-    two precisions would make that comparison a formatting artefact.
+    ``value_m`` is METRES - the representation ``VerticalReading.shift_m`` and
+    ``sigma_m`` store, which never changes (one authoritative representation
+    per fact). The unit conversion happens HERE, at the presentation boundary,
+    through ``unit.from_meters`` - the same seam every coordinate column
+    already crosses - so no reading anywhere holds a converted copy that
+    could drift from the metre truth.
+
+    Why ``unit.decimals``: it is the unit's own declared coordinate precision,
+    so the shift is stated to exactly the resolution an elevation is written
+    to in that unit - a shift printed coarser than the Z column it moved
+    could not be reconciled against it, and one printed finer would claim
+    more than the model resolves (the reader's measured agreement with NCAT
+    is 0.47 mm, docs/PLAN-vertical-datums.md section 2.5a; 0.001 ft is
+    ~0.3 mm, so feet's 3 places are the last honest ones there too). For
+    METERS this renders exactly what the retired ``vertical_metres`` printed,
+    to the byte - the metre path is the regression floor. One function for
+    both quantities on purpose: the shift and its sigma are compared against
+    each other by the reader of every surface (plan section 2.8's
+    sigma-exceeds-shift case), and two precisions would make that comparison
+    a formatting artefact.
 
     ``None`` renders as N/A - which is the ONLY thing an unavailable sigma may
     render as. Where the error model interpolates below zero the reading
     carries ``sigma_m=None``, and this program never prints a number there
     (docs/DESIGN.md #36).
     """
-    if value is None:
+    if value_m is None:
         return NOT_AVAILABLE
-    return f"{value:.4f}"
+    return f"{unit.from_meters(value_m):.{unit.decimals}f}"
+
+
+# ``vertical_metres`` stood here until the owner's units instruction
+# (2026-08-09: shift and sigma read in the job's input unit, and every
+# elevation output names its unit). It rendered metres to 4 places while
+# naming no unit at all, which is exactly the door a swapped or skipped
+# conversion would walk through. Deleted rather than left as a delegate:
+# nothing may format a shift or a sigma without saying which unit it is in.
+# ``vertical_quantity(value, METERS)`` produces its output byte for byte.
 
 
 def millimetres(metres: float | None) -> str:

@@ -402,20 +402,30 @@ def _vertical_elevation_block(result, transformation) -> list[str]:
     sigmas = [
         p.vertical.sigma_m for p in converted if p.vertical.sigma_m is not None
     ]
+    # The summary reads in the JOB'S INPUT UNIT - the unit the elevations
+    # were supplied in, matching the audit CSV's "Shift sigma (<unit>)"
+    # column this summary summarizes (the owner's units instruction,
+    # 2026-08-09). The min/max/mean are taken over the METRE values the
+    # readings store and converted once for display: unit conversion is a
+    # positive scale, so it cannot change which sigma is the minimum.
+    unit = result.settings.input_unit
+    sigma_summary_label = f"Shift one-sigma uncertainty ({unit.code})"
     if sigmas:
         # The _factor_summary shape exactly: label, then minimum / maximum /
         # mean - because across Michigan the sigma varies by a factor of
         # 91,000 (0.000004 m to 0.3656 m), a single figure here would
         # understate somebody's point by orders of magnitude (plan 5.1).
-        add("  Shift one-sigma uncertainty (m)")
-        add(f"    minimum  {fmt.vertical_metres(min(sigmas))}")
-        add(f"    maximum  {fmt.vertical_metres(max(sigmas))}")
-        add(f"    mean     {fmt.vertical_metres(statistics.fmean(sigmas))}")
+        add(f"  {sigma_summary_label}")
+        add(f"    minimum  {fmt.vertical_quantity(min(sigmas), unit)}")
+        add(f"    maximum  {fmt.vertical_quantity(max(sigmas), unit)}")
+        add(f"    mean     {fmt.vertical_quantity(statistics.fmean(sigmas), unit)}")
     else:
-        add(
-            f"  {'Shift one-sigma uncertainty (m)':<33} {fmt.NOT_AVAILABLE}"
-        )
+        add(f"  {sigma_summary_label:<33} {fmt.NOT_AVAILABLE}")
 
+    # Compared in METRES - the representation the readings store - not in the
+    # display unit. The comparison is unit-invariant (both sides scale by the
+    # same positive factor), so converting first would change nothing; it
+    # would only make the rule look like it depends on a display choice.
     exceeds = [
         p
         for p in converted

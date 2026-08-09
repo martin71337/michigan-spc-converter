@@ -60,9 +60,11 @@ two substantive finds, both fixed at the root: a false record sentence (the
 optional), and `verify_round_trip`'s half-place tolerance refusing whole
 archives on ordinary metre northings in this mode — the verifier now
 compares EXACTLY against the writer's own rendering, strictly tighter for
-every direction. Suite **1553**, green in both modes. NOT RELEASED; the
-owner has seen none of the new controls on a real screen, now including the
-third radio.
+every direction. **A third owner instruction followed (#47): shift and σ
+display in the job's INPUT unit (internals stay metres; one formatter, one
+heading authority shared by panel/table/CSV), and datum-tagged elevation
+labels carry their units.** Suite **1563**, green in both modes. NOT
+RELEASED; the owner has seen none of the new controls on a real screen.
 
 **Every work package is built, interim-gated, and the whole feature passed
 its closing gate (DESIGN.md #44) — run on an independent Opus reviewer

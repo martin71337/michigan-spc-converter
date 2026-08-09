@@ -44,6 +44,10 @@ import pytest  # noqa: E402
 from PySide6.QtCore import Qt  # noqa: E402
 
 from michspc.fileio import exports, formatting as fmt, geoid, pnezd  # noqa: E402
+from michspc.fileio.exports import (  # noqa: E402
+    vertical_shift_heading,
+    vertical_sigma_heading,
+)
 from michspc.gui import controls, results_model  # noqa: E402
 from michspc.gui import single_point as single_point_module  # noqa: E402
 from michspc.gui.app import build_application  # noqa: E402
@@ -51,8 +55,6 @@ from michspc.gui.results_model import (  # noqa: E402
     COLUMNS,
     INPUT_TITLE,
     OUTPUT_TITLE,
-    VERTICAL_SHIFT_COLUMN_HEADING,
-    VERTICAL_SIGMA_LABEL,
     columns_for,
 )
 from michspc.gui.window import UNCHOSEN, MainWindow  # noqa: E402
@@ -62,7 +64,7 @@ from michspc.job import (  # noqa: E402
     VerticalMode,
     run,
 )
-from michspc.spc.units import METERS  # noqa: E402
+from michspc.spc.units import INTERNATIONAL_FEET, METERS  # noqa: E402
 from michspc.spc.vertical import (  # noqa: E402
     ALL_VERTICAL_DATUMS,
     NAPGD2022,
@@ -81,6 +83,14 @@ ANCHOR_22 = next(a for a in NGVD29_TO_NAVD88_ANCHORS if a.name == "anchor-22")
 SHIFT_TOLERANCE_M = 0.0005
 
 USABLE_DATUMS = tuple(d for d in ALL_VERTICAL_DATUMS if d.is_usable)
+
+# Every vertical job in this module runs metres to metres, so the table's
+# shift and sigma headings - the audit CSV's own, via the shared functions,
+# in the job's INPUT unit (the owner's units instruction, 2026-08-09) - are
+# the metre spellings throughout. Derived, not retyped, so the table-vs-CSV
+# correspondence below holds BECAUSE the wording is shared.
+VERTICAL_SHIFT_COLUMN_HEADING = vertical_shift_heading(METERS)
+VERTICAL_SIGMA_LABEL = vertical_sigma_heading(METERS)
 
 
 # --------------------------------------------------------------------------
@@ -610,20 +620,28 @@ def test_an_identity_pair_converts_and_states_the_datum(tab):
     """NAVD 88 -> NAVD 88 is legitimate: no shift, a stated datum, and the
     elevation labels carry it on both sides. The shift is a real zero -
     printed as one, never as N/A - and the sigma is N/A, never a number,
-    because no model ran (DESIGN.md #36)."""
+    because no model ran (DESIGN.md #36).
+
+    This job runs in the tab's default unit - International feet - so it is
+    also the identity-in-feet pin: the labels say ift and the zero shift
+    renders "0.000" at the foot unit's 3 places, never the metre "0.0000"
+    (before the units instruction the label here claimed "(m)" over a
+    feet job, which is exactly the mislabelling the change removes)."""
     converted_horizontal(tab)
     make_vertical(tab, NAVD88, NAVD88)
     if tab.convert() is not True:
         raise AssertionError(f"the run failed: {tab.shown_failures}")
 
-    assert value_of(tab.sections, INPUT_TITLE, "Elevation (NAVD88)")
-    assert value_of(tab.sections, OUTPUT_TITLE, "Elevation (NAVD88)")
+    assert tab.result.settings.input_unit is INTERNATIONAL_FEET
+    assert value_of(tab.sections, INPUT_TITLE, "Elevation (NAVD88, ift)")
+    assert value_of(tab.sections, OUTPUT_TITLE, "Elevation (NAVD88, ift)")
     shift = value_of(
-        tab.sections, OUTPUT_TITLE, "Vertical shift NAVD88 -> NAVD88 (m)"
+        tab.sections, OUTPUT_TITLE, "Vertical shift NAVD88 -> NAVD88 (ift)"
     )
-    assert shift == fmt.vertical_metres(0.0)
+    assert shift == fmt.vertical_quantity(0.0, INTERNATIONAL_FEET)
+    assert shift == "0.000"
     assert (
-        value_of(tab.sections, OUTPUT_TITLE, VERTICAL_SIGMA_LABEL)
+        value_of(tab.sections, OUTPUT_TITLE, vertical_sigma_heading(INTERNATIONAL_FEET))
         == fmt.NOT_AVAILABLE
     )
 
@@ -686,11 +704,11 @@ def test_the_two_tabs_cannot_disagree_about_a_vertical_point(window, tab, tmp_pa
     # directly after its Elevation column (columns_for), and the panel's
     # rows carry the same formatter output.
     table_columns = headings(window)
-    elevation_column = table_columns.index("Elevation (NAVD88)")
+    elevation_column = table_columns.index("Elevation (NAVD88, m)")
     shift_column = table_columns.index(VERTICAL_SHIFT_COLUMN_HEADING)
     sigma_column = table_columns.index(VERTICAL_SIGMA_LABEL)
 
-    assert value_of(tab.sections, OUTPUT_TITLE, "Elevation (NAVD88)") == cell(
+    assert value_of(tab.sections, OUTPUT_TITLE, "Elevation (NAVD88, m)") == cell(
         window, 0, elevation_column
     )
     assert value_of(
@@ -732,11 +750,17 @@ def test_a_vertical_jobs_table_names_the_datum_and_carries_shift_and_sigma(
     vertical_multi_job(window, tmp_path)
 
     table_columns = headings(window)
-    at = table_columns.index("Elevation (NAVD88)")
+    at = table_columns.index("Elevation (NAVD88, m)")
     assert table_columns[at + 1] == VERTICAL_SHIFT_COLUMN_HEADING
     assert table_columns[at + 2] == VERTICAL_SIGMA_LABEL
+    # Pinned in both units: the heading carries the job's input unit code
+    # (owner's units instruction, 2026-08-09) - this job's is metres, and the
+    # feet spellings are pinned here too so the wording cannot quietly become
+    # unit-blind again.
     assert VERTICAL_SHIFT_COLUMN_HEADING == "Vertical shift (m)"
     assert VERTICAL_SIGMA_LABEL == "Shift sigma (m)"
+    assert vertical_shift_heading(INTERNATIONAL_FEET) == "Vertical shift (ift)"
+    assert vertical_sigma_heading(INTERNATIONAL_FEET) == "Shift sigma (ift)"
     assert "Elevation" not in table_columns, (
         "the bare heading must not survive on a vertical job"
     )
@@ -750,8 +774,12 @@ def test_a_vertical_jobs_table_names_the_datum_and_carries_shift_and_sigma(
     # The anchor row's cells are the formatter's rendering of the reading the
     # job actually applied - the same objects, not a re-computation.
     reading = window.result.points[0].vertical
-    assert cell(window, 0, at + 1) == fmt.vertical_metres(reading.shift_m)
-    assert cell(window, 0, at + 2) == fmt.vertical_metres(reading.sigma_m)
+    assert cell(window, 0, at + 1) == fmt.vertical_quantity(
+        reading.shift_m, METERS
+    )
+    assert cell(window, 0, at + 2) == fmt.vertical_quantity(
+        reading.sigma_m, METERS
+    )
     assert abs(
         reading.shift_m - (ANCHOR_22.target_height_m - ANCHOR_22.source_height_m)
     ) < SHIFT_TOLERANCE_M
@@ -794,7 +822,7 @@ def test_the_vertical_table_and_the_audit_csv_cannot_disagree(
         "Point": "Point",
         "Northing": "Target northing",
         "Easting": "Target easting",
-        f"Elevation ({target_datum.code})": "Elevation",
+        f"Elevation ({target_datum.code}, m)": "Elevation",
         VERTICAL_SHIFT_COLUMN_HEADING: VERTICAL_SHIFT_COLUMN_HEADING,
         VERTICAL_SIGMA_LABEL: VERTICAL_SIGMA_LABEL,
         "Grid scale factor": "Grid scale factor",

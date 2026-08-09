@@ -27,7 +27,8 @@ Truth sources for the hand-derived values below:
   a one-sigma, so ``sigma_m`` is None and only N/A may be printed. The .trn
   shift there is -0.13599119428545237 m and is valid and unaffected.
 
-Formatted through ``formatting.vertical_metres`` (4 decimal places):
+Formatted through ``formatting.vertical_quantity(value, METERS)`` (the metre
+unit's own 4 decimal places - these jobs run in metres):
 
       anchor-22   shift "-0.1402"   sigma "0.0007"
       max-sigma   shift "-0.1435"   sigma "0.3656"
@@ -353,9 +354,9 @@ def test_the_sigma_summary_is_min_max_mean_over_points_with_a_sigma(tmp_path):
         if p.vertical is not None and p.vertical.sigma_m is not None
     ]
     assert len(sigmas) == 2
-    assert fmt.vertical_metres(min(sigmas)) == ANCHOR_22_SIGMA
-    assert fmt.vertical_metres(max(sigmas)) == MAX_SIGMA_SIGMA
-    assert fmt.vertical_metres(sum(sigmas) / 2) == MEAN_SIGMA
+    assert fmt.vertical_quantity(min(sigmas), METERS) == ANCHOR_22_SIGMA
+    assert fmt.vertical_quantity(max(sigmas), METERS) == MAX_SIGMA_SIGMA
+    assert fmt.vertical_quantity(sum(sigmas) / 2, METERS) == MEAN_SIGMA
 
 
 def test_the_record_names_the_point_whose_sigma_exceeds_its_shift(tmp_path):
@@ -691,7 +692,9 @@ def test_the_vertical_rows_join_the_owners_layout():
         "Latitude (DMS)",
         "Longitude",
         "Longitude (DMS)",
-        "Elevation (NGVD29)",
+        # The datum AND the unit (owner's units instruction, 2026-08-09):
+        # this job runs metres to metres, so both elevation labels say m.
+        "Elevation (NGVD29, m)",
         "Units",
     )
     assert _labels(target) == (
@@ -699,7 +702,7 @@ def test_the_vertical_rows_join_the_owners_layout():
         "Units",
         "Northing",
         "Easting",
-        "Elevation (NAVD88)",
+        "Elevation (NAVD88, m)",
         "Vertical shift NGVD29 -> NAVD88 (m)",
         "Shift sigma (m)",
         # No "Vertical method" caveat row: it stood here between the WP-V7
@@ -750,34 +753,40 @@ def test_the_vertical_rows_appear_in_the_grid_input_directions_too(direction):
 
     input_labels = _labels(source)
     output_labels = _labels(target)
-    assert "Elevation (NGVD29)" in input_labels
-    assert "Elevation (NAVD88)" in output_labels
+    # These jobs run International feet to International feet, so the datum
+    # labels carry ift and the shift and sigma read in ift too - the shift
+    # and sigma unit is the INPUT unit (owner's instruction, 2026-08-09).
+    assert "Elevation (NGVD29, ift)" in input_labels
+    assert "Elevation (NAVD88, ift)" in output_labels
     # Directly under the elevation they explain.
-    at = output_labels.index("Elevation (NAVD88)")
-    assert output_labels[at + 1] == "Vertical shift NGVD29 -> NAVD88 (m)"
-    assert output_labels[at + 2] == "Shift sigma (m)"
+    at = output_labels.index("Elevation (NAVD88, ift)")
+    assert output_labels[at + 1] == "Vertical shift NGVD29 -> NAVD88 (ift)"
+    assert output_labels[at + 2] == "Shift sigma (ift)"
 
 
 def test_the_vertical_row_values_are_the_formatters_output():
-    """UI honesty: the panel's strings are ``fmt.vertical_metres`` applied to
-    the reading's own numbers - the same function the audit CSV calls - plus
-    the hand-derived figures at the exact-node anchor."""
+    """UI honesty: the panel's strings are ``fmt.vertical_quantity`` applied
+    to the reading's own numbers, in the job's input unit (METERS here) - the
+    same function the audit CSV calls - plus the hand-derived figures at the
+    exact-node anchor."""
     result = _typed_vertical_job()
     reading = result.points[0].vertical
     _, target = rm.single_point_sections(result)
     values = _by_label(target)
 
-    assert values["Vertical shift NGVD29 -> NAVD88 (m)"] == fmt.vertical_metres(
-        reading.shift_m
+    assert values["Vertical shift NGVD29 -> NAVD88 (m)"] == fmt.vertical_quantity(
+        reading.shift_m, METERS
     )
-    assert values["Shift sigma (m)"] == fmt.vertical_metres(reading.sigma_m)
+    assert values["Shift sigma (m)"] == fmt.vertical_quantity(
+        reading.sigma_m, METERS
+    )
     # Hand-derived at the node (module docstring).
     assert values["Vertical shift NGVD29 -> NAVD88 (m)"] == ANCHOR_22_SHIFT
     assert values["Shift sigma (m)"] == ANCHOR_22_SIGMA
     # And the two elevations are two different heights on two surfaces.
     source_values = _by_label(rm.single_point_sections(result)[0])
-    assert source_values["Elevation (NGVD29)"] == "200.0000"
-    assert values["Elevation (NAVD88)"] == ANCHOR_22_TARGET_HEIGHT
+    assert source_values["Elevation (NGVD29, m)"] == "200.0000"
+    assert values["Elevation (NAVD88, m)"] == ANCHOR_22_TARGET_HEIGHT
 
 
 def test_the_sigma_row_reads_na_where_no_uncertainty_can_be_stated():
@@ -807,7 +816,7 @@ def test_the_sigma_row_is_in_the_clipboard_text():
 
     assert f"Shift sigma (m)\t{ANCHOR_22_SIGMA}" in text
     assert f"Vertical shift NGVD29 -> NAVD88 (m)\t{ANCHOR_22_SHIFT}" in text
-    assert f"Elevation (NAVD88)\t{ANCHOR_22_TARGET_HEIGHT}" in text
+    assert f"Elevation (NAVD88, m)\t{ANCHOR_22_TARGET_HEIGHT}" in text
 
 
 def test_a_horizontal_single_point_carries_no_vertical_rows():
@@ -825,7 +834,10 @@ def test_a_horizontal_single_point_carries_no_vertical_rows():
         assert "Shift sigma (m)" not in labels
         for label in labels:
             assert "Vertical shift" not in label
-            assert "(NGVD29)" not in label and "(NAVD88)" not in label
+            assert "Shift sigma" not in label
+            # No datum in any horizontal label, under either spelling - the
+            # old "(NGVD29)" or the units instruction's "(NGVD29, m)".
+            assert "NGVD29" not in label and "NAVD88" not in label
     # The plain labels are still there.
     assert "Elevation" in _labels(source)
     assert "Elevation" in _labels(target)

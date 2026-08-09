@@ -62,6 +62,7 @@ from michspc.gui.controls import (
     GEODETIC,
     GEOID_MODEL_LABEL,
     RED,
+    UNCHOSEN,
     UNITS_LABEL,
     UNITS_LABEL_ELEVATION_ONLY,
     VERTICAL_MODE_LABEL,
@@ -70,7 +71,7 @@ from michspc.gui.controls import (
     direction_for,
     geoid_combo,
     longitude_combo,
-    longitude_is_relevant,
+    longitude_relevance,
     show_failure_dialog,
     unit_combo,
     vertical_datum_combo,
@@ -267,12 +268,16 @@ class SinglePointTab(QWidget):
         # The first row of the Conversion box, per plan section 4.1 - and on
         # THIS tab, not the window: a window-level toggle would be state
         # shared between the tabs, which amendment #26 forbids.
-        self.mode_horizontal, self.mode_vertical, self._mode_group = (
-            vertical_mode_buttons(box, self._on_vertical_mode_changed)
-        )
+        (
+            self.mode_horizontal,
+            self.mode_vertical,
+            self.mode_vertical_only,
+            self._mode_group,
+        ) = vertical_mode_buttons(box, self._on_vertical_mode_changed)
         mode_row = QHBoxLayout()
         mode_row.addWidget(self.mode_horizontal)
         mode_row.addWidget(self.mode_vertical)
+        mode_row.addWidget(self.mode_vertical_only)
         mode_row.addStretch(1)
         grid.addWidget(QLabel(VERTICAL_MODE_LABEL, box), 0, 0)
         grid.addLayout(mode_row, 0, 1, 1, 3)
@@ -298,7 +303,11 @@ class SinglePointTab(QWidget):
         grid.addWidget(self.input_unit_label, 1, 2)
         grid.addWidget(self.input_unit, 1, 3)
 
-        grid.addWidget(QLabel("To zone:", box), 2, 0)
+        # Held as an attribute so vertical-only mode can hide the whole row:
+        # no output horizontal system exists in that mode, and a visible "To
+        # zone" dropdown would be a question the job never asks.
+        self.to_zone_label = QLabel("To zone:", box)
+        grid.addWidget(self.to_zone_label, 2, 0)
         grid.addWidget(self.to_zone, 2, 1)
         grid.addWidget(self.output_unit_label, 2, 2)
         grid.addWidget(self.output_unit, 2, 3)
@@ -536,7 +545,9 @@ class SinglePointTab(QWidget):
 
     def vertical_mode(self) -> VerticalMode:
         """What the mode toggle states; ``controls.vertical_mode_for`` owns the rule."""
-        return vertical_mode_for(self.mode_horizontal, self.mode_vertical)
+        return vertical_mode_for(
+            self.mode_horizontal, self.mode_vertical, self.mode_vertical_only
+        )
 
     def source_vertical_datum(self) -> VerticalDatum | None:
         return vertical_datum_for(self.vertical_source_combo.currentData())
@@ -554,6 +565,9 @@ class SinglePointTab(QWidget):
         on. That is a statement, not an absence — this job came from no file
         and produces none (docs/DESIGN.md amendment #26).
         """
+        if self.vertical_mode() is VerticalMode.VERTICAL:
+            return self._vertical_only_settings()
+
         direction = self.direction()
         if direction is None:
             return None
@@ -601,6 +615,50 @@ class SinglePointTab(QWidget):
             # A pure zone-to-zone job never consults the longitude convention
             # (michspc.job._convert_row), so the interface does not pretend the
             # user answered a question it never asked.
+            return JobSettings(**common, longitude_convention=None)
+
+        convention = self.longitude_convention()
+        if convention is None:
+            return None
+        return JobSettings(**common, longitude_convention=convention)
+
+    def _vertical_only_settings(self) -> JobSettings | None:
+        """The vertical-only job this tab's controls describe, or None.
+
+        Mirrors ``MainWindow._vertical_only_settings`` exactly - the From
+        selection is the input system, ``target_zone`` is None because no
+        output horizontal system exists, ``output_unit`` IS the input unit
+        because the display mirrors the input's columns, and the longitude
+        convention is stated for a geodetic input and None for a zone input -
+        and differs in one respect only: ``input_path`` and
+        ``output_directory`` are None, the statement this tab always makes.
+        """
+        source = self.from_zone.currentData()
+        if source == UNCHOSEN:
+            return None
+        source_zone = source if isinstance(source, Zone) else None
+
+        source_datum = self.source_vertical_datum()
+        target_datum = self.target_vertical_datum()
+        if source_datum is None or target_datum is None:
+            return None
+
+        input_unit = self.input_unit.currentData()
+        common = dict(
+            input_path=None,
+            output_directory=None,
+            direction=Direction.VERTICAL_ONLY,
+            source_zone=source_zone,
+            target_zone=None,
+            input_unit=input_unit,
+            output_unit=input_unit,
+            geoid_model=self.geoid_combo.currentData(),
+            vertical_mode=VerticalMode.VERTICAL,
+            source_vertical_datum=source_datum,
+            target_vertical_datum=target_datum,
+        )
+
+        if source_zone is not None:
             return JobSettings(**common, longitude_convention=None)
 
         convention = self.longitude_convention()
@@ -699,8 +757,10 @@ class SinglePointTab(QWidget):
         """The toggle reveals or hides the datum rows - and, like every
         control that changes what the job IS, discards a displayed result:
         the same numbers under a different mode describe a different job
-        (amendment #26)."""
+        (amendment #26). The longitude selector's relevance follows the mode
+        too: vertical-only mode reads it from the From selection alone."""
         self._update_vertical_rows()
+        self._update_longitude_relevance()
         self._update_convert_enabled()
         self._invalidate_result()
 
@@ -711,21 +771,32 @@ class SinglePointTab(QWidget):
         self._invalidate_result()
 
     def _update_vertical_rows(self) -> None:
-        """Show the two datum rows in vertical mode; hide them otherwise.
+        """Show the datum rows when elevations convert; hide the output
+        horizontal controls in vertical-only mode.
 
-        Hidden, not disabled (plan section 4.2). The combos keep whatever
-        answer they held, so toggling to Horizontal and back does not silently
-        discard a chosen datum - but a Horizontal job never reads them:
-        ``settings`` states None for both in that mode.
+        Hidden, not disabled, in both directions of this method (plan section
+        4.2). The combos keep whatever answer they held, so toggling modes
+        does not silently discard a chosen datum or a chosen To zone - but a
+        job that does not consult a hidden control never reads it:
+        ``settings`` states None for a horizontal job's datums, and a
+        vertical-only job never reads the To zone or the output unit.
         """
-        vertical = self.vertical_mode() is VerticalMode.HORIZONTAL_AND_VERTICAL
+        mode = self.vertical_mode()
         for widget in (
             self.vertical_source_label,
             self.vertical_source_combo,
             self.vertical_target_label,
             self.vertical_target_combo,
         ):
-            widget.setVisible(vertical)
+            widget.setVisible(mode.converts_elevations)
+        vertical_only = mode is VerticalMode.VERTICAL
+        for widget in (
+            self.to_zone_label,
+            self.to_zone,
+            self.output_unit_label,
+            self.output_unit,
+        ):
+            widget.setVisible(not vertical_only)
 
     def entering_dms(self) -> bool:
         """True when the two coordinate rows are showing their four-box page.
@@ -829,8 +900,11 @@ class SinglePointTab(QWidget):
         )
 
     def _update_longitude_relevance(self) -> None:
-        """The selector matters only when geodetic coordinates are involved."""
-        relevant = longitude_is_relevant(self.direction())
+        """The selector matters only when geodetic coordinates are involved;
+        ``controls.longitude_relevance`` owns the rule for all three modes."""
+        relevant = longitude_relevance(
+            self.vertical_mode(), self.from_zone.currentData(), self.direction()
+        )
         self.longitude_label.setEnabled(relevant)
         self.longitude_combo.setEnabled(relevant)
 

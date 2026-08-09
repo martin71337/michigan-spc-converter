@@ -46,7 +46,23 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: THE VERTICAL FEATURE IS COMPLETE on main (V0–V9 + WP-G1), UNRELEASED (2026-08-08)
+## Current state: vertical feature + OWNER'S ROUND (caveat row removed, VERTICAL-ONLY MODE) on main, UNRELEASED (2026-08-09)
+
+**Two owner instructions landed after the closing gate, both gated (#45,
+#46):** the Vertical method caveat row is REMOVED from the results panel
+(the removal itself is pinned; the record still carries the caveat on every
+written job), and a THIRD MODE — **Vertical** — exists on both tabs: input
+horizontal system only (zone or geodetic), no output system, only the datum
+shift runs, and the export mirrors the import except the elevations (pinned
+bit-for-bit at the gate over 45 written-archive configurations). The gate's
+two substantive finds, both fixed at the root: a false record sentence (the
+#42-finding-3 class recurring when `Factors.grid_scale_factor` became
+optional), and `verify_round_trip`'s half-place tolerance refusing whole
+archives on ordinary metre northings in this mode — the verifier now
+compares EXACTLY against the writer's own rendering, strictly tighter for
+every direction. Suite **1553**, green in both modes. NOT RELEASED; the
+owner has seen none of the new controls on a real screen, now including the
+third radio.
 
 **Every work package is built, interim-gated, and the whole feature passed
 its closing gate (DESIGN.md #44) — run on an independent Opus reviewer

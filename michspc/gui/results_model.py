@@ -20,7 +20,7 @@ from PySide6.QtGui import QBrush, QColor
 from michspc.fileio import formatting as fmt
 from michspc.fileio import pnezd
 from michspc.gui.controls import zone_label
-from michspc.job import Direction, JobResult, LongitudeConvention, VerticalMode
+from michspc.job import Direction, JobResult, LongitudeConvention
 
 COLUMNS: tuple[str, ...] = (
     "Point",
@@ -59,6 +59,23 @@ surface. The sigma column reuses ``VERTICAL_SIGMA_LABEL`` below, which is the
 same CSV heading already serving as the Single point panel's row label."""
 
 
+def _geodetic_display_columns(settings) -> bool:
+    """Whether the table's coordinate columns hold degrees for this job.
+
+    True for a State-Plane-to-geodetic job, and for a vertical-only job whose
+    input is geodetic: that job's cells reproduce the input positions, so a
+    geodetic input keeps geodetic headings. The same branch
+    ``exports._geodetic_coordinate_columns`` takes for the files, restated
+    here only because this module may not import the file layer's private
+    names; ``row_strings`` renders through the identical formatters either
+    way, so the two cannot show different digits.
+    """
+    return settings.direction is Direction.ZONE_TO_GEODETIC or (
+        settings.direction is Direction.VERTICAL_ONLY
+        and settings.source_zone is None
+    )
+
+
 def _elevation_heading(base: str, settings) -> str:
     """``Elevation (NAVD88)`` - the ordinary heading with the TARGET datum.
 
@@ -91,11 +108,9 @@ def columns_for(result: JobResult | None) -> tuple[str, ...]:
         return COLUMNS
     settings = result.settings
     columns = list(
-        GEODETIC_COLUMNS
-        if settings.direction is Direction.ZONE_TO_GEODETIC
-        else COLUMNS
+        GEODETIC_COLUMNS if _geodetic_display_columns(settings) else COLUMNS
     )
-    if settings.vertical_mode is VerticalMode.HORIZONTAL_AND_VERTICAL:
+    if settings.vertical_mode.converts_elevations:
         at = columns.index("Elevation")
         columns[at] = _elevation_heading(columns[at], settings)
         columns[at + 1 : at + 1] = [
@@ -160,8 +175,8 @@ def row_strings(result: JobResult) -> tuple[tuple[str, ...], ...]:
     from the one written.
     """
     settings = result.settings
-    to_geodetic = settings.direction is Direction.ZONE_TO_GEODETIC
-    vertical = settings.vertical_mode is VerticalMode.HORIZONTAL_AND_VERTICAL
+    to_geodetic = _geodetic_display_columns(settings)
+    vertical = settings.vertical_mode.converts_elevations
 
     rows: list[tuple[str, ...]] = []
 
@@ -536,6 +551,69 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
         input_elevation_label = ELEVATION_LABEL
         output_elevation_label = ELEVATION_LABEL
     vertical_rows = _vertical_rows(reading)
+
+    if settings.direction is Direction.VERTICAL_ONLY:
+        # The vertical-only layouts (the owner's feature, 2026-08-09). The
+        # INPUT section describes the typed point in its own system, with the
+        # factors - the input zone's where one exists, honestly absent where
+        # none does. The OUTPUT section holds ONLY the target-datum elevation,
+        # the shift and the sigma: nothing was converted horizontally, and
+        # the unchanged coordinates repeated under an OUTPUT heading would
+        # read as a conversion that never ran.
+        if settings.source_zone is not None:
+            source = ResultSection(
+                INPUT_TITLE,
+                (
+                    *_grid_values(
+                        settings.source_zone,
+                        settings.input_unit,
+                        point.row.northing,
+                        point.row.easting,
+                        point.row.elevation,
+                        elevation_label=input_elevation_label,
+                    ),
+                    # The INPUT zone's factors, the ZONE_TO_GEODETIC
+                    # precedent: no output zone exists, so every factor
+                    # describes the typed State Plane point.
+                    ResultValue(
+                        GRID_FACTOR_LABEL, fmt.factor(factors.grid_scale_factor)
+                    ),
+                    ResultValue(
+                        CONVERGENCE_LABEL,
+                        fmt.convergence_display(conversion.target_convergence),
+                    ),
+                    *_elevation_dependent_values(factors),
+                ),
+            )
+        else:
+            # Geodetic input: no zone anywhere, so no Zone row, no grid
+            # factor row and no convergence row - a row of N/A would imply a
+            # zone could exist. The elevation-dependent values stay: the
+            # geoid height and elevation factor need no zone, and the
+            # combined factor honestly reads N/A through the formatter.
+            source = ResultSection(
+                INPUT_TITLE,
+                (
+                    *_geodetic_values(conversion, positive_west),
+                    ResultValue(
+                        input_elevation_label,
+                        fmt.coordinate(point.row.elevation, settings.input_unit),
+                    ),
+                    ResultValue(UNITS_LABEL, _units_text(settings.input_unit)),
+                    *_elevation_dependent_values(factors),
+                ),
+            )
+        target = ResultSection(
+            OUTPUT_TITLE,
+            (
+                ResultValue(
+                    output_elevation_label,
+                    fmt.coordinate(point.output_elevation, settings.output_unit),
+                ),
+                *vertical_rows,
+            ),
+        )
+        return source, target
 
     if settings.direction is Direction.GEODETIC_TO_ZONE:
         # The file's northing and easting columns hold a latitude and a

@@ -20,7 +20,7 @@ from michspc import APP_NAME, __version__
 from michspc.fileio import formatting as fmt
 from michspc.fileio import vertcon
 from michspc.fileio.geoid import geoid_model_by_name
-from michspc.job import Direction, JobResult, VerticalMode, factors_use_source_era
+from michspc.job import Direction, JobResult, factors_use_source_era
 from michspc.spc.convert import WarningCode
 from michspc.spc.factors import MEAN_EARTH_RADIUS_M
 from michspc.spc.lambert import constants_for
@@ -113,7 +113,11 @@ def _input_format_block(settings) -> list[str]:
     read without it.
     """
     unit = settings.input_unit
-    if settings.direction is Direction.GEODETIC_TO_ZONE:
+    geodetic_input = settings.direction is Direction.GEODETIC_TO_ZONE or (
+        settings.direction is Direction.VERTICAL_ONLY
+        and settings.source_zone is None
+    )
+    if geodetic_input:
         return [
             "Format             Comma separated, no header row - NOT PNEZD",
             "                   point, latitude, longitude, elevation, description",
@@ -145,6 +149,28 @@ def _clean_export_block(settings) -> list[str]:
     (docs/DESIGN.md amendment #13).
     """
     unit = settings.output_unit
+    if settings.direction is Direction.VERTICAL_ONLY:
+        if settings.source_zone is None:
+            return [
+                "    The input reproduced with ONLY the elevation converted - the",
+                "    same layout as the input: point, latitude, longitude,",
+                "    elevation, description, no header row.",
+                "    Columns two and three are DECIMAL DEGREES to 8 places -",
+                "    exactly the positions the input supplied, unconverted, in",
+                "    the input's own sign convention.",
+                f"    The elevation column is {unit.name} ({unit.code}), in the",
+                "    TARGET vertical datum named above.",
+                "    Nothing else.",
+            ]
+        return [
+            "    The input reproduced with ONLY the elevation converted - the",
+            "    same PNEZD layout as the input: point, northing, easting,",
+            "    elevation, description, no header row.",
+            f"    Northing and easting are the INPUT coordinates, {unit.name}",
+            f"    ({unit.code}), unconverted; the elevation column is the",
+            "    converted height, in the TARGET vertical datum named above.",
+            "    Nothing else. Extract this one and import it into CAD.",
+        ]
     if settings.direction is Direction.ZONE_TO_GEODETIC:
         return [
             "    The converted positions - NOT PNEZD, and NOT the same layout as",
@@ -466,12 +492,13 @@ def build_report(result: JobResult) -> str:
     generated = datetime.now(timezone.utc).astimezone()
 
     # The vertical disclosure switch (WP-V7). Everything it gates below is
-    # ADDITIVE and appears only on a HORIZONTAL_AND_VERTICAL job: a horizontal
-    # job's record is byte-identical to what this program has always written,
-    # which is the WP-V6 gate's hard constraint on this package. The
-    # transformation is resolved through the same registry lookup job.run
-    # performed, so the record and the computation quote one record.
-    vertical = settings.vertical_mode is VerticalMode.HORIZONTAL_AND_VERTICAL
+    # ADDITIVE and appears only on a job that converts elevations
+    # (HORIZONTAL_AND_VERTICAL, or vertical-only): a horizontal job's record
+    # is byte-identical to what this program has always written, which is the
+    # WP-V6 gate's hard constraint on this package. The transformation is
+    # resolved through the same registry lookup job.run performed, so the
+    # record and the computation quote one record.
+    vertical = settings.vertical_mode.converts_elevations
     transformation = (
         require_vertical_pair(
             settings.source_vertical_datum, settings.target_vertical_datum
@@ -530,6 +557,14 @@ def build_report(result: JobResult) -> str:
     add(_THIN)
     add(f"Folder             {settings.output_directory}")
     add(f"Conversion         {settings.direction.value}")
+    if settings.direction is Direction.VERTICAL_ONLY:
+        # The one direction whose OUTPUT is not a converted coordinate. Said
+        # here, at the line a reader consults first, so nobody takes the
+        # coordinate columns of the export for a conversion that happened.
+        add("                   The horizontal coordinates are NOT converted:")
+        add("                   the exports reproduce the input's coordinate")
+        add("                   columns unchanged, and only the elevation is")
+        add("                   converted, into the vertical datum below.")
     add(f"Units out          {settings.output_unit.name} ({settings.output_unit.code})")
     add(f"                   {settings.output_unit.citation}")
     if vertical:
@@ -538,9 +573,17 @@ def build_report(result: JobResult) -> str:
         add("                   Every elevation this job writes - including the")
         add("                   clean export's Z column - is expressed in this")
         add("                   datum.")
-    if settings.direction is not Direction.ZONE_TO_ZONE:
+    if settings.longitude_convention is not None:
+        # Present exactly when the job consulted one: every direction with
+        # geodetic coordinates on either end, including a vertical-only job
+        # reading a geodetic file. A zone-to-zone job and a vertical-only job
+        # reading State Plane coordinates state None - the file carries no
+        # longitudes - and the record honestly carries no Longitude line.
         add(f"Longitude          {settings.longitude_convention.value}")
-    if settings.direction is Direction.GEODETIC_TO_ZONE:
+    if settings.direction is Direction.GEODETIC_TO_ZONE or (
+        settings.direction is Direction.VERTICAL_ONLY
+        and settings.source_zone is None
+    ):
         # The one thing a geodetic input file cannot carry in its own columns.
         # A latitude and longitude mean nothing without the frame they are
         # expressed in, and reading NATRF2022 positions as NAD 83 is a one-to-
@@ -565,6 +608,15 @@ def build_report(result: JobResult) -> str:
     add(_THIN)
     add("COORDINATE SYSTEMS")
     add(_THIN)
+    if (
+        settings.direction is Direction.VERTICAL_ONLY
+        and settings.source_zone is None
+    ):
+        # An empty section would read as an omission; the truth is that this
+        # job involves no zone at all, and the record says so.
+        add("The input is geodetic positions (latitude / longitude). No State")
+        add("Plane coordinate system is involved in this job.")
+        add("")
     if settings.source_zone is not None:
         lines.extend(_zone_block(settings.source_zone, "FROM"))
         add("")
@@ -657,6 +709,23 @@ def build_report(result: JobResult) -> str:
     add(_THIN)
     add("SCALE FACTOR SUMMARY")
     add(_THIN)
+    if settings.direction is Direction.VERTICAL_ONLY:
+        # The factors' provenance in the one direction with no output zone.
+        # Two different truths depending on the input system, and the record
+        # must state the one that applies (the input-zone / no-zone split
+        # job._convert_row computes by).
+        if settings.source_zone is not None:
+            add("No output zone exists in this mode, so the grid scale factor,")
+            add("convergence and combined factor below are the INPUT zone's at")
+            add("each point - exactly as a State Plane to geodetic job reports")
+            add("them.")
+        else:
+            add("No State Plane zone is involved in this job, so no grid scale")
+            add("factor and no combined factor exists for any point - those")
+            add(f"cells read {fmt.NOT_AVAILABLE!r}, never a fabricated 1.0. The elevation")
+            add("factor needs no zone and is still computed from the geoid")
+            add("model at each position.")
+        add("")
     add("Per-point values are in the _full.csv export. Summary across this job:")
     add("")
     lines.extend(_factor_summary(result))
@@ -909,7 +978,28 @@ def _factor_summary(result: JobResult) -> list[str]:
         lines.append("  area by its square to get ground area (manual section 4.1).")
     else:
         lines.append("")
-        lines.append(
-            "  No combined factors were computed: no point carried a usable elevation."
-        )
+        # WHY the tuple is empty decides the sentence - saying "no point
+        # carried a usable elevation" on a geodetic-input vertical-only job
+        # whose every point carried one was a false statement in a sealed
+        # record, contradicted by the ELEVATIONS section five lines below
+        # (vertical-only gate, MEDIUM 1; the #42-finding-3 class). At HEAD
+        # the implication held because grid_scale_factor was never None;
+        # the no-zone path broke it and this sentence was not re-guarded.
+        if result.settings.direction is Direction.VERTICAL_ONLY and (
+            result.settings.source_zone is None
+        ):
+            lines.append(
+                "  No combined factors exist for this job: no zone is involved"
+            )
+            lines.append(
+                "  in a vertical-only conversion of geodetic positions, so there"
+            )
+            lines.append(
+                "  is no grid scale factor to combine with the elevation factor."
+            )
+        else:
+            lines.append(
+                "  No combined factors were computed: no point carried a usable "
+                "elevation."
+            )
     return lines

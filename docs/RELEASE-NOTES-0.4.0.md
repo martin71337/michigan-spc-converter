@@ -32,12 +32,40 @@ reads "as used for the factors".
   the target-datum elevation and the job record says which datum that is. No
   sixth column reaches a CAD import.
 
+## A Vertical-only mode
+
+A third mode, **Vertical**, on both tabs, converts elevations and nothing
+else. You state the INPUT horizontal system — a zone, or geodetic positions
+— and no output system: the To zone and output unit controls are hidden,
+because no output horizontal system exists in this mode.
+
+- **The exports mirror the import.** The clean export keeps the input's own
+  layout and its coordinate columns hold the input values unchanged
+  (re-rendered through the standard formatters, so they are
+  formatting-normalized, not byte-copied); only the Z column differs, by
+  exactly the modeled shift, in the target datum. The output unit is the
+  input unit by construction — a mismatch is refused rather than
+  re-expressed.
+- The audit CSV states it plainly: the target coordinate columns equal the
+  source columns, and the "Target zone" cell reads **vertical only**.
+- Factors follow the input system: with a zone input they are the input
+  zone's at each point (as a State Plane → geodetic job reports them); with
+  geodetic input no zone exists anywhere, so the grid scale and combined
+  factors read N/A — never a fabricated 1.0 — while the elevation factor,
+  which needs no zone, is still computed.
+- On the Single point tab the OUTPUT panel shows only the target-datum
+  elevation, the shift and its one-sigma — the unchanged coordinates are
+  not repeated under an OUTPUT heading, because nothing was converted
+  horizontally.
+- The vertical arithmetic is the same code path as Horizontal + Vertical —
+  not a second implementation — held to the same frozen NCAT anchors in
+  both input formats and both datum directions.
+
 ## What the shift is, honestly
 
 - **Modeled, not measured.** A published NAVD 88 benchmark value supersedes
   a modeled shift, and NGVD 29 network distortions of 20 cm or more exist.
-  The job record carries NGS's caveat in full; the Single point panel
-  carries it in a row of its own, because that tab writes no file.
+  The job record carries NGS's caveat in full on every written job.
 - Where the error model's output cannot be a one-sigma uncertainty (a small
   fraction of Michigan positions), the sigma reads **N/A — never a number**
   — and a warning explains. The shift at such a point is valid and

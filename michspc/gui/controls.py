@@ -177,14 +177,20 @@ def longitude_combo(parent, on_change) -> QComboBox:
 VERTICAL_MODE_LABEL = "Mode:"
 HORIZONTAL_MODE_TEXT = "Horizontal"
 VERTICAL_MODE_TEXT = "Horizontal + Vertical"
-"""The mode toggle's two captions (docs/PLAN-vertical-datums.md section 4.1).
+VERTICAL_ONLY_MODE_TEXT = "Vertical"
+"""The mode toggle's three captions (docs/PLAN-vertical-datums.md section
+4.1; the third is the owner's feature of 2026-08-09).
 
 "Horizontal" is today's job, exactly - no vertical datum is asked for and
 nothing is tagged. "Horizontal + Vertical" additionally converts every
-elevation between the two vertical datums the revealed dropdowns name. The
-toggle opens on Horizontal because that asserts nothing about a vertical
-datum; it is a starting state, not an answer to the datum question, which the
-two dropdowns still refuse to assume.
+elevation between the two vertical datums the revealed dropdowns name.
+"Vertical" converts ONLY the elevations: the From selection names the input
+system, no output system exists, and the exports reproduce the input's
+coordinate columns unchanged - so the To zone row and the output unit
+selector are hidden in that mode. The toggle opens on Horizontal because
+that asserts nothing about a vertical datum; it is a starting state, not an
+answer to the datum question, which the two dropdowns still refuse to
+assume.
 """
 
 VERTICAL_SOURCE_LABEL = "Vertical datum from:"
@@ -195,53 +201,71 @@ GEOID_MODEL_LABEL = "Geoid model:"
 
 def vertical_mode_buttons(
     parent, on_change
-) -> tuple[QRadioButton, QRadioButton, QButtonGroup]:
-    """The Horizontal / Horizontal + Vertical toggle, one per tab.
+) -> tuple[QRadioButton, QRadioButton, QRadioButton, QButtonGroup]:
+    """The Horizontal / Horizontal + Vertical / Vertical toggle, one per tab.
 
-    Two ``QRadioButton``s in an exclusive ``QButtonGroup`` - the repo's
+    Three ``QRadioButton``s in an exclusive ``QButtonGroup`` - the repo's
     existing idiom (``elevation_in_file``), native per METHOD.md section 5.
     Built here so both tabs get the *same* control rather than a lookalike
-    pair, exactly as ``longitude_combo`` serves them both; the handler is
+    set, exactly as ``longitude_combo`` serves them both; the handler is
     passed in because the tabs share no state (docs/DESIGN.md amendment #26)
     and each connects its own.
 
     Opens on Horizontal (plan section 4.1): today's behaviour, asserting
     nothing about a vertical datum.
 
-    Only the Horizontal button's ``toggled`` signal carries the handler. The
-    two buttons are exclusive, so every mode change toggles BOTH - connecting
-    both would fire the handler twice per click, and connecting one is exactly
-    once. The handlers this reaches are idempotent either way; once is simply
-    the honest count.
+    The handler rides ``QButtonGroup.buttonToggled``, filtered to the button
+    being CHECKED. With two buttons the old wiring - one button's ``toggled``
+    - fired exactly once per mode change, because every change toggled both.
+    Three exclusive buttons break that arithmetic: a change toggles only the
+    button leaving and the button entering, so any single button's signal
+    misses the switches it is not part of (Horizontal's ``toggled`` never
+    fires on a Horizontal + Vertical <-> Vertical switch - a mode change
+    that would silently keep a stale result on screen, the amendment #26
+    CRITICAL class). The group's signal sees every change; the checked
+    filter keeps the count at exactly one call per change.
     """
     horizontal = QRadioButton(HORIZONTAL_MODE_TEXT, parent)
     vertical = QRadioButton(VERTICAL_MODE_TEXT, parent)
+    vertical_only = QRadioButton(VERTICAL_ONLY_MODE_TEXT, parent)
     group = QButtonGroup(parent)
     group.addButton(horizontal)
     group.addButton(vertical)
+    group.addButton(vertical_only)
+    # Checked BEFORE the connection, so building the control does not fire
+    # the handler on a tab that is still constructing itself.
     horizontal.setChecked(True)
-    horizontal.toggled.connect(on_change)
-    return horizontal, vertical, group
+
+    def _on_button_toggled(_button, checked: bool) -> None:
+        if checked:
+            on_change()
+
+    group.buttonToggled.connect(_on_button_toggled)
+    return horizontal, vertical, vertical_only, group
 
 
 def vertical_mode_for(
-    horizontal: QRadioButton, vertical: QRadioButton
+    horizontal: QRadioButton,
+    vertical: QRadioButton,
+    vertical_only: QRadioButton,
 ) -> VerticalMode:
     """The mode a tab's toggle currently states.
 
     The rule lives here, beside the builder, so the two tabs cannot read the
-    same pair of buttons two different ways. Exactly one button is checked at
+    same set of buttons two different ways. Exactly one button is checked at
     all times - the group is exclusive and the builder checks Horizontal - so
-    the neither-checked branch below is unreachable through the interface; it
+    the none-checked branch below is unreachable through the interface; it
     refuses rather than guessing because a mode guessed here would silently
-    decide whether elevations are converted.
+    decide whether elevations, coordinates, or both are converted.
     """
     if horizontal.isChecked():
         return VerticalMode.HORIZONTAL
     if vertical.isChecked():
         return VerticalMode.HORIZONTAL_AND_VERTICAL
+    if vertical_only.isChecked():
+        return VerticalMode.VERTICAL
     raise ValueError(
-        "Neither mode button is checked, so the vertical mode is unknown. "
+        "No mode button is checked, so the vertical mode is unknown. "
         "The toggle is built with Horizontal checked and the group is "
         "exclusive, so this state should be unreachable; refusing rather "
         "than assuming a mode."
@@ -341,6 +365,20 @@ def longitude_is_relevant(direction) -> bool:
         Direction.GEODETIC_TO_ZONE,
         Direction.ZONE_TO_GEODETIC,
     )
+
+
+def longitude_relevance(mode, source_data, direction) -> bool:
+    """Whether the longitude sign selector governs anything right now.
+
+    The one rule for both tabs, extended for vertical-only mode: in that mode
+    the To dropdown is hidden and ``direction_for`` cannot answer, so
+    relevance follows the FROM selection alone - the file carries longitudes
+    exactly when its input is geodetic. Every other mode keeps the standing
+    ``longitude_is_relevant`` rule over the pair of dropdowns.
+    """
+    if mode is VerticalMode.VERTICAL:
+        return source_data == GEODETIC
+    return longitude_is_relevant(direction)
 
 
 def show_failure_dialog(parent, error: BaseException, title: str) -> None:

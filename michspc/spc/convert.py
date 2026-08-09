@@ -112,10 +112,17 @@ class ConversionWarning:
 
 @dataclass(frozen=True)
 class PointConversion:
-    """The full record of one point's conversion. Immutable."""
+    """The full record of one point's conversion. Immutable.
 
-    source_zone: Zone
-    target_zone: Zone
+    Every zone-derived field - the two zones, the four convergence and scale
+    quantities, and the grid coordinates - is None on a record built by
+    ``geodetic_position``: a vertical-only job whose input is geodetic
+    involves no zone anywhere, and this program does not fabricate one. The
+    geodetic pivot is the one thing such a record always carries.
+    """
+
+    source_zone: Zone | None
+    target_zone: Zone | None
 
     frame: ReferenceFrame
     """The reference frame this position is expressed in.
@@ -128,22 +135,22 @@ class PointConversion:
     wrong.
     """
 
-    source_northing: float
-    source_easting: float
-    """Meters, in the source zone."""
+    source_northing: float | None
+    source_easting: float | None
+    """Meters, in the source zone. None on a no-zone record."""
 
     latitude: float
     longitude: float
     """The geodetic pivot. Decimal degrees, longitude negative west."""
 
-    target_northing: float
-    target_easting: float
-    """Meters, in the target zone."""
+    target_northing: float | None
+    target_easting: float | None
+    """Meters, in the target zone. None on a no-zone record."""
 
-    source_convergence: float
-    source_scale_factor: float
-    target_convergence: float
-    target_scale_factor: float
+    source_convergence: float | None
+    source_scale_factor: float | None
+    target_convergence: float | None
+    target_scale_factor: float | None
 
     warnings: tuple[ConversionWarning, ...] = field(default_factory=tuple)
 
@@ -346,4 +353,56 @@ def project_point(
         target_convergence=convergence,
         target_scale_factor=scale,
         warnings=warnings,
+    )
+
+
+def geodetic_position(
+    latitude: float,
+    longitude: float,
+    source_frame: ReferenceFrame,
+    context: str = "point",
+) -> PointConversion:
+    """A geodetic position with no zone on either end.
+
+    Exists for the vertical-only job whose input is geodetic
+    (``michspc.job``, ``Direction.VERTICAL_ONLY`` with ``source_zone=None``):
+    the vertical shift and the geoid lookup need the pivot latitude and
+    longitude, and nothing in that job involves a State Plane zone. Every
+    zone-derived field is None - never a fabricated zone, whose scale factor
+    and convergence would be plausible numbers describing a projection nobody
+    chose. ``factors_at`` accepts the None scale factor and reports the grid
+    scale and combined factors as absent while still computing the elevation
+    factor, which needs no zone.
+
+    ``source_frame`` is required with no default, exactly as
+    ``project_point`` requires it and for the same reason: a latitude and
+    longitude alone do not say which frame they belong to, and the NGS grids
+    this position is looked up in are published against NAD 83. No projection
+    runs here, so no extent warning can be raised - there is no zone to have
+    an extent.
+    """
+    if not isinstance(source_frame, ReferenceFrame):
+        raise TypeError(
+            f"geodetic_position needs the reference frame the position is "
+            f"expressed in, as its third argument; got "
+            f"{type(source_frame).__name__} ({source_frame!r}). A latitude "
+            f"and longitude do not carry their own frame. Pass "
+            f"michspc.spc.frames.NAD83_2011 for an NAD 83 position."
+        )
+
+    return PointConversion(
+        source_zone=None,
+        target_zone=None,
+        frame=source_frame,
+        source_northing=None,
+        source_easting=None,
+        latitude=latitude,
+        longitude=longitude,
+        target_northing=None,
+        target_easting=None,
+        source_convergence=None,
+        source_scale_factor=None,
+        target_convergence=None,
+        target_scale_factor=None,
+        warnings=(),
     )

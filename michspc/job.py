@@ -29,6 +29,7 @@ from michspc.spc.convert import (
     WarningCode,
     convert_point,
     easting_looks_wrong_for_zone,
+    geodetic_position,
     project_point,
 )
 from michspc.spc.factors import Factors, factors_at
@@ -50,6 +51,17 @@ class Direction(Enum):
     ZONE_TO_ZONE = "zone to zone"
     GEODETIC_TO_ZONE = "geodetic to State Plane"
     ZONE_TO_GEODETIC = "State Plane to geodetic"
+    VERTICAL_ONLY = "vertical only"
+    """The ONLY conversion performed is the vertical datum shift (the owner's
+    feature of 2026-08-09). The user states an INPUT horizontal system - a
+    zone, carried in ``source_zone`` exactly as ``ZONE_TO_GEODETIC`` does, or
+    geodetic positions, stated as ``source_zone=None`` - and NO output system:
+    ``target_zone`` must be None, and supplying one refuses, because no output
+    horizontal system exists in this mode. The exports reproduce the input's
+    coordinate columns unchanged (``output_unit`` must equal ``input_unit``
+    for the same reason) and only the elevation moves. Requires
+    ``VerticalMode.VERTICAL``, and is required by it - ``run`` refuses either
+    without the other."""
 
 
 class VerticalMode(Enum):
@@ -61,11 +73,28 @@ class VerticalMode(Enum):
     horizontal mode is unchanged). ``HORIZONTAL_AND_VERTICAL`` additionally
     moves every elevation from the source vertical datum to the target one
     through the registry in ``michspc/spc/vertical.py``, and reports the
-    modeled shift and its per-point uncertainty beside it.
+    modeled shift and its per-point uncertainty beside it. ``VERTICAL`` moves
+    ONLY the elevation - the same shift, the same reading, the same refusal
+    shapes as ``HORIZONTAL_AND_VERTICAL``, applied by the same code - while
+    the horizontal coordinates pass through unchanged; it pairs with
+    ``Direction.VERTICAL_ONLY`` and with nothing else.
     """
 
     HORIZONTAL = "horizontal"
     HORIZONTAL_AND_VERTICAL = "horizontal and vertical"
+    VERTICAL = "vertical"
+
+    @property
+    def converts_elevations(self) -> bool:
+        """Whether this mode shifts elevations between vertical datums.
+
+        The one authoritative statement of which modes carry a vertical
+        conversion, read by every surface that gates a vertical block (the
+        audit CSV's columns, the job record's METHOD section, the results
+        table's headings) - so a mode added later cannot leave one surface
+        silently horizontal.
+        """
+        return self is not VerticalMode.HORIZONTAL
 
 
 class LongitudeConvention(Enum):
@@ -443,7 +472,14 @@ class JobResult:
 
     @property
     def grid_scale_factors(self) -> tuple[float, ...]:
-        return tuple(p.factors.grid_scale_factor for p in self.points)
+        # None is skipped exactly as combined_factors skips it: a vertical-only
+        # job with geodetic input has no zone anywhere, so its points carry no
+        # grid scale factor - an absence, never a fabricated 1.0.
+        return tuple(
+            p.factors.grid_scale_factor
+            for p in self.points
+            if p.factors.grid_scale_factor is not None
+        )
 
 
 def file_sha256(path: Path) -> str:
@@ -481,13 +517,50 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
     elif settings.direction is Direction.GEODETIC_TO_ZONE:
         if settings.target_zone is None:
             raise ValueError("A geodetic conversion needs a target zone.")
+    elif settings.direction is Direction.VERTICAL_ONLY:
+        if settings.target_zone is not None:
+            raise ValueError(
+                f"A vertical-only job was given target_zone "
+                f"{settings.target_zone.name}, but no output horizontal "
+                f"system exists in this mode: the only conversion performed "
+                f"is the vertical datum shift, and the exports reproduce the "
+                f"input's coordinate columns unchanged. State "
+                f"target_zone=None; to convert the coordinates as well, run "
+                f"a zone-to-zone job with "
+                f"VerticalMode.HORIZONTAL_AND_VERTICAL."
+            )
+        if settings.output_unit != settings.input_unit:
+            raise ValueError(
+                f"A vertical-only job's exports reproduce the input's "
+                f"coordinate columns exactly, so its output unit must equal "
+                f"its input unit - re-expressing "
+                f"{settings.input_unit.code} values in "
+                f"{settings.output_unit.code} would alter every column the "
+                f"export promises to mirror. Got "
+                f"input_unit={settings.input_unit.code}, "
+                f"output_unit={settings.output_unit.code}. To change units, "
+                f"run a horizontal or horizontal-and-vertical job, whose "
+                f"exports state the output unit rather than mirroring the "
+                f"input."
+            )
+        # ``source_zone`` is the input system: a Zone for a PNEZD file, or
+        # None for geodetic positions - exactly the existing source_zone
+        # idiom, so no third field exists to disagree with it.
     elif settings.source_zone is None:
         raise ValueError("Converting to geodetic needs the zone the file is in.")
 
-    if (
-        settings.direction is not Direction.ZONE_TO_ZONE
-        and settings.longitude_convention is None
-    ):
+    # Which jobs consult the longitude sign convention. A vertical-only job
+    # reads longitudes from the file ONLY when its input is geodetic; with a
+    # zone input the file carries none and none are written, so that job
+    # states None exactly as a zone-to-zone job does.
+    consults_longitude = settings.direction in (
+        Direction.GEODETIC_TO_ZONE,
+        Direction.ZONE_TO_GEODETIC,
+    ) or (
+        settings.direction is Direction.VERTICAL_ONLY
+        and settings.source_zone is None
+    )
+    if consults_longitude and settings.longitude_convention is None:
         raise ValueError(
             "A conversion with geodetic coordinates on either end needs the "
             "longitude sign convention the file uses. It has no default: the "
@@ -495,6 +568,22 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
             "GIS and NGS tool writes them negative west, the two are "
             "indistinguishable from the numbers alone, and choosing wrongly "
             "moves a Michigan point about 340 miles."
+        )
+    if (
+        settings.direction is Direction.VERTICAL_ONLY
+        and settings.source_zone is not None
+        and settings.longitude_convention is not None
+    ):
+        raise ValueError(
+            f"A vertical-only job reading State Plane coordinates was given "
+            f"a longitude sign convention "
+            f"({settings.longitude_convention.value!r}). The input file "
+            f"carries no longitude column and none is written - the pivot "
+            f"latitude and longitude are computed from the zone, in the "
+            f"program's own signed convention - so a convention stated here "
+            f"would be an answer to a question this job never asks, exactly "
+            f"as a zone-to-zone job states None. Pass "
+            f"longitude_convention=None."
         )
 
     # Every vertical-settings refusal fires here, before any file is read and
@@ -666,9 +755,44 @@ def _require_vertical_settings(
         raise TypeError(
             f"JobSettings.vertical_mode must be a michspc.job.VerticalMode; "
             f"got {type(mode).__name__} ({mode!r}). In particular True is "
-            f"not 'vertical on': an impostor compares unequal to both "
-            f"members and would be treated as whichever branch its identity "
-            f"check happened to miss. Pass VerticalMode.HORIZONTAL or "
+            f"not 'vertical on': an impostor compares unequal to every "
+            f"member and would be treated as whichever branch its identity "
+            f"check happened to miss. Pass VerticalMode.HORIZONTAL, "
+            f"VerticalMode.HORIZONTAL_AND_VERTICAL, or "
+            f"VerticalMode.VERTICAL."
+        )
+
+    # VERTICAL and VERTICAL_ONLY require each other, in both directions.
+    # A vertical-only direction under any other mode either converts nothing
+    # (HORIZONTAL) or promises a horizontal conversion this direction does
+    # not perform; a VERTICAL mode on any other direction would silently
+    # decide whether that job's coordinates move. Refused rather than
+    # reconciled, in the style of the rest of this matrix.
+    if (
+        settings.direction is Direction.VERTICAL_ONLY
+        and mode is not VerticalMode.VERTICAL
+    ):
+        raise ValueError(
+            f"This job's direction is "
+            f"{Direction.VERTICAL_ONLY.value!r} but its vertical_mode is "
+            f"{mode.value!r}. A vertical-only job performs exactly one "
+            f"conversion - the vertical datum shift - and the two fields "
+            f"must state it together: Direction.VERTICAL_ONLY with "
+            f"VerticalMode.VERTICAL. Any other mode either converts no "
+            f"elevation or claims a horizontal conversion this direction "
+            f"does not perform, so guessing which the caller meant would "
+            f"decide what happens to every coordinate in the job."
+        )
+    if (
+        mode is VerticalMode.VERTICAL
+        and settings.direction is not Direction.VERTICAL_ONLY
+    ):
+        raise ValueError(
+            f"This job's vertical_mode is {VerticalMode.VERTICAL.value!r} "
+            f"but its direction is {settings.direction.value!r}. "
+            f"VerticalMode.VERTICAL converts elevations and nothing else, so "
+            f"it pairs only with Direction.VERTICAL_ONLY; a job that also "
+            f"converts coordinates states "
             f"VerticalMode.HORIZONTAL_AND_VERTICAL."
         )
 
@@ -711,7 +835,10 @@ def _require_vertical_settings(
         names = " and ".join(missing)
         verb = "were" if len(missing) > 1 else "was"
         raise ValueError(
-            f"A horizontal-and-vertical job needs both vertical datums, and "
+            # mode.value spells the job: "horizontal and vertical" or
+            # "vertical". One raise for both modes - the same code path on
+            # purpose, so the two cannot come to refuse differently.
+            f"A {mode.value} job needs both vertical datums, and "
             f"{names} {verb} not stated. Neither has a default: NGVD 29 and "
             f"NAVD 88 heights differ by up to 0.41 m across Michigan while "
             f"looking identical, so assuming a datum would silently relabel "
@@ -851,7 +978,12 @@ def _convert_row(
     context = f"point {row.point_id}"
     warnings: list[ConversionWarning] = []
 
-    if settings.direction is Direction.GEODETIC_TO_ZONE:
+    geodetic_input = settings.direction is Direction.GEODETIC_TO_ZONE or (
+        settings.direction is Direction.VERTICAL_ONLY
+        and settings.source_zone is None
+    )
+
+    if geodetic_input:
         # The file's "northing" and "easting" columns hold latitude and
         # longitude. The longitude is normalised to the program's signed
         # convention here, at the boundary, and nowhere else.
@@ -860,16 +992,31 @@ def _convert_row(
         _require_geodetic_in_range(
             latitude, longitude, row.easting, settings, context
         )
-        conversion = project_point(
-            latitude,
-            longitude,
-            settings.geodetic_frame,
-            settings.target_zone,
-            context,
-        )
-        output_unit = settings.output_unit
-        output_northing = output_unit.from_meters(conversion.target_northing)
-        output_easting = output_unit.from_meters(conversion.target_easting)
+        if settings.direction is Direction.GEODETIC_TO_ZONE:
+            conversion = project_point(
+                latitude,
+                longitude,
+                settings.geodetic_frame,
+                settings.target_zone,
+                context,
+            )
+            output_unit = settings.output_unit
+            output_northing = output_unit.from_meters(conversion.target_northing)
+            output_easting = output_unit.from_meters(conversion.target_easting)
+        else:
+            # VERTICAL_ONLY, geodetic input. No zone exists anywhere in this
+            # job, and none is fabricated: the position record carries the
+            # pivot for the grid lookups and None for every zone-derived
+            # quantity, so the grid scale and combined factors downstream are
+            # honestly absent rather than invented. The output coordinate
+            # columns are the INPUT values, unchanged - the mirror this
+            # direction promises - including the longitude exactly as the
+            # file wrote it, in its own convention.
+            conversion = geodetic_position(
+                latitude, longitude, settings.geodetic_frame, context
+            )
+            output_northing = row.northing
+            output_easting = row.easting
     else:
         northing_m = settings.input_unit.to_meters(row.northing)
         easting_m = settings.input_unit.to_meters(row.easting)
@@ -909,6 +1056,24 @@ def _convert_row(
             output_easting = settings.longitude_convention.from_signed(
                 conversion.longitude
             )
+        elif settings.direction is Direction.VERTICAL_ONLY:
+            # VERTICAL_ONLY, zone input. The pivot latitude and longitude the
+            # grid lookups need come from inverse-projecting through the
+            # INPUT zone - the same machinery, and the same source-zone-twice
+            # call, ZONE_TO_GEODETIC uses above, so the factors sit under the
+            # input zone exactly as that direction's do (there is no target
+            # zone in either). The output coordinate columns are the INPUT
+            # values, unchanged: the settings guarantee output_unit equals
+            # input_unit, so no re-expression could be hiding in them.
+            conversion = convert_point(
+                northing_m,
+                easting_m,
+                settings.source_zone,
+                settings.source_zone,
+                context,
+            )
+            output_northing = row.northing
+            output_easting = row.easting
         else:
             conversion = convert_point(
                 northing_m,
@@ -956,9 +1121,7 @@ def _convert_row(
     # ----------------------------------------------------------------------
     height_m = elevation_m
     vertical_reading: VerticalReading | None = None
-    if transformation is None and settings.vertical_mode is (
-        VerticalMode.HORIZONTAL_AND_VERTICAL
-    ):
+    if transformation is None and settings.vertical_mode.converts_elevations:
         # The mirror of _require_transformation_matches_settings (WP-V6 review
         # gate, LOW 6): that check catches the wrong record arriving, this
         # catches NO record arriving on settings that promise a shift. Without

@@ -25,7 +25,7 @@ from pathlib import Path
 
 from michspc.fileio import formatting as fmt
 from michspc.fileio.writers import WriteError, staged_write
-from michspc.job import Direction, JobResult, VerticalMode
+from michspc.job import Direction, JobResult
 
 _PNEZD_HEADERLESS = True
 """The clean export has no header row, matching the input format exactly.
@@ -33,6 +33,29 @@ _PNEZD_HEADERLESS = True
 A header would make the output un-round-trippable through this program's own
 reader, which is the property `verify_round_trip` below exists to guarantee.
 """
+
+
+def _geodetic_coordinate_columns(settings) -> bool:
+    """Whether this job's OUTPUT coordinate columns hold degrees.
+
+    True for a State-Plane-to-geodetic job, and for a vertical-only job whose
+    input is geodetic - that job's exports mirror the input's own layout, so
+    a geodetic input keeps geodetic columns. Stated once, here, because the
+    clean export, the audit CSV and the round-trip verifier must all take
+    the same branch or the verifier would check a file that was not written.
+    """
+    return settings.direction is Direction.ZONE_TO_GEODETIC or (
+        settings.direction is Direction.VERTICAL_ONLY
+        and settings.source_zone is None
+    )
+
+
+def _geodetic_source_columns(settings) -> bool:
+    """Whether this job's INPUT file's columns two and three hold degrees."""
+    return settings.direction is Direction.GEODETIC_TO_ZONE or (
+        settings.direction is Direction.VERTICAL_ONLY
+        and settings.source_zone is None
+    )
 
 
 def output_stem(result: JobResult) -> str:
@@ -53,6 +76,10 @@ def output_stem(result: JobResult) -> str:
         )
     if settings.direction is Direction.ZONE_TO_GEODETIC:
         suffix = "GEODETIC"
+    elif settings.direction is Direction.VERTICAL_ONLY:
+        # No target zone exists in this mode, so no abbreviation could name
+        # the export; what happened to the file is the vertical conversion.
+        suffix = "VERTICAL"
     else:
         suffix = settings.target_zone.abbrev
     return f"{settings.input_path.stem}_{suffix}"
@@ -64,7 +91,11 @@ def clean_pnezd_rows(result: JobResult) -> list[list[str]]:
     rows: list[list[str]] = []
 
     for point in result.points:
-        if settings.direction is Direction.ZONE_TO_GEODETIC:
+        if _geodetic_coordinate_columns(settings):
+            # For a vertical-only geodetic job these are the INPUT positions
+            # re-rendered through the standard formatters - the longitude
+            # exactly as the file wrote it, in its own convention - so the
+            # export mirrors the import, formatting-normalized.
             northing = fmt.latitude(point.output_northing)
             easting = fmt.longitude(point.output_easting)
             # The OUTPUT unit, exactly as in every other direction. The columns
@@ -142,9 +173,10 @@ def audit_columns(result: JobResult) -> list[str]:
     in which case that end's pair of columns is renamed to say what it actually
     holds. The other end's headings never move.
 
-    A HORIZONTAL_AND_VERTICAL job additionally carries six columns a
-    horizontal CSV must never grow (WP-V7, docs/PLAN-vertical-datums.md
-    section 5.2):
+    A job that converts elevations (``VerticalMode.converts_elevations`` -
+    HORIZONTAL_AND_VERTICAL, and vertical-only) additionally carries six
+    columns a horizontal CSV must never grow (WP-V7,
+    docs/PLAN-vertical-datums.md section 5.2):
 
     * ``Source vertical datum`` / ``Target vertical datum`` - which surface
       each end's heights are expressed in, per row, so a row cut out of this
@@ -169,12 +201,11 @@ def audit_columns(result: JobResult) -> list[str]:
     """
     columns = list(AUDIT_COLUMNS)
     settings = result.settings
-    direction = settings.direction
-    if direction is Direction.GEODETIC_TO_ZONE:
+    if _geodetic_source_columns(settings):
         columns[2], columns[3] = SOURCE_COLUMNS_GEODETIC
-    elif direction is Direction.ZONE_TO_GEODETIC:
+    if _geodetic_coordinate_columns(settings):
         columns[5], columns[6] = TARGET_COLUMNS_GEODETIC
-    if settings.vertical_mode is VerticalMode.HORIZONTAL_AND_VERTICAL:
+    if settings.vertical_mode.converts_elevations:
         # The vertical block sits directly after Elevation, so the target
         # height and the ingredients it was derived from read side by side;
         # Geoid model sits directly before the geoid height it governs.
@@ -199,8 +230,9 @@ def audit_rows(result: JobResult) -> list[list[str]]:
     settings = result.settings
     out_unit = settings.output_unit
     in_unit = settings.input_unit
-    geodetic_source = settings.direction is Direction.GEODETIC_TO_ZONE
-    vertical = settings.vertical_mode is VerticalMode.HORIZONTAL_AND_VERTICAL
+    geodetic_source = _geodetic_source_columns(settings)
+    geodetic_target = _geodetic_coordinate_columns(settings)
+    vertical = settings.vertical_mode.converts_elevations
 
     header = audit_columns(result)
     rows: list[list[str]] = [header]
@@ -224,18 +256,29 @@ def audit_rows(result: JobResult) -> list[list[str]]:
             source_northing = fmt.coordinate(point.row.northing, in_unit)
             source_easting = fmt.coordinate(point.row.easting, in_unit)
 
+        # What the "Target zone" cell says the output system is. A
+        # vertical-only job HAS no output horizontal system - the coordinate
+        # columns beside this cell reproduce the input's - so the honest
+        # statement is the direction itself: "vertical only".
+        if settings.direction is Direction.VERTICAL_ONLY:
+            target_system = settings.direction.value
+        elif settings.target_zone:
+            target_system = settings.target_zone.name
+        else:
+            target_system = "geodetic"
+
         row = (
             [
                 point.point_id,
                 settings.source_zone.name if settings.source_zone else "",
                 source_northing,
                 source_easting,
-                settings.target_zone.name if settings.target_zone else "geodetic",
+                target_system,
                 fmt.coordinate(point.output_northing, out_unit)
-                if settings.direction is not Direction.ZONE_TO_GEODETIC
+                if not geodetic_target
                 else fmt.latitude(point.output_northing),
                 fmt.coordinate(point.output_easting, out_unit)
-                if settings.direction is not Direction.ZONE_TO_GEODETIC
+                if not geodetic_target
                 else fmt.longitude(point.output_easting),
                 fmt.coordinate(point.output_elevation, out_unit),
                 f"in {in_unit.code}, out {out_unit.code}",
@@ -307,7 +350,7 @@ def _expected_coordinates(result: JobResult, point) -> tuple[str, float, str, fl
     same branch ``clean_pnezd_rows`` writes, so the two cannot describe
     different columns.
     """
-    if result.settings.direction is Direction.ZONE_TO_GEODETIC:
+    if _geodetic_coordinate_columns(result.settings):
         return ("latitude", point.output_northing, "longitude", point.output_easting)
     return ("northing", point.output_northing, "easting", point.output_easting)
 
@@ -323,17 +366,14 @@ def _written_decimals(result: JobResult, geodetic: bool) -> int:
     return 8 if geodetic else result.settings.output_unit.decimals
 
 
-def _rounding_tolerance(decimals: int) -> float:
-    """How far a re-read value may sit from the value the job computed.
-
-    ``f"{v:.Nf}"`` moves a value by at most half of the last place it keeps, so
-    that is the whole budget: 0.0005 ft at 3 places, 0.00005 m at 4, and
-    0.000000005 deg - about half a millimetre - at 8. The 1e-12 is IEEE slack
-    on the power itself, not a licence to disagree.
-
-    Anything larger than this is not rounding. It is a different number.
-    """
-    return 0.5 * 10.0**-decimals + 1e-12
+# _rounding_tolerance stood here until the vertical-only gate (DESIGN.md #46,
+# MEDIUM 2): verify_round_trip now compares the re-read value EXACTLY against
+# the value the writer promised - the job's number rendered at the written
+# precision - rather than the pre-rounding float within half a place. The
+# tolerance form carried a trap: a value whose next decimal is exactly 5
+# rounds a hair past half a place, and in vertical-only mode the value is the
+# user's own literal, so ordinary metre northings refused the whole archive.
+# The exact form is strictly tighter and keeps every real failure.
 
 
 def verify_round_trip(rows: list[list[str]], result: JobResult) -> None:
@@ -360,8 +400,9 @@ def verify_round_trip(rows: list[list[str]], result: JobResult) -> None:
     reader trims surrounding whitespace and treats a blank field, "N/A" and an
     exact 0.00 alike as "no elevation recorded", so the comparison is made
     against what it returns - a float, or None - rather than against the
-    characters in the cell. The numeric comparison carries the tolerance the
-    formatter's own rounding earns and nothing more (``_rounding_tolerance``).
+    characters in the cell. The numeric comparison is EXACT against the value
+    the writer promised - the job's number rendered at the written precision -
+    see the note where ``_rounding_tolerance`` used to stand (DESIGN.md #46).
     """
     from michspc.fileio import pnezd
 
@@ -389,9 +430,29 @@ def verify_round_trip(rows: list[list[str]], result: JobResult) -> None:
             f"converted {len(result.points)} points. Nothing was written."
         )
 
-    geodetic = result.settings.direction is Direction.ZONE_TO_GEODETIC
-    horizontal_tolerance = _rounding_tolerance(_written_decimals(result, geodetic))
-    elevation_tolerance = _rounding_tolerance(_written_decimals(result, False))
+    geodetic = _geodetic_coordinate_columns(result.settings)
+    horizontal_decimals = _written_decimals(result, geodetic)
+    elevation_decimals = _written_decimals(result, False)
+
+    # The expectation is the value the writer PROMISED - the job's number
+    # rendered at the written precision - compared exactly, not the
+    # pre-rounding float compared within a tolerance. The tolerance form
+    # carried a trap the vertical-only mode made probable: there
+    # output_northing is the user's own literal, and a metre value whose 5th
+    # decimal is exactly 5 rounds a hair past half a place, so the whole
+    # archive refused to write over its own correct rendering - fail-closed,
+    # but a refusal 83% of Michigan metre northings in the worst band could
+    # trip, naming this program's reader instead of anything the user could
+    # act on (vertical-only gate, MEDIUM 2). In every pre-existing direction
+    # the value is a computed projection result, where landing on an exact
+    # rounding half-way point has probability ~2^-52 - which is why three
+    # releases never saw it. Rendering the expectation makes the comparison
+    # EXACT (strictly tighter than the old tolerance) and keeps every real
+    # failure: a wrong value, a shifted column, or a "nan" cell still
+    # mismatches - float("nan") != float("nan"), so a NaN still refuses.
+
+    def promised(value: float, decimals: int) -> float:
+        return float(f"{value:.{decimals}f}")
 
     for parsed_row, point in zip(reparsed.rows, result.points):
         if parsed_row.point_id != point.point_id:
@@ -406,7 +467,7 @@ def verify_round_trip(rows: list[list[str]], result: JobResult) -> None:
             (first, first_value, parsed_row.northing),
             (second, second_value, parsed_row.easting),
         ):
-            if abs(actual - expected) > horizontal_tolerance:
+            if actual != promised(expected, horizontal_decimals):
                 raise WriteError(
                     f"Round-trip check failed on point {point.point_id!r}: the "
                     f"export's {label} reads back as {actual!r} where the job "
@@ -425,10 +486,8 @@ def verify_round_trip(rows: list[list[str]], result: JobResult) -> None:
                 f"where the job computed {point.output_elevation!r}. Nothing "
                 f"was written."
             )
-        if (
-            point.output_elevation is not None
-            and abs(parsed_row.elevation - point.output_elevation)
-            > elevation_tolerance
+        if point.output_elevation is not None and parsed_row.elevation != promised(
+            point.output_elevation, elevation_decimals
         ):
             raise WriteError(
                 f"Round-trip check failed on point {point.point_id!r}: the "

@@ -466,6 +466,96 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #46 — 2026-08-09 — Owner's feature: a vertical-only mode on both tabs
+
+**The owner's instruction**: a third mode, **Vertical**, on both tabs. The
+user states the INPUT horizontal system — a Michigan zone (PNEZD file) or
+geodetic positions — and no output system; the only conversion performed is
+the vertical datum shift; the Multi point export mirrors the import except
+the elevations.
+
+**What was built** (implemented by a work-package subagent to the session
+lead's settled decisions, then gated): `Direction.VERTICAL_ONLY` and
+`VerticalMode.VERTICAL`, mutually required; `target_zone` refused;
+`output_unit` must equal `input_unit` (the export reproduces the input's
+columns — a unit change would alter them); the longitude convention required
+for geodetic input and stated-None for zone input (the ZONE_TO_ZONE rule).
+Zone input inverse-projects for the pivot and reports the INPUT zone's
+factors (the ZONE_TO_GEODETIC precedent); geodetic input runs **no
+projection at all** — `Factors.grid_scale_factor` became optional so no zone
+is ever fabricated: grid scale and combined factors read N/A while the
+elevation factor, which needs no zone, is computed. **The shift is the same
+code path as HORIZONTAL_AND_VERTICAL — proven bit-identical, not asserted**
+— with the #41 either-endpoint guard, the coverage shape and the σ rules
+unchanged. Output coordinates are the input row's own floats; the clean
+export keeps the input's layout with only the Z shifted; the audit CSV's
+target columns equal its source columns and the Target zone cell reads
+"vertical only"; the archive stem is `_VERTICAL`. GUI: a third radio via the
+shared helper — **whose addition exposed a structural trap the implementer
+caught itself**: the two-button toggle wiring listened to the Horizontal
+button alone, and a Vertical ↔ Horizontal+Vertical switch toggles neither
+old button, so the old wiring would have missed that mode change entirely —
+the #26 stale-result class, rewired to the group signal and pinned. To-zone
+and output-unit controls hidden in this mode; the Single point OUTPUT
+section holds exactly the target-datum elevation, the shift and σ.
+
+**The gate (independent Opus): FIX-FIRST — no CRITICAL, no HIGH; "no
+coordinate moves anywhere I could reach."** Its own verification: the mirror
+claim held over **2,007 assertions across 45 written-archive configurations**
+(coordinate cells character-identical to the formatted input, output floats
+bit-identical to the parsed input, Z differing by exactly the re-derived
+shift, five fields, both conventions — including a positive-west file
+mirrored as written); the shift over 294 assertions (all 25 NCAT anchors ×
+both directions × both input formats); the refusal matrix 17/17; the #26
+property over 174 assertions including every mode transition; **horizontal
+and H+V regression: 891 archive members across 297 configurations
+byte-identical to HEAD**; 15 seeded defects, 15 caught. Findings, closed
+this round:
+
+1. **MEDIUM — the record printed "no point carried a usable elevation" on a
+   geodetic-input job whose every point carried one**, contradicting its own
+   ELEVATIONS section five lines below — the #42-finding-3 class recurring:
+   the empty-combined-factors implication broke when `grid_scale_factor`
+   became optional and the sentence was not re-guarded. It now keys on WHY
+   the tuple is empty (no zone vs no elevation), both spellings pinned, the
+   both-causes case resolved to the sentence true of every point.
+   Falsified.
+2. **MEDIUM — an ordinary metre PNEZD northing could refuse the whole
+   archive, only in this mode.** `verify_round_trip` compared the re-read
+   value against the PRE-ROUNDING float within half a place; a value whose
+   next decimal is exactly 5 rounds a hair past that, and in this mode the
+   value is the user's own literal — trip rates up to **83% of 5-decimal
+   metre northings in Michigan's main bands** (the gate measured them),
+   where every pre-existing direction's computed values hit the boundary
+   with probability ~2⁻⁵². Fail-closed — no wrong number was ever written —
+   but a whole-archive refusal naming the program's own reader. **Fixed at
+   the root for every direction**: the verifier now compares the re-read
+   value EXACTLY against the value the writer promised (the job's number
+   rendered at the written precision) — strictly tighter than the old
+   tolerance, and a NaN still refuses because NaN ≠ NaN.
+   `_rounding_tolerance` is retired with a tombstone note. Pinned with the
+   gate's own 166625.16645 reproduction; falsified by restoring the
+   tolerance form.
+3. **MEDIUM — this amendment** (the feature was unrecorded; §2's scope list
+   and the release-notes draft now carry the mode).
+4. **LOW, fixed**: the `vertical_mode` impostor refusal now names all three
+   modes; the release notes' claim that the panel carries the caveat in a
+   row of its own (stale since #45) corrected.
+5. **LOW, carried with reasons**: the record's METHOD block still prints the
+   Lambert apparatus on a geodetic-input job where no projection ran —
+   inapplicable, not false, and the factor-provenance paragraph beside it
+   says plainly that no zone is involved; `Combined factor: N/A` sits on
+   the geodetic panel without an on-screen explanation (consistent with the
+   owner's #45 ruling); the bare-Elevation label on refused points (#42/#44
+   carry) now also appears in this mode; the archive prose's
+   "moved between zones" sentence on a job that moved between none; the
+   frozen self-test exercises H+V but not vertical-only. All owner-visible
+   at the release review.
+
+**Suite: 1505 → 1553**, green in `pytest` and `-O`. Committed to `main` and
+pushed; still no release — **and the owner has still not seen any of the new
+controls on a real screen**, now including the third radio.
+
 ### #45 — 2026-08-09 — Owner removes the Vertical method row from the results panel
 
 **Owner's instruction.** The "Vertical method" caveat row — added at the

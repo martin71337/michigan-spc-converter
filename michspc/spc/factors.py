@@ -55,7 +55,13 @@ class Factors:
     in later.
     """
 
-    grid_scale_factor: float
+    grid_scale_factor: float | None
+    """None when the point involves no State Plane zone at all - a
+    vertical-only job with geodetic input - because a grid scale factor is a
+    property of a projection and no projection ran. That is a deliberate
+    absence exactly like the elevation-dependent Nones below, never a
+    fabricated 1.0."""
+
     orthometric_height: float | None
     """Meters. None when the source file carried no elevation."""
 
@@ -109,17 +115,24 @@ def combined_factor(grid_scale_factor: float, elevation_factor_value: float) -> 
 
 
 def factors_at(
-    grid_scale_factor: float,
+    grid_scale_factor: float | None,
     orthometric_height: float | None,
     geoid_height: float | None,
     radius: float = MEAN_EARTH_RADIUS_M,
 ) -> Factors:
-    """Assemble the factors for one point, honouring a missing elevation.
+    """Assemble the factors for one point, honouring every absence.
 
     Both the height and the geoid height must be present to produce an
-    elevation factor. If either is absent the elevation and combined factors are
-    None, and the grid scale factor - which does not depend on elevation - is
-    still reported.
+    elevation factor. If either is absent the elevation and combined factors
+    are None, and the grid scale factor - which does not depend on elevation -
+    is still reported.
+
+    ``grid_scale_factor`` is None when the point involves no zone at all (a
+    vertical-only job with geodetic input). The elevation factor needs no
+    zone and is still computed; the combined factor is a product of the two
+    and is None whenever either ingredient is - reporting the elevation
+    factor alone under the combined factor's name is one of the two
+    fabrications this module's docstring forbids.
     """
     if orthometric_height is None or geoid_height is None:
         return Factors(
@@ -136,5 +149,9 @@ def factors_at(
         orthometric_height=orthometric_height,
         geoid_height=geoid_height,
         elevation_factor=factor,
-        combined_factor=combined_factor(grid_scale_factor, factor),
+        combined_factor=(
+            combined_factor(grid_scale_factor, factor)
+            if grid_scale_factor is not None
+            else None
+        ),
     )

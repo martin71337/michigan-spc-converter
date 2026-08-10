@@ -63,8 +63,13 @@ compares EXACTLY against the writer's own rendering, strictly tighter for
 every direction. **A third owner instruction followed (#47): shift and σ
 display in the job's INPUT unit (internals stay metres; one formatter, one
 heading authority shared by panel/table/CSV), and datum-tagged elevation
-labels carry their units.** Suite **1563**, green in both modes. NOT
-RELEASED; the owner has seen none of the new controls on a real screen.
+labels carry their units. A fourth (#48): the Multi point Elevations row
+hides in both vertical modes, a visible factors note joins it in
+Horizontal, and its tooltip claims only what is true — cross-checked under
+CODEX (quota restored), which also re-confirmed the #45–#47 owner round
+independently and proved the #46 round-trip-verifier change strictly
+stronger.** Suite **1565**, green in both modes. NOT RELEASED; the owner
+has seen none of the new controls on a real screen.
 
 **Every work package is built, interim-gated, and the whole feature passed
 its closing gate (DESIGN.md #44) — run on an independent Opus reviewer

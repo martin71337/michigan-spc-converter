@@ -466,6 +466,34 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #49 — 2026-08-09 — 0.4.0 RELEASED: vertical datum conversion ships
+
+**The owner's release instruction, executed.** Version literal 0.3.1 →
+0.4.0; `py tools/build_release.py` passed **all eight gates** on this
+machine: suite **1565** green in both modes, the icon build, the PyInstaller
+bundle (139.8 MB), the frozen bundle's own self-test **8/8** — GEOID18,
+the VERTCON pair, the vertical conversion (200.000 m NGVD 29 → 199.8598 m
+against NCAT's 199.860), GEOID12B through the registry (−33.2850 against
+NGS's −33.285), 23 lazy imports, Qt + icon, and the end-to-end NCAT
+conversion (0.0000 ft northing, 0.0010 ft easting) — the Inno Setup
+installer `mcx-0.4.0-setup.exe` (42,645,282 bytes, SHA-256
+825a4587bf45dd5845e4753e0b07e526c84310e3e5afe0a9561e2fa28b118c33), and the
+checksum manifest naming all four bundled NGS grids. Tagged `v0.4.0`;
+installer, `SHA256SUMS.txt` and the frozen self-test transcript on the
+GitHub Release; notes are `docs/RELEASE-NOTES-0.4.0.md`.
+
+**What ships**: everything of #35–#48 — NGVD 29 ⇄ NAVD 88 via VERTCON 3.0
+with per-point σ in the job's input unit, the vertical-only mode, the geoid
+model registry with GEOID12B, the GEOID18 re-anchoring, the disclosure
+surfaces, and the two inherited fixes (the longitude-convention stale
+result live since 0.1.0, the scaled-display copy glyph).
+
+**Still human, and now the only outstanding item of METHOD.md §6:** install
+on a clean profile and run one real job end to end. The release was cut on
+the owner's instruction with that proof outstanding, as every release since
+0.1.0 has recorded; a real PNEZD file from an actual job also remains worth
+having.
+
 ### #48 — 2026-08-09 — Owner's Multi point elevations-row fixes, cross-checked under Codex
 
 **Owner's instruction**: the Elevations "in file" tooltip was wrong in the

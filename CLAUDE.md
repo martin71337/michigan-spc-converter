@@ -46,7 +46,22 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: vertical feature + OWNER'S ROUND (caveat row removed, VERTICAL-ONLY MODE) on main, UNRELEASED (2026-08-09)
+## Current state: 0.4.0 RELEASED (2026-08-09) — vertical datum conversion ships
+
+**0.4.0 is built, gated and tagged (DESIGN.md #49):** all eight gates, suite
+**1565** both modes, frozen self-test **8/8** including the vertical NCAT
+conversion and GEOID12B through the registry, installer + SHA256SUMS on the
+GitHub Release. Ships everything of #35–#48: NGVD 29 ⇄ NAVD 88 with
+per-point σ in the input unit, the vertical-only mode, the geoid registry
+(GEOID18 + GEOID12B), the GEOID18 re-anchoring, the disclosure surfaces,
+and the two inherited fixes (#39 copy glyph, #43 longitude-convention stale
+result). **Still human and outstanding: the clean-profile install proof
+(METHOD.md §6) and a real PNEZD file from an actual job.** Next builds:
+NAPGD2022 as registry data when NGS publishes (#32); SPCS2022 downstream of
+it (#21). Caveats worth re-reading first: #38 half-cell steps, #36
+negative-σ, #44/#46 carried LOWs.
+
+## Superseded status: vertical feature + owner's round on main, pre-release (2026-08-09)
 
 **Two owner instructions landed after the closing gate, both gated (#45,
 #46):** the Vertical method caveat row is REMOVED from the results panel

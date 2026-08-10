@@ -197,6 +197,17 @@ VERTICAL_SOURCE_LABEL = "Vertical datum from:"
 VERTICAL_TARGET_LABEL = "Vertical datum to:"
 
 GEOID_MODEL_LABEL = "Geoid model:"
+INPUT_GEOID_LABEL = "Input geoid:"
+OUTPUT_GEOID_LABEL = "Output geoid:"
+"""The geoid selectors' labels (the owner's per-side feature, 2026-08-09).
+
+In the two vertical modes the input and output geoid models are chosen
+separately: the tab's existing combo becomes the OUTPUT side under
+``OUTPUT_GEOID_LABEL``, and a second combo appears under
+``INPUT_GEOID_LABEL``. In Horizontal mode the single combo keeps
+``GEOID_MODEL_LABEL`` and the full registry list, exactly as before, and the
+input-side row hides - a horizontal job asks no per-side question.
+"""
 
 
 def vertical_mode_buttons(
@@ -332,6 +343,67 @@ def geoid_combo(parent) -> QComboBox:
         "bundled grid."
     )
     return combo
+
+
+def geoid_models_for_datum(datum) -> tuple:
+    """Every registry model publishing separations for this datum's heights.
+
+    The registry's own ``vertical_datum`` field is what filters - the same
+    fact ``job.run``'s per-side era guard refuses on - so a side's dropdown
+    can never offer a model the job would refuse for that side. ``None``
+    (an unanswered datum dropdown) filters to nothing: a side whose datum
+    is unknown cannot say which models apply. A future datum's models
+    appear here the day their registry records do, with no interface
+    change - the ``zone_combo`` property.
+    """
+    if datum is None:
+        return ()
+    return tuple(
+        model
+        for model in geoid.ALL_GEOID_MODELS
+        if model.vertical_datum.code == datum.code
+    )
+
+
+def refresh_geoid_combo(combo, models) -> None:
+    """Make a side's geoid combo offer exactly ``models``.
+
+    **Disabled - grayed - with its items cleared when ``models`` is empty**,
+    the owner's explicit word (2026-08-09): a side whose datum has no
+    published geoid model (NGVD 29 today) is a question that APPLIES and is
+    unanswerable, so the control stays visible and gray rather than hidden -
+    the hidden idiom is for controls that do not apply at all. Enabled-but-
+    empty would be worse than either: an enabled control promises a choice
+    it cannot offer.
+
+    A side with models enables and opens on GEOID18 where the filter keeps
+    it, preserving the user's own selection when it survives a refresh so
+    flipping a mode or an unrelated datum does not silently discard an
+    answer. No-ops when the offering and enablement are already right, so
+    the many paths that refresh cost nothing - and fire no signals - when
+    nothing changed.
+    """
+    models = tuple(models)
+    offered = tuple(combo.itemData(i) for i in range(combo.count()))
+    if offered == models and combo.isEnabled() == bool(models):
+        return
+
+    previous = combo.currentData()
+    combo.clear()
+    for model in models:
+        combo.addItem(model.name, model)
+    if not models:
+        combo.setEnabled(False)
+        return
+    combo.setEnabled(True)
+    preferred = (
+        previous
+        if previous in models
+        else geoid.GEOID18_MODEL
+        if geoid.GEOID18_MODEL in models
+        else models[0]
+    )
+    combo.setCurrentIndex(combo.findData(preferred))
 
 
 def direction_for(source_data, target_data) -> Direction | None:

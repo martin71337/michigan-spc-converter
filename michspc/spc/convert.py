@@ -101,6 +101,22 @@ class WarningCode(Enum):
     makes ("no shift is applied"), not a condition worth warning about.
     """
 
+    GEOID_SWAP_UNAVAILABLE = "geoid-swap-unavailable"
+    """A geoid-to-geoid job's point carried a usable elevation, but one of the
+    two geoid tiles does not cover its position, so the elevation was NOT
+    re-derived under the output geoid model.
+
+    Raised by michspc.job, like the three codes above, and shaped exactly as
+    VERTICAL_SHIFT_UNAVAILABLE is: the horizontal coordinates are unaffected
+    and stand, and the point's output elevation is left blank rather than
+    filled with the input-model height, because a height stated against one
+    geoid model printed in a Z column whose job names another is the same
+    ordinary-looking wrong number. Both shipped tiles cover all of Michigan
+    with room to spare (docs/DESIGN.md section 3), so this is only reachable
+    for a point already far outside the state - but "unreachable in practice"
+    is not a reason to pass a height through silently when it is reached.
+    """
+
 
 @dataclass(frozen=True)
 class ConversionWarning:

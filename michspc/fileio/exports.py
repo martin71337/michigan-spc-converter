@@ -142,6 +142,31 @@ pair and so the audit CSV and the results table now agree on what the columns
 are called.
 """
 
+def vertical_shift_and_sigma_m(point) -> tuple[float | None, float | None]:
+    """``(shift, sigma)`` in metres for a point's shift and sigma cells, or
+    None where no number exists.
+
+    THE one statement of which numbers those two columns carry, shared by
+    the audit CSV (``audit_rows``) and the on-screen Multi point table
+    (``results_model.row_strings``), so the two surfaces cannot disagree:
+
+    * a geoid-to-geoid point carries the SWAP shift - the value that moved
+      the height, ``GeoidSwapReading.shift_m`` - and no sigma: NGS
+      publishes no error model for the difference between two of its geoid
+      models, so N/A is the only honest cell (docs/DESIGN.md #36's rule,
+      arriving at a new absence);
+    * every other point with a ``VerticalReading`` carries the datum shift
+      and its sigma, exactly as before;
+    * a point with neither reading - no elevation, or a coverage refusal -
+      carries neither number.
+    """
+    if point.geoid_swap is not None:
+        return point.geoid_swap.shift_m, None
+    if point.vertical is not None:
+        return point.vertical.shift_m, point.vertical.sigma_m
+    return None, None
+
+
 def vertical_shift_heading(unit) -> str:
     """``Vertical shift (ift)`` - the audit CSV's shift column heading.
 
@@ -247,6 +272,15 @@ def audit_columns(result: JobResult) -> list[str]:
             vertical_shift_heading(settings.input_unit),
             vertical_sigma_heading(settings.input_unit),
         ]
+        if settings.source_geoid_model is not None:
+            # The per-side feature's one new column, present exactly when
+            # the job STATED an input-side model: which geoid model the
+            # source elevations were stated against, beside the existing
+            # "Geoid model" (which keeps naming the factors/output side).
+            # Every job shape that predates the field - horizontal, and
+            # every #41-era vertical shape - states None here and its CSV
+            # layout does not change by a byte.
+            columns.insert(columns.index("Geoid height (m)"), "Source geoid model")
         columns.insert(columns.index("Geoid height (m)"), "Geoid model")
     return columns
 
@@ -333,7 +367,17 @@ def audit_rows(result: JobResult) -> list[list[str]]:
             # header this function just built, so the cells cannot land under
             # the wrong headings if either insertion point moves. The vertical
             # block first (it sits earlier), then Geoid model.
-            reading = point.vertical
+            # Which numbers the shift and sigma cells carry is stated once,
+            # in vertical_shift_and_sigma_m, and shared with the on-screen
+            # table: the datum reading's pair ordinarily, the SWAP shift
+            # with no sigma on a geoid-to-geoid point, neither where no
+            # reading exists (no elevation, or a coverage refusal - the
+            # warnings cell says which). An identity reading carries
+            # shift_m=0.0 - a real zero, printed as one; sigma_m is None on
+            # an identity (no model ran) and where the error model
+            # interpolates below zero (DESIGN.md #36) - both render N/A
+            # through the formatter, never the raw figure.
+            shift_m, sigma_m = vertical_shift_and_sigma_m(point)
             insert_at = header.index("Source vertical datum")
             row[insert_at:insert_at] = [
                 settings.source_vertical_datum.code,
@@ -342,29 +386,23 @@ def audit_rows(result: JobResult) -> list[list[str]]:
                 # input unit - N/A for a blank Z field, exactly as the target
                 # Elevation cell is.
                 fmt.coordinate(point.row.elevation, in_unit),
-                # A reading is None on a point that carried no elevation, and
-                # on a coverage-refused point (the warnings cell says which):
-                # no shift was applied, so neither number exists. An identity
-                # reading carries shift_m=0.0 - a real zero, printed as one.
                 # Both cells are converted into IN_UNIT - the same unit
                 # object the two headings above were built from, so heading
                 # and value cannot claim different units.
-                fmt.vertical_quantity(
-                    reading.shift_m if reading is not None else None, in_unit
-                ),
-                # sigma_m is None on an identity (no model ran) and where the
-                # error model interpolates below zero (DESIGN.md #36); both
-                # render N/A through the formatter - never the raw figure,
-                # which is not an uncertainty.
-                fmt.vertical_quantity(
-                    reading.sigma_m if reading is not None else None, in_unit
-                ),
+                fmt.vertical_quantity(shift_m, in_unit),
+                fmt.vertical_quantity(sigma_m, in_unit),
             ]
+            if settings.source_geoid_model is not None:
+                row.insert(
+                    header.index("Source geoid model"),
+                    settings.source_geoid_model.name,
+                )
             row.insert(
                 header.index("Geoid model"),
-                # result.geoid_model is the model's name, or None for a job
-                # that stated no geoid is applied - in which case there is no
-                # model to name and the factor columns beside it are N/A too.
+                # result.geoid_model is the name of the model the factors
+                # were computed from, or None for a job that stated no geoid
+                # is applied - in which case there is no model to name and
+                # the factor columns beside it are N/A too.
                 result.geoid_model
                 if result.geoid_model is not None
                 else fmt.NOT_AVAILABLE,

@@ -59,10 +59,13 @@ from michspc.fileio import exports
 # at module level keeps ``michspc.gui.window.UNCHOSEN`` and its neighbours
 # spelled the way every existing caller and test already spells them. One
 # definition, two spellings — never two definitions.
+from michspc.fileio import geoid
 from michspc.gui.controls import (
     AMBER,
     GEODETIC,
     GEOID_MODEL_LABEL,
+    INPUT_GEOID_LABEL,
+    OUTPUT_GEOID_LABEL,
     RED,
     UNCHOSEN,
     UNITS_LABEL,
@@ -72,8 +75,10 @@ from michspc.gui.controls import (
     VERTICAL_TARGET_LABEL,
     direction_for,
     geoid_combo,
+    geoid_models_for_datum,
     longitude_combo,
     longitude_relevance,
+    refresh_geoid_combo,
     show_failure_dialog,
     unit_combo,
     vertical_datum_combo,
@@ -328,11 +333,11 @@ class MainWindow(QMainWindow):
         # unanswered; the datum combos gate Convert through settings().
         self.vertical_source_label = QLabel(VERTICAL_SOURCE_LABEL, box)
         self.vertical_source_combo = vertical_datum_combo(
-            box, self._update_convert_enabled
+            box, self._on_vertical_datum_changed
         )
         self.vertical_target_label = QLabel(VERTICAL_TARGET_LABEL, box)
         self.vertical_target_combo = vertical_datum_combo(
-            box, self._update_convert_enabled
+            box, self._on_vertical_datum_changed
         )
 
         grid.addWidget(self.vertical_source_label, 5, 0)
@@ -340,12 +345,27 @@ class MainWindow(QMainWindow):
         grid.addWidget(self.vertical_target_label, 6, 0)
         grid.addWidget(self.vertical_target_combo, 6, 1, 1, 3)
 
+        # --- input-side geoid model -------------------------------------
+        # Directly under the datum rows it is filtered by (the owner's
+        # per-side feature, 2026-08-09): which geoid model the INPUT
+        # elevations are stated against. Vertical-mode furniture, hidden in
+        # Horizontal exactly as the datum rows are; DISABLED - grayed, the
+        # owner's explicit word, not hidden - when its side's datum is
+        # unanswered or has no published model (NGVD 29). Populated and
+        # refreshed by _refresh_geoid_sides, which owns the filter for both
+        # sides.
+        self.input_geoid_label = QLabel(INPUT_GEOID_LABEL, box)
+        self.input_geoid_combo = geoid_combo(box)
+
+        grid.addWidget(self.input_geoid_label, 7, 0)
+        grid.addWidget(self.input_geoid_combo, 7, 1, 1, 3)
+
         # --- longitude sign convention ----------------------------------
         self.longitude_label = QLabel("Longitude sign:", box)
         self.longitude_combo = longitude_combo(box, self._update_convert_enabled)
 
-        grid.addWidget(self.longitude_label, 7, 0)
-        grid.addWidget(self.longitude_combo, 7, 1, 1, 3)
+        grid.addWidget(self.longitude_label, 8, 0)
+        grid.addWidget(self.longitude_combo, 8, 1, 1, 3)
 
         # --- elevations -------------------------------------------------
         # The whole row is HORIZONTAL-mode furniture, hidden by
@@ -388,10 +408,10 @@ class MainWindow(QMainWindow):
         beside.addWidget(self.elevation_note)
         beside.addStretch(1)
 
-        grid.addWidget(self.elevations_label, 8, 0)
-        grid.addWidget(elevations_cell, 8, 1)
-        grid.addWidget(self.geoid_label, 8, 2)
-        grid.addWidget(self.geoid_combo, 8, 3)
+        grid.addWidget(self.elevations_label, 9, 0)
+        grid.addWidget(elevations_cell, 9, 1)
+        grid.addWidget(self.geoid_label, 9, 2)
+        grid.addWidget(self.geoid_combo, 9, 3)
 
         # --- output folder ----------------------------------------------
         self.output_edit = QLineEdit(box)
@@ -406,9 +426,9 @@ class MainWindow(QMainWindow):
         self.output_browse.setToolTip("Choose where the output archive goes")
         self.output_browse.clicked.connect(self._choose_output_directory)
 
-        grid.addWidget(QLabel("Output folder:", box), 9, 0)
-        grid.addWidget(self.output_edit, 9, 1, 1, 3)
-        grid.addWidget(self.output_browse, 9, 4)
+        grid.addWidget(QLabel("Output folder:", box), 10, 0)
+        grid.addWidget(self.output_edit, 10, 1, 1, 3)
+        grid.addWidget(self.output_browse, 10, 4)
 
         # --- convert ----------------------------------------------------
         self.convert_button = QPushButton("Convert", box)
@@ -417,7 +437,7 @@ class MainWindow(QMainWindow):
         buttons.addStretch(1)
         buttons.addWidget(self.convert_button)
         self.convert_button.clicked.connect(self.convert)
-        grid.addLayout(buttons, 10, 0, 1, 5)
+        grid.addLayout(buttons, 11, 0, 1, 5)
 
         grid.setColumnStretch(1, 3)
         grid.setColumnStretch(3, 2)
@@ -493,6 +513,41 @@ class MainWindow(QMainWindow):
     def target_vertical_datum(self) -> VerticalDatum | None:
         return vertical_datum_for(self.vertical_target_combo.currentData())
 
+    def output_geoid_model(self) -> geoid.GeoidModel | None:
+        """The model ``JobSettings.geoid_model`` gets from this tab.
+
+        Horizontal mode reads the combo exactly as it always has - the full
+        registry list always holds a model. In the vertical modes the combo
+        is the OUTPUT side, filtered per datum, and a grayed side states
+        None: its datum has no published geoid model, so no model is
+        emitted rather than one the job would refuse (the per-side rule the
+        graying exists to state).
+        """
+        if not self.vertical_mode().converts_elevations:
+            return self.geoid_combo.currentData()
+        data = (
+            self.geoid_combo.currentData()
+            if self.geoid_combo.isEnabled()
+            else None
+        )
+        return data if isinstance(data, geoid.GeoidModel) else None
+
+    def input_geoid_model(self) -> geoid.GeoidModel | None:
+        """The model ``JobSettings.source_geoid_model`` gets from this tab.
+
+        None in Horizontal mode - the hidden combo is never read, the
+        datum-row idiom - and None from a grayed side in the vertical
+        modes, for the reason ``output_geoid_model`` states.
+        """
+        if not self.vertical_mode().converts_elevations:
+            return None
+        data = (
+            self.input_geoid_combo.currentData()
+            if self.input_geoid_combo.isEnabled()
+            else None
+        )
+        return data if isinstance(data, geoid.GeoidModel) else None
+
     def settings(self) -> JobSettings | None:
         """Assemble the job settings, or None if the form is not yet complete."""
         if self.input_path is None or self.output_directory is None:
@@ -536,10 +591,13 @@ class MainWindow(QMainWindow):
             target_zone=target_zone,
             input_unit=self.input_unit.currentData(),
             output_unit=self.output_unit.currentData(),
-            # From the dropdown (WP-V8, plan section 4.3), exactly as the two
-            # unit combos are read: the combo offers only registry records,
-            # and job.run refuses an impostor by name.
-            geoid_model=self.geoid_combo.currentData(),
+            # From the dropdowns (WP-V8, plan section 4.3; per-side since
+            # the owner's 2026-08-09 feature), exactly as the two unit
+            # combos are read: the combos offer only registry records, and
+            # job.run refuses an impostor by name. A grayed side emits
+            # None - its datum has no published model.
+            geoid_model=self.output_geoid_model(),
+            source_geoid_model=self.input_geoid_model(),
             vertical_mode=mode,
             source_vertical_datum=source_datum,
             target_vertical_datum=target_datum,
@@ -588,7 +646,8 @@ class MainWindow(QMainWindow):
             target_zone=None,
             input_unit=input_unit,
             output_unit=input_unit,
-            geoid_model=self.geoid_combo.currentData(),
+            geoid_model=self.output_geoid_model(),
+            source_geoid_model=self.input_geoid_model(),
             vertical_mode=VerticalMode.VERTICAL,
             source_vertical_datum=source_datum,
             target_vertical_datum=target_datum,
@@ -670,6 +729,42 @@ class MainWindow(QMainWindow):
         self._update_longitude_relevance()
         self._update_convert_enabled()
 
+    def _on_vertical_datum_changed(self) -> None:
+        """What both datum combos are wired to: a datum decides which geoid
+        models its side may offer (the per-side registry filter), so the
+        geoid combos refresh with it - then the gate, as before."""
+        self._refresh_geoid_sides()
+        self._update_convert_enabled()
+
+    def _refresh_geoid_sides(self) -> None:
+        """Make both geoid combos offer what the mode and datums allow.
+
+        The one place the per-side filter meets this tab's controls
+        (``controls.geoid_models_for_datum`` owns the rule): in Horizontal
+        the single combo keeps the full registry list under its standing
+        label; in the vertical modes each side filters by its own datum,
+        and a side with no models is DISABLED - grayed, the owner's word -
+        rather than hidden or left enabled over an empty list.
+        """
+        mode = self.vertical_mode()
+        if not mode.converts_elevations:
+            self.geoid_label.setText(GEOID_MODEL_LABEL)
+            refresh_geoid_combo(self.geoid_combo, geoid.ALL_GEOID_MODELS)
+            refresh_geoid_combo(
+                self.input_geoid_combo,
+                geoid_models_for_datum(self.source_vertical_datum()),
+            )
+            return
+        self.geoid_label.setText(OUTPUT_GEOID_LABEL)
+        refresh_geoid_combo(
+            self.geoid_combo,
+            geoid_models_for_datum(self.target_vertical_datum()),
+        )
+        refresh_geoid_combo(
+            self.input_geoid_combo,
+            geoid_models_for_datum(self.source_vertical_datum()),
+        )
+
     def _update_vertical_rows(self) -> None:
         """Show the datum rows when elevations convert; hide the output
         horizontal controls in vertical-only mode.
@@ -687,8 +782,19 @@ class MainWindow(QMainWindow):
             self.vertical_source_combo,
             self.vertical_target_label,
             self.vertical_target_combo,
+            # The input-side geoid row is vertical-mode furniture exactly as
+            # the datum rows it filters by are: hidden in Horizontal (the
+            # question does not apply), visible in both vertical modes -
+            # where a side with no models is GRAYED by
+            # _refresh_geoid_sides, never hidden (the owner's distinction,
+            # 2026-08-09).
+            self.input_geoid_label,
+            self.input_geoid_combo,
         ):
             widget.setVisible(mode.converts_elevations)
+        # The mode also decides each geoid combo's offering and label
+        # (Horizontal's full list vs the vertical modes' per-datum filter).
+        self._refresh_geoid_sides()
         # The Elevations row is the mirror image (owner's instruction,
         # DESIGN.md #48): in the two vertical modes the elevations must be in
         # the file - the mode exists to convert them - so the "in file"

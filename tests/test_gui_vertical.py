@@ -485,15 +485,20 @@ def test_the_settings_carry_the_vertical_answers(window, tmp_path, which):
     assert settings.target_vertical_datum is NGVD29
 
 
-def test_a_refused_pair_reaches_the_screen_as_the_jobs_own_sentence(tab):
-    """The GUI never pre-empts a refusal it can simply surface.
+def test_an_ngvd29_identity_pair_converts_with_no_geoid_and_honest_absences(tab):
+    """UPDATED for the per-side geoid feature (the owner's, 2026-08-09).
 
-    NGVD29 -> NGVD29 with a geoid model is a complete form - Convert is
-    enabled - and job.run refuses it (both endpoints differ from the model's
-    datum, DESIGN.md #41). The dropdowns do not grey the pair out: the
-    refusal names the problem and the achievable alternative, which a
-    disabled entry never could. The expected text is obtained by running the
-    same settings through the authority itself.
+    This test used to drive NGVD29 -> NGVD29 with GEOID18 into job.run and
+    surface the #41 either-endpoint refusal - the GUI had one geoid combo
+    and no way NOT to state a model. The per-side selectors changed the
+    surface: NGVD 29 has no published geoid model, so BOTH sides gray out
+    (the owner's explicit graying rule), the settings honestly state no
+    geoid model on either side, and the job CONVERTS - the identity is a
+    legitimate job - with the elevation-dependent factors reading N/A
+    rather than a number built from a model nobody could state. The core's
+    refusal of the old shape (geoid_model=GEOID18 on this pair) still
+    stands and is pinned in tests/test_job_vertical.py; the GUI simply can
+    no longer construct it.
     """
     choose(tab.from_zone, MI_CENTRAL)
     choose(tab.to_zone, MI_SOUTH)
@@ -502,26 +507,27 @@ def test_a_refused_pair_reaches_the_screen_as_the_jobs_own_sentence(tab):
     tab.elevation_edit.setText("812.40")
     make_vertical(tab, NGVD29, NGVD29)
 
+    # Both sides gray: the question applies and is unanswerable (NGVD 29
+    # has no published model), which is the owner's stated reason for
+    # disabling rather than hiding.
+    assert tab.geoid_combo.isEnabled() is False
+    assert tab.input_geoid_combo.isEnabled() is False
+
     settings = tab.settings()
     assert settings is not None
-    assert tab.convert_button.isEnabled() is True, (
-        "a complete form is enabled; convertibility is job.run's question"
-    )
+    assert settings.geoid_model is None
+    assert settings.source_geoid_model is None
+    assert tab.convert_button.isEnabled() is True
 
-    parsed = pnezd.parse_typed_point(
-        "176200.000",
-        "19685000.000",
-        "812.40",
-        source=pnezd.TYPED_POINT_SOURCE_GRID,
-    )
-    with pytest.raises(Exception) as raised:
-        run(settings, source=parsed)
-    expected = str(raised.value)
-    assert expected, "the refusal must say something"
-
-    assert tab.convert() is False
-    assert tab.shown_failures == [expected]
-    assert str(tab.last_failure) == expected
+    assert tab.convert() is True, tab.shown_failures
+    point = tab.result.points[0]
+    # The identity shift is a real zero; the factors are honest absences -
+    # never a number mixing a NAVD 88 separation into an NGVD 29 height
+    # (DESIGN.md #32), which is what the graying exists to prevent.
+    assert point.vertical is not None
+    assert point.vertical.shift_m == 0.0
+    assert point.factors.elevation_factor is None
+    assert point.factors.combined_factor is None
 
 
 # --------------------------------------------------------------------------

@@ -19,7 +19,11 @@ from PySide6.QtGui import QBrush, QColor
 
 from michspc.fileio import formatting as fmt
 from michspc.fileio import pnezd
-from michspc.fileio.exports import vertical_shift_heading, vertical_sigma_heading
+from michspc.fileio.exports import (
+    vertical_shift_and_sigma_m,
+    vertical_shift_heading,
+    vertical_sigma_heading,
+)
 from michspc.gui.controls import zone_label
 from michspc.job import Direction, JobResult, LongitudeConvention
 
@@ -218,30 +222,23 @@ def row_strings(result: JobResult) -> tuple[tuple[str, ...], ...]:
 
         if vertical:
             # Directly after the Elevation cell, under the two headings
-            # columns_for inserts at the same position. The None handling is
-            # deliberately identical to exports.audit_rows' vertical block: a
-            # reading is None on a point that carried no elevation and on a
-            # coverage-refused point (the warnings cell says which), so
-            # neither number exists and both render N/A; sigma_m is None on
-            # an identity and where the error model interpolates below zero
-            # (DESIGN.md #36) - never the raw figure, which is not an
-            # uncertainty. The values come from the READING - the shift the
-            # job actually applied - not from any grid value, so this cell
-            # and the audit CSV's cannot disagree (#26's property). Both are
-            # converted into the INPUT unit - the same unit object
-            # ``columns_for`` built the two headings from (and the same one
-            # ``exports.audit_rows`` converts its cells with), so heading
-            # and value cannot claim different units.
-            reading = point.vertical
+            # columns_for inserts at the same position. WHICH numbers these
+            # two cells carry is exports.vertical_shift_and_sigma_m's one
+            # statement, shared with the audit CSV, so this cell and the
+            # CSV's cannot disagree (#26's property): the datum reading's
+            # shift and sigma ordinarily, the SWAP shift with no sigma on a
+            # geoid-to-geoid point, neither where no reading exists (no
+            # elevation, or a coverage refusal - the warnings cell says
+            # which). A None renders N/A - never the raw figure, which is
+            # not an uncertainty (DESIGN.md #36). Both are converted into
+            # the INPUT unit - the same unit object ``columns_for`` built
+            # the two headings from (and the same one ``exports.audit_rows``
+            # converts its cells with), so heading and value cannot claim
+            # different units.
+            shift_m, sigma_m = vertical_shift_and_sigma_m(point)
             cells[ELEVATION_COLUMN + 1 : ELEVATION_COLUMN + 1] = [
-                fmt.vertical_quantity(
-                    reading.shift_m if reading is not None else None,
-                    settings.input_unit,
-                ),
-                fmt.vertical_quantity(
-                    reading.sigma_m if reading is not None else None,
-                    settings.input_unit,
-                ),
+                fmt.vertical_quantity(shift_m, settings.input_unit),
+                fmt.vertical_quantity(sigma_m, settings.input_unit),
             ]
 
         rows.append(tuple(cells))
@@ -356,6 +353,26 @@ def vertical_shift_label(transformation, unit) -> str:
     )
 
 
+def geoid_swap_label(swap, unit) -> str:
+    """``Geoid change GEOID12B -> GEOID18 (ift)`` - a geoid-to-geoid point's
+    shift row label: the MODELS, not the datums.
+
+    On a swap job the datum did not move - the transformation is an identity
+    - so a label naming the datums would describe the one thing that did not
+    happen. What moved the elevation is the change of geoid model, and the
+    label says so in the shape ``vertical_shift_label`` established: what
+    changed, which way, and the unit the value beside it is rendered in
+    (the job's input unit, the owner's 2026-08-09 instruction). The audit
+    CSV's generic ``Vertical shift (unit)`` / ``Shift sigma (unit)``
+    headings stay - they are true of both kinds of shift - so #17's
+    one-wording rule is not in play where the surfaces differ on purpose.
+    """
+    return (
+        f"Geoid change {swap.source_model_name} -> "
+        f"{swap.target_model_name} ({unit.code})"
+    )
+
+
 def _datum_elevation_label(datum, unit) -> str:
     """``Elevation (NAVD88, m)`` - the ordinary label, with its datum and its
     unit named.
@@ -373,7 +390,7 @@ def _datum_elevation_label(datum, unit) -> str:
     return f"{ELEVATION_LABEL} ({datum.code}, {unit.code})"
 
 
-def _vertical_rows(reading, unit) -> tuple[ResultValue, ...]:
+def _vertical_rows(reading, swap, unit) -> tuple[ResultValue, ...]:
     """The shift row and the sigma row, or nothing at all.
 
     Empty when the point carries no ``VerticalReading`` - a horizontal job, a
@@ -385,9 +402,26 @@ def _vertical_rows(reading, unit) -> tuple[ResultValue, ...]:
     (docs/DESIGN.md #36); the reason it is unavailable reaches the warnings
     field through ``WarningCode.VERTICAL_SIGMA_UNAVAILABLE``, raised beside
     the reading by ``job._convert_row``.
+
+    On a geoid-to-geoid point (``swap`` is the point's ``GeoidSwapReading``)
+    the shift row is the GEOID CHANGE - the value that actually moved the
+    elevation, labelled with the two models - and the sigma row is N/A with
+    nothing attached: NGS publishes no error model for the difference
+    between two of its geoid models, so no number exists to print.
     """
     if reading is None:
         return ()
+    if swap is not None:
+        return (
+            ResultValue(
+                geoid_swap_label(swap, unit),
+                fmt.vertical_quantity(swap.shift_m, unit),
+            ),
+            ResultValue(
+                vertical_sigma_heading(unit),
+                fmt.vertical_quantity(None, unit),
+            ),
+        )
     return (
         ResultValue(
             vertical_shift_label(reading.transformation, unit),
@@ -597,7 +631,7 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
     else:
         input_elevation_label = ELEVATION_LABEL
         output_elevation_label = ELEVATION_LABEL
-    vertical_rows = _vertical_rows(reading, settings.input_unit)
+    vertical_rows = _vertical_rows(reading, point.geoid_swap, settings.input_unit)
 
     if settings.direction is Direction.VERTICAL_ONLY:
         # The vertical-only layouts (the owner's feature, 2026-08-09). The

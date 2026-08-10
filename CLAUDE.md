@@ -46,7 +46,24 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.4.0 RELEASED (2026-08-09) — vertical datum conversion ships
+## Current state: 0.4.0 RELEASED; per-side geoid selection ON MAIN, unreleased (2026-08-09)
+
+**After the release, the owner's geoid round landed (DESIGN.md #50), gated
+without Codex on his instruction:** vertical jobs choose the input and
+output geoid separately; a same-datum job with two different models converts
+by H_out = H_in + (N_in − N_out) with the ellipsoid height held fixed
+(pinned at the Houghton anchor from BOTH frozen fixture sets: 200.000 under
+GEOID12B → 199.968 under GEOID18); each side's selector grays when its
+datum has no matching models (NGVD 29 today, crosswise models when
+NAPGD2022 arrives); the per-side factors rule supersedes #41's
+either-endpoint by generalization, every old shape bit-identical. **No
+disclaimers on any user surface (owner's instruction): the record's GEOID
+CHANGE block is facts only — models, digests, arithmetic — σ is bare N/A,
+and the ABSENCE of caveat prose is pinned.** The leveled-vs-GNSS geodetic
+fact lives in #50's record, not in outputs. Suite **1604**, both modes.
+The Input/Output geoid controls have not been seen on a real screen.
+
+## Superseded status: 0.4.0 RELEASED (2026-08-09) — vertical datum conversion ships
 
 **0.4.0 is built, gated and tagged (DESIGN.md #49):** all eight gates, suite
 **1565** both modes, frozen self-test **8/8** including the vertical NCAT

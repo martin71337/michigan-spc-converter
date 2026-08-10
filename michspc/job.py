@@ -254,6 +254,40 @@ class JobSettings:
     horizontal job makes, and ``run`` refuses every other combination.
     """
 
+    source_geoid_model: geoid.GeoidModel | None = None
+    """The geoid model the INPUT elevations are stated against, or None.
+
+    The owner's per-side feature (2026-08-09): on a vertical job the input
+    and output geoid models are chosen separately, so ``geoid_model`` above
+    is the OUTPUT side and this field is the INPUT side. ``None`` is a
+    statement, not an absence - "no input-side geoid model is stated" -
+    which is every job this program ran before the field existed.
+
+    The rules ``run`` enforces, in the order it enforces them:
+
+    * a HORIZONTAL job refuses this field outright: no vertical question was
+      asked, so an input-side geoid model answers nothing;
+    * each side's model must match its own side's vertical datum (the
+      per-side form of DESIGN.md #32's two-eras rule);
+    * BOTH sides carrying a model on a NON-identity transformation refuses:
+      that job would compound a modeled datum shift with a modeled geoid
+      change inside one Z column, and the honest form is two jobs;
+    * both sides carrying DIFFERENT models on an IDENTITY transformation is
+      the geoid-to-geoid conversion: the ellipsoid height is held fixed and
+      the orthometric height re-derived under the output model,
+      ``H_out = H_in + N_in - N_out`` (``GeoidSwapReading``). The same model
+      on both sides is exactly the identity job this program always ran -
+      no swap step, no new record.
+
+    Compatibility (superseding DESIGN.md #41's either-endpoint contortion by
+    GENERALIZATION): a pre-existing call shape that put a SOURCE-era model in
+    ``geoid_model`` on a modeled job - NAVD88 -> NGVD29 with GEOID18, the one
+    configuration #41 existed for - is normalized to this field internally
+    (``per_side_geoid_models``), so every #41-era call keeps working and the
+    old ``factors_use_source_era`` outcome falls out of per-side pairing
+    rather than a special rule.
+    """
+
 
 _IDENTITY_SIGMA_REASON = (
     "no modeled transformation was applied, so no model uncertainty exists"
@@ -377,6 +411,93 @@ class VerticalReading:
 
 
 @dataclass(frozen=True)
+class GeoidSwapReading:
+    """The geoid-to-geoid half of one converted point: which two models, the
+    two separations read at the pivot, and the value that moved the height.
+
+    Exists only on an IDENTITY vertical job whose two sides state different
+    geoid models (the owner's feature, 2026-08-09). The arithmetic it
+    records: the ellipsoid height h = H + N is a property of the point, not
+    of the model, so holding it fixed and changing N re-derives the
+    orthometric height under the output model:
+
+        H_out = H_in + N_in - N_out
+
+    ``shift_m`` is exactly ``n_source_m - n_target_m`` - the value ADDED to
+    the input height - and ``__post_init__`` enforces that arithmetic, so a
+    record whose stated shift disagrees with its own ingredients cannot be
+    constructed. The datum ``VerticalReading`` beside this one stays the
+    identity record: both are true - the datum did not change, the geoid did.
+    """
+
+    source_model_name: str
+    """The input-side model's ``GeoidModel.name``, e.g. "GEOID12B"."""
+
+    target_model_name: str
+    """The output-side model's name - the model the Z column is stated
+    against, and the model the factors were computed from."""
+
+    n_source_m: float
+    """The input model's geoid separation at the pivot, metres. Negative
+    throughout Michigan."""
+
+    n_target_m: float
+    """The output model's geoid separation at the same pivot, metres."""
+
+    shift_m: float
+    """``n_source_m - n_target_m``, metres: what was ADDED to the input
+    height. Enforced against the two separations at construction."""
+
+    def __post_init__(self) -> None:
+        # if/raise, never assert: the suite and the shipped program run
+        # under -O, which strips asserts (docs/DESIGN.md section 7).
+        for label, name in (
+            ("source_model_name", self.source_model_name),
+            ("target_model_name", self.target_model_name),
+        ):
+            if not isinstance(name, str) or not name.strip():
+                # The #11-finding-1 guard for this record's likeliest
+                # impostor: a GeoidModel RECORD passed where its name
+                # belongs would print "GeoidModel(name='GEOID18', ...)" into
+                # a label a surveyor reads.
+                raise TypeError(
+                    f"GeoidSwapReading.{label} must be the geoid model's own "
+                    f"non-empty name string; got {type(name).__name__} "
+                    f"({name!r}). Pass model.name, not the record."
+                )
+        for label, value in (
+            ("n_source_m", self.n_source_m),
+            ("n_target_m", self.n_target_m),
+            ("shift_m", self.shift_m),
+        ):
+            if not isinstance(value, float) or not math.isfinite(value):
+                raise ValueError(
+                    f"GeoidSwapReading.{label} must be a finite number of "
+                    f"metres; got {value!r}. A non-finite separation cannot "
+                    f"move a height."
+                )
+        if self.source_model_name == self.target_model_name:
+            raise ValueError(
+                f"GeoidSwapReading names {self.source_model_name!r} on both "
+                f"sides. The same model on both sides is the ordinary "
+                f"identity job - no swap step runs and no swap record "
+                f"exists - so a record claiming one is a wiring defect."
+            )
+        if abs(self.shift_m - (self.n_source_m - self.n_target_m)) > 1e-12:
+            # The one place the swap arithmetic is defined; every surface
+            # reports shift_m, so a record that disagreed with its own
+            # ingredients would print a number nothing derived.
+            raise ValueError(
+                f"GeoidSwapReading.shift_m ({self.shift_m!r}) does not equal "
+                f"n_source_m - n_target_m "
+                f"({self.n_source_m!r} - {self.n_target_m!r} = "
+                f"{self.n_source_m - self.n_target_m!r}). The shift IS that "
+                f"difference - H_out = H_in + N_in - N_out - and a record "
+                f"carrying any other number is wrong by construction."
+            )
+
+
+@dataclass(frozen=True)
 class ConvertedPoint:
     """One point, converted, with the evidence for it."""
 
@@ -409,6 +530,17 @@ class ConvertedPoint:
     None on every point of a HORIZONTAL job, on a vertical job's point that
     carried no elevation (there is no height to shift), and on a point whose
     shift was unavailable (the warning beside it says so).
+    """
+
+    geoid_swap: GeoidSwapReading | None = None
+    """The geoid-to-geoid evidence for this point, or None.
+
+    Present exactly when a geoid change moved this point's elevation: an
+    identity vertical job whose two sides state different geoid models, on a
+    point whose elevation was read and whose position both tiles cover. None
+    everywhere else - including a swap job's point whose elevation was
+    refused for coverage, where ``vertical`` is None too and the warning
+    says why.
     """
 
     warnings: tuple[ConversionWarning, ...] = field(default_factory=tuple)
@@ -649,6 +781,102 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
             f"michspc.fileio.geoid, or geoid_model_by_name()."
         )
 
+    if settings.source_geoid_model is not None and not isinstance(
+        settings.source_geoid_model, geoid.GeoidModel
+    ):
+        # The impostor guard ``geoid_model`` carries above, for the input
+        # side: the two fields are chosen by parallel dropdowns, so the same
+        # habits reach both. if/raise, never assert (-O strips asserts).
+        raise TypeError(
+            f"JobSettings.source_geoid_model must be a michspc.fileio.geoid."
+            f"GeoidModel record, or None to state that no input-side geoid "
+            f"model is stated; got "
+            f"{type(settings.source_geoid_model).__name__} "
+            f"({settings.source_geoid_model!r}). Pass geoid.GEOID18_MODEL, "
+            f"geoid.GEOID12B_MODEL, or a record from "
+            f"geoid.geoid_model_by_name()."
+        )
+
+    if (
+        settings.source_geoid_model is not None
+        and settings.source_geoid_model not in geoid.ALL_GEOID_MODELS
+    ):
+        # Registry membership, the geoid_model rule above verbatim: the job
+        # record cites the input model's tile and digest from the registry,
+        # so a model the registry does not hold cannot be documented.
+        known = ", ".join(model.name for model in geoid.ALL_GEOID_MODELS)
+        raise ValueError(
+            f"JobSettings.source_geoid_model "
+            f"{settings.source_geoid_model.name!r} is not a registered geoid "
+            f"model, so the job record could not cite its tile and checksum. "
+            f"A job converts only against the models this program ships: "
+            f"{known}. Use the records in michspc.fileio.geoid, or "
+            f"geoid_model_by_name()."
+        )
+
+    if transformation is None and settings.source_geoid_model is not None:
+        # A horizontal job asked no vertical question, so an input-side
+        # geoid model answers nothing - the mirror of the vertical-datum
+        # refusal, arriving at the new field. Silently ignoring it would let
+        # a caller believe the input elevations' geoid statement was used.
+        raise ValueError(
+            f"This job is horizontal-only, but source_geoid_model "
+            f"({settings.source_geoid_model.name}) was supplied. An "
+            f"input-side geoid model exists to convert elevations between "
+            f"geoid models, and a horizontal job converts no elevation at "
+            f"all. Set vertical_mode to a mode that converts elevations, or "
+            f"state None; a horizontal job's factors come from geoid_model "
+            f"alone."
+        )
+
+    if (
+        transformation is not None
+        and not transformation.is_identity
+        and settings.geoid_model is not None
+        and settings.source_geoid_model is not None
+    ):
+        # The compound-job refusal: a modeled datum shift AND a geoid change
+        # inside one Z column would stack two modeled corrections with no
+        # surface stating either alone. The honest form is two jobs, each
+        # with its own record - and the refusal says so rather than picking
+        # an order of application nobody stated. Guarded before the
+        # per-side era checks below, because the advice here (split the job)
+        # is the one that survives whichever era pairing arrives with it -
+        # today only NAVD 88 has published models, so this fires ahead of a
+        # NAPGD2022-era registry rather than after it.
+        raise ValueError(
+            f"This job states a geoid model on BOTH sides "
+            f"(source_geoid_model={settings.source_geoid_model.name}, "
+            f"geoid_model={settings.geoid_model.name}) of a modeled vertical "
+            f"transformation ({transformation.source.code} -> "
+            f"{transformation.target.code}). That would compound a modeled "
+            f"datum shift with a modeled geoid change inside one elevation, "
+            f"and no output could say which correction moved the height. "
+            f"Run two jobs: convert between the geoid models in an identity "
+            f"job ({transformation.source.code} -> "
+            f"{transformation.source.code}), then convert the datum with "
+            f"one geoid model stated."
+        )
+
+    if transformation is not None and settings.source_geoid_model is not None:
+        # The per-side form of DESIGN.md #32's two-eras rule: the INPUT
+        # model's separations must be published for the INPUT elevations'
+        # own datum, because H_in + N_in is the ellipsoid height only when
+        # the two share an era. The output side keeps the guard below.
+        model = settings.source_geoid_model
+        if model.vertical_datum.code != settings.source_vertical_datum.code:
+            raise geoid.GeoidError(
+                f"The {model.name} geoid model publishes separations for "
+                f"heights in {model.vertical_datum.code}, and this job's "
+                f"INPUT elevations are "
+                f"{settings.source_vertical_datum.code}, so there is no "
+                f"input height its separations can honestly combine with - "
+                f"an ellipsoid height built from the two would mix eras "
+                f"inside one number (DESIGN.md #32). State an input-side "
+                f"model published for "
+                f"{settings.source_vertical_datum.code} heights, or none."
+            )
+
     if transformation is not None and settings.geoid_model is not None:
         # Plan section 3.5's fourth refusal, WIDENED at the WP-V6 review gate
         # (DESIGN.md #41, superseding the plan's target-datum-only rule): the
@@ -686,9 +914,29 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
                 f"targets it."
             )
 
+    # The factors' grid: the one side whose height and separation share an
+    # era (factors_geoid_model - output side preferred, else input side).
+    # For every pre-existing call shape this is settings.geoid_model's own
+    # grid, bit for bit: the #41-era NAVD88 -> NGVD29 shape normalizes its
+    # model to the input side and this reads the same record back.
+    factors_model = factors_geoid_model(settings, transformation)
     grid = (
-        geoid.default_grid(settings.geoid_model)
-        if settings.geoid_model is not None
+        geoid.default_grid(factors_model) if factors_model is not None else None
+    )
+
+    # The geoid-to-geoid conversion's two grids, loaded once per job exactly
+    # as the factors grid above is. None on every job that is not a swap -
+    # including the same model stated on both sides, which is the ordinary
+    # identity job with no swap step.
+    swap_models = geoid_swap_models(settings, transformation)
+    swap_grids = (
+        _GeoidSwapGrids(
+            source_model=swap_models[0],
+            target_model=swap_models[1],
+            source_grid=geoid.default_grid(swap_models[0]),
+            target_grid=geoid.default_grid(swap_models[1]),
+        )
+        if swap_models is not None
         else None
     )
 
@@ -706,7 +954,9 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
     points: list[ConvertedPoint] = []
     for row in parsed.rows:
         points.append(
-            _convert_row(row, settings, grid, transformation, vertcon_grids)
+            _convert_row(
+                row, settings, grid, transformation, vertcon_grids, swap_grids
+            )
         )
 
     return JobResult(
@@ -717,12 +967,30 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
         input_sha256=parsed.sha256,
         input_row_count=len(parsed.rows),
         skipped_blank_lines=parsed.skipped_blank_lines,
-        # The NAME, not the record: JobResult's contract predates the registry
-        # and report.py resolves the record back through geoid_model_by_name.
+        # The NAME of the model the factors were actually computed from, not
+        # the record: JobResult's contract predates the registry and
+        # report.py resolves the record back through geoid_model_by_name.
+        # For every pre-existing call shape this is settings.geoid_model's
+        # own name; since the per-side feature it is the factors side's, so
+        # a job whose only model is input-side (geoid_model=None,
+        # source_geoid_model=GEOID18) names the grid its factors really
+        # came from rather than claiming no geoid was applied.
         geoid_model=(
-            settings.geoid_model.name if settings.geoid_model is not None else None
+            factors_model.name if factors_model is not None else None
         ),
     )
+
+
+@dataclass(frozen=True)
+class _GeoidSwapGrids:
+    """A swap job's two models with their loaded grids - run()'s per-job
+    wiring, handed to ``_convert_row`` so the tiles are read once per job,
+    not per row."""
+
+    source_model: geoid.GeoidModel
+    target_model: geoid.GeoidModel
+    source_grid: object
+    target_grid: object
 
 
 def _require_vertical_settings(
@@ -945,27 +1213,96 @@ def _require_geodetic_in_range(
         )
 
 
+def per_side_geoid_models(
+    settings: JobSettings, transformation: VerticalTransformation | None
+) -> tuple[geoid.GeoidModel | None, geoid.GeoidModel | None]:
+    """``(input-side model, output-side model)`` for this job, normalized.
+
+    THE one statement of the per-side pairing (the owner's feature,
+    2026-08-09), read by the computation, the factors rule, the swap
+    detection and the record, so no two of them can pair differently.
+
+    The normalization SUPERSEDES DESIGN.md #41's either-endpoint contortion
+    by generalization: each side's model must match its own side's datum.
+    The one pre-existing call shape that put a source-era model in
+    ``geoid_model`` - a modeled transformation whose SOURCE datum is the
+    model's era but whose target is not (NAVD88 -> NGVD29 with GEOID18, the
+    configuration #41 widened the rule for) - is treated as the input-side
+    model here, so every #41-era caller keeps working, its factors and
+    outputs bit-identical, and ``factors_use_source_era`` becomes a
+    consequence of the pairing rather than a parallel rule.
+    """
+    source_model = settings.source_geoid_model
+    output_model = settings.geoid_model
+    if (
+        transformation is not None
+        and not transformation.is_identity
+        and output_model is not None
+        and source_model is None
+        and output_model.vertical_datum.code == transformation.source.code
+        and output_model.vertical_datum.code != transformation.target.code
+    ):
+        return output_model, None
+    return source_model, output_model
+
+
+def factors_geoid_model(
+    settings: JobSettings, transformation: VerticalTransformation | None
+) -> geoid.GeoidModel | None:
+    """The model this job's factors are computed from, or None.
+
+    The side whose height and separation share an era: the OUTPUT side where
+    it has a model - the factors then describe the height the Z column
+    carries - else the INPUT side, else no model at all (the factors read
+    N/A). One statement, shared by ``run``, the record and the audit CSV's
+    "Geoid model" column, so they cannot name different grids.
+    """
+    source_model, output_model = per_side_geoid_models(settings, transformation)
+    return output_model if output_model is not None else source_model
+
+
+def geoid_swap_models(
+    settings: JobSettings, transformation: VerticalTransformation | None
+) -> tuple[geoid.GeoidModel, geoid.GeoidModel] | None:
+    """``(input model, output model)`` when this job converts BETWEEN geoid
+    models, else None.
+
+    A geoid-to-geoid conversion is exactly: an identity vertical
+    transformation (the datum does not change) with a model stated on each
+    side and the two models different. The same model on both sides is the
+    ordinary identity job - no swap step, no record - and a modeled
+    transformation with both sides stated was refused before any point
+    converted (``run``'s compound-job refusal).
+    """
+    if transformation is None or not transformation.is_identity:
+        return None
+    source_model, output_model = per_side_geoid_models(settings, transformation)
+    if source_model is None or output_model is None:
+        return None
+    if source_model == output_model:
+        return None
+    return source_model, output_model
+
+
 def factors_use_source_era(
     settings: JobSettings, transformation: VerticalTransformation | None
 ) -> bool:
     """Whether this job's factors are computed from the SOURCE-datum height.
 
     The #41 either-endpoint rule's one configuration where the factors do not
-    use the height the Z column carries: a modeled transformation whose
-    SOURCE datum is the geoid model's own era (NAVD88 -> NGVD29 with either
-    shipped model). Stated once and called from both the computation
-    (``_convert_row``) and the record (``report.py``'s Factor height
-    paragraph), so the sentence and the arithmetic cannot drift apart
-    (WP-V7 review gate, LOW 2; one authoritative representation per fact).
+    use the height the Z column carries - now a CONSEQUENCE of the per-side
+    pairing (``per_side_geoid_models``): the factors follow the one side
+    that has a model, and on a modeled transformation only the input side
+    can honestly hold one whose era is the source datum's. Stated once and
+    called from both the computation (``_convert_row``) and the record
+    (``report.py``'s Factor height paragraph), so the sentence and the
+    arithmetic cannot drift apart (WP-V7 review gate, LOW 2; one
+    authoritative representation per fact).
     """
-    return (
-        transformation is not None
-        and not transformation.is_identity
-        and settings.geoid_model is not None
-        and settings.geoid_model.vertical_datum.code
-        == transformation.source.code
-        != transformation.target.code
-    )
+    if transformation is None or transformation.is_identity:
+        return False
+    source_model, output_model = per_side_geoid_models(settings, transformation)
+    return output_model is None and source_model is not None
 
 
 def _convert_row(
@@ -974,6 +1311,7 @@ def _convert_row(
     grid,
     transformation: VerticalTransformation | None,
     vertcon_grids: vertcon.VertconGridPair | None,
+    swap_grids: _GeoidSwapGrids | None = None,
 ) -> ConvertedPoint:
     context = f"point {row.point_id}"
     warnings: list[ConversionWarning] = []
@@ -1121,6 +1459,7 @@ def _convert_row(
     # ----------------------------------------------------------------------
     height_m = elevation_m
     vertical_reading: VerticalReading | None = None
+    geoid_swap_reading: GeoidSwapReading | None = None
     if transformation is None and settings.vertical_mode.converts_elevations:
         # The mirror of _require_transformation_matches_settings (WP-V6 review
         # gate, LOW 6): that check catches the wrong record arriving, this
@@ -1156,6 +1495,78 @@ def _convert_row(
                     sigma_m=None,
                     sigma_unavailable_reason=_IDENTITY_SIGMA_REASON,
                 )
+                if swap_grids is not None:
+                    # The geoid-to-geoid conversion (the owner's feature,
+                    # 2026-08-09): both separations at the SAME pivot, the
+                    # ellipsoid height held fixed, the orthometric height
+                    # re-derived under the output model -
+                    # H_out = H_in + N_in - N_out. Runs only on an identity
+                    # (a modeled transformation with both sides stated was
+                    # refused before any point converted), so the datum
+                    # reading above stays the identity record: both are
+                    # true - the datum did not change, the geoid did.
+                    try:
+                        n_source = geoid.geoid_height(
+                            conversion.latitude,
+                            conversion.longitude,
+                            swap_grids.source_grid,
+                        )
+                        n_target = geoid.geoid_height(
+                            conversion.latitude,
+                            conversion.longitude,
+                            swap_grids.target_grid,
+                        )
+                    except geoid.GeoidError:
+                        # Outside a tile - the VERTICAL_SHIFT_UNAVAILABLE
+                        # shape exactly: the height in hand is stated
+                        # against the INPUT model and every elevation this
+                        # job writes claims the OUTPUT one, so no Z is
+                        # written, the reading is withdrawn (a shift row
+                        # beside an absent Z would claim an output that was
+                        # not written), and the coordinates stand.
+                        height_m = None
+                        vertical_reading = None
+                        warnings.append(
+                            ConversionWarning(
+                                code=WarningCode.GEOID_SWAP_UNAVAILABLE,
+                                message=(
+                                    f"{context}: the elevation "
+                                    f"{row.elevation:,.3f} "
+                                    f"{settings.input_unit.code} was "
+                                    f"supplied, but "
+                                    f"{conversion.latitude:.6f}, "
+                                    f"{conversion.longitude:.6f} is "
+                                    f"outside the geoid tiles this "
+                                    f"program ships, so the "
+                                    f"elevation cannot be re-derived from "
+                                    f"{swap_grids.source_model.name} to "
+                                    f"{swap_grids.target_model.name} "
+                                    f"there. The elevation was NOT "
+                                    f"converted: rather than print the "
+                                    f"{swap_grids.source_model.name} "
+                                    f"height in a Z column whose job "
+                                    f"names "
+                                    f"{swap_grids.target_model.name}, "
+                                    f"this point's output elevation is "
+                                    f"blank and its elevation and "
+                                    f"combined factors are "
+                                    f"{formatting.NOT_AVAILABLE}. The "
+                                    f"HORIZONTAL coordinates are "
+                                    f"unaffected and stand: they do not "
+                                    f"depend on elevation at all."
+                                ),
+                            )
+                        )
+                    else:
+                        swap_shift = n_source - n_target
+                        height_m = height_m + swap_shift
+                        geoid_swap_reading = GeoidSwapReading(
+                            source_model_name=swap_grids.source_model.name,
+                            target_model_name=swap_grids.target_model.name,
+                            n_source_m=n_source,
+                            n_target_m=n_target,
+                            shift_m=swap_shift,
+                        )
             else:
                 if vertcon_grids is None:
                     # run() loads the pair once for every modeled job; a None
@@ -1385,5 +1796,6 @@ def _convert_row(
         output_easting=output_easting,
         output_elevation=output_elevation,
         vertical=vertical_reading,
+        geoid_swap=geoid_swap_reading,
         warnings=tuple(warnings) + conversion.warnings,
     )

@@ -466,6 +466,76 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #50 — 2026-08-09 — Owner's feature: per-side geoid selection, and geoid-to-geoid conversion
+
+**The owner's instruction**: vertical jobs choose the geoid for the input and
+the output separately, so the same datum can be transformed between geoid
+realizations (NAVD 88/GEOID12B → NAVD 88/GEOID18); a datum with no
+associated geoids (NGVD 29) gets its selector GRAYED (disabled, his word —
+not hidden); future datums gray inapplicable models through the registry.
+**No Codex gate, his instruction** — the review weight is the hand-derived
+pins, six falsifications, and the session lead's independent from-scratch
+verification. **A second instruction arrived mid-build: no disclaimers
+visible to the user, on any surface including the written record.**
+
+**What was built.** `JobSettings.source_geoid_model`; on a same-datum
+vertical job with two different models the elevation converts by
+**H_out = H_in + (N_in − N_out)** — the ellipsoid height held fixed, both
+separations from the shipped grids at the pivot — carried on a
+`GeoidSwapReading` whose arithmetic is enforced in its own constructor.
+Each side's model must match its side's datum; the per-side rule
+**supersedes #41's either-endpoint contortion by generalization** (factors
+pair each height with its own side's model; every #41-era call shape
+normalizes to per-side form and every existing outcome is bit-identical,
+pinned). New refusals: an input-side model on a horizontal job; a per-side
+datum mismatch; **a compound job** — both sides geoided across a modeled
+datum shift — refused as two modeled operations in one job (reachable today
+only as the same model on both sides of NGVD29↔NAVD88; the guard is for
+NAPGD2022's arrival). GUI: Input geoid / Output geoid rows in the vertical
+modes, each filtered by its side's datum and **disabled with items cleared**
+when its datum is unanswered or has no models; both default GEOID18, so
+nothing converts differently unless the user changes a dropdown; Horizontal
+mode is pixel-identical to before. σ for a swap: **bare N/A** — NGS
+publishes no error model for the difference of two hybrid geoids — with no
+explanatory prose, per the no-disclaimers instruction. The record's GEOID
+CHANGE block states facts only: both models, tile filenames, digests, the
+arithmetic. **The absence of caveat prose is itself pinned** (a record may
+not contain 'GNSS', 'leveled', 'benchmark', 'disagreement', 'cannot know'),
+falsified by seeding the caveat back.
+
+**The geodetic fact, recorded HERE because the outputs no longer carry it
+(the owner asked the question directly and has the answer):** a leveled
+NAVD 88 height does not depend on the hybrid geoid model — GEOID12B and
+GEOID18 were each fitted TO the leveled network, and updating the model
+moves no published benchmark. The swap arithmetic is the re-derivation of a
+**GNSS-derived** orthometric height under the other model (h fixed,
+H = h − N); applied to a leveled height it states the two models'
+disagreement at the point rather than a new realization of the benchmark.
+The program cannot know which kind of height a Z column holds.
+
+**Verification.** Hand-derived from BOTH frozen NGS fixture sets at the
+Houghton anchor (N18 = −33.796, N12B = −33.828, both printed to 0.001 m):
+12B→18 moves 200.000 → 199.968, the reverse → 200.032; the shipped grids'
+exact difference is −0.032343 m ("−0.106" ift under #47's input-unit rule —
+the fixture-quantized figure would read "−0.105", and the pin holds the
+exact grid value with the derivation recorded). Same-model both sides is
+bit-identical to the pre-feature identity job; all pre-existing job shapes
+byte-identical on every surface; the factors' ellipsoid height provably
+fixed ((H+N_in−N_out)+N_out = H+N_in, pinned). Six falsifications, each
+caught by exactly its own pins: the sign flipped (lands at 200.032 where
+199.968 is pinned), one grid read twice (swap 0), the graying filter
+dropped, the new combo's invalidation disconnected, the compound refusal
+deleted, the caveat seeded back. **Independently re-verified by the session
+lead from scratch**: own N readings from both grids, the job's Z and swap
+shift to 1e-9/1e-12, exact round-trip symmetry, the audit column present.
+One GUI test replaced (the NGVD29-identity refusal is no longer
+constructable from the screen — both sides gray and no model is emitted, so
+the job honestly converts with N/A factors; the core refusal of the old
+call shape remains pinned).
+
+**Suite: 1565 → 1604**, green in `pytest` and `-O`. Committed to `main` and
+pushed. 0.4.0 shipped without this feature; it rides the next release.
+
 ### #49 — 2026-08-09 — 0.4.0 RELEASED: vertical datum conversion ships
 
 **The owner's release instruction, executed.** Version literal 0.3.1 →

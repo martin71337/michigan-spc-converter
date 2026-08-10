@@ -56,11 +56,13 @@ from PySide6.QtWidgets import (
 )
 
 from michspc import APP_NAME
-from michspc.fileio import dms, pnezd
+from michspc.fileio import dms, geoid, pnezd
 from michspc.gui.controls import (
     AMBER,
     GEODETIC,
     GEOID_MODEL_LABEL,
+    INPUT_GEOID_LABEL,
+    OUTPUT_GEOID_LABEL,
     RED,
     UNCHOSEN,
     UNITS_LABEL,
@@ -70,8 +72,10 @@ from michspc.gui.controls import (
     VERTICAL_TARGET_LABEL,
     direction_for,
     geoid_combo,
+    geoid_models_for_datum,
     longitude_combo,
     longitude_relevance,
+    refresh_geoid_combo,
     show_failure_dialog,
     unit_combo,
     vertical_datum_combo,
@@ -332,21 +336,39 @@ class SinglePointTab(QWidget):
         grid.addWidget(self.vertical_target_label, 4, 0)
         grid.addWidget(self.vertical_target_combo, 4, 1, 1, 3)
 
+        # --- input-side geoid model -------------------------------------
+        # Directly under the datum rows it is filtered by (the owner's
+        # per-side feature, 2026-08-09): which geoid model the typed
+        # elevation is stated against. Vertical-mode furniture, hidden in
+        # Horizontal exactly as the datum rows are; DISABLED - grayed, the
+        # owner's explicit word, not hidden - when its side's datum is
+        # unanswered or has no published model (NGVD 29). Its one
+        # connection is the invalidation, the amendment #26 rule at yet
+        # another new control: a GEOID12B-to-GEOID18 input-side change
+        # describes a different conversion of the same numbers.
+        self.input_geoid_label = QLabel(INPUT_GEOID_LABEL, box)
+        self.input_geoid_combo = geoid_combo(box)
+        self.input_geoid_combo.currentIndexChanged.connect(self._invalidate_result)
+
+        grid.addWidget(self.input_geoid_label, 5, 0)
+        grid.addWidget(self.input_geoid_combo, 5, 1, 1, 3)
+
         # --- geoid model ------------------------------------------------
         # New to this tab, which had no geoid control at all (plan section
         # 4.3). Visible in BOTH modes: the geoid governs the elevation and
         # combined factors whether or not the elevations are converted
-        # between vertical datums. Like the unit combos it does not gate
-        # Convert - it always holds a model - so its one connection is the
-        # invalidation, without which a GEOID18-to-GEOID12B change would
-        # leave the previous model's factors on screen (the amendment #26
-        # CRITICAL class).
+        # between vertical datums - and since the per-side feature it is
+        # the OUTPUT side in the vertical modes, relabelled and filtered by
+        # _refresh_geoid_sides. Like the unit combos it does not gate
+        # Convert, so its one connection is the invalidation, without which
+        # a GEOID18-to-GEOID12B change would leave the previous model's
+        # factors on screen (the amendment #26 CRITICAL class).
         self.geoid_label = QLabel(GEOID_MODEL_LABEL, box)
         self.geoid_combo = geoid_combo(box)
         self.geoid_combo.currentIndexChanged.connect(self._invalidate_result)
 
-        grid.addWidget(self.geoid_label, 5, 0)
-        grid.addWidget(self.geoid_combo, 5, 1, 1, 3)
+        grid.addWidget(self.geoid_label, 6, 0)
+        grid.addWidget(self.geoid_combo, 6, 1, 1, 3)
 
         # --- longitude sign convention ----------------------------------
         self.longitude_label = QLabel("Longitude sign:", box)
@@ -360,8 +382,8 @@ class SinglePointTab(QWidget):
         # produced (DESIGN.md #43, correcting #26).
         self.longitude_combo = longitude_combo(box, self._on_longitude_changed)
 
-        grid.addWidget(self.longitude_label, 6, 0)
-        grid.addWidget(self.longitude_combo, 6, 1, 1, 3)
+        grid.addWidget(self.longitude_label, 7, 0)
+        grid.addWidget(self.longitude_combo, 7, 1, 1, 3)
 
         # --- how a latitude and longitude are typed ----------------------
         self.angle_format_label = QLabel(ANGLE_FORMAT_LABEL, box)
@@ -370,8 +392,8 @@ class SinglePointTab(QWidget):
         self.angle_format.addItem(ANGLE_FORMAT_DMS, DMS_PAGE)
         self.angle_format.currentIndexChanged.connect(self._on_angle_format_changed)
 
-        grid.addWidget(self.angle_format_label, 7, 0)
-        grid.addWidget(self.angle_format, 7, 1, 1, 3)
+        grid.addWidget(self.angle_format_label, 8, 0)
+        grid.addWidget(self.angle_format, 8, 1, 1, 3)
 
         # --- the typed coordinate ---------------------------------------
         # Each coordinate row is a two-page stack: one decimal box, or four DMS
@@ -404,12 +426,12 @@ class SinglePointTab(QWidget):
         self.second_edit.textChanged.connect(self._invalidate_result)
         self.elevation_edit.textChanged.connect(self._invalidate_result)
 
-        grid.addWidget(self.first_label, 8, 0)
-        grid.addWidget(self.first_stack, 8, 1, 1, 3)
-        grid.addWidget(self.second_label, 9, 0)
-        grid.addWidget(self.second_stack, 9, 1, 1, 3)
-        grid.addWidget(self.elevation_label, 10, 0)
-        grid.addWidget(self.elevation_edit, 10, 1, 1, 3)
+        grid.addWidget(self.first_label, 9, 0)
+        grid.addWidget(self.first_stack, 9, 1, 1, 3)
+        grid.addWidget(self.second_label, 10, 0)
+        grid.addWidget(self.second_stack, 10, 1, 1, 3)
+        grid.addWidget(self.elevation_label, 11, 0)
+        grid.addWidget(self.elevation_edit, 11, 1, 1, 3)
 
         # --- convert ----------------------------------------------------
         self.convert_button = QPushButton("Convert", box)
@@ -417,7 +439,7 @@ class SinglePointTab(QWidget):
         buttons.addStretch(1)
         buttons.addWidget(self.convert_button)
         self.convert_button.clicked.connect(self.convert)
-        grid.addLayout(buttons, 11, 0, 1, 4)
+        grid.addLayout(buttons, 12, 0, 1, 4)
 
         grid.setColumnStretch(1, 3)
         grid.setColumnStretch(3, 2)
@@ -555,6 +577,35 @@ class SinglePointTab(QWidget):
     def target_vertical_datum(self) -> VerticalDatum | None:
         return vertical_datum_for(self.vertical_target_combo.currentData())
 
+    def output_geoid_model(self) -> geoid.GeoidModel | None:
+        """The model ``JobSettings.geoid_model`` gets from this tab -
+        ``MainWindow.output_geoid_model``'s rule exactly: the full-list
+        combo's answer in Horizontal, the filtered OUTPUT side in the
+        vertical modes, and None from a grayed side (its datum has no
+        published model, so no model is emitted rather than one the job
+        would refuse)."""
+        if not self.vertical_mode().converts_elevations:
+            return self.geoid_combo.currentData()
+        data = (
+            self.geoid_combo.currentData()
+            if self.geoid_combo.isEnabled()
+            else None
+        )
+        return data if isinstance(data, geoid.GeoidModel) else None
+
+    def input_geoid_model(self) -> geoid.GeoidModel | None:
+        """The model ``JobSettings.source_geoid_model`` gets from this tab:
+        None in Horizontal (the hidden combo is never read, the datum-row
+        idiom), else the INPUT side's answer, None when grayed."""
+        if not self.vertical_mode().converts_elevations:
+            return None
+        data = (
+            self.input_geoid_combo.currentData()
+            if self.input_geoid_combo.isEnabled()
+            else None
+        )
+        return data if isinstance(data, geoid.GeoidModel) else None
+
     def settings(self) -> JobSettings | None:
         """Assemble the job settings, or None if the form is not yet complete.
 
@@ -602,10 +653,11 @@ class SinglePointTab(QWidget):
             target_zone=target_zone,
             input_unit=self.input_unit.currentData(),
             output_unit=self.output_unit.currentData(),
-            # From the dropdown (WP-V8, plan section 4.3), exactly as the two
-            # unit combos are read and exactly as MainWindow.settings reads
-            # its own.
-            geoid_model=self.geoid_combo.currentData(),
+            # From the dropdowns (WP-V8, plan section 4.3; per-side since
+            # the owner's 2026-08-09 feature), exactly as MainWindow.settings
+            # reads its own. A grayed side emits None.
+            geoid_model=self.output_geoid_model(),
+            source_geoid_model=self.input_geoid_model(),
             vertical_mode=mode,
             source_vertical_datum=source_datum,
             target_vertical_datum=target_datum,
@@ -652,7 +704,8 @@ class SinglePointTab(QWidget):
             target_zone=None,
             input_unit=input_unit,
             output_unit=input_unit,
-            geoid_model=self.geoid_combo.currentData(),
+            geoid_model=self.output_geoid_model(),
+            source_geoid_model=self.input_geoid_model(),
             vertical_mode=VerticalMode.VERTICAL,
             source_vertical_datum=source_datum,
             target_vertical_datum=target_datum,
@@ -765,10 +818,38 @@ class SinglePointTab(QWidget):
         self._invalidate_result()
 
     def _on_vertical_datum_changed(self) -> None:
-        """What both datum combos are wired to: the gate and the invalidation,
-        the same pair the coordinate entries use."""
+        """What both datum combos are wired to: the geoid-side refresh (a
+        datum decides which models its side may offer, the per-side
+        registry filter), then the gate and the invalidation, the same pair
+        the coordinate entries use."""
+        self._refresh_geoid_sides()
         self._update_convert_enabled()
         self._invalidate_result()
+
+    def _refresh_geoid_sides(self) -> None:
+        """Make both geoid combos offer what the mode and datums allow -
+        ``MainWindow._refresh_geoid_sides``'s rule exactly, through the same
+        ``controls`` helpers, so the two tabs cannot filter differently. A
+        side with no models is DISABLED - grayed, the owner's word - rather
+        than hidden or left enabled over an empty list."""
+        mode = self.vertical_mode()
+        if not mode.converts_elevations:
+            self.geoid_label.setText(GEOID_MODEL_LABEL)
+            refresh_geoid_combo(self.geoid_combo, geoid.ALL_GEOID_MODELS)
+            refresh_geoid_combo(
+                self.input_geoid_combo,
+                geoid_models_for_datum(self.source_vertical_datum()),
+            )
+            return
+        self.geoid_label.setText(OUTPUT_GEOID_LABEL)
+        refresh_geoid_combo(
+            self.geoid_combo,
+            geoid_models_for_datum(self.target_vertical_datum()),
+        )
+        refresh_geoid_combo(
+            self.input_geoid_combo,
+            geoid_models_for_datum(self.source_vertical_datum()),
+        )
 
     def _update_vertical_rows(self) -> None:
         """Show the datum rows when elevations convert; hide the output
@@ -787,8 +868,16 @@ class SinglePointTab(QWidget):
             self.vertical_source_combo,
             self.vertical_target_label,
             self.vertical_target_combo,
+            # The input-side geoid row is vertical-mode furniture exactly
+            # as the datum rows it filters by are; within the vertical
+            # modes a side with no models is GRAYED by
+            # _refresh_geoid_sides, never hidden (the owner's distinction,
+            # 2026-08-09).
+            self.input_geoid_label,
+            self.input_geoid_combo,
         ):
             widget.setVisible(mode.converts_elevations)
+        self._refresh_geoid_sides()
         vertical_only = mode is VerticalMode.VERTICAL
         for widget in (
             self.to_zone_label,

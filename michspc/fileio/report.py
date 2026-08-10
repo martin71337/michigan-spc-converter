@@ -20,7 +20,13 @@ from michspc import APP_NAME, __version__
 from michspc.fileio import formatting as fmt
 from michspc.fileio import vertcon
 from michspc.fileio.geoid import geoid_model_by_name
-from michspc.job import Direction, JobResult, factors_use_source_era
+from michspc.job import (
+    Direction,
+    JobResult,
+    factors_geoid_model,
+    factors_use_source_era,
+    geoid_swap_models,
+)
 from michspc.spc.convert import WarningCode
 from michspc.spc.factors import MEAN_EARTH_RADIUS_M
 from michspc.spc.lambert import constants_for
@@ -44,6 +50,11 @@ _WARNING_HEADINGS = {
     ),
     WarningCode.VERTICAL_SIGMA_UNAVAILABLE: (
         "SHIFT APPLIED, BUT NO UNCERTAINTY COULD BE STATED FOR IT"
+    ),
+    # Fires only on a geoid-to-geoid job, so this heading changes no
+    # pre-existing record by a byte.
+    WarningCode.GEOID_SWAP_UNAVAILABLE: (
+        "ELEVATION RECORDED, BUT NOT CONVERTIBLE BETWEEN GEOID MODELS"
     ),
 }
 """Readable headings for the warning kinds this program currently raises.
@@ -315,11 +326,16 @@ def _vertical_method_block(settings, transformation, result) -> list[str]:
         # asserted it anyway (WP-V7 review gate, MEDIUM 3).
         and any(p.factors.elevation_factor is not None for p in result.points)
     ):
-        # The #41 either-endpoint rule, said out loud: this is the one
-        # configuration where the factors do NOT use the height the Z column
-        # carries, and a record that did not say which height the factors
-        # came from would leave the audit CSV's "how was this derived"
-        # question half answered.
+        # The #41 rule - now the per-side pairing's consequence - said out
+        # loud: this is the one configuration where the factors do NOT use
+        # the height the Z column carries, and a record that did not say
+        # which height the factors came from would leave the audit CSV's
+        # "how was this derived" question half answered. The model named is
+        # the one the factors actually read (factors_geoid_model) - for
+        # every #41-era call shape that is settings.geoid_model itself, and
+        # for the per-side shape it is the input-side model, which is the
+        # only model such a job has.
+        factor_model = factors_geoid_model(settings, transformation)
         add("")
         lines.extend(
             _labelled_paragraph(
@@ -327,8 +343,8 @@ def _vertical_method_block(settings, transformation, result) -> list[str]:
                 f"The elevation and combined factors were computed from the "
                 f"SOURCE-datum ({transformation.source.code}) height, not "
                 f"from the shifted height the Z column carries. The "
-                f"{settings.geoid_model.name} separations are defined "
-                f"against {settings.geoid_model.vertical_datum.code} "
+                f"{factor_model.name} separations are defined "
+                f"against {factor_model.vertical_datum.code} "
                 f"heights, and combining a separation with a height from a "
                 f"different era would mix two eras inside one number "
                 f"(DESIGN.md #32, #41). The Z column carries the shifted, "
@@ -337,6 +353,105 @@ def _vertical_method_block(settings, transformation, result) -> list[str]:
             )
         )
     add("")
+    return lines
+
+
+def _geoid_swap_method_block(swap_models) -> list[str]:
+    """The METHOD section's account of a geoid-to-geoid conversion.
+
+    Facts only, stated plainly (the owner's instruction, 2026-08-09, the
+    #33/#34/#45 ruling extended to the written record): the two models with
+    their tile filenames and digests resolved from the registry - the same
+    records the loader authenticates against - and the arithmetic. No
+    caveat prose and no uncertainty lecture; the sigma surfaces simply read
+    N/A.
+    """
+    source_record = geoid_model_by_name(swap_models[0].name)
+    target_record = geoid_model_by_name(swap_models[1].name)
+    lines: list[str] = []
+    add = lines.append
+
+    add("GEOID CHANGE")
+    add("")
+    add(
+        f"Input geoid        {source_record.name}, NGS grid tile "
+        f"{source_record.tile_filename}"
+    )
+    add(f"                   SHA-256 {source_record.sha256}")
+    add(
+        f"Output geoid       {target_record.name}, NGS grid tile "
+        f"{target_record.tile_filename}"
+    )
+    add(f"                   SHA-256 {target_record.sha256}")
+    lines.extend(
+        _labelled_paragraph(
+            "Arithmetic",
+            f"The ellipsoid height is held fixed and the orthometric height "
+            f"re-derived under the output model: H_out = H_in + N_in - "
+            f"N_out, where N_in and N_out are the {source_record.name} and "
+            f"{target_record.name} geoid heights at the point's horizontal "
+            f"position, in metres. The Z column carries H_out; the _full.csv "
+            f"export's Vertical shift column carries N_in - N_out per "
+            f"point.",
+        )
+    )
+    add("")
+    return lines
+
+
+def _geoid_swap_elevation_block(result, transformation, swap_models, unit) -> list[str]:
+    """The ELEVATIONS section's account of a geoid-to-geoid conversion.
+
+    The ``_factor_summary`` shape over the per-point geoid change, in the
+    job's INPUT unit (the 2026-08-09 units rule; on this direction-less
+    identity the input and output units can still differ on a
+    Horizontal + Vertical job, and the shift columns follow the input one).
+    The sigma line is the bare ``N/A`` of the summary shape - no number
+    exists and nothing is attached to the absence (the owner's instruction,
+    2026-08-09).
+    """
+    source_name = swap_models[0].name
+    target_name = swap_models[1].name
+    points = result.points
+    swapped = [p for p in points if p.geoid_swap is not None]
+    lines: list[str] = []
+    add = lines.append
+
+    if not swapped:
+        lines.extend(
+            textwrap.wrap(
+                f"0 of {len(points)} points had their elevation re-derived "
+                f"from {source_name} to {target_name}: no point carried a "
+                f"convertible elevation. The causes are itemized above; any "
+                f"that raise warnings are repeated under WARNINGS. The "
+                f"_full.csv export's shift and sigma cells read "
+                f"{fmt.NOT_AVAILABLE} for every point.",
+                width=78,
+            )
+        )
+        return lines
+
+    lines.extend(
+        textwrap.wrap(
+            f"{len(swapped)} of {len(points)} points had their elevation "
+            f"re-derived from the {source_name} geoid model to the "
+            f"{target_name} geoid model; both vertical datums are "
+            f"{transformation.source.code}, so no datum shift was applied "
+            f"(see METHOD). Each point's geoid change is in the _full.csv "
+            f"export's Vertical shift column. Summary across this job:",
+            width=78,
+        )
+    )
+    add("")
+
+    shifts = [p.geoid_swap.shift_m for p in swapped]
+    add(f"  Geoid change ({unit.code})")
+    add(f"    minimum  {fmt.vertical_quantity(min(shifts), unit)}")
+    add(f"    maximum  {fmt.vertical_quantity(max(shifts), unit)}")
+    add(f"    mean     {fmt.vertical_quantity(statistics.fmean(shifts), unit)}")
+    add("")
+    sigma_summary_label = f"Shift one-sigma uncertainty ({unit.code})"
+    add(f"  {sigma_summary_label:<33} {fmt.NOT_AVAILABLE}")
     return lines
 
 
@@ -516,6 +631,12 @@ def build_report(result: JobResult) -> str:
         if vertical
         else None
     )
+    # (input model, output model) when this job converts BETWEEN geoid
+    # models, else None - job.geoid_swap_models' one rule, so the record and
+    # the computation cannot disagree about whether a swap ran. Every block
+    # this gates is additive and swap-only: a job without a swap keeps every
+    # byte it wrote before the feature.
+    swap_models = geoid_swap_models(settings, transformation)
 
     lines: list[str] = []
     add = lines.append
@@ -714,6 +835,8 @@ def build_report(result: JobResult) -> str:
 
     if vertical:
         lines.extend(_vertical_method_block(settings, transformation, result))
+        if swap_models is not None:
+            lines.extend(_geoid_swap_method_block(swap_models))
 
     # ------------------------------------------------------------- summary
     add(_THIN)
@@ -783,7 +906,24 @@ def build_report(result: JobResult) -> str:
                 f"{len(absent)} of {len(result.points)} points had NO usable "
                 f"elevation."
             )
-        if unshifted:
+        if unshifted and swap_models is not None:
+            # A swap job consults no VERTCON grid; its only refusable lookup
+            # is the geoid tiles, so the VERTCON sentence below would be a
+            # false statement about a grid never read (the WP-R2 fix C
+            # class). A job is either a swap or a datum shift - the
+            # compound form refuses before any point converts - so the
+            # branch is total.
+            add(
+                f"{len(unshifted)} of {len(result.points)} points carried an "
+                f"elevation that could NOT be re-derived from "
+                f"{swap_models[0].name} to {swap_models[1].name}: the point "
+                f"lies outside the geoid tiles this program ships. The Z "
+                f"field was read; the elevation is deliberately not written, "
+                f"because the height in hand is stated against "
+                f"{swap_models[0].name} and every elevation this job writes "
+                f"is stated against {swap_models[1].name}."
+            )
+        elif unshifted:
             add(
                 f"{len(unshifted)} of {len(result.points)} points carried an "
                 f"elevation that could NOT be converted between vertical "
@@ -848,7 +988,25 @@ def build_report(result: JobResult) -> str:
             add("  HORIZONTAL coordinate of each point is unaffected and stands: it")
             add("  does not depend on elevation at all. Each point is named again,")
             add("  with its position, under WARNINGS below.")
-        if unshifted:
+        if unshifted and swap_models is not None:
+            add("")
+            add(
+                f"  Elevation recorded, but not convertible between geoid "
+                f"models ({len(unshifted)}):"
+            )
+            lines.extend(_point_id_block(unshifted))
+            add("")
+            add("  These Z fields were read. They are NOT blank and they are NOT")
+            add("  zero. The position lies outside the geoid tiles this program")
+            add(
+                f"  ships, so no {swap_models[0].name} or "
+                f"{swap_models[1].name} geoid height exists there, and the"
+            )
+            add("  elevation is deliberately absent from the exports rather than")
+            add("  written unconverted. The HORIZONTAL coordinate of each point is")
+            add("  unaffected and stands. Each point is named again, with its")
+            add("  position, under WARNINGS below.")
+        elif unshifted:
             add("")
             add(
                 f"  Elevation recorded, but not convertible between vertical "
@@ -869,7 +1027,14 @@ def build_report(result: JobResult) -> str:
             # One separating blank, not two: some branches above already end
             # on one (WP-V7 review gate, LOW 4).
             add("")
-        lines.extend(_vertical_elevation_block(result, transformation))
+        if swap_models is not None:
+            lines.extend(
+                _geoid_swap_elevation_block(
+                    result, transformation, swap_models, settings.input_unit
+                )
+            )
+        else:
+            lines.extend(_vertical_elevation_block(result, transformation))
     add("")
 
     # ------------------------------------------------------------- warnings
@@ -924,11 +1089,20 @@ def build_report(result: JobResult) -> str:
     add("    grid, elevation and combined factors, and any warnings. This is the")
     add("    file that answers 'how was this number derived' without re-running")
     add("    anything.")
-    if vertical:
+    if vertical and swap_models is not None:
+        add("    For this job it also carries, per point: both vertical datums,")
+        add("    the elevation before the geoid change, the geoid change applied")
+        add("    (the Vertical shift column; the Shift sigma column reads N/A),")
+        add("    the source geoid model, and the geoid model the Z column and")
+        add("    the factors are stated against.")
+    elif vertical:
         add("    For this vertical job it also carries, per point: both vertical")
         add("    datums, the source-datum elevation before the shift, the modeled")
         add("    shift applied, its one-sigma uncertainty, and the geoid model")
         add("    the factors were computed from.")
+        if settings.source_geoid_model is not None:
+            add("    The Source geoid model column names the model the input")
+            add("    elevations were stated against.")
     add("")
     add(f"  {names['report']}")
     add("    This file.")

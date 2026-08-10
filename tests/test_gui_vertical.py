@@ -986,3 +986,73 @@ def test_the_vertical_tables_numbers_are_right_aligned(window, tmp_path):
             assert flags is not None and (flags & Qt.AlignmentFlag.AlignRight), (
                 f"{heading} must right-align"
             )
+
+
+# ==========================================================================
+# The Multi point Elevations row (owner instruction, DESIGN.md #48).
+# ==========================================================================
+
+
+def test_the_elevations_row_hides_when_elevations_convert(window):
+    """In Horizontal + Vertical and Vertical modes the elevations MUST be in
+    the file - the modes exist to convert them - so the in-file button asks a
+    question the job never asks, and its passed-through-unchanged tooltip
+    would be false there (owner instruction, DESIGN.md #48). Hidden with its
+    label and note; the geoid dropdown beside them stays. Falsified by
+    disconnecting the visibility update: the vertical halves fail."""
+    row = (
+        window.elevations_label,
+        window.elevation_in_file,
+        window.elevation_note,
+    )
+
+    # Horizontal: all three visible, and the tooltip claims only what is
+    # true in EVERY horizontal configuration. "Passed through unchanged" was
+    # imprecise even here - a differing output unit re-expresses the value
+    # (900.000 ift is written as 274.3200 m; the Codex cross-check's
+    # counterexample, DESIGN.md #48) - so the pin holds the honest wording
+    # and refuses the old one.
+    window.mode_horizontal.setChecked(True)
+    for widget in row:
+        assert not widget.isHidden()
+    tooltip = window.elevation_in_file.toolTip()
+    assert "not converted between vertical datums" in tooltip
+    assert "re-expresses" in tooltip
+    assert "unchanged" not in tooltip
+
+    window.mode_vertical.setChecked(True)  # Horizontal + Vertical
+    for widget in row:
+        assert widget.isHidden()
+    assert not window.geoid_combo.isHidden()
+
+    window.mode_vertical_only.setChecked(True)  # Vertical
+    for widget in row:
+        assert widget.isHidden()
+    assert not window.geoid_combo.isHidden()
+
+    # And back: the row returns with Horizontal.
+    window.mode_horizontal.setChecked(True)
+    for widget in row:
+        assert not widget.isHidden()
+
+
+def test_the_elevation_note_says_what_the_elevations_are_for(window):
+    """The owner asked for a visible note, not a tooltip (#34 stands): where
+    the in-file button remains, the note says the elevations feed the
+    elevation and combined factor calculations. Falsified by dropping the
+    note from the row: this fails."""
+    from michspc.gui.window import ELEVATION_NOTE
+
+    window.mode_horizontal.setChecked(True)
+    assert window.elevation_note.text() == ELEVATION_NOTE
+    assert "elevation and combined factor" in ELEVATION_NOTE
+    assert not window.elevation_note.isHidden()
+    # And it is genuinely IN the row: an orphaned label with the right text
+    # still reports itself visible, which is how the first version of this
+    # pin failed its own falsification - a label dropped from the layout
+    # passed. The note must live in the same container as the button it
+    # annotates.
+    assert (
+        window.elevation_note.parentWidget()
+        is window.elevation_in_file.parentWidget()
+    )

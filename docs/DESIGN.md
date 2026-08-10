@@ -466,6 +466,55 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #48 — 2026-08-09 — Owner's Multi point elevations-row fixes, cross-checked under Codex
+
+**Owner's instruction**: the Elevations "in file" tooltip was wrong in the
+two vertical modes (elevations are not passed through unchanged there — the
+mode exists to change them); the button itself is unnecessary in those modes
+(the elevations MUST be in the file); and where the button remains
+(Horizontal), a visible note should say the elevations are used for the
+factor calculations.
+
+**What changed.** The Elevations row — label, "in file" button, and the new
+note — hides in HORIZONTAL_AND_VERTICAL and VERTICAL modes and returns with
+Horizontal, mirroring the datum rows' hidden-not-disabled idiom; the geoid
+dropdown beside it stays in every mode. `elevation_in_file` is read by no
+settings path (verified), so hiding it changes no job. The note is on-screen
+text, not a tooltip (#34's ruling stands): "— used for the elevation and
+combined factors". Pinned: visibility across all three modes and the
+transitions, the note's text AND its membership in the row — the first
+version of that pin passed with the label orphaned out of the layout, which
+its own falsification exposed, and it now checks the shared parent.
+
+**The cross-check ran under Codex** — the owner's instruction, and the
+re-confirmation the #44 closing gate left as his option, in one pass. Its
+quota had reset; its sandbox could not run the full suite (`py` unavailable,
+no writable temp — the #35-recorded limitation) so the suite gates ran on
+this machine instead: **1565 green in `pytest` and `-O`**. Codex verified
+clean: the visibility wiring across every mode transition including
+H+V ↔ Vertical; #45's row genuinely absent from panel and Copy all; **#46's
+mirror re-proven independently** (rendered cells preserved exactly, output
+floats bit-identical to parsed input, only Z changing); **#47's unit
+conversion hand-derived** (−0.14019644 m ÷ 0.3048 → "−0.460") and agreeing
+on every surface; horizontal jobs byte-identical against the pre-round
+commit; and the #46 round-trip-verifier change shown to be a strict
+IMPROVEMENT — Codex constructed a `200000.0005` case where the old
+tolerance ACCEPTED the wrong adjacent value and the exact-against-rendered
+form refuses it.
+
+**Codex's findings, both fixed:** (MEDIUM) the Horizontal-mode tooltip still
+said "passed through unchanged", which is imprecise even there — a differing
+output unit re-expresses the value (Codex's counterexample: 900.000 ift is
+written as 274.3200 m; the height is the same, the number is not) — and the
+test pinned only the presence of the old words. The tooltip now says the
+honest thing (not converted between datums in this mode; a differing output
+unit re-expresses the value; blank/0.00 means not recorded) and the pin
+asserts the new wording and REFUSES "unchanged". (LOW) code and tests cited
+this amendment before it existed; it exists now.
+
+**Suite: 1563 → 1565**, green in both modes. Committed to `main` and
+pushed; no release.
+
 ### #47 — 2026-08-09 — Owner's units instruction: shift and σ in the job's input unit, units on the elevation output
 
 **Owner's instruction**: add units to the elevation output, and present the

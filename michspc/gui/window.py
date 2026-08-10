@@ -107,6 +107,17 @@ Single point is index 0 and the window opens there: it is the everyday case
 second tab.
 """
 
+ELEVATION_NOTE = "— used for the elevation and combined factors"
+"""The visible note beside the Elevations button, HORIZONTAL mode only.
+
+The owner's instruction (DESIGN.md #48): where the "in file" button remains,
+say what the elevations are FOR - they feed the elevation and combined
+factor calculations - as on-screen text, not a tooltip (#34's ruling on
+tooltips stands). In the two vertical modes the whole row is hidden: there
+the elevations are the thing being converted, and the record and the panel
+already say so.
+"""
+
 INPUT_LABEL = "Input file:"
 """The input row's label, in every state (docs/DESIGN.md amendment #16 note 1).
 
@@ -337,13 +348,30 @@ class MainWindow(QMainWindow):
         grid.addWidget(self.longitude_combo, 7, 1, 1, 3)
 
         # --- elevations -------------------------------------------------
+        # The whole row is HORIZONTAL-mode furniture, hidden by
+        # _update_vertical_rows when elevations convert (the owner's
+        # instruction, DESIGN.md #48): in Horizontal + Vertical and Vertical
+        # modes the elevations MUST be in the file - the modes exist to
+        # convert them - so a button stating the only possibility is a
+        # question the job never asks, and its "passed through unchanged"
+        # tooltip would be a false sentence in exactly those modes. Where the
+        # button remains, a visible note says what the elevations are FOR.
+        self.elevations_label = QLabel("Elevations:", box)
         self.elevation_in_file = QRadioButton("in file", box)
         self.elevation_in_file.setChecked(True)
+        # "Passed through unchanged" was false twice over: false in the two
+        # vertical modes (the shift is the whole point there - this button is
+        # now hidden in them), and imprecise even here, because a differing
+        # output unit re-expresses the value (900.000 ift is written as
+        # 274.3200 m; the height is the same, the number is not). The Codex
+        # cross-check's counterexample, DESIGN.md #48.
         self.elevation_in_file.setToolTip(
-            "Orthometric heights are read from the file's Z column and passed "
-            "through unchanged; a blank or 0.00 Z means 'not recorded' and its "
-            "factor columns read N/A."
+            "Orthometric heights are read from the file's Z column. They are "
+            "not converted between vertical datums in this mode; a differing "
+            "output unit re-expresses the value. A blank or 0.00 Z means "
+            "'not recorded' and its factor columns read N/A."
         )
+        self.elevation_note = QLabel(ELEVATION_NOTE, box)
         # The geoid model dropdown, replacing the static "Geoid: GEOID18
         # (auto)" label (WP-V8, plan section 4.3). Visible in BOTH modes: the
         # geoid governs the elevation and combined factors whether or not the
@@ -353,8 +381,15 @@ class MainWindow(QMainWindow):
         self.geoid_label = QLabel(GEOID_MODEL_LABEL, box)
         self.geoid_combo = geoid_combo(box)
 
-        grid.addWidget(QLabel("Elevations:", box), 8, 0)
-        grid.addWidget(self.elevation_in_file, 8, 1)
+        elevations_cell = QWidget(box)
+        beside = QHBoxLayout(elevations_cell)
+        beside.setContentsMargins(0, 0, 0, 0)
+        beside.addWidget(self.elevation_in_file)
+        beside.addWidget(self.elevation_note)
+        beside.addStretch(1)
+
+        grid.addWidget(self.elevations_label, 8, 0)
+        grid.addWidget(elevations_cell, 8, 1)
         grid.addWidget(self.geoid_label, 8, 2)
         grid.addWidget(self.geoid_combo, 8, 3)
 
@@ -654,6 +689,18 @@ class MainWindow(QMainWindow):
             self.vertical_target_combo,
         ):
             widget.setVisible(mode.converts_elevations)
+        # The Elevations row is the mirror image (owner's instruction,
+        # DESIGN.md #48): in the two vertical modes the elevations must be in
+        # the file - the mode exists to convert them - so the "in file"
+        # button states the only possibility, and its "passed through
+        # unchanged" tooltip would be false there. Hidden with its label and
+        # its note; the geoid dropdown beside them stays in every mode.
+        for widget in (
+            self.elevations_label,
+            self.elevation_in_file,
+            self.elevation_note,
+        ):
+            widget.setVisible(not mode.converts_elevations)
         # No output horizontal system exists in vertical-only mode (the To
         # row), and the export mirrors the input's unit (the output Units
         # selector) - visible, either control would be a question this job

@@ -1,10 +1,4 @@
-# MCX 0.4.0 — DRAFT, NOT RELEASED
-
-> **This is a draft.** The version literal has not moved, no installer has
-> been built, and no tag exists. The owner reviews the whole vertical feature
-> — including the new tab layouts, which have not been seen on a real screen
-> — before any release is cut. This file exists so the release, when it
-> comes, ships with notes written while the verification was fresh.
+# MCX 0.4.0
 
 ## Elevations can now be converted between vertical datums
 
@@ -93,8 +87,14 @@ moved).
   armed. Every selection now genuinely discards the result.
 - **The copy buttons' glyph was cut off on scaled displays** (125/150/200%
   Windows scaling). It now renders identically at every scale.
+- **The Multi point tab's Elevations tooltip** claimed heights were "passed
+  through unchanged"; a differing output unit re-expresses the value, and
+  the tooltip now says so. The Elevations controls appear only in
+  Horizontal mode — in the vertical modes the elevations are the thing
+  being converted — and a visible note beside them says what they are for:
+  the elevation and combined factors.
 
-## Verification (summary; the full record is DESIGN.md #35–#44)
+## Verification (summary; the full record is DESIGN.md #35–#49)
 
 - The VERTCON reader is **bit-identical to NOAA's published Vertcon.java**
   over the whole CONUS grid; 20 frozen NCAT anchors reproduce to 0.47 mm;

@@ -216,7 +216,7 @@ AUDIT_COLUMNS = [
 ]
 
 
-ELLIPSOID_ELEVATION_HEADING = "Ellipsoid height (GNSS)"
+ELLIPSOID_ELEVATION_HEADING = "Ellipsoid height"
 """What the audit CSV's Elevation column is called on a HORIZONTAL job whose
 Z holds GNSS heights.
 

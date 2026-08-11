@@ -467,6 +467,44 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #56 — 2026-08-11 — Owner removes the glosses, and a duplicated row goes with them
+
+**The owner's instruction**: drop the "(elevation)" and "(GNSS)" after
+*Orthometric* and *Ellipsoid*. The dropdown now offers **Orthometric** and
+**Ellipsoid**; the horizontal elevation column, on screen and in the audit CSV,
+reads **Ellipsoid height**. Text removed, behaviour untouched — the #34/#51
+ruling again.
+
+**What the removal exposed, and the reason this is an amendment rather than a
+string edit.** The panel's supplied-height row carried "(GNSS," for a stated
+reason: the factors block has shown a computed `Ellipsoid height (m)` row since
+0.1.0, and without the qualifier the two labels are identical on a metres job.
+Removing the gloss forced the question, and the honest answer is that they were
+never two facts. The computed row recomputes h = H + N from a conversion that
+derived H as h − N, so on an ellipsoid-input job it is **arithmetically the
+same number** as the height the user typed — `(h − N) + N` is `h`. The
+qualifier had been distinguishing one value from itself.
+
+So the computed row is **dropped on ellipsoid-input jobs only**. The value
+stays on screen once, as the height supplied. On an orthometric job the row is
+untouched and still shown, because there h = H + N is a genuinely separate
+fact from the Z — pinned in both directions. The reconstruction it used to
+demonstrate is still checked, in the audit CSV's own column and by its pin.
+
+**Left alone, and flagged for the owner:** the audit CSV now carries both
+`Ellipsoid height` (the Z column, output unit) and the long-standing
+`Ellipsoid height (m)` (computed, always metres). Those are two distinct
+strings a reader sees together in one header row, not the identical-label
+collision the panel had, so the panel's resolution was not extended to them.
+On a metres job they hold the same number.
+
+**One vacuous pin found and fixed while falsifying this.** The control's
+wording test compared `combo.currentText()` against the constant it came
+from, so re-adding "(GNSS)" passed it — the LOW-3 class the 0.5.0 gate had
+just flagged, recurring in a test written after it. The wording is now pinned
+as literals, and the seeded gloss fails it. Suite **1690**, green in `pytest`
+and `-O`.
+
 ### #55 — 2026-08-11 — The ellipsoid-height closing gate: two false headings, one weak pin
 
 **The gate.** Codex CLI, read-only, over `v0.5.0..HEAD` (WP-E1..E5), at the

@@ -363,20 +363,20 @@ def test_a_horizontal_gnss_job_never_labels_its_z_an_elevation():
     result = run(settings, source=pnezd.parse_lines(["1,43.0,-84.5,166.204,GNSS"]))
 
     header = exports.audit_columns(result)
-    assert "Ellipsoid height (GNSS)" in header
+    assert "Ellipsoid height" in header
     assert "Elevation" not in header
 
     columns = results_model.columns_for(result)
-    assert "Ellipsoid height (GNSS)" in columns
+    assert "Ellipsoid height" in columns
     assert "Elevation" not in columns
 
     # The cell under it really is the supplied height, unconverted.
     cells = dict(zip(header, exports.audit_rows(result)[1]))
-    assert float(cells["Ellipsoid height (GNSS)"]) == pytest.approx(
+    assert float(cells["Ellipsoid height"]) == pytest.approx(
         166.204, abs=0.0002
     )
     # And the derived elevation, 33 m away, is nowhere in that column.
-    assert float(cells["Ellipsoid height (GNSS)"]) < 170.0
+    assert float(cells["Ellipsoid height"]) < 170.0
 
 
 def test_an_orthometric_horizontal_job_keeps_the_elevation_heading():
@@ -401,7 +401,7 @@ def test_an_orthometric_horizontal_job_keeps_the_elevation_heading():
     )
 
     assert "Elevation" in exports.audit_columns(result)
-    assert "Ellipsoid height (GNSS)" not in exports.audit_columns(result)
+    assert "Ellipsoid height" not in exports.audit_columns(result)
     assert "Elevation" in results_model.columns_for(result)
 
 

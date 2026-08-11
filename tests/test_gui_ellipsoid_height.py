@@ -80,12 +80,20 @@ def tab(window):
 def test_the_control_opens_on_orthometric_on_both_tabs(window, tab):
     """The owner's instruction, and the reason every existing job is
     unchanged: the default IS the status quo."""
+    # The wording is pinned as LITERALS, not against the constants. Comparing
+    # a constant to itself passes whatever the constant says, which is the
+    # vacuous-pin class the 0.6.0 gate flagged; the owner removed the "(GNSS)"
+    # and "(elevation)" glosses by instruction (2026-08-11) and that decision
+    # needs a test that would notice them coming back.
+    assert HEIGHT_KIND_ORTHOMETRIC == "Orthometric"
+    assert HEIGHT_KIND_ELLIPSOID == "Ellipsoid"
+
     for combo in (window.height_kind_combo, tab.height_kind_combo):
         assert combo.currentData() is HeightKind.ORTHOMETRIC
-        assert combo.currentText() == HEIGHT_KIND_ORTHOMETRIC
+        assert combo.currentText() == "Orthometric"
         assert [
             combo.itemText(i) for i in range(combo.count())
-        ] == [HEIGHT_KIND_ORTHOMETRIC, HEIGHT_KIND_ELLIPSOID]
+        ] == ["Orthometric", "Ellipsoid"]
 
 
 def test_the_control_carries_no_tooltip_on_either_tab(window, tab):
@@ -230,7 +238,10 @@ def test_a_vertical_panel_names_the_input_ellipsoid_and_the_output_model():
     input_labels = {v.label for v in source.values}
     output_labels = {v.label for v in target.values}
 
-    assert "Ellipsoid height (GNSS, m)" in input_labels
+    assert "Ellipsoid height (m)" in input_labels
+    # Exactly ONE row carries that label: the computed factors row would hold
+    # the same number under the same name, so it is dropped on these jobs.
+    assert [v.label for v in source.values].count("Ellipsoid height (m)") == 1
     # The derived elevation names its datum AND its model: here, unlike a
     # leveled height, the number genuinely depends on the model.
     assert "Elevation (NAVD88, m) (GEOID18)" in output_labels
@@ -264,7 +275,7 @@ def test_a_horizontal_panel_keeps_calling_the_output_an_ellipsoid_height():
         for value in section.values
     }
 
-    assert "Ellipsoid height (GNSS, m)" in labels
+    assert "Ellipsoid height (m)" in labels
     assert not any(label.startswith("Elevation (") for label in labels)
 
 
@@ -294,4 +305,7 @@ def test_an_orthometric_job_names_no_model_and_no_ellipsoid_row():
         for value in section.values
     }
     assert not any("GEOID18" in label for label in labels)
-    assert not any(label.startswith("Ellipsoid height (GNSS") for label in labels)
+    # And the computed ellipsoid-height row is STILL THERE on an orthometric
+    # job: its suppression is opt-in with the feature, not a deletion. On a
+    # leveled height h = H + N is a genuinely separate fact from the Z.
+    assert "Ellipsoid height (m)" in labels

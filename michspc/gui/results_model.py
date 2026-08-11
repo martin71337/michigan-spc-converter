@@ -448,13 +448,15 @@ HORIZONTAL mode, where the Z is written back unconverted - there the output
 genuinely still is an ellipsoid height, and saying "Elevation" over it would
 be the same falsehood one column to the right.
 
-**The "(GNSS)" is load-bearing, not decoration.** ``ELLIPSOID_HEIGHT_LABEL``
-below is the FACTORS row - h = H + N recomputed from the conversion, always in
-metres - and on a metres job with ellipsoid input the two would otherwise be
-the SAME STRING in the same section: two rows, identical labels, one of them
-what the user typed and the other what the program derived. Both are true and
-both belong on screen, so they have to be told apart, and naming the source is
-how a surveyor tells them apart anyway.
+This row carried a "(GNSS," qualifier until the owner had it removed
+(2026-08-11). It existed because ``ELLIPSOID_HEIGHT_LABEL`` below is the
+FACTORS row - h = H + N recomputed from the conversion - and on a metres job
+the two labels collided. They also hold the SAME NUMBER, because the
+recomputation inverts the conversion exactly: (h - N) + N is h. So the
+qualifier was distinguishing two rows that were never two facts, and the
+resolution is to show the value once - here, as the height the user supplied -
+rather than to keep a word explaining why it appears twice
+(``_elevation_dependent_values``).
 """
 
 
@@ -656,21 +658,38 @@ def _grid_values(
     )
 
 
-def _elevation_dependent_values(factors) -> tuple[ResultValue, ...]:
-    """The four quantities that exist only because the point had an elevation.
+def _elevation_dependent_values(factors, ellipsoid_input=False) -> tuple[ResultValue, ...]:
+    """The quantities that exist only because the point had an elevation.
 
     Every one of them is None for a point with no usable elevation, and
     ``fmt`` renders that as "N/A" - never as a plausible 1.0, which is the
     convention this program is built on (docs/DESIGN.md section 7).
+
+    On an ELLIPSOID-input job the computed ellipsoid-height row is dropped.
+    It is not hidden for tidiness: it recomputes h = H + N from a conversion
+    that derived H as h - N, so it is arithmetically the SAME NUMBER as the
+    height the user supplied, already on screen one section above. Two rows
+    holding one value under one label is worse than one row - and this is the
+    row whose label collided when the owner had the "(GNSS," qualifier removed
+    (2026-08-11). The reconstruction is still checked, in the audit CSV's own
+    "Ellipsoid height (m)" column and by its pin.
     """
-    return (
+    values = [
         ResultValue(GEOID_HEIGHT_LABEL, fmt.geoid_height(factors.geoid_height)),
-        ResultValue(
-            ELLIPSOID_HEIGHT_LABEL, fmt.geoid_height(factors.ellipsoid_height)
-        ),
-        ResultValue(ELEVATION_FACTOR_LABEL, fmt.factor(factors.elevation_factor)),
-        ResultValue(COMBINED_FACTOR_LABEL, fmt.factor(factors.combined_factor)),
+    ]
+    if not ellipsoid_input:
+        values.append(
+            ResultValue(
+                ELLIPSOID_HEIGHT_LABEL, fmt.geoid_height(factors.ellipsoid_height)
+            )
+        )
+    values.append(
+        ResultValue(ELEVATION_FACTOR_LABEL, fmt.factor(factors.elevation_factor))
     )
+    values.append(
+        ResultValue(COMBINED_FACTOR_LABEL, fmt.factor(factors.combined_factor))
+    )
+    return tuple(values)
 
 
 def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSection]:
@@ -760,13 +779,13 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
 
     if ellipsoid_input:
         input_elevation_label = (
-            f"{ELLIPSOID_INPUT_LABEL} (GNSS, {settings.input_unit.code})"
+            f"{ELLIPSOID_INPUT_LABEL} ({settings.input_unit.code})"
         )
         if not settings.vertical_mode.converts_elevations:
             # Horizontal: the Z was written back untouched, so it is still an
             # ellipsoid height and the label must not promote it.
             output_elevation_label = (
-                f"{ELLIPSOID_INPUT_LABEL} (GNSS, {settings.output_unit.code})"
+                f"{ELLIPSOID_INPUT_LABEL} ({settings.output_unit.code})"
             )
         elif point.ellipsoid_height is not None:
             # A vertical mode DID derive an elevation. Name the datum the
@@ -811,7 +830,7 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                         CONVERGENCE_LABEL,
                         fmt.convergence_display(conversion.target_convergence),
                     ),
-                    *_elevation_dependent_values(factors),
+                    *_elevation_dependent_values(factors, ellipsoid_input),
                 ),
             )
         else:
@@ -829,7 +848,7 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                         fmt.coordinate(point.row.elevation, settings.input_unit),
                     ),
                     ResultValue(UNITS_LABEL, _units_text(settings.input_unit)),
-                    *_elevation_dependent_values(factors),
+                    *_elevation_dependent_values(factors, ellipsoid_input),
                 ),
             )
         target = ResultSection(
@@ -881,7 +900,7 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                     CONVERGENCE_LABEL,
                     fmt.convergence_display(conversion.target_convergence),
                 ),
-                *_elevation_dependent_values(factors),
+                *_elevation_dependent_values(factors, ellipsoid_input),
             ),
         )
         return source, target
@@ -911,7 +930,7 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                     CONVERGENCE_LABEL,
                     fmt.convergence_display(conversion.target_convergence),
                 ),
-                *_elevation_dependent_values(factors),
+                *_elevation_dependent_values(factors, ellipsoid_input),
             ),
         )
         target = ResultSection(
@@ -969,7 +988,7 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                 CONVERGENCE_LABEL,
                 fmt.convergence_display(conversion.target_convergence),
             ),
-            *_elevation_dependent_values(factors),
+            *_elevation_dependent_values(factors, ellipsoid_input),
         ),
     )
     return source, target

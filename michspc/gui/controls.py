@@ -322,8 +322,8 @@ def vertical_datum_for(data) -> VerticalDatum | None:
 
 
 HEIGHT_KIND_LABEL = "Heights are:"
-HEIGHT_KIND_ORTHOMETRIC = "Orthometric (elevation)"
-HEIGHT_KIND_ELLIPSOID = "Ellipsoid (GNSS)"
+HEIGHT_KIND_ORTHOMETRIC = "Orthometric"
+HEIGHT_KIND_ELLIPSOID = "Ellipsoid"
 """The wording of the height-kind control, one spelling on both tabs (#17).
 
 "Heights are", not "Elevations are", because the whole premise of the control
@@ -331,9 +331,10 @@ is that the Z column may not hold elevations at all - and it dodges the
 singular/plural mismatch between a tab that reads a file of them and a tab
 that takes one, which would otherwise need two constants free to drift apart.
 
-Each item names the thing AND what a surveyor calls it: "Orthometric" alone
-sends people to a textbook, and "GNSS" is how the ellipsoid case actually
-arrives on a job.
+The parenthetical glosses each item carried - "(elevation)" and "(GNSS)" -
+were removed at the owner's instruction (2026-08-11). The two words name the
+two kinds of height a surveyor works with, and he judged the explanations
+noise. Same ruling as #34 and #51: text removed, behaviour untouched.
 """
 
 
@@ -346,8 +347,7 @@ def height_kind_combo(parent) -> QComboBox:
     That is the same ground ``VerticalMode``'s default stands on, and it is
     why a default is defensible here where it is not for the vertical datums.
 
-    NO TOOLTIP (#34, #51): the item strings carry the meaning. "Ellipsoid
-    (GNSS)" is the explanation a tooltip would have given.
+    NO TOOLTIP (#34, #51). The two item strings are the whole control.
     """
     combo = QComboBox(parent)
     combo.addItem(HEIGHT_KIND_ORTHOMETRIC, HeightKind.ORTHOMETRIC)

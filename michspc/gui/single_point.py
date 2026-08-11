@@ -130,10 +130,15 @@ ELEVATION_LABEL = "Elevation:"
 the coordinates are going, so this label never moves and the field is never
 disabled."""
 
-ELEVATION_TOOLTIP = (
-    "Optional. A blank or exactly-zero elevation means 'not recorded': the "
-    "elevation and combined factors then read N/A rather than a plausible 1.0."
-)
+# The elevation box had a tooltip here calling the elevation OPTIONAL and
+# explaining that a blank or exactly-zero value reads N/A in the factor
+# columns. Deleted at the owner's instruction (docs/DESIGN.md amendment #51).
+# It was set once when the field was built, so it said "Optional" in all three
+# modes - and in Horizontal + Vertical and Vertical the elevation is the value
+# the job exists to convert, which makes the first word of the sentence false
+# in exactly the modes the owner was looking at. Removed rather than made
+# mode-dependent, which is #34's ruling on this tab's tooltips. The N/A
+# behaviour is unchanged and still pinned; the result panel shows N/A itself.
 
 STATUS_READY = "Ready."
 
@@ -413,7 +418,7 @@ class SinglePointTab(QWidget):
 
         self.elevation_label = QLabel(ELEVATION_LABEL, box)
         self.elevation_edit = QLineEdit(box)
-        self.elevation_edit.setToolTip(ELEVATION_TOOLTIP)
+        # No tooltip on this field, at the owner's instruction (#51 above).
 
         # Only the two coordinate fields gate Convert. The elevation is optional
         # by the file reader's own convention, so it does not participate in

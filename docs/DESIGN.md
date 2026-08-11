@@ -466,6 +466,45 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #51 — 2026-08-10 — Owner removes the Single point elevation tooltip
+
+**The owner's instruction, from looking at the real screen**: the Single point
+tab's elevation field carries a tooltip calling the elevation *optional*; he
+found it in Horizontal + Vertical and in Vertical mode, where it is false.
+Remove it. **No cross-check, his instruction** — one deleted string with one
+falsified pin behind it.
+
+**Why it was wrong.** `single_point.setToolTip(ELEVATION_TOOLTIP)` ran once
+when the field was built, so the sentence stood in all three modes. It was
+written for the horizontal tab this program started as, where a blank Z is a
+legitimate "not recorded" and the factor columns then read `N/A`. In the two
+vertical modes the elevation is the value the job exists to convert: it is not
+optional, and the leading word said it was. This is the same class as #48's
+"passed through unchanged" on the Multi point tab — a horizontal-era sentence
+left standing after the vertical modes arrived — and the third and last one on
+either tab.
+
+**What changed.** `ELEVATION_TOOLTIP` and its one call site are deleted; the
+field keeps its label, its behaviour and its place in the grid. **Removed
+rather than made mode-dependent**, which is the owner's choice here and #34's
+standing ruling on this tab's tooltips. #48 hid the whole Multi point row
+instead, and the two are not in conflict: that row was a *question* the
+vertical modes never ask, where this is a *field* every mode needs.
+
+**What the removal costs, recorded rather than mitigated.** This tab no longer
+states in words that a blank or exactly-zero elevation means "not recorded".
+The behaviour is unchanged and still pinned, and the result panel shows the
+`N/A` itself when it happens — text removed, not behaviour, as in #34.
+
+**Verification.** One pin, `test_the_elevation_field_carries_no_tooltip_in_any_mode`,
+asserting an empty tooltip in **all three** modes and the absence of the module
+constant — all three because a pin looking only at the vertical modes would
+pass against a rewrite that restored the text in Horizontal. Falsified by
+setting the tooltip back on the field: the pin fails on the Horizontal pass
+with the seeded string in the diff. Suite **1604 → 1605**, green in `pytest`
+and `-O`. No computation, no formatter, no written output touched; the version
+literal does not move.
+
 ### #50 — 2026-08-09 — Owner's feature: per-side geoid selection, and geoid-to-geoid conversion
 
 **The owner's instruction**: vertical jobs choose the geoid for the input and

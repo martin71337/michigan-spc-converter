@@ -1880,6 +1880,30 @@ def test_the_coordinate_entry_carries_no_tooltips(tab):
     ] == [single_point_module.ANGLE_FORMAT_DECIMAL, single_point_module.ANGLE_FORMAT_DMS]
 
 
+def test_the_elevation_field_carries_no_tooltip_in_any_mode(tab):
+    """The owner had it removed (docs/DESIGN.md amendment #51).
+
+    It called the elevation "Optional", and it was set once when the field was
+    built, so it said so in all three modes. In Horizontal + Vertical and in
+    Vertical the elevation is the value the job exists to convert - the owner
+    found it in exactly those modes - so the first word was false there.
+
+    All three modes are asserted, not just the two where the sentence was
+    wrong. Removed rather than made mode-dependent is the owner's choice and
+    #34's ruling, and a pin that only looked at the vertical modes would pass
+    against a rewrite that restored the text in Horizontal.
+    """
+    for mode_button in (tab.mode_horizontal, tab.mode_vertical, tab.mode_vertical_only):
+        mode_button.setChecked(True)
+
+        assert tab.elevation_edit.toolTip() == ""
+
+    # This removed text, not behaviour. The field is still there, still
+    # accepts an elevation, and still never gates Convert.
+    assert tab.elevation_edit.isEnabled()
+    assert not hasattr(single_point_module, "ELEVATION_TOOLTIP")
+
+
 def test_the_hemisphere_opens_on_north_and_west(tab):
     """The owner's decision (docs/DESIGN.md amendment #28 note 3).
 

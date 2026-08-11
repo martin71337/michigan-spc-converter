@@ -46,9 +46,22 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.4.0 RELEASED; per-side geoid selection ON MAIN, unreleased (2026-08-09)
+## Current state: 0.4.0 RELEASED; per-side geoid selection and one tooltip removal ON MAIN, unreleased (2026-08-10)
 
-**After the release, the owner's geoid round landed (DESIGN.md #50), gated
+**The owner looked at the real screen and found a false tooltip (DESIGN.md
+#51), removed with no cross-check on his instruction:** the Single point
+elevation field called the elevation *optional* in all three modes, because
+the tooltip was set once when the field was built — false in Horizontal +
+Vertical and in Vertical, where the elevation is the value the job exists to
+convert. Deleted outright rather than made mode-dependent (#34's ruling; #48
+hid the analogous Multi point row instead, and #51 says why the two differ).
+That was the third and last horizontal-era sentence on either tab. **What it
+costs, recorded not mitigated:** the Single point tab no longer says in words
+that a blank or exactly-zero elevation means "not recorded" — behaviour
+unchanged, still pinned, and the panel shows the N/A itself. Suite **1605**,
+both modes.
+
+**Before that, the owner's geoid round landed (DESIGN.md #50), gated
 without Codex on his instruction:** vertical jobs choose the input and
 output geoid separately; a same-datum job with two different models converts
 by H_out = H_in + (N_in − N_out) with the ellipsoid height held fixed

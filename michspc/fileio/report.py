@@ -1010,6 +1010,25 @@ def build_report(result: JobResult) -> str:
                 f"{swap_models[0].name} and every elevation this job writes "
                 f"is stated against {swap_models[1].name}."
             )
+        elif (
+            unshifted
+            and ellipsoid_model_name is not None
+            and not settings.vertical_mode.converts_elevations
+        ):
+            # HORIZONTAL: the Z column DOES carry these heights - passed
+            # through, as this mode always does - so "deliberately not
+            # written" would contradict the file sitting beside this record.
+            # Only the factors were lost (closing gate, MEDIUM 2).
+            add(
+                f"{len(unshifted)} of {len(result.points)} points carried an "
+                f"ellipsoid height with no geoid separation available: the "
+                f"point lies outside the {ellipsoid_model_name} tile this "
+                f"program ships. The Z column carries the ellipsoid height "
+                f"exactly as supplied, unconverted, as it does for every "
+                f"point of a horizontal job; what is missing is the "
+                f"orthometric height H = h - N, and without it there is no "
+                f"elevation factor and no combined factor for these points."
+            )
         elif unshifted and ellipsoid_model_name is not None:
             # The THIRD cause of a refused-but-populated Z, and it needed its
             # own branch for the reason the swap branch above needed one: an
@@ -1112,6 +1131,31 @@ def build_report(result: JobResult) -> str:
             add("  written unconverted. The HORIZONTAL coordinate of each point is")
             add("  unaffected and stands. Each point is named again, with its")
             add("  position, under WARNINGS below.")
+        elif (
+            unshifted
+            and ellipsoid_model_name is not None
+            and not settings.vertical_mode.converts_elevations
+        ):
+            add("")
+            add(
+                f"  Ellipsoid height recorded and written, but no geoid "
+                f"separation exists there ({len(unshifted)}):"
+            )
+            lines.extend(_point_id_block(unshifted))
+            add("")
+            add("  These Z fields were read. They are NOT blank and they are NOT")
+            add("  zero, and they ARE written to the exports - horizontal mode")
+            add("  carries the supplied height through unchanged. They hold")
+            add(
+                f"  ELLIPSOID heights, and the position lies outside the "
+                f"{ellipsoid_model_name}"
+            )
+            add("  tile this program ships, so no geoid separation exists there")
+            add("  and the orthometric height H = h - N could not be derived.")
+            add("  Without it there is no elevation factor and no combined")
+            add("  factor for these points. The HORIZONTAL coordinate of each")
+            add("  point is unaffected and stands. Each point is named again,")
+            add("  with its position, under WARNINGS below.")
         elif unshifted and ellipsoid_model_name is not None:
             # The detail block's copy of the third branch. The summary above
             # has the same three-way split; both had to gain it, because this

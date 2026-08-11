@@ -330,3 +330,121 @@ def test_the_clean_export_still_holds_five_headerless_fields(tmp_path):
     assert len(rows) == 1
     assert len(rows[0]) == 5
     assert "ellipsoid" not in text.lower()
+
+
+# ==========================================================================
+# The closing gate's findings, pinned at its own counterexamples.
+# ==========================================================================
+
+
+def test_a_horizontal_gnss_job_never_labels_its_z_an_elevation():
+    """Closing gate, HIGH 1, at its own test point.
+
+    Horizontal mode writes the ellipsoid height through unchanged. Both the
+    audit CSV column and the Multi point table heading said "Elevation" over
+    it — h in a field labelled H, about 33 m out at this position, with
+    nothing on the table to qualify it.
+    """
+    from michspc.gui import results_model
+    from michspc.spc.zones import MI_CENTRAL
+
+    settings = JobSettings(
+        input_path=None,
+        output_directory=None,
+        direction=Direction.GEODETIC_TO_ZONE,
+        source_zone=None,
+        target_zone=MI_CENTRAL,
+        input_unit=METERS,
+        output_unit=METERS,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        geoid_model=geoid.GEOID18_MODEL,
+        input_height_kind=HeightKind.ELLIPSOID,
+    )
+    result = run(settings, source=pnezd.parse_lines(["1,43.0,-84.5,166.204,GNSS"]))
+
+    header = exports.audit_columns(result)
+    assert "Ellipsoid height (GNSS)" in header
+    assert "Elevation" not in header
+
+    columns = results_model.columns_for(result)
+    assert "Ellipsoid height (GNSS)" in columns
+    assert "Elevation" not in columns
+
+    # The cell under it really is the supplied height, unconverted.
+    cells = dict(zip(header, exports.audit_rows(result)[1]))
+    assert float(cells["Ellipsoid height (GNSS)"]) == pytest.approx(
+        166.204, abs=0.0002
+    )
+    # And the derived elevation, 33 m away, is nowhere in that column.
+    assert float(cells["Ellipsoid height (GNSS)"]) < 170.0
+
+
+def test_an_orthometric_horizontal_job_keeps_the_elevation_heading():
+    """The rename is opt-in only: every job that predates the feature keeps
+    the 0.1.0 header, to the string."""
+    from michspc.gui import results_model
+    from michspc.spc.zones import MI_CENTRAL
+
+    result = run(
+        JobSettings(
+            input_path=None,
+            output_directory=None,
+            direction=Direction.GEODETIC_TO_ZONE,
+            source_zone=None,
+            target_zone=MI_CENTRAL,
+            input_unit=METERS,
+            output_unit=METERS,
+            longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+            geoid_model=geoid.GEOID18_MODEL,
+        ),
+        source=pnezd.parse_lines(["1,43.0,-84.5,199.289,LEVEL"]),
+    )
+
+    assert "Elevation" in exports.audit_columns(result)
+    assert "Ellipsoid height (GNSS)" not in exports.audit_columns(result)
+    assert "Elevation" in results_model.columns_for(result)
+
+
+def test_a_horizontal_off_grid_record_does_not_claim_the_z_was_withheld(tmp_path):
+    """Closing gate, MEDIUM 2, at its own test point.
+
+    Horizontal mode writes the Z even when the geoid lookup fails, so the
+    ELEVATIONS section saying the elevation is "deliberately not written"
+    contradicted the file sitting beside the record. The section states the
+    fact twice, so both copies had the defect.
+    """
+    from michspc.spc.zones import MI_SOUTH
+
+    text = build_report(
+        run(
+            _horizontal(
+                tmp_path,
+                direction=Direction.GEODETIC_TO_ZONE,
+                source_zone=None,
+                target_zone=MI_SOUTH,
+                input_height_kind=HeightKind.ELLIPSOID,
+            ),
+            source=pnezd.parse_lines(["1,39.5,-84.0,166.204,OFF"]),
+        )
+    )
+    flat = " ".join(text.split())
+
+    assert "deliberately not written" not in flat
+    assert "deliberately absent from the exports" not in flat
+    assert "carries the ellipsoid height exactly as supplied" in flat
+    assert "no elevation factor and no combined factor" in flat
+
+
+def test_the_vertical_off_grid_record_still_says_the_z_was_withheld(tmp_path):
+    """The other half of the same branch: in a vertical mode the Z really is
+    withheld, and that sentence must survive the horizontal fix."""
+    text = build_report(
+        run(
+            _vertical(tmp_path, input_height_kind=HeightKind.ELLIPSOID),
+            source=pnezd.parse_lines(["1,39.5,-84.0,166.204,OFF"]),
+        )
+    )
+    flat = " ".join(text.split())
+
+    assert "deliberately not written" in flat
+    assert "could NOT be converted to an orthometric height" in flat

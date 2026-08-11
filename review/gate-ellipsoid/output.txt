@@ -16373,3 +16373,3075 @@ print(hdr[7:11]); print(cells['Elevation'],cells['Input height kind'])
 ['Elevation', 'Input height kind', 'Units', 'Latitude']
 166.2040 ellipsoid
 
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "Get-Content -Raw michspc/fileio/resources.py; rg -n \"Path\\(__file__\\)|shipped_data\" michspc/fileio/geoid.py michspc/fileio/ngs_grid.py michspc/fileio/resources.py" in C:\claude-projects\coord-convert
+2026-08-11T19:46:48.296716Z ERROR codex_core::tools::router: error=Exit code: 1
+Wall time: 0.6 seconds
+Output:
+michspc/fileio/ngs_grid.py:57:def shipped_data_directory() -> Path:
+michspc/fileio/ngs_grid.py:81:    return Path(__file__).resolve().parent.parent.parent / "data"
+michspc/fileio/geoid.py:81:DATA_DIR = ngs_grid.shipped_data_directory()
+Get-Content : Cannot find path 'C:\claude-projects\coord-convert\michspc\fileio\resources.py' because it does not 
+exist.
+At line:2 char:1
++ Get-Content -Raw michspc/fileio/resources.py; rg -n "Path\(__file__\) ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\claude-proje...io\resources.py:String) [Get-Content], ItemNotFoundEx 
+   ception
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetContentCommand
+ 
+rg: michspc/fileio/resources.py: The system cannot find the file specified. (os error 2)
+
+ exited 1 in 552ms:
+michspc/fileio/ngs_grid.py:57:def shipped_data_directory() -> Path:
+michspc/fileio/ngs_grid.py:81:    return Path(__file__).resolve().parent.parent.parent / "data"
+michspc/fileio/geoid.py:81:DATA_DIR = ngs_grid.shipped_data_directory()
+Get-Content : Cannot find path 'C:\claude-projects\coord-convert\michspc\fileio\resources.py' because it does not 
+exist.
+At line:2 char:1
++ Get-Content -Raw michspc/fileio/resources.py; rg -n "Path\(__file__\) ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\claude-proje...io\resources.py:String) [Get-Content], ItemNotFoundEx 
+   ception
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetContentCommand
+ 
+rg: michspc/fileio/resources.py: The system cannot find the file specified. (os error 2)
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "@'
+import sys,subprocess,importlib.abc,importlib.util,pathlib
+root=pathlib.Path.cwd()
+class OldFinder(importlib.abc.MetaPathFinder, importlib.abc.Loader):
+ def find_spec(self,fullname,path=None,target=None):
+  if not (fullname=='oldspc' or fullname.startswith('oldspc.')): return None
+  rel=fullname.replace('oldspc','michspc',1).replace('.','/')
+  pkg=subprocess.run(['git','cat-file','-e',f'v0.5.0:{rel}/__init__.py'],capture_output=True).returncode==0
+  file=f'{rel}/__init__.py' if pkg else f'{rel}.py'
+  if subprocess.run(['git','cat-file','-e',f'v0.5.0:{file}'],capture_output=True).returncode: return None
+  spec=importlib.util.spec_from_loader(fullname,self,is_package=pkg); spec.loader_state=(file,pkg); return spec
+ def create_module(self,spec): return None
+ def exec_module(self,module):
+  file,pkg=module.__spec__.loader_state
+  src=subprocess.check_output(['git','show',f'v0.5.0:{file}'],text=True,encoding='utf-8')
+  src=src.replace('michspc','oldspc')
+  current=root/file
+  module.__file__=str(current)
+  if pkg: module.__path__=[str(current.parent)]
+  exec(compile(src,str(current),'exec'),module.__dict__)
+sys.meta_path.insert(0,OldFinder())
+import oldspc.job as oj
+print('old imported',oj.JobSettings)
+'@ | & 'C:\\Program Files\\ArcGIS\\Pro\\bin\\Python\\envs\\arcgispro-py3\\python.exe' -" in C:\claude-projects\coord-convert
+ succeeded in 1774ms:
+old imported <class 'oldspc.job.JobSettings'>
+
+codex
+The targeted core tests pass in normal and optimized mode (48/48 each). I’m adding an in-memory comparison against the actual `v0.5.0` sources—without altering the worktree—to verify clean PNEZD rows, audit CSV rows, and job-record text for representative pre-existing configurations.
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "@'
+import sys,subprocess,importlib.abc,importlib.util,pathlib,re,types
+root=pathlib.Path.cwd()
+class OldFinder(importlib.abc.MetaPathFinder, importlib.abc.Loader):
+ def find_spec(self,fullname,path=None,target=None):
+  if not (fullname=='oldspc' or fullname.startswith('oldspc.')): return None
+  rel=fullname.replace('oldspc','michspc',1).replace('.','/')
+  pkg=subprocess.run(['git','cat-file','-e',f'v0.5.0:{rel}/__init__.py'],capture_output=True).returncode==0
+  file=f'{rel}/__init__.py' if pkg else f'{rel}.py'
+  if subprocess.run(['git','cat-file','-e',f'v0.5.0:{file}'],capture_output=True).returncode: return None
+  spec=importlib.util.spec_from_loader(fullname,self,is_package=pkg); spec.loader_state=(file,pkg); return spec
+ def create_module(self,spec): return None
+ def exec_module(self,module):
+  file,pkg=module.__spec__.loader_state
+  src=subprocess.check_output(['git','show',f'v0.5.0:{file}'],text=True,encoding='utf-8').replace('michspc','oldspc')
+  current=root/file; module.__file__=str(current)
+  if pkg: module.__path__=[str(current.parent)]
+  exec(compile(src,str(current),'exec'),module.__dict__)
+sys.meta_path.insert(0,OldFinder())
+import michspc.job as nj, oldspc.job as oj
+import michspc.fileio.pnezd as npn, oldspc.fileio.pnezd as opn
+import michspc.fileio.geoid as ng, oldspc.fileio.geoid as og
+import michspc.fileio.exports as ne, oldspc.fileio.exports as oe
+import michspc.fileio.report as nr, oldspc.fileio.report as orp
+import michspc.spc.units as nu, oldspc.spc.units as ou
+import michspc.spc.vertical as nv, oldspc.spc.vertical as ov
+import michspc.spc.zones as nz, oldspc.spc.zones as oz
+N=types.SimpleNamespace(j=nj,p=npn,g=ng,e=ne,r=nr,u=nu,v=nv,z=nz)
+O=types.SimpleNamespace(j=oj,p=opn,g=og,e=oe,r=orp,u=ou,v=ov,z=oz)
+def norm_report(text):
+ return '\\n'.join('<GENERATED>' if x.startswith('Generated') else x for x in text.splitlines())
+def make(ns, spec):
+ direction=getattr(ns.j.Direction,spec['direction']); mode=getattr(ns.j.VerticalMode,spec['mode'])
+ geo=direction in (ns.j.Direction.GEODETIC_TO_ZONE,) or (direction is ns.j.Direction.VERTICAL_ONLY and spec.get('source_zone') is None)
+ row='1,43.0,-84.5,200.000,P' if geo else '1,500000.0,8000000.0,200.000,P'
+ kw=dict(input_path=pathlib.Path('input.csv'),output_directory=pathlib.Path('.'),direction=direction,source_zone=getattr(ns.z,spec['source_zone']) if spec.get('source_zone') else None,target_zone=getattr(ns.z,spec['target_zone']) if spec.get('target_zone') else None,input_unit=getattr(ns.u,spec.get('in_unit','METERS')),output_unit=getattr(ns.u,spec.get('out_unit','METERS')),longitude_convention=(ns.j.LongitudeConvention.NEGATIVE_WEST if spec.get('longitude',geo or direction is ns.j.Direction.ZONE_TO_GEODETIC) else None),vertical_mode=mode,source_vertical_datum=getattr(ns.v,spec['src_datum']) if spec.get('src_datum') else None,target_vertical_datum=getattr(ns.v,spec['dst_datum']) if spec.get('dst_datum') else None,source_geoid_model=getattr(ns.g,spec['src_model']) if spec.get('src_model') else None,geoid_model=getattr(ns.g,spec['out_model']) if spec.get('out_model') else None)
+ res=ns.j.run(ns.j.JobSettings(**kw),source=ns.p.parse_lines([row]))
+ return ns.e.clean_pnezd_rows(res),ns.e.audit_rows(res),norm_report(ns.r.build_report(res))
+cases={
+'h-geodetic-zone':dict(direction='GEODETIC_TO_ZONE',mode='HORIZONTAL',target_zone='MI_CENTRAL',out_model='GEOID18_MODEL'),
+'h-zone-geodetic':dict(direction='ZONE_TO_GEODETIC',mode='HORIZONTAL',source_zone='MI_NORTH',out_model='GEOID18_MODEL'),
+'h-zone-zone-units':dict(direction='ZONE_TO_ZONE',mode='HORIZONTAL',source_zone='MI_NORTH',target_zone='MI_CENTRAL',in_unit='INTERNATIONAL_FEET',out_unit='METERS',out_model='GEOID18_MODEL',longitude=False),
+'vonly-identity':dict(direction='VERTICAL_ONLY',mode='VERTICAL',src_datum='NAVD88',dst_datum='NAVD88',out_model='GEOID18_MODEL'),
+'vonly-forward':dict(direction='VERTICAL_ONLY',mode='VERTICAL',src_datum='NGVD29',dst_datum='NAVD88',out_model='GEOID18_MODEL'),
+'vonly-reverse':dict(direction='VERTICAL_ONLY',mode='VERTICAL',src_datum='NAVD88',dst_datum='NGVD29',src_model='GEOID18_MODEL'),
+'vonly-swap':dict(direction='VERTICAL_ONLY',mode='VERTICAL',src_datum='NAVD88',dst_datum='NAVD88',src_model='GEOID12B_MODEL',out_model='GEOID18_MODEL'),
+'hv-identity':dict(direction='GEODETIC_TO_ZONE',mode='HORIZONTAL_AND_VERTICAL',target_zone='MI_CENTRAL',src_datum='NAVD88',dst_datum='NAVD88',out_model='GEOID18_MODEL'),
+'hv-forward':dict(direction='GEODETIC_TO_ZONE',mode='HORIZONTAL_AND_VERTICAL',target_zone='MI_CENTRAL',src_datum='NGVD29',dst_datum='NAVD88',out_model='GEOID18_MODEL'),
+'hv-reverse':dict(direction='GEODETIC_TO_ZONE',mode='HORIZONTAL_AND_VERTICAL',target_zone='MI_CENTRAL',src_datum='NAVD88',dst_datum='NGVD29',src_model='GEOID18_MODEL'),
+'hv-swap':dict(direction='GEODETIC_TO_ZONE',mode='HORIZONTAL_AND_VERTICAL',target_zone='MI_CENTRAL',src_datum='NAVD88',dst_datum='NAVD88',src_model='GEOID12B_MODEL',out_model='GEOID18_MODEL'),
+}
+for name,spec in cases.items():
+ try:
+  old=make(O,spec); new=make(N,spec)
+  print(name, ['clean','audit','report'][next((i for i,(a,b) in enumerate(zip(old,new)) if a"'!=b),3)] if old!=new else '"'IDENTICAL')
+ except Exception as e: print(name,'ERROR',type(e).__name__,e)
+'@ | & 'C:\\Program Files\\ArcGIS\\Pro\\bin\\Python\\envs\\arcgispro-py3\\python.exe' -" in C:\claude-projects\coord-convert
+ succeeded in 2450ms:
+h-geodetic-zone IDENTICAL
+h-zone-geodetic IDENTICAL
+h-zone-zone-units IDENTICAL
+vonly-identity IDENTICAL
+vonly-forward IDENTICAL
+vonly-reverse IDENTICAL
+vonly-swap IDENTICAL
+hv-identity IDENTICAL
+hv-forward IDENTICAL
+hv-reverse IDENTICAL
+hv-swap IDENTICAL
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$env:PYTHONDONTWRITEBYTECODE='"'1'; & 'C:\\Program Files\\ArcGIS\\Pro\\bin\\Python\\envs\\arcgispro-py3\\python.exe'  -m pytest tests/test_ellipsoid_disclosure.py -q -s -p no:cacheprovider -k 'audit_csv or audit_row or ellipsoid_height_column or orthometric_job_gains or new_columns'" in C:\claude-projects\coord-convert
+ succeeded in 1622ms:
+......
+6 passed, 7 deselected in 0.21s
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$env:PYTHONDONTWRITEBYTECODE='"'1'; & 'C:\\Program Files\\ArcGIS\\Pro\\bin\\Python\\envs\\arcgispro-py3\\python.exe' -O -m pytest tests/test_ellipsoid_disclosure.py -q -s -p no:cacheprovider -k 'audit_csv or audit_row or ellipsoid_height_column or orthometric_job_gains or new_columns'" in C:\claude-projects\coord-convert
+ succeeded in 1513ms:
+......
+============================== warnings summary ===============================
+..\..\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-py3\Lib\site-packages\_pytest\config\__init__.py:1291
+  C:\Program Files\ArcGIS\Pro\bin\Python\envs\arcgispro-py3\Lib\site-packages\_pytest\config\__init__.py:1291: PytestConfigWarning: assertions not in test modules or plugins will be ignored because assert statements are not executed by the underlying Python interpreter (are you using python -O?)
+  
+    self._warn_about_missing_assertion(mode)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+6 passed, 7 deselected, 1 warning in 0.21s
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$env:PYTHONDONTWRITEBYTECODE='"'1'; & 'C:\\Program Files\\ArcGIS\\Pro\\bin\\Python\\envs\\arcgispro-py3\\python.exe' -c \"from michspc.selftest import check_ellipsoid_height_conversion; print(check_ellipsoid_height_conversion())\"; if("'$LASTEXITCODE -ne 0){exit $LASTEXITCODE}; & '"'C:\\Program Files\\ArcGIS\\Pro\\bin\\Python\\envs\\arcgispro-py3\\python.exe' -O -c \"from michspc.selftest import check_ellipsoid_height_conversion; print(check_ellipsoid_height_conversion())\"; exit "'$LASTEXITCODE' in C:\claude-projects\coord-convert
+ succeeded in 1104ms:
+ellipsoid height 166.720 m -> 199.9993 m NAVD 88 against NGS's 200.000 m via GEOID18
+ellipsoid height 166.720 m -> 199.9993 m NAVD 88 against NGS's 200.000 m via GEOID18
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command '$paths=@('"'C:\\Users\\marti\\AppData\\Local\\Programs\\Python','C:\\Python314','C:\\Program Files\\Python314'); foreach("'$p in $paths){ if(Test-Path $p){ Get-ChildItem -LiteralPath $p -Recurse -Filter python.exe -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName } }' in C:\claude-projects\coord-convert
+ succeeded in 473ms:
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git diff --check v0.5.0..HEAD; git status --short' in C:\claude-projects\coord-convert
+ succeeded in 396ms:
+review/gate-ellipsoid/output.txt:67: trailing whitespace.
++Mode   Length Name            
+review/gate-ellipsoid/output.txt:68: trailing whitespace.
++----   ------ ----            
+review/gate-ellipsoid/output.txt:69: trailing whitespace.
++d-----        .agents         
+review/gate-ellipsoid/output.txt:70: trailing whitespace.
++d-----        .claude         
+review/gate-ellipsoid/output.txt:71: trailing whitespace.
++d-----        .codex          
+review/gate-ellipsoid/output.txt:72: trailing whitespace.
++d--h--        .git            
+review/gate-ellipsoid/output.txt:73: trailing whitespace.
++d-----        .pytest_cache   
+review/gate-ellipsoid/output.txt:74: trailing whitespace.
++d-----        assets          
+review/gate-ellipsoid/output.txt:75: trailing whitespace.
++d-----        build           
+review/gate-ellipsoid/output.txt:76: trailing whitespace.
++d-----        data            
+review/gate-ellipsoid/output.txt:77: trailing whitespace.
++d-----        dist            
+review/gate-ellipsoid/output.txt:78: trailing whitespace.
++d-----        docs            
+review/gate-ellipsoid/output.txt:79: trailing whitespace.
++d-----        installer       
+review/gate-ellipsoid/output.txt:80: trailing whitespace.
++d-----        michspc         
+review/gate-ellipsoid/output.txt:81: trailing whitespace.
++d-----        review          
+review/gate-ellipsoid/output.txt:82: trailing whitespace.
++d-----        tests           
+review/gate-ellipsoid/output.txt:83: trailing whitespace.
++d-----        tools           
+review/gate-ellipsoid/output.txt:84: trailing whitespace.
++d-----        __pycache__     
+review/gate-ellipsoid/output.txt:85: trailing whitespace.
++-a---- 646    .gitignore      
+review/gate-ellipsoid/output.txt:86: trailing whitespace.
++-a---- 52827  CLAUDE.md       
+review/gate-ellipsoid/output.txt:87: trailing whitespace.
++-a---- 1323   launch.py       
+review/gate-ellipsoid/output.txt:88: trailing whitespace.
++-a---- 10118  michspc.spec    
+review/gate-ellipsoid/output.txt:89: trailing whitespace.
++-a---- 624    pyproject.toml  
+review/gate-ellipsoid/output.txt:90: trailing whitespace.
++-a---- 1166   README.md       
+review/gate-ellipsoid/output.txt:92: trailing whitespace.
++-a---- 177    run.bat         
+review/gate-ellipsoid/output.txt:102: trailing whitespace.
++Mode   Length Name            
+review/gate-ellipsoid/output.txt:103: trailing whitespace.
++----   ------ ----            
+review/gate-ellipsoid/output.txt:104: trailing whitespace.
++d-----        .agents         
+review/gate-ellipsoid/output.txt:105: trailing whitespace.
++d-----        .claude         
+review/gate-ellipsoid/output.txt:106: trailing whitespace.
++d-----        .codex          
+review/gate-ellipsoid/output.txt:107: trailing whitespace.
++d--h--        .git            
+review/gate-ellipsoid/output.txt:108: trailing whitespace.
++d-----        .pytest_cache   
+review/gate-ellipsoid/output.txt:109: trailing whitespace.
++d-----        assets          
+review/gate-ellipsoid/output.txt:110: trailing whitespace.
++d-----        build           
+review/gate-ellipsoid/output.txt:111: trailing whitespace.
++d-----        data            
+review/gate-ellipsoid/output.txt:112: trailing whitespace.
++d-----        dist            
+review/gate-ellipsoid/output.txt:113: trailing whitespace.
++d-----        docs            
+review/gate-ellipsoid/output.txt:114: trailing whitespace.
++d-----        installer       
+review/gate-ellipsoid/output.txt:115: trailing whitespace.
++d-----        michspc         
+review/gate-ellipsoid/output.txt:116: trailing whitespace.
++d-----        review          
+review/gate-ellipsoid/output.txt:117: trailing whitespace.
++d-----        tests           
+review/gate-ellipsoid/output.txt:118: trailing whitespace.
++d-----        tools           
+review/gate-ellipsoid/output.txt:119: trailing whitespace.
++d-----        __pycache__     
+review/gate-ellipsoid/output.txt:120: trailing whitespace.
++-a---- 646    .gitignore      
+review/gate-ellipsoid/output.txt:121: trailing whitespace.
++-a---- 52827  CLAUDE.md       
+review/gate-ellipsoid/output.txt:122: trailing whitespace.
++-a---- 1323   launch.py       
+review/gate-ellipsoid/output.txt:123: trailing whitespace.
++-a---- 10118  michspc.spec    
+review/gate-ellipsoid/output.txt:124: trailing whitespace.
++-a---- 624    pyproject.toml  
+review/gate-ellipsoid/output.txt:125: trailing whitespace.
++-a---- 1166   README.md       
+review/gate-ellipsoid/output.txt:127: trailing whitespace.
++-a---- 177    run.bat         
+review/gate-ellipsoid/output.txt:3538: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3542: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3546: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3552: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3554: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3560: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3583: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3584: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3587: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3602: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3603: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3606: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3619: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3623: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3627: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3635: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3636: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3639: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3646: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3658: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3668: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3674: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3677: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3683: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3686: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3695: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3698: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3702: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3705: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3711: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3713: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3727: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3736: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3776: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3785: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3786: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3791: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3798: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3808: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3814: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3820: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3825: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3828: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3896: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3897: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3973: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3979: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3981: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3988: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3991: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3995: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:3999: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4002: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4006: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4054: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4055: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4059: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4063: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4067: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4070: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4082: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4085: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4090: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4104: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4112: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4114: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4118: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4119: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4123: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4126: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4129: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4138: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4143: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4147: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4156: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4159: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4163: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4171: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4206: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4225: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4262: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4338: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4354: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4365: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4373: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4394: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4395: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4401: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4406: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4407: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4427: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4470: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4489: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4742: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4758: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4782: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4836: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:4843: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:5159: trailing whitespace.
++  881: 
+review/gate-ellipsoid/output.txt:5183: trailing whitespace.
++  905: 
+review/gate-ellipsoid/output.txt:5199: trailing whitespace.
++  921: 
+review/gate-ellipsoid/output.txt:5216: trailing whitespace.
++  938: 
+review/gate-ellipsoid/output.txt:5231: trailing whitespace.
++  953: 
+review/gate-ellipsoid/output.txt:5260: trailing whitespace.
++  982: 
+review/gate-ellipsoid/output.txt:5279: trailing whitespace.
++ 1001: 
+review/gate-ellipsoid/output.txt:5316: trailing whitespace.
++ 1038: 
+review/gate-ellipsoid/output.txt:5331: trailing whitespace.
++ 1053: 
+review/gate-ellipsoid/output.txt:5345: trailing whitespace.
++ 1067: 
+review/gate-ellipsoid/output.txt:5361: trailing whitespace.
++ 1083: 
+review/gate-ellipsoid/output.txt:5382: trailing whitespace.
++ 1104: 
+review/gate-ellipsoid/output.txt:5392: trailing whitespace.
++ 1114: 
+review/gate-ellipsoid/output.txt:5408: trailing whitespace.
++ 1130: 
+review/gate-ellipsoid/output.txt:5425: trailing whitespace.
++ 1402: 
+review/gate-ellipsoid/output.txt:5426: trailing whitespace.
++ 1403: 
+review/gate-ellipsoid/output.txt:5431: trailing whitespace.
++ 1408: 
+review/gate-ellipsoid/output.txt:5435: trailing whitespace.
++ 1412: 
+review/gate-ellipsoid/output.txt:5458: trailing whitespace.
++ 1435: 
+review/gate-ellipsoid/output.txt:5459: trailing whitespace.
++ 1436: 
+review/gate-ellipsoid/output.txt:5464: trailing whitespace.
++ 1441: 
+review/gate-ellipsoid/output.txt:5473: trailing whitespace.
++ 1450: 
+review/gate-ellipsoid/output.txt:5474: trailing whitespace.
++ 1451: 
+review/gate-ellipsoid/output.txt:5480: trailing whitespace.
++ 1457: 
+review/gate-ellipsoid/output.txt:5496: trailing whitespace.
++ 1473: 
+review/gate-ellipsoid/output.txt:5497: trailing whitespace.
++ 1474: 
+review/gate-ellipsoid/output.txt:5502: trailing whitespace.
++ 1479: 
+review/gate-ellipsoid/output.txt:5523: trailing whitespace.
++ 1615: 
+review/gate-ellipsoid/output.txt:5542: trailing whitespace.
++ 1634: 
+review/gate-ellipsoid/output.txt:5634: trailing whitespace.
++ 1726: 
+review/gate-ellipsoid/output.txt:5900: trailing whitespace.
++ 1992: 
+review/gate-ellipsoid/output.txt:5914: trailing whitespace.
++ 2006: 
+review/gate-ellipsoid/output.txt:5938: trailing whitespace.
++ 2030: 
+review/gate-ellipsoid/output.txt:5992: trailing whitespace.
++ 2084: 
+review/gate-ellipsoid/output.txt:5999: trailing whitespace.
++ 2091: 
+review/gate-ellipsoid/output.txt:6016: trailing whitespace.
++ 1450: 
+review/gate-ellipsoid/output.txt:6017: trailing whitespace.
++ 1451: 
+review/gate-ellipsoid/output.txt:6023: trailing whitespace.
++ 1457: 
+review/gate-ellipsoid/output.txt:6039: trailing whitespace.
++ 1473: 
+review/gate-ellipsoid/output.txt:6040: trailing whitespace.
++ 1474: 
+review/gate-ellipsoid/output.txt:6045: trailing whitespace.
++ 1479: 
+review/gate-ellipsoid/output.txt:6060: trailing whitespace.
++ 1494: 
+review/gate-ellipsoid/output.txt:6061: trailing whitespace.
++ 1495: 
+review/gate-ellipsoid/output.txt:6072: trailing whitespace.
++ 1506: 
+review/gate-ellipsoid/output.txt:6077: trailing whitespace.
++ 1511: 
+review/gate-ellipsoid/output.txt:6115: trailing whitespace.
++ 1549: 
+review/gate-ellipsoid/output.txt:6138: trailing whitespace.
++ 1572: 
+review/gate-ellipsoid/output.txt:6181: trailing whitespace.
++ 1615: 
+review/gate-ellipsoid/output.txt:6200: trailing whitespace.
++ 1634: 
+review/gate-ellipsoid/output.txt:6292: trailing whitespace.
++ 1726: 
+review/gate-ellipsoid/output.txt:6441: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6445: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6457: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6463: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6467: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6475: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6480: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6485: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6496: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6517: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6521: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6524: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6525: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6529: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6536: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6539: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6542: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6550: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6554: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6558: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6562: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6567: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6569: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6570: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6573: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6587: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6593: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6603: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6605: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6611: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6612: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6615: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6621: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6622: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6625: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6631: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6632: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6635: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6640: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6641: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6672: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6678: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6681: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6682: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6686: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6689: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6699: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6703: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6707: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6710: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6711: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6722: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:6734: trailing whitespace.
++  702: 
+review/gate-ellipsoid/output.txt:6743: trailing whitespace.
++  711: 
+review/gate-ellipsoid/output.txt:6746: trailing whitespace.
++  714: 
+review/gate-ellipsoid/output.txt:6750: trailing whitespace.
++  718: 
+review/gate-ellipsoid/output.txt:6758: trailing whitespace.
++  726: 
+review/gate-ellipsoid/output.txt:6769: trailing whitespace.
++  737: 
+review/gate-ellipsoid/output.txt:6770: trailing whitespace.
++  738: 
+review/gate-ellipsoid/output.txt:6773: trailing whitespace.
++  741: 
+review/gate-ellipsoid/output.txt:6786: trailing whitespace.
++  754: 
+review/gate-ellipsoid/output.txt:6787: trailing whitespace.
++  755: 
+review/gate-ellipsoid/output.txt:6790: trailing whitespace.
++  758: 
+review/gate-ellipsoid/output.txt:6837: trailing whitespace.
++  805: 
+review/gate-ellipsoid/output.txt:6874: trailing whitespace.
++  842: 
+review/gate-ellipsoid/output.txt:6880: trailing whitespace.
++  848: 
+review/gate-ellipsoid/output.txt:6893: trailing whitespace.
++  861: 
+review/gate-ellipsoid/output.txt:6895: trailing whitespace.
++  863: 
+review/gate-ellipsoid/output.txt:6914: trailing whitespace.
++ 1141: 
+review/gate-ellipsoid/output.txt:6922: trailing whitespace.
++ 1149: 
+review/gate-ellipsoid/output.txt:6943: trailing whitespace.
++ 1170: 
+review/gate-ellipsoid/output.txt:6944: trailing whitespace.
++ 1171: 
+review/gate-ellipsoid/output.txt:6950: trailing whitespace.
++ 1177: 
+review/gate-ellipsoid/output.txt:6955: trailing whitespace.
++ 1182: 
+review/gate-ellipsoid/output.txt:6956: trailing whitespace.
++ 1183: 
+review/gate-ellipsoid/output.txt:6961: trailing whitespace.
++ 1188: 
+review/gate-ellipsoid/output.txt:6964: trailing whitespace.
++ 1191: 
+review/gate-ellipsoid/output.txt:6993: trailing whitespace.
++ 1220: 
+review/gate-ellipsoid/output.txt:7027: trailing whitespace.
++ 1254: 
+review/gate-ellipsoid/output.txt:7044: trailing whitespace.
++ 1271: 
+review/gate-ellipsoid/output.txt:7061: trailing whitespace.
++ 1288: 
+review/gate-ellipsoid/output.txt:7077: trailing whitespace.
++ 1304: 
+review/gate-ellipsoid/output.txt:7081: trailing whitespace.
++ 1308: 
+review/gate-ellipsoid/output.txt:7082: trailing whitespace.
++ 1309: 
+review/gate-ellipsoid/output.txt:7087: trailing whitespace.
++ 1314: 
+review/gate-ellipsoid/output.txt:7114: trailing whitespace.
++ 1341: 
+review/gate-ellipsoid/output.txt:7115: trailing whitespace.
++ 1342: 
+review/gate-ellipsoid/output.txt:7124: trailing whitespace.
++ 1351: 
+review/gate-ellipsoid/output.txt:7130: trailing whitespace.
++ 1357: 
+review/gate-ellipsoid/output.txt:7140: trailing whitespace.
++ 1367: 
+review/gate-ellipsoid/output.txt:7175: trailing whitespace.
++ 1402: 
+review/gate-ellipsoid/output.txt:7176: trailing whitespace.
++ 1403: 
+review/gate-ellipsoid/output.txt:7180: trailing whitespace.
++  451: 
+review/gate-ellipsoid/output.txt:7181: trailing whitespace.
++  452: 
+review/gate-ellipsoid/output.txt:7186: trailing whitespace.
++  457: 
+review/gate-ellipsoid/output.txt:7190: trailing whitespace.
++  461: 
+review/gate-ellipsoid/output.txt:7192: trailing whitespace.
++  463: 
+review/gate-ellipsoid/output.txt:7198: trailing whitespace.
++  469: 
+review/gate-ellipsoid/output.txt:7204: trailing whitespace.
++  475: 
+review/gate-ellipsoid/output.txt:7207: trailing whitespace.
++  478: 
+review/gate-ellipsoid/output.txt:7211: trailing whitespace.
++  482: 
+review/gate-ellipsoid/output.txt:7214: trailing whitespace.
++  485: 
+review/gate-ellipsoid/output.txt:7217: trailing whitespace.
++  488: 
+review/gate-ellipsoid/output.txt:7220: trailing whitespace.
++  491: 
+review/gate-ellipsoid/output.txt:7251: trailing whitespace.
++  522: 
+review/gate-ellipsoid/output.txt:7252: trailing whitespace.
++  523: 
+review/gate-ellipsoid/output.txt:7257: trailing whitespace.
++  528: 
+review/gate-ellipsoid/output.txt:7263: trailing whitespace.
++  534: 
+review/gate-ellipsoid/output.txt:7265: trailing whitespace.
++  536: 
+review/gate-ellipsoid/output.txt:7272: trailing whitespace.
++  543: 
+review/gate-ellipsoid/output.txt:7275: trailing whitespace.
++  546: 
+review/gate-ellipsoid/output.txt:7279: trailing whitespace.
++  550: 
+review/gate-ellipsoid/output.txt:7283: trailing whitespace.
++  554: 
+review/gate-ellipsoid/output.txt:7286: trailing whitespace.
++  557: 
+review/gate-ellipsoid/output.txt:7290: trailing whitespace.
++  561: 
+review/gate-ellipsoid/output.txt:7338: trailing whitespace.
++  609: 
+review/gate-ellipsoid/output.txt:7339: trailing whitespace.
++  610: 
+review/gate-ellipsoid/output.txt:7343: trailing whitespace.
++  614: 
+review/gate-ellipsoid/output.txt:7347: trailing whitespace.
++  618: 
+review/gate-ellipsoid/output.txt:7351: trailing whitespace.
++  622: 
+review/gate-ellipsoid/output.txt:7354: trailing whitespace.
++  625: 
+review/gate-ellipsoid/output.txt:7366: trailing whitespace.
++  637: 
+review/gate-ellipsoid/output.txt:7369: trailing whitespace.
++  640: 
+review/gate-ellipsoid/output.txt:7374: trailing whitespace.
++  645: 
+review/gate-ellipsoid/output.txt:7377: trailing whitespace.
++  648: 
+review/gate-ellipsoid/output.txt:7385: trailing whitespace.
++  656: 
+review/gate-ellipsoid/output.txt:7388: trailing whitespace.
++  659: 
+review/gate-ellipsoid/output.txt:7396: trailing whitespace.
++  667: 
+review/gate-ellipsoid/output.txt:7398: trailing whitespace.
++  669: 
+review/gate-ellipsoid/output.txt:7402: trailing whitespace.
++  673: 
+review/gate-ellipsoid/output.txt:7403: trailing whitespace.
++  674: 
+review/gate-ellipsoid/output.txt:7407: trailing whitespace.
++  678: 
+review/gate-ellipsoid/output.txt:7424: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7430: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7434: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7436: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7440: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7457: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7460: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7484: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7489: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7490: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7493: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7501: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7509: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7512: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7513: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7516: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7525: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7526: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7529: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7535: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7616: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7617: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7691: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7703: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7730: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7731: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7734: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7749: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7763: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7776: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7797: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7799: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7800: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7828: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7858: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7861: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7870: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7902: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7940: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7951: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:7989: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8018: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8031: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8057: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8091: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8278: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8304: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8310: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8313: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8336: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8340: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8347: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8353: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8355: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8359: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8364: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8367: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8371: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8372: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8375: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8386: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8387: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8394: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8395: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8421: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8422: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8427: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8447: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8448: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8454: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8455: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8478: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8479: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8482: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8486: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8491: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8574: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8575: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8578: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8588: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8591: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8595: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8610: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8621: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8652: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8723: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8725: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8727: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8728: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8731: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8740: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8741: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8744: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8751: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8752: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8761: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8762: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8765: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8770: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8774: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8782: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:8872: trailing whitespace.
++   87: 
+review/gate-ellipsoid/output.txt:8873: trailing whitespace.
++   88: 
+review/gate-ellipsoid/output.txt:8878: trailing whitespace.
++   93: 
+review/gate-ellipsoid/output.txt:8896: trailing whitespace.
++  111: 
+review/gate-ellipsoid/output.txt:8900: trailing whitespace.
++  115: 
+review/gate-ellipsoid/output.txt:8902: trailing whitespace.
++  117: 
+review/gate-ellipsoid/output.txt:8903: trailing whitespace.
++  118: 
+review/gate-ellipsoid/output.txt:8907: trailing whitespace.
++  122: 
+review/gate-ellipsoid/output.txt:8913: trailing whitespace.
++  128: 
+review/gate-ellipsoid/output.txt:8919: trailing whitespace.
++  134: 
+review/gate-ellipsoid/output.txt:8923: trailing whitespace.
++  138: 
+review/gate-ellipsoid/output.txt:8930: trailing whitespace.
++  145: 
+review/gate-ellipsoid/output.txt:8934: trailing whitespace.
++  149: 
+review/gate-ellipsoid/output.txt:8938: trailing whitespace.
++  153: 
+review/gate-ellipsoid/output.txt:8954: trailing whitespace.
++  169: 
+review/gate-ellipsoid/output.txt:8955: trailing whitespace.
++  170: 
+review/gate-ellipsoid/output.txt:8958: trailing whitespace.
++  173: 
+review/gate-ellipsoid/output.txt:8971: trailing whitespace.
++  186: 
+review/gate-ellipsoid/output.txt:8972: trailing whitespace.
++  187: 
+review/gate-ellipsoid/output.txt:8978: trailing whitespace.
++  193: 
+review/gate-ellipsoid/output.txt:8979: trailing whitespace.
++  194: 
+review/gate-ellipsoid/output.txt:9002: trailing whitespace.
++  217: 
+review/gate-ellipsoid/output.txt:9003: trailing whitespace.
++  218: 
+review/gate-ellipsoid/output.txt:9006: trailing whitespace.
++  221: 
+review/gate-ellipsoid/output.txt:9010: trailing whitespace.
++  225: 
+review/gate-ellipsoid/output.txt:9015: trailing whitespace.
++  230: 
+review/gate-ellipsoid/output.txt:9058: trailing whitespace.
++  273: 
+review/gate-ellipsoid/output.txt:9096: trailing whitespace.
++  311: 
+review/gate-ellipsoid/output.txt:9097: trailing whitespace.
++  312: 
+review/gate-ellipsoid/output.txt:9100: trailing whitespace.
++  315: 
+review/gate-ellipsoid/output.txt:9110: trailing whitespace.
++  325: 
+review/gate-ellipsoid/output.txt:9113: trailing whitespace.
++  328: 
+review/gate-ellipsoid/output.txt:9117: trailing whitespace.
++  332: 
+review/gate-ellipsoid/output.txt:9132: trailing whitespace.
++  347: 
+review/gate-ellipsoid/output.txt:9143: trailing whitespace.
++  358: 
+review/gate-ellipsoid/output.txt:9174: trailing whitespace.
++  389: 
+review/gate-ellipsoid/output.txt:9179: trailing whitespace.
++  394: 
+review/gate-ellipsoid/output.txt:9240: trailing whitespace.
++  455: 
+review/gate-ellipsoid/output.txt:9242: trailing whitespace.
++  457: 
+review/gate-ellipsoid/output.txt:9244: trailing whitespace.
++  459: 
+review/gate-ellipsoid/output.txt:9245: trailing whitespace.
++  460: 
+review/gate-ellipsoid/output.txt:9257: trailing whitespace.
++  689: 
+review/gate-ellipsoid/output.txt:9287: trailing whitespace.
++  719: 
+review/gate-ellipsoid/output.txt:9290: trailing whitespace.
++  722: 
+review/gate-ellipsoid/output.txt:9299: trailing whitespace.
++  731: 
+review/gate-ellipsoid/output.txt:9331: trailing whitespace.
++  763: 
+review/gate-ellipsoid/output.txt:9384: trailing whitespace.
++  816: 
+review/gate-ellipsoid/output.txt:9404: trailing whitespace.
++  836: 
+review/gate-ellipsoid/output.txt:9415: trailing whitespace.
++  847: 
+review/gate-ellipsoid/output.txt:9453: trailing whitespace.
++  885: 
+review/gate-ellipsoid/output.txt:9482: trailing whitespace.
++  914: 
+review/gate-ellipsoid/output.txt:9490: trailing whitespace.
++  922: 
+review/gate-ellipsoid/output.txt:9495: trailing whitespace.
++  927: 
+review/gate-ellipsoid/output.txt:9521: trailing whitespace.
++  953: 
+review/gate-ellipsoid/output.txt:9554: trailing whitespace.
++  953: 
+review/gate-ellipsoid/output.txt:9588: trailing whitespace.
++  987: 
+review/gate-ellipsoid/output.txt:9775: trailing whitespace.
++ 1174: 
+review/gate-ellipsoid/output.txt:9818: trailing whitespace.
++  987: 
+review/gate-ellipsoid/output.txt:10005: trailing whitespace.
++ 1174: 
+review/gate-ellipsoid/output.txt:10029: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10036: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10040: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10045: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10047: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10049: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10052: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10063: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10066: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10072: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10075: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10081: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10085: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10089: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10099: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10105: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10127: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10128: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10131: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10138: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10156: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10157: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10161: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10162: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10220: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10226: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10244: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10245: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10248: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10264: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10265: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10274: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10279: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10284: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10286: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10288: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10291: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10310: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10320: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10332: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10339: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10340: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10347: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10348: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10351: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10364: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10365: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10369: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10379: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10390: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10391: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10394: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10401: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10433: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10434: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10437: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10441: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10471: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10475: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10478: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10486: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10487: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10491: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10503: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10504: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10508: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10523: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10524: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10548: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10552: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10562: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10577: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10578: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10581: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10591: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10596: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10602: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10615: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10621: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10694: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10748: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10756: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10761: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10767: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10774: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10776: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10794: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10845: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10849: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10853: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10860: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10863: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10874: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10879: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10883: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10894: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10901: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10923: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10927: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10931: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10941: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10944: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10952: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10955: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10960: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10967: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10975: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10985: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:10989: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11006: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11011: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11030: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11036: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11041: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11044: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11057: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11062: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11079: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11082: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11087: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11090: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11099: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11102: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11111: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11115: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11121: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11131: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11133: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11139: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11144: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11146: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11148: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11169: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11221: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11223: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11227: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11238: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11241: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11245: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11248: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11282: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11311: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11316: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11329: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11333: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11342: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11346: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11360: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11362: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11367: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11370: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11374: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11392: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11397: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11418: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11425: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11430: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11433: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11447: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11452: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11469: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11474: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11479: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11483: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11489: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11492: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11501: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11528: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11532: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11597: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11611: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11615: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11625: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11632: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11636: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11639: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:11908: trailing whitespace.
++  416: 
+review/gate-ellipsoid/output.txt:11913: trailing whitespace.
++  421: 
+review/gate-ellipsoid/output.txt:11917: trailing whitespace.
++  425: 
+review/gate-ellipsoid/output.txt:11928: trailing whitespace.
++  436: 
+review/gate-ellipsoid/output.txt:11935: trailing whitespace.
++  443: 
+review/gate-ellipsoid/output.txt:11948: trailing whitespace.
++  456: 
+review/gate-ellipsoid/output.txt:11956: trailing whitespace.
++  464: 
+review/gate-ellipsoid/output.txt:11960: trailing whitespace.
++  468: 
+review/gate-ellipsoid/output.txt:11978: trailing whitespace.
++  663: 
+review/gate-ellipsoid/output.txt:11983: trailing whitespace.
++  668: 
+review/gate-ellipsoid/output.txt:12002: trailing whitespace.
++  687: 
+review/gate-ellipsoid/output.txt:12008: trailing whitespace.
++  693: 
+review/gate-ellipsoid/output.txt:12013: trailing whitespace.
++  698: 
+review/gate-ellipsoid/output.txt:12016: trailing whitespace.
++  701: 
+review/gate-ellipsoid/output.txt:12029: trailing whitespace.
++  714: 
+review/gate-ellipsoid/output.txt:12034: trailing whitespace.
++  719: 
+review/gate-ellipsoid/output.txt:12051: trailing whitespace.
++  736: 
+review/gate-ellipsoid/output.txt:12054: trailing whitespace.
++  739: 
+review/gate-ellipsoid/output.txt:12059: trailing whitespace.
++  744: 
+review/gate-ellipsoid/output.txt:12062: trailing whitespace.
++  747: 
+review/gate-ellipsoid/output.txt:12069: trailing whitespace.
++  851: 
+review/gate-ellipsoid/output.txt:12094: trailing whitespace.
++  876: 
+review/gate-ellipsoid/output.txt:12098: trailing whitespace.
++  880: 
+review/gate-ellipsoid/output.txt:12130: trailing whitespace.
++  912: 
+review/gate-ellipsoid/output.txt:12133: trailing whitespace.
++  915: 
+review/gate-ellipsoid/output.txt:12145: trailing whitespace.
++  604: 
+review/gate-ellipsoid/output.txt:12150: trailing whitespace.
++  609: 
+review/gate-ellipsoid/output.txt:12171: trailing whitespace.
++  630: 
+review/gate-ellipsoid/output.txt:12178: trailing whitespace.
++  637: 
+review/gate-ellipsoid/output.txt:12183: trailing whitespace.
++  642: 
+review/gate-ellipsoid/output.txt:12186: trailing whitespace.
++  645: 
+review/gate-ellipsoid/output.txt:12200: trailing whitespace.
++  659: 
+review/gate-ellipsoid/output.txt:12205: trailing whitespace.
++  664: 
+review/gate-ellipsoid/output.txt:12222: trailing whitespace.
++  681: 
+review/gate-ellipsoid/output.txt:12227: trailing whitespace.
++  686: 
+review/gate-ellipsoid/output.txt:12234: trailing whitespace.
++  430: 
+review/gate-ellipsoid/output.txt:12235: trailing whitespace.
++  431: 
+review/gate-ellipsoid/output.txt:12238: trailing whitespace.
++  434: 
+review/gate-ellipsoid/output.txt:12245: trailing whitespace.
++  441: 
+review/gate-ellipsoid/output.txt:12254: trailing whitespace.
++  450: 
+review/gate-ellipsoid/output.txt:12255: trailing whitespace.
++  451: 
+review/gate-ellipsoid/output.txt:12259: trailing whitespace.
++  455: 
+review/gate-ellipsoid/output.txt:12263: trailing whitespace.
++  459: 
+review/gate-ellipsoid/output.txt:12273: trailing whitespace.
++  469: 
+review/gate-ellipsoid/output.txt:12288: trailing whitespace.
++  484: 
+review/gate-ellipsoid/output.txt:12289: trailing whitespace.
++  485: 
+review/gate-ellipsoid/output.txt:12292: trailing whitespace.
++  488: 
+review/gate-ellipsoid/output.txt:12302: trailing whitespace.
++  498: 
+review/gate-ellipsoid/output.txt:12338: trailing whitespace.
++  701: 
+review/gate-ellipsoid/output.txt:12388: trailing whitespace.
++  751: 
+review/gate-ellipsoid/output.txt:12411: trailing whitespace.
++  774: 
+review/gate-ellipsoid/output.txt:12474: trailing whitespace.
++  837: 
+review/gate-ellipsoid/output.txt:12516: trailing whitespace.
++  879: 
+review/gate-ellipsoid/output.txt:12558: trailing whitespace.
++  921: 
+review/gate-ellipsoid/output.txt:12604: trailing whitespace.
++  967: 
+review/gate-ellipsoid/output.txt:12605: trailing whitespace.
++  968: 
+review/gate-ellipsoid/output.txt:12614: trailing whitespace.
++  764: 
+review/gate-ellipsoid/output.txt:12617: trailing whitespace.
++  767: 
+review/gate-ellipsoid/output.txt:12643: trailing whitespace.
++  793: 
+review/gate-ellipsoid/output.txt:12647: trailing whitespace.
++  797: 
+review/gate-ellipsoid/output.txt:12709: trailing whitespace.
++  859: 
+review/gate-ellipsoid/output.txt:12712: trailing whitespace.
++  862: 
+review/gate-ellipsoid/output.txt:12720: trailing whitespace.
++  870: 
+review/gate-ellipsoid/output.txt:12723: trailing whitespace.
++  873: 
+review/gate-ellipsoid/output.txt:12730: trailing whitespace.
++  362: 
+review/gate-ellipsoid/output.txt:12733: trailing whitespace.
++  365: 
+review/gate-ellipsoid/output.txt:12737: trailing whitespace.
++  369: 
+review/gate-ellipsoid/output.txt:12740: trailing whitespace.
++  372: 
+review/gate-ellipsoid/output.txt:12774: trailing whitespace.
++  406: 
+review/gate-ellipsoid/output.txt:12786: trailing whitespace.
++  418: 
+review/gate-ellipsoid/output.txt:12802: trailing whitespace.
++  434: 
+review/gate-ellipsoid/output.txt:12807: trailing whitespace.
++  439: 
+review/gate-ellipsoid/output.txt:12838: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:12845: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:12857: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:12863: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:12864: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:12954: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:12964: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:12966: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:12974: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:12983: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:12991: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:12998: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13005: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13006: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13018: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13019: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13023: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13024: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13027: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13038: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13049: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13055: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13056: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13060: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13061: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13064: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13084: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13085: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13090: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13094: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13095: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13098: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13105: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13108: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:13376: trailing whitespace.
++    2: 
+review/gate-ellipsoid/output.txt:13379: trailing whitespace.
++    5: 
+review/gate-ellipsoid/output.txt:13381: trailing whitespace.
++    7: 
+review/gate-ellipsoid/output.txt:13384: trailing whitespace.
++   10: 
+review/gate-ellipsoid/output.txt:13389: trailing whitespace.
++   15: 
+review/gate-ellipsoid/output.txt:13391: trailing whitespace.
++   17: 
+review/gate-ellipsoid/output.txt:13393: trailing whitespace.
++   19: 
+review/gate-ellipsoid/output.txt:13403: trailing whitespace.
++   29: 
+review/gate-ellipsoid/output.txt:13406: trailing whitespace.
++   32: 
+review/gate-ellipsoid/output.txt:13409: trailing whitespace.
++   35: 
+review/gate-ellipsoid/output.txt:13415: trailing whitespace.
++   41: 
+review/gate-ellipsoid/output.txt:13421: trailing whitespace.
++   47: 
+review/gate-ellipsoid/output.txt:13423: trailing whitespace.
++   49: 
+review/gate-ellipsoid/output.txt:13425: trailing whitespace.
++   51: 
+review/gate-ellipsoid/output.txt:13426: trailing whitespace.
++   52: 
+review/gate-ellipsoid/output.txt:13430: trailing whitespace.
++   56: 
+review/gate-ellipsoid/output.txt:13433: trailing whitespace.
++   59: 
+review/gate-ellipsoid/output.txt:13436: trailing whitespace.
++   62: 
+review/gate-ellipsoid/output.txt:13440: trailing whitespace.
++   66: 
+review/gate-ellipsoid/output.txt:13443: trailing whitespace.
++   69: 
+review/gate-ellipsoid/output.txt:13446: trailing whitespace.
++   72: 
+review/gate-ellipsoid/output.txt:13450: trailing whitespace.
++   76: 
+review/gate-ellipsoid/output.txt:13456: trailing whitespace.
++   82: 
+review/gate-ellipsoid/output.txt:13457: trailing whitespace.
++   83: 
+review/gate-ellipsoid/output.txt:13572: trailing whitespace.
++  198: 
+review/gate-ellipsoid/output.txt:13573: trailing whitespace.
++  199: 
+review/gate-ellipsoid/output.txt:13576: trailing whitespace.
++  202: 
+review/gate-ellipsoid/output.txt:13634: trailing whitespace.
++    2: 
+review/gate-ellipsoid/output.txt:13641: trailing whitespace.
++    9: 
+review/gate-ellipsoid/output.txt:13647: trailing whitespace.
++   15: 
+review/gate-ellipsoid/output.txt:13649: trailing whitespace.
++   17: 
+review/gate-ellipsoid/output.txt:13651: trailing whitespace.
++   19: 
+review/gate-ellipsoid/output.txt:13666: trailing whitespace.
++   34: 
+review/gate-ellipsoid/output.txt:13674: trailing whitespace.
++   42: 
+review/gate-ellipsoid/output.txt:13677: trailing whitespace.
++   45: 
+review/gate-ellipsoid/output.txt:13681: trailing whitespace.
++   49: 
+review/gate-ellipsoid/output.txt:13684: trailing whitespace.
++   52: 
+review/gate-ellipsoid/output.txt:13685: trailing whitespace.
++   53: 
+review/gate-ellipsoid/output.txt:13704: trailing whitespace.
++   72: 
+review/gate-ellipsoid/output.txt:13705: trailing whitespace.
++   73: 
+review/gate-ellipsoid/output.txt:13721: trailing whitespace.
++   89: 
+review/gate-ellipsoid/output.txt:13722: trailing whitespace.
++   90: 
+review/gate-ellipsoid/output.txt:13730: trailing whitespace.
++   98: 
+review/gate-ellipsoid/output.txt:13731: trailing whitespace.
++   99: 
+review/gate-ellipsoid/output.txt:13734: trailing whitespace.
++  102: 
+review/gate-ellipsoid/output.txt:13735: trailing whitespace.
++  103: 
+review/gate-ellipsoid/output.txt:13739: trailing whitespace.
++  107: 
+review/gate-ellipsoid/output.txt:13740: trailing whitespace.
++  108: 
+review/gate-ellipsoid/output.txt:13748: trailing whitespace.
++  116: 
+review/gate-ellipsoid/output.txt:13754: trailing whitespace.
++  122: 
+review/gate-ellipsoid/output.txt:13770: trailing whitespace.
++  138: 
+review/gate-ellipsoid/output.txt:13771: trailing whitespace.
++  139: 
+review/gate-ellipsoid/output.txt:13774: trailing whitespace.
++  142: 
+review/gate-ellipsoid/output.txt:13787: trailing whitespace.
++  155: 
+review/gate-ellipsoid/output.txt:13795: trailing whitespace.
++  163: 
+review/gate-ellipsoid/output.txt:13796: trailing whitespace.
++  164: 
+review/gate-ellipsoid/output.txt:13799: trailing whitespace.
++  167: 
+review/gate-ellipsoid/output.txt:13810: trailing whitespace.
++  178: 
+review/gate-ellipsoid/output.txt:13824: trailing whitespace.
++  192: 
+review/gate-ellipsoid/output.txt:13825: trailing whitespace.
++  193: 
+review/gate-ellipsoid/output.txt:13837: trailing whitespace.
++  205: 
+review/gate-ellipsoid/output.txt:13844: trailing whitespace.
++  212: 
+review/gate-ellipsoid/output.txt:13854: trailing whitespace.
++  222: 
+review/gate-ellipsoid/output.txt:13855: trailing whitespace.
++  223: 
+review/gate-ellipsoid/output.txt:13859: trailing whitespace.
++  227: 
+review/gate-ellipsoid/output.txt:13860: trailing whitespace.
++  228: 
+review/gate-ellipsoid/output.txt:13863: trailing whitespace.
++  231: 
+review/gate-ellipsoid/output.txt:13868: trailing whitespace.
++  236: 
+review/gate-ellipsoid/output.txt:13873: trailing whitespace.
++  241: 
+review/gate-ellipsoid/output.txt:13882: trailing whitespace.
++  250: 
+review/gate-ellipsoid/output.txt:13883: trailing whitespace.
++  251: 
+review/gate-ellipsoid/output.txt:13886: trailing whitespace.
++  254: 
+review/gate-ellipsoid/output.txt:13891: trailing whitespace.
++  259: 
+review/gate-ellipsoid/output.txt:13893: trailing whitespace.
++  261: 
+review/gate-ellipsoid/output.txt:13898: trailing whitespace.
++  266: 
+review/gate-ellipsoid/output.txt:13903: trailing whitespace.
++  271: 
+review/gate-ellipsoid/output.txt:13906: trailing whitespace.
++  274: 
+review/gate-ellipsoid/output.txt:13914: trailing whitespace.
++  282: 
+review/gate-ellipsoid/output.txt:13923: trailing whitespace.
++  291: 
+review/gate-ellipsoid/output.txt:13924: trailing whitespace.
++  292: 
+review/gate-ellipsoid/output.txt:13927: trailing whitespace.
++  295: 
+review/gate-ellipsoid/output.txt:13933: trailing whitespace.
++  301: 
+review/gate-ellipsoid/output.txt:13938: trailing whitespace.
++  306: 
+review/gate-ellipsoid/output.txt:13942: trailing whitespace.
++  310: 
+review/gate-ellipsoid/output.txt:13943: trailing whitespace.
++  311: 
+review/gate-ellipsoid/output.txt:13947: trailing whitespace.
++  315: 
+review/gate-ellipsoid/output.txt:13948: trailing whitespace.
++  316: 
+review/gate-ellipsoid/output.txt:13958: trailing whitespace.
++  326: 
+review/gate-ellipsoid/output.txt:13959: trailing whitespace.
++  327: 
+review/gate-ellipsoid/output.txt:13976: trailing whitespace.
++  344: 
+review/gate-ellipsoid/output.txt:13977: trailing whitespace.
++  345: 
+review/gate-ellipsoid/output.txt:13994: trailing whitespace.
++  362: 
+review/gate-ellipsoid/output.txt:13995: trailing whitespace.
++  363: 
+review/gate-ellipsoid/output.txt:14004: trailing whitespace.
++  372: 
+review/gate-ellipsoid/output.txt:14005: trailing whitespace.
++  373: 
+review/gate-ellipsoid/output.txt:14009: trailing whitespace.
++  377: 
+review/gate-ellipsoid/output.txt:14010: trailing whitespace.
++  378: 
+review/gate-ellipsoid/output.txt:14019: trailing whitespace.
++  387: 
+review/gate-ellipsoid/output.txt:14030: trailing whitespace.
++  398: 
+review/gate-ellipsoid/output.txt:14031: trailing whitespace.
++  399: 
+review/gate-ellipsoid/output.txt:14040: trailing whitespace.
++  408: 
+review/gate-ellipsoid/output.txt:14046: trailing whitespace.
++  414: 
+review/gate-ellipsoid/output.txt:14047: trailing whitespace.
++  415: 
+review/gate-ellipsoid/output.txt:14051: trailing whitespace.
++  419: 
+review/gate-ellipsoid/output.txt:14052: trailing whitespace.
++  420: 
+review/gate-ellipsoid/output.txt:14063: trailing whitespace.
++  431: 
+review/gate-ellipsoid/output.txt:14064: trailing whitespace.
++  432: 
+review/gate-ellipsoid/output.txt:14078: trailing whitespace.
++    2: 
+review/gate-ellipsoid/output.txt:14083: trailing whitespace.
++    7: 
+review/gate-ellipsoid/output.txt:14086: trailing whitespace.
++   10: 
+review/gate-ellipsoid/output.txt:14096: trailing whitespace.
++   20: 
+review/gate-ellipsoid/output.txt:14098: trailing whitespace.
++   22: 
+review/gate-ellipsoid/output.txt:14100: trailing whitespace.
++   24: 
+review/gate-ellipsoid/output.txt:14102: trailing whitespace.
++   26: 
+review/gate-ellipsoid/output.txt:14116: trailing whitespace.
++   40: 
+review/gate-ellipsoid/output.txt:14125: trailing whitespace.
++   49: 
+review/gate-ellipsoid/output.txt:14126: trailing whitespace.
++   50: 
+review/gate-ellipsoid/output.txt:14144: trailing whitespace.
++   68: 
+review/gate-ellipsoid/output.txt:14145: trailing whitespace.
++   69: 
+review/gate-ellipsoid/output.txt:14160: trailing whitespace.
++   84: 
+review/gate-ellipsoid/output.txt:14161: trailing whitespace.
++   85: 
+review/gate-ellipsoid/output.txt:14166: trailing whitespace.
++   90: 
+review/gate-ellipsoid/output.txt:14167: trailing whitespace.
++   91: 
+review/gate-ellipsoid/output.txt:14169: trailing whitespace.
++   93: 
+review/gate-ellipsoid/output.txt:14170: trailing whitespace.
++   94: 
+review/gate-ellipsoid/output.txt:14174: trailing whitespace.
++   98: 
+review/gate-ellipsoid/output.txt:14175: trailing whitespace.
++   99: 
+review/gate-ellipsoid/output.txt:14183: trailing whitespace.
++  107: 
+review/gate-ellipsoid/output.txt:14193: trailing whitespace.
++  117: 
+review/gate-ellipsoid/output.txt:14194: trailing whitespace.
++  118: 
+review/gate-ellipsoid/output.txt:14204: trailing whitespace.
++  128: 
+review/gate-ellipsoid/output.txt:14211: trailing whitespace.
++  135: 
+review/gate-ellipsoid/output.txt:14212: trailing whitespace.
++  136: 
+review/gate-ellipsoid/output.txt:14220: trailing whitespace.
++  144: 
+review/gate-ellipsoid/output.txt:14224: trailing whitespace.
++  148: 
+review/gate-ellipsoid/output.txt:14225: trailing whitespace.
++  149: 
+review/gate-ellipsoid/output.txt:14239: trailing whitespace.
++  163: 
+review/gate-ellipsoid/output.txt:14243: trailing whitespace.
++  167: 
+review/gate-ellipsoid/output.txt:14244: trailing whitespace.
++  168: 
+review/gate-ellipsoid/output.txt:14249: trailing whitespace.
++  173: 
+review/gate-ellipsoid/output.txt:14252: trailing whitespace.
++  176: 
+review/gate-ellipsoid/output.txt:14253: trailing whitespace.
++  177: 
+review/gate-ellipsoid/output.txt:14256: trailing whitespace.
++  180: 
+review/gate-ellipsoid/output.txt:14267: trailing whitespace.
++  191: 
+review/gate-ellipsoid/output.txt:14275: trailing whitespace.
++  199: 
+review/gate-ellipsoid/output.txt:14276: trailing whitespace.
++  200: 
+review/gate-ellipsoid/output.txt:14280: trailing whitespace.
++  204: 
+review/gate-ellipsoid/output.txt:14281: trailing whitespace.
++  205: 
+review/gate-ellipsoid/output.txt:14297: trailing whitespace.
++  221: 
+review/gate-ellipsoid/output.txt:14300: trailing whitespace.
++  224: 
+review/gate-ellipsoid/output.txt:14301: trailing whitespace.
++  225: 
+review/gate-ellipsoid/output.txt:14305: trailing whitespace.
++  229: 
+review/gate-ellipsoid/output.txt:14318: trailing whitespace.
++  242: 
+review/gate-ellipsoid/output.txt:14329: trailing whitespace.
++  253: 
+review/gate-ellipsoid/output.txt:14330: trailing whitespace.
++  254: 
+review/gate-ellipsoid/output.txt:14338: trailing whitespace.
++  262: 
+review/gate-ellipsoid/output.txt:14342: trailing whitespace.
++  266: 
+review/gate-ellipsoid/output.txt:14343: trailing whitespace.
++  267: 
+review/gate-ellipsoid/output.txt:14350: trailing whitespace.
++  274: 
+review/gate-ellipsoid/output.txt:14354: trailing whitespace.
++  278: 
+review/gate-ellipsoid/output.txt:14355: trailing whitespace.
++  279: 
+review/gate-ellipsoid/output.txt:14374: trailing whitespace.
++  298: 
+review/gate-ellipsoid/output.txt:14378: trailing whitespace.
++  302: 
+review/gate-ellipsoid/output.txt:14379: trailing whitespace.
++  303: 
+review/gate-ellipsoid/output.txt:14398: trailing whitespace.
++  322: 
+review/gate-ellipsoid/output.txt:14400: trailing whitespace.
++  324: 
+review/gate-ellipsoid/output.txt:14404: trailing whitespace.
++  328: 
+review/gate-ellipsoid/output.txt:14414: trailing whitespace.
++    2: 
+review/gate-ellipsoid/output.txt:14420: trailing whitespace.
++    8: 
+review/gate-ellipsoid/output.txt:14425: trailing whitespace.
++   13: 
+review/gate-ellipsoid/output.txt:14427: trailing whitespace.
++   15: 
+review/gate-ellipsoid/output.txt:14429: trailing whitespace.
++   17: 
+review/gate-ellipsoid/output.txt:14432: trailing whitespace.
++   20: 
+review/gate-ellipsoid/output.txt:14434: trailing whitespace.
++   22: 
+review/gate-ellipsoid/output.txt:14457: trailing whitespace.
++   45: 
+review/gate-ellipsoid/output.txt:14466: trailing whitespace.
++   54: 
+review/gate-ellipsoid/output.txt:14467: trailing whitespace.
++   55: 
+review/gate-ellipsoid/output.txt:14475: trailing whitespace.
++   63: 
+review/gate-ellipsoid/output.txt:14476: trailing whitespace.
++   64: 
+review/gate-ellipsoid/output.txt:14480: trailing whitespace.
++   68: 
+review/gate-ellipsoid/output.txt:14481: trailing whitespace.
++   69: 
+review/gate-ellipsoid/output.txt:14485: trailing whitespace.
++   73: 
+review/gate-ellipsoid/output.txt:14486: trailing whitespace.
++   74: 
+review/gate-ellipsoid/output.txt:14490: trailing whitespace.
++   78: 
+review/gate-ellipsoid/output.txt:14491: trailing whitespace.
++   79: 
+review/gate-ellipsoid/output.txt:14501: trailing whitespace.
++   89: 
+review/gate-ellipsoid/output.txt:14502: trailing whitespace.
++   90: 
+review/gate-ellipsoid/output.txt:14507: trailing whitespace.
++   95: 
+review/gate-ellipsoid/output.txt:14508: trailing whitespace.
++   96: 
+review/gate-ellipsoid/output.txt:14515: trailing whitespace.
++  103: 
+review/gate-ellipsoid/output.txt:14519: trailing whitespace.
++  107: 
+review/gate-ellipsoid/output.txt:14520: trailing whitespace.
++  108: 
+review/gate-ellipsoid/output.txt:14534: trailing whitespace.
++  122: 
+review/gate-ellipsoid/output.txt:14535: trailing whitespace.
++  123: 
+review/gate-ellipsoid/output.txt:14542: trailing whitespace.
++  130: 
+review/gate-ellipsoid/output.txt:14546: trailing whitespace.
++  134: 
+review/gate-ellipsoid/output.txt:14547: trailing whitespace.
++  135: 
+review/gate-ellipsoid/output.txt:14551: trailing whitespace.
++  139: 
+review/gate-ellipsoid/output.txt:14552: trailing whitespace.
++  140: 
+review/gate-ellipsoid/output.txt:14560: trailing whitespace.
++  148: 
+review/gate-ellipsoid/output.txt:14567: trailing whitespace.
++  155: 
+review/gate-ellipsoid/output.txt:14572: trailing whitespace.
++  160: 
+review/gate-ellipsoid/output.txt:14573: trailing whitespace.
++  161: 
+review/gate-ellipsoid/output.txt:14580: trailing whitespace.
++  168: 
+review/gate-ellipsoid/output.txt:14587: trailing whitespace.
++  175: 
+review/gate-ellipsoid/output.txt:14592: trailing whitespace.
++  180: 
+review/gate-ellipsoid/output.txt:14600: trailing whitespace.
++  188: 
+review/gate-ellipsoid/output.txt:14601: trailing whitespace.
++  189: 
+review/gate-ellipsoid/output.txt:14605: trailing whitespace.
++  193: 
+review/gate-ellipsoid/output.txt:14606: trailing whitespace.
++  194: 
+review/gate-ellipsoid/output.txt:14625: trailing whitespace.
++  213: 
+review/gate-ellipsoid/output.txt:14626: trailing whitespace.
++  214: 
+review/gate-ellipsoid/output.txt:14634: trailing whitespace.
++  222: 
+review/gate-ellipsoid/output.txt:14635: trailing whitespace.
++  223: 
+review/gate-ellipsoid/output.txt:14639: trailing whitespace.
++  227: 
+review/gate-ellipsoid/output.txt:14644: trailing whitespace.
++  232: 
+review/gate-ellipsoid/output.txt:14649: trailing whitespace.
++  237: 
+review/gate-ellipsoid/output.txt:14650: trailing whitespace.
++  238: 
+review/gate-ellipsoid/output.txt:14655: trailing whitespace.
++  243: 
+review/gate-ellipsoid/output.txt:14678: trailing whitespace.
++  266: 
+review/gate-ellipsoid/output.txt:14681: trailing whitespace.
++  269: 
+review/gate-ellipsoid/output.txt:14682: trailing whitespace.
++  270: 
+review/gate-ellipsoid/output.txt:14685: trailing whitespace.
++  273: 
+review/gate-ellipsoid/output.txt:14688: trailing whitespace.
++  276: 
+review/gate-ellipsoid/output.txt:14689: trailing whitespace.
++  277: 
+review/gate-ellipsoid/output.txt:14699: trailing whitespace.
++  287: 
+review/gate-ellipsoid/output.txt:14702: trailing whitespace.
++  290: 
+review/gate-ellipsoid/output.txt:14715: trailing whitespace.
++    2: 
+review/gate-ellipsoid/output.txt:14718: trailing whitespace.
++    5: 
+review/gate-ellipsoid/output.txt:14724: trailing whitespace.
++   11: 
+review/gate-ellipsoid/output.txt:14726: trailing whitespace.
++   13: 
+review/gate-ellipsoid/output.txt:14733: trailing whitespace.
++   20: 
+review/gate-ellipsoid/output.txt:14740: trailing whitespace.
++   27: 
+review/gate-ellipsoid/output.txt:14748: trailing whitespace.
++   35: 
+review/gate-ellipsoid/output.txt:14750: trailing whitespace.
++   37: 
+review/gate-ellipsoid/output.txt:14752: trailing whitespace.
++   39: 
+review/gate-ellipsoid/output.txt:14760: trailing whitespace.
++   47: 
+review/gate-ellipsoid/output.txt:14776: trailing whitespace.
++   63: 
+review/gate-ellipsoid/output.txt:14781: trailing whitespace.
++   68: 
+review/gate-ellipsoid/output.txt:14782: trailing whitespace.
++   69: 
+review/gate-ellipsoid/output.txt:14786: trailing whitespace.
++   73: 
+review/gate-ellipsoid/output.txt:14787: trailing whitespace.
++   74: 
+review/gate-ellipsoid/output.txt:14792: trailing whitespace.
++   79: 
+review/gate-ellipsoid/output.txt:14800: trailing whitespace.
++   87: 
+review/gate-ellipsoid/output.txt:14804: trailing whitespace.
++   91: 
+review/gate-ellipsoid/output.txt:14805: trailing whitespace.
++   92: 
+review/gate-ellipsoid/output.txt:14810: trailing whitespace.
++   97: 
+review/gate-ellipsoid/output.txt:14818: trailing whitespace.
++  105: 
+review/gate-ellipsoid/output.txt:14820: trailing whitespace.
++  107: 
+review/gate-ellipsoid/output.txt:14828: trailing whitespace.
++  115: 
+review/gate-ellipsoid/output.txt:14829: trailing whitespace.
++  116: 
+review/gate-ellipsoid/output.txt:14832: trailing whitespace.
++  119: 
+review/gate-ellipsoid/output.txt:14838: trailing whitespace.
++  125: 
+review/gate-ellipsoid/output.txt:14845: trailing whitespace.
++  132: 
+review/gate-ellipsoid/output.txt:14846: trailing whitespace.
++  133: 
+review/gate-ellipsoid/output.txt:14850: trailing whitespace.
++  137: 
+review/gate-ellipsoid/output.txt:14851: trailing whitespace.
++  138: 
+review/gate-ellipsoid/output.txt:14854: trailing whitespace.
++  141: 
+review/gate-ellipsoid/output.txt:14858: trailing whitespace.
++  145: 
+review/gate-ellipsoid/output.txt:14860: trailing whitespace.
++  147: 
+review/gate-ellipsoid/output.txt:14866: trailing whitespace.
++  153: 
+review/gate-ellipsoid/output.txt:14871: trailing whitespace.
++  158: 
+review/gate-ellipsoid/output.txt:14873: trailing whitespace.
++  160: 
+review/gate-ellipsoid/output.txt:14874: trailing whitespace.
++  161: 
+review/gate-ellipsoid/output.txt:14877: trailing whitespace.
++  164: 
+review/gate-ellipsoid/output.txt:14884: trailing whitespace.
++  171: 
+review/gate-ellipsoid/output.txt:14891: trailing whitespace.
++  178: 
+review/gate-ellipsoid/output.txt:14893: trailing whitespace.
++  180: 
+review/gate-ellipsoid/output.txt:14894: trailing whitespace.
++  181: 
+review/gate-ellipsoid/output.txt:14908: trailing whitespace.
++  195: 
+review/gate-ellipsoid/output.txt:14917: trailing whitespace.
++   90: 
+review/gate-ellipsoid/output.txt:14918: trailing whitespace.
++   91: 
+review/gate-ellipsoid/output.txt:14920: trailing whitespace.
++   93: 
+review/gate-ellipsoid/output.txt:14921: trailing whitespace.
++   94: 
+review/gate-ellipsoid/output.txt:14925: trailing whitespace.
++   98: 
+review/gate-ellipsoid/output.txt:14926: trailing whitespace.
++   99: 
+review/gate-ellipsoid/output.txt:14934: trailing whitespace.
++  107: 
+review/gate-ellipsoid/output.txt:14944: trailing whitespace.
++  117: 
+review/gate-ellipsoid/output.txt:14945: trailing whitespace.
++  118: 
+review/gate-ellipsoid/output.txt:14955: trailing whitespace.
++  128: 
+review/gate-ellipsoid/output.txt:14962: trailing whitespace.
++  135: 
+review/gate-ellipsoid/output.txt:14963: trailing whitespace.
++  136: 
+review/gate-ellipsoid/output.txt:14971: trailing whitespace.
++  144: 
+review/gate-ellipsoid/output.txt:14975: trailing whitespace.
++  148: 
+review/gate-ellipsoid/output.txt:14976: trailing whitespace.
++  149: 
+review/gate-ellipsoid/output.txt:14990: trailing whitespace.
++  163: 
+review/gate-ellipsoid/output.txt:14994: trailing whitespace.
++  167: 
+review/gate-ellipsoid/output.txt:14995: trailing whitespace.
++  168: 
+review/gate-ellipsoid/output.txt:15000: trailing whitespace.
++  173: 
+review/gate-ellipsoid/output.txt:15003: trailing whitespace.
++  176: 
+review/gate-ellipsoid/output.txt:15004: trailing whitespace.
++  177: 
+review/gate-ellipsoid/output.txt:15007: trailing whitespace.
++  180: 
+review/gate-ellipsoid/output.txt:15018: trailing whitespace.
++  191: 
+review/gate-ellipsoid/output.txt:15026: trailing whitespace.
++  199: 
+review/gate-ellipsoid/output.txt:15027: trailing whitespace.
++  200: 
+review/gate-ellipsoid/output.txt:15031: trailing whitespace.
++  204: 
+review/gate-ellipsoid/output.txt:15032: trailing whitespace.
++  205: 
+review/gate-ellipsoid/output.txt:15048: trailing whitespace.
++  221: 
+review/gate-ellipsoid/output.txt:15051: trailing whitespace.
++  224: 
+review/gate-ellipsoid/output.txt:15052: trailing whitespace.
++  225: 
+review/gate-ellipsoid/output.txt:15056: trailing whitespace.
++  229: 
+review/gate-ellipsoid/output.txt:15069: trailing whitespace.
++  242: 
+review/gate-ellipsoid/output.txt:15080: trailing whitespace.
++  253: 
+review/gate-ellipsoid/output.txt:15081: trailing whitespace.
++  254: 
+review/gate-ellipsoid/output.txt:15089: trailing whitespace.
++  262: 
+review/gate-ellipsoid/output.txt:15093: trailing whitespace.
++  266: 
+review/gate-ellipsoid/output.txt:15094: trailing whitespace.
++  267: 
+review/gate-ellipsoid/output.txt:15101: trailing whitespace.
++  274: 
+review/gate-ellipsoid/output.txt:15105: trailing whitespace.
++  278: 
+review/gate-ellipsoid/output.txt:15106: trailing whitespace.
++  279: 
+review/gate-ellipsoid/output.txt:15125: trailing whitespace.
++  298: 
+review/gate-ellipsoid/output.txt:15129: trailing whitespace.
++  302: 
+review/gate-ellipsoid/output.txt:15130: trailing whitespace.
++  303: 
+review/gate-ellipsoid/output.txt:15149: trailing whitespace.
++  322: 
+review/gate-ellipsoid/output.txt:15151: trailing whitespace.
++  324: 
+review/gate-ellipsoid/output.txt:15155: trailing whitespace.
++  328: 
+review/gate-ellipsoid/output.txt:15187: trailing whitespace.
++py : The term 'py' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the 
+review/gate-ellipsoid/output.txt:15194: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:15197: trailing whitespace.
++py : The term 'py' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the 
+review/gate-ellipsoid/output.txt:15204: trailing whitespace.
++ 
+review/gate-ellipsoid/output.txt:15256: trailing whitespace.
++    2: 
+review/gate-ellipsoid/output.txt:15261: trailing whitespace.
++    7: 
+review/gate-ellipsoid/output.txt:15266: trailing whitespace.
++   12: 
+review/gate-ellipsoid/output.txt:15268: trailing whitespace.
++   14: 
+review/gate-ellipsoid/output.txt:15270: trailing whitespace.
++   16: 
+review/gate-ellipsoid/output.txt:15273: trailing whitespace.
++   19: 
+review/gate-ellipsoid/output.txt:15290: trailing whitespace.
++   36: 
+review/gate-ellipsoid/output.txt:15300: trailing whitespace.
++   46: 
+review/gate-ellipsoid/output.txt:15312: trailing whitespace.
++   58: 
+review/gate-ellipsoid/output.txt:15319: trailing whitespace.
++   65: 
+review/gate-ellipsoid/output.txt:15320: trailing whitespace.
++   66: 
+review/gate-ellipsoid/output.txt:15327: trailing whitespace.
++   73: 
+review/gate-ellipsoid/output.txt:15328: trailing whitespace.
++   74: 
+review/gate-ellipsoid/output.txt:15331: trailing whitespace.
++   77: 
+review/gate-ellipsoid/output.txt:15344: trailing whitespace.
++   90: 
+review/gate-ellipsoid/output.txt:15345: trailing whitespace.
++   91: 
+review/gate-ellipsoid/output.txt:15349: trailing whitespace.
++   95: 
+review/gate-ellipsoid/output.txt:15359: trailing whitespace.
++  105: 
+review/gate-ellipsoid/output.txt:15370: trailing whitespace.
++  116: 
+review/gate-ellipsoid/output.txt:15371: trailing whitespace.
++  117: 
+review/gate-ellipsoid/output.txt:15374: trailing whitespace.
++  120: 
+review/gate-ellipsoid/output.txt:15381: trailing whitespace.
++  127: 
+review/gate-ellipsoid/output.txt:15413: trailing whitespace.
++  159: 
+review/gate-ellipsoid/output.txt:15414: trailing whitespace.
++  160: 
+review/gate-ellipsoid/output.txt:15417: trailing whitespace.
++  163: 
+review/gate-ellipsoid/output.txt:15421: trailing whitespace.
++  167: 
+review/gate-ellipsoid/output.txt:15451: trailing whitespace.
++  197: 
+review/gate-ellipsoid/output.txt:15465: trailing whitespace.
++  211: 
+review/gate-ellipsoid/output.txt:15466: trailing whitespace.
++  212: 
+review/gate-ellipsoid/output.txt:15470: trailing whitespace.
++  216: 
+review/gate-ellipsoid/output.txt:15471: trailing whitespace.
++  217: 
+review/gate-ellipsoid/output.txt:15474: trailing whitespace.
++  220: 
+review/gate-ellipsoid/output.txt:15481: trailing whitespace.
++  227: 
+review/gate-ellipsoid/output.txt:15484: trailing whitespace.
++  230: 
+review/gate-ellipsoid/output.txt:15489: trailing whitespace.
++  235: 
+review/gate-ellipsoid/output.txt:15493: trailing whitespace.
++  239: 
+review/gate-ellipsoid/output.txt:15494: trailing whitespace.
++  240: 
+review/gate-ellipsoid/output.txt:15497: trailing whitespace.
++  243: 
+review/gate-ellipsoid/output.txt:15510: trailing whitespace.
++  256: 
+review/gate-ellipsoid/output.txt:15512: trailing whitespace.
++  258: 
+review/gate-ellipsoid/output.txt:15520: trailing whitespace.
++  266: 
+review/gate-ellipsoid/output.txt:15532: trailing whitespace.
++  278: 
+review/gate-ellipsoid/output.txt:15553: trailing whitespace.
++  299: 
+review/gate-ellipsoid/output.txt:15555: trailing whitespace.
++  301: 
+review/gate-ellipsoid/output.txt:15557: trailing whitespace.
++  303: 
+review/gate-ellipsoid/output.txt:15558: trailing whitespace.
++  304: 
+review/gate-ellipsoid/output.txt:15567: trailing whitespace.
++  313: 
+review/gate-ellipsoid/output.txt:15568: trailing whitespace.
++  314: 
+review/gate-ellipsoid/output.txt:15572: trailing whitespace.
++  318: 
+review/gate-ellipsoid/output.txt:15575: trailing whitespace.
++  321: 
+review/gate-ellipsoid/output.txt:15576: trailing whitespace.
++  322: 
+review/gate-ellipsoid/output.txt:15580: trailing whitespace.
++  326: 
+review/gate-ellipsoid/output.txt:15583: trailing whitespace.
++  329: 
+review/gate-ellipsoid/output.txt:15584: trailing whitespace.
++  330: 
+review/gate-ellipsoid/output.txt:15587: trailing whitespace.
++  333: 
+review/gate-ellipsoid/output.txt:15589: trailing whitespace.
++  335: 
+review/gate-ellipsoid/output.txt:15592: trailing whitespace.
++  338: 
+review/gate-ellipsoid/output.txt:15598: trailing whitespace.
++  344: 
+review/gate-ellipsoid/output.txt:15627: trailing whitespace.
++  373: 
+review/gate-ellipsoid/output.txt:15636: trailing whitespace.
++  382: 
+review/gate-ellipsoid/output.txt:15639: trailing whitespace.
++  385: 
+review/gate-ellipsoid/output.txt:15647: trailing whitespace.
++  393: 
+review/gate-ellipsoid/output.txt:15648: trailing whitespace.
++  394: 
+review/gate-ellipsoid/output.txt:15652: trailing whitespace.
++  398: 
+review/gate-ellipsoid/output.txt:15664: trailing whitespace.
++  410: 
+review/gate-ellipsoid/output.txt:15665: trailing whitespace.
++  411: 
+review/gate-ellipsoid/output.txt:15669: trailing whitespace.
++  415: 
+review/gate-ellipsoid/output.txt:15684: trailing whitespace.
++  430: 
+review/gate-ellipsoid/output.txt:15760: trailing whitespace.
++  842: 
+review/gate-ellipsoid/output.txt:15766: trailing whitespace.
++  848: 
+review/gate-ellipsoid/output.txt:15779: trailing whitespace.
++  861: 
+review/gate-ellipsoid/output.txt:15781: trailing whitespace.
++  863: 
+review/gate-ellipsoid/output.txt:15800: trailing whitespace.
++ 1191: 
+review/gate-ellipsoid/output.txt:15829: trailing whitespace.
++ 1220: 
+review/gate-ellipsoid/output.txt:15863: trailing whitespace.
++ 1254: 
+review/gate-ellipsoid/output.txt:15880: trailing whitespace.
++ 1271: 
+review/gate-ellipsoid/output.txt:15897: trailing whitespace.
++ 1288: 
+review/gate-ellipsoid/output.txt:15913: trailing whitespace.
++ 1304: 
+review/gate-ellipsoid/output.txt:15917: trailing whitespace.
++ 1308: 
+review/gate-ellipsoid/output.txt:16181: trailing whitespace.
++  
+review/gate-ellipsoid/output.txt:16193: trailing whitespace.
++    4: 
+review/gate-ellipsoid/output.txt:16212: trailing whitespace.
++   23: 
+review/gate-ellipsoid/output.txt:16238: trailing whitespace.
++   49: 
+review/gate-ellipsoid/output.txt:16375: new blank line at EOF.
+ M review/gate-ellipsoid/output.txt
+warning: unable to access 'C:\Users\marti/.config/git/ignore': Permission denied
+warning: unable to access 'C:\Users\marti/.config/git/ignore': Permission denied
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git status --short --untracked-files=all; git ls-files --stage -- review/gate-ellipsoid/output.txt; git diff --name-only v0.5.0..HEAD' in C:\claude-projects\coord-convert
+ succeeded in 382ms:
+ M review/gate-ellipsoid/output.txt
+100644 8c792993d352696b945d7169a33f040b1a5a9dfd 0	review/gate-ellipsoid/output.txt
+CLAUDE.md
+docs/DESIGN.md
+docs/RELEASE-NOTES-0.6.0.md
+michspc/fileio/exports.py
+michspc/fileio/report.py
+michspc/gui/controls.py
+michspc/gui/results_model.py
+michspc/gui/single_point.py
+michspc/gui/window.py
+michspc/job.py
+michspc/selftest.py
+michspc/spc/convert.py
+michspc/spc/vertical.py
+review/gate-ellipsoid/output.txt
+review/gate-ellipsoid/prompt.txt
+review/wp-e-byte-identity/README.txt
+review/wp-e-byte-identity/digest_jobs.py
+review/wp-e-byte-identity/digests_head.txt
+review/wp-e-byte-identity/digests_v0.5.0.txt
+review/wp-e1-ellipsoid/capture_bm.py
+review/wp-e1-ellipsoid/ngs_benchmarks_raw.json
+tests/fixtures/ellipsoid_height_anchors.py
+tests/test_ellipsoid_disclosure.py
+tests/test_ellipsoid_height.py
+tests/test_ellipsoid_height_job.py
+tests/test_gui_ellipsoid_height.py
+tests/test_gui_vertical.py
+tests/test_selftest.py
+warning: unable to access 'C:\Users\marti/.config/git/ignore': Permission denied
+warning: unable to access 'C:\Users\marti/.config/git/ignore': Permission denied
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git log --oneline --decorate v0.5.0..HEAD; git rev-parse HEAD; git status --short' in C:\claude-projects\coord-convert
+ succeeded in 352ms:
+d71634d (HEAD -> main) Byte-identity evidence: the default is unchanged from 0.5.0
+6d484b4 WP-E5: the frozen bundle converts one GNSS height, and the record is written
+1b4ae44 WP-E4: the height-kind control reaches both tabs
+4839285 WP-E3: the written outputs say what kind of height went in
+6c30dc5 WP-E2: ellipsoid heights convert, and horizontal mode stops double-counting N
+9d5559b WP-E1: the anchors for ellipsoid-height input, before the code
+d71634d30887bc5c135fbe07370d9682fe9733ff
+ M review/gate-ellipsoid/output.txt
+warning: unable to access 'C:\Users\marti/.config/git/ignore': Permission denied
+warning: unable to access 'C:\Users\marti/.config/git/ignore': Permission denied
+
+codex
+The checkout moved during the review: `HEAD` advanced from `6d484b4` (the five WP-E commits) to `d71634d` (“Byte-identity evidence…”), and the gate transcript is being modified externally. I will preserve it and audit the new commit too, because the requested range is `v0.5.0..HEAD`; I will distinguish this scope change in the final result.
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command 'git show --stat --oneline d71634d; git show --format=fuller --no-ext-diff -- d71634d -- docs/RELEASE-NOTES-0.6.0.md review/wp-e-byte-identity/README.txt review/wp-e-byte-identity/digest_jobs.py review/wp-e-byte-identity/digests_head.txt review/wp-e-byte-identity/digests_v0.5.0.txt' in C:\claude-projects\coord-convert
+ succeeded in 379ms:
+d71634d Byte-identity evidence: the default is unchanged from 0.5.0
+ docs/RELEASE-NOTES-0.6.0.md                  |   107 +
+ review/gate-ellipsoid/output.txt             | 16375 +++++++++++++++++++++++++
+ review/gate-ellipsoid/prompt.txt             |    35 +
+ review/wp-e-byte-identity/README.txt         |    33 +
+ review/wp-e-byte-identity/digest_jobs.py     |    59 +
+ review/wp-e-byte-identity/digests_head.txt   |    27 +
+ review/wp-e-byte-identity/digests_v0.5.0.txt |    27 +
+ 7 files changed, 16663 insertions(+)
+commit d71634d30887bc5c135fbe07370d9682fe9733ff
+Author:     Dan Martin <dan.martin@laphamassoc.com>
+AuthorDate: Tue Aug 11 15:46:55 2026 -0400
+Commit:     Dan Martin <dan.martin@laphamassoc.com>
+CommitDate: Tue Aug 11 15:46:55 2026 -0400
+
+    Byte-identity evidence: the default is unchanged from 0.5.0
+    
+    Independent of the closing gate, and checking the promise the whole feature
+    rests on - a job that does not opt in produces exactly what 0.5.0 produced.
+    
+    Nine orthometric archives across both horizontal directions, all three units,
+    both vertical modes and a geoid swap, each over a populated, a zeroed and a
+    blank Z. The same script run in a detached worktree at v0.5.0 and at HEAD.
+    
+    27 members, 27 identical. All eighteen CSV members hashed identically
+    outright; the only record differences are the generation timestamp, which
+    differs between any two runs, and the paths the harness itself varied.
+    
+    Harness and both digest lists committed so the comparison can be repeated.
+    
+    Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+diff --git a/docs/RELEASE-NOTES-0.6.0.md b/docs/RELEASE-NOTES-0.6.0.md
+new file mode 100644
+index 0000000..5d37529
+--- /dev/null
++++ b/docs/RELEASE-NOTES-0.6.0.md
+@@ -0,0 +1,107 @@
++# MCX 0.6.0
++
++**This is a finished, verified tool, not a work in progress.** MCX does what it
++was built to do: move survey coordinates between Michigan's three State Plane
++zones and between State Plane and geodetic positions, convert elevations
++between vertical datums and between geoid models, and document every job well
++enough to defend it. It is in production use by a licensed professional
++surveyor.
++
++Future releases will be additions and corrections as the National Geodetic
++Survey publishes new data — NAPGD2022 and SPCS2022 when they are final — not
++further construction of the core. The mathematics, the file formats, the
++verification anchors and the documentation are complete.
++
++## New in this release: GNSS heights can go in directly
++
++Survey data arrives from GNSS as **ellipsoid heights**. Plats and legal
++descriptions need **elevations**. Until now that conversion happened outside
++MCX, or — worse — an ellipsoid height went in as if it were an elevation and
++nothing said otherwise.
++
++Tell MCX what the Z column holds and it handles the rest. A new
++**Heights are:** control on both tabs, offering *Orthometric (elevation)* and
++*Ellipsoid (GNSS)*. It opens on Orthometric, so **nothing about an existing job
++changes unless you change it.**
++
++- In **Horizontal + Vertical** and **Vertical** mode, MCX converts the height
++  with `H = h − N` and writes the elevation, tagged with its datum and the
++  geoid model it came from.
++- In **Horizontal** mode the Z column is written back **exactly as you supplied
++  it** — an ellipsoid height stays an ellipsoid height — and the job record
++  says so plainly.
++
++### The correction that comes with it
++
++This also fixes a real error that was easy to hit and impossible to see.
++
++The elevation factor is `R / (R + H + N)`. Feed MCX an ellipsoid height as
++though it were an elevation and the geoid separation gets added to a height
++that already contains it. In Michigan the separation is about **34 metres**,
++which makes every combined factor wrong by roughly **5 parts per million** —
++measured at 5.9 ppm on an Upper Peninsula point. That is about **a third of a
++foot in ten miles**, in the same direction every time, making grid distances
++long. No warning, no odd-looking number, nothing on screen to catch it.
++
++Declaring the height type fixes it in every mode, including Horizontal, where
++the Z is untouched but the factors are now right.
++
++### What it refuses, and why
++
++- **No geoid model selected.** There is no separation, so there is no
++  elevation to derive.
++- **An input vertical datum that is not the model's.** An ellipsoid height is
++  in no vertical datum at all; the elevation derived from it is in the datum
++  the geoid model publishes for. Any other input datum would mislabel it before
++  a single shift ran.
++- **An ellipsoid input combined with a geoid change.** The input model cancels
++  out of the arithmetic, so it changes no number — but the job record would
++  state a conversion *from* a model the height was never on. MCX does not write
++  sentences that are not true.
++
++A point outside the bundled geoid grid gets no elevation at all in the vertical
++modes, rather than an unconverted ellipsoid height sitting in a column labelled
++with a datum. In Horizontal mode the Z still goes out, unconverted as always,
++and the factors read N/A.
++
++## Also in this release
++
++- The job record gains an **ELLIPSOID HEIGHT CONVERSION** section: the model,
++  its grid file, its SHA-256, the arithmetic, and the datum of the result.
++- The audit CSV names the input height kind on every row, and vertical jobs
++  carry the supplied ellipsoid height in its own column so the row's arithmetic
++  still closes: source elevation + shift = elevation.
++- The clean PNEZD export is unchanged — **five fields, no header**, exactly as
++  every CAD import expects.
++
++## Not included, and why
++
++**IGLD 85** was investigated at length for this release and deliberately left
++out. NGS converts NAVD 88 to IGLD 85 in two steps, and both need data NGS does
++not publish for download: a gravity model, and per-lake *hydraulic corrector*
++grids. Queried live, NGS's own tool returns "out of bounds" at Detroit and
++Sault Ste. Marie. The difference across Michigan runs about −15 cm to +2 cm and
++is neither constant nor smooth, so it cannot be approximated honestly.
++
++Worth knowing regardless: **Michigan's ordinary high water mark statute (MCL
++324.32502) is written on IGLD 1955, not 1985**, and **IGLD 2020 arrives around
++2027** and will move Great Lakes elevations by as much as 60 cm. The full
++findings, with sources, are in the design record.
++
++## How this release was verified
++
++- **14 NGS published Michigan benchmarks**, from Monroe to Houghton and every
++  zone, each carrying both an NAVD 88 elevation and a GEOID18 geoid height on
++  its own datasheet. MCX matches NGS's published separations to **0.75 mm at
++  worst**. The captures are frozen in the repository with the harness that took
++  them.
++- Every new test was **falsified** — the defect it claims to catch was put back
++  and the test watched to fail. Nineteen of them across this feature.
++- An **independent adversarial reviewer** examined the entire change.
++- **1,681 automated tests**, green in both run modes.
++- The installer is built only through a gated script: version check, clean
++  tree, full test suite twice, icon, bundle, a **self-test run inside the
++  frozen application** against live NGS values, installer, checksums. Any
++  failure aborts the build.
++
++Verify the download against `SHA256SUMS.txt` on this page.
+diff --git a/review/wp-e-byte-identity/README.txt b/review/wp-e-byte-identity/README.txt
+new file mode 100644
+index 0000000..62cd8b7
+--- /dev/null
++++ b/review/wp-e-byte-identity/README.txt
+@@ -0,0 +1,33 @@
++Byte-identity evidence for the ellipsoid-height feature (DESIGN.md #54)
++=======================================================================
++
++Run by the session lead on 2026-08-11, independently of the closing gate, to
++check the feature's load-bearing regression promise: that a job which does not
++opt in produces exactly what v0.5.0 produced.
++
++Method
++------
++`digest_jobs.py` writes nine ORTHOMETRIC job archives - zone-to-zone and
++State-Plane-to-geodetic in all three units, a horizontal+vertical NGVD29 ->
++NAVD88 job, a vertical-only job, and a GEOID12B -> GEOID18 swap - each over the
++same three rows, one of which carries a populated Z, one an exactly-zero Z and
++one a blank Z. Every member of every archive is SHA-256'd.
++
++The same script was run twice: once inside a detached git worktree at tag
++v0.5.0, once at HEAD. Nothing in the script mentions the new setting, so both
++runs exercise the default.
++
++Result
++------
++27 members compared, 27 identical apart from two harness-caused differences:
++
++  * the job record's generation timestamp, which differs between any two runs
++    of the same code, and
++  * the input file and output folder paths, which differ because the two runs
++    were written to out050/ and outhead/ respectively.
++
++All eighteen CSV members - every clean PNEZD export and every audit CSV -
++hashed identically outright, with no exclusions.
++
++The comparison is reproducible: recreate the worktree, run the script into two
++directories, and diff the digest lists.
+diff --git a/review/wp-e-byte-identity/digest_jobs.py b/review/wp-e-byte-identity/digest_jobs.py
+new file mode 100644
+index 0000000..5c9db6a
+--- /dev/null
++++ b/review/wp-e-byte-identity/digest_jobs.py
+@@ -0,0 +1,59 @@
++"""Write a spread of ORTHOMETRIC job archives and digest every member."""
++import hashlib, sys, zipfile
++from pathlib import Path
++from michspc.fileio import exports, geoid
++from michspc.job import (Direction, JobSettings, LongitudeConvention,
++                         VerticalMode, run)
++from michspc.spc.units import INTERNATIONAL_FEET, METERS, US_SURVEY_FEET
++from michspc.spc.vertical import NAVD88, NGVD29
++from michspc.spc.zones import MI_CENTRAL, MI_NORTH, MI_SOUTH
++
++out_root = Path(sys.argv[1]); out_root.mkdir(parents=True, exist_ok=True)
++ROWS = ("1,500000.000,8000000.000,900.000,PIN\n"
++        "2,510000.000,8010000.000,0.00,ZEROED\n"
++        "3,520000.000,8020000.000,,BLANK\n")
++
++configs = []
++for unit in (INTERNATIONAL_FEET, US_SURVEY_FEET, METERS):
++    configs.append(("z2z", dict(direction=Direction.ZONE_TO_ZONE,
++        source_zone=MI_NORTH, target_zone=MI_CENTRAL,
++        input_unit=unit, output_unit=unit)))
++    configs.append(("z2g", dict(direction=Direction.ZONE_TO_GEODETIC,
++        source_zone=MI_SOUTH, target_zone=None,
++        input_unit=unit, output_unit=unit)))
++configs.append(("z2z_vert", dict(direction=Direction.ZONE_TO_ZONE,
++    source_zone=MI_NORTH, target_zone=MI_CENTRAL,
++    input_unit=INTERNATIONAL_FEET, output_unit=INTERNATIONAL_FEET,
++    vertical_mode=VerticalMode.HORIZONTAL_AND_VERTICAL,
++    source_vertical_datum=NGVD29, target_vertical_datum=NAVD88)))
++configs.append(("vert_only", dict(direction=Direction.VERTICAL_ONLY,
++    source_zone=MI_NORTH, target_zone=None,
++    input_unit=METERS, output_unit=METERS,
++    vertical_mode=VerticalMode.VERTICAL,
++    source_vertical_datum=NGVD29, target_vertical_datum=NAVD88)))
++configs.append(("swap", dict(direction=Direction.VERTICAL_ONLY,
++    source_zone=MI_NORTH, target_zone=None,
++    input_unit=METERS, output_unit=METERS,
++    vertical_mode=VerticalMode.VERTICAL,
++    source_vertical_datum=NAVD88, target_vertical_datum=NAVD88,
++    source_geoid_model=geoid.GEOID12B_MODEL,
++    geoid_model=geoid.GEOID18_MODEL)))
++
++digests = []
++for name, cfg in configs:
++    folder = out_root / name; folder.mkdir(exist_ok=True)
++    src = folder / "in.csv"; src.write_text(ROWS, encoding="utf-8")
++    base = dict(input_path=src, output_directory=folder,
++        longitude_convention=LongitudeConvention.NEGATIVE_WEST)
++    base.update(cfg)
++    # A vertical-only job reading State Plane states no convention: the file
++    # carries no longitude column, so the program refuses one.
++    if cfg.get("direction") is Direction.VERTICAL_ONLY:
++        base["longitude_convention"] = None
++    written = exports.write_all(run(JobSettings(**base)), overwrite=True)
++    with zipfile.ZipFile(written["archive"]) as zf:
++        for member in sorted(zf.namelist()):
++            body = zf.read(member)
++            digests.append(f"{name}/{member} "
++                           f"{hashlib.sha256(body).hexdigest()}")
++print("\n".join(digests))
+diff --git a/review/wp-e-byte-identity/digests_head.txt b/review/wp-e-byte-identity/digests_head.txt
+new file mode 100644
+index 0000000..6a582e0
+--- /dev/null
++++ b/review/wp-e-byte-identity/digests_head.txt
+@@ -0,0 +1,27 @@
++z2z/in_MI-C.csv ffd14d25422a022eae37d876493ddb27f63ba9244a399e84d2d3f81d5c8befac
++z2z/in_MI-C_README.txt 35f9849dac8f8d3b8e3545a513f6a099c8c29704b302a8719447a20d51101aa4
++z2z/in_MI-C_full.csv f3213cc2c0a6c216253a2ef55e5b52f407cc9251b3ca5e700cc68d849b93fe81
++z2g/in_GEODETIC.csv 346bb94891b9e375e5df1184df01a0dedabbb94ed9a58e73a544811b0633180c
++z2g/in_GEODETIC_README.txt 582822bf96d05d4dfd8e75351db700c43db7746811c2b45664ec756602c98e6b
++z2g/in_GEODETIC_full.csv bfed08982fb774d61eb0cb066b176a570ffd1aa98e304aecac5ec7c988ccc2fb
++z2z/in_MI-C.csv 7a2c56781e4c6df8664e377498793cd1157bb46d301e6af6bad553144f68a354
++z2z/in_MI-C_README.txt 820fe8105735b844426ea00b2a19625301ebc9ea1b43b9878c36026339ec133d
++z2z/in_MI-C_full.csv a59b2623beb655c0ed8646d7d59547c0f1b0512ad16d6406f39e024e27f9297f
++z2g/in_GEODETIC.csv 07e5294d9805825ad1d7c5309222a0352722f211232858a403460470373a6713
++z2g/in_GEODETIC_README.txt 6bf7da8a3635b0e0c66df221a3696539a7acc9b56b103a7c8b9a7e0c4bc977e9
++z2g/in_GEODETIC_full.csv 20fd093085156da6a87926b4ef9e4c3ddece5686bb9cd05bcce17232a7385d44
++z2z/in_MI-C.csv 7fbdebfd636f76df6d43653c40390af499048b6898ab5de97e1b950e44b6afe5
++z2z/in_MI-C_README.txt dc0478369bc406f026b938c7fcdb14328c029b35f648c5fcab91fd3d35405bae
++z2z/in_MI-C_full.csv 589304a471f56be5be14f27395f843a68b391b75cfe74f15d7bd1c9c42d6e36d
++z2g/in_GEODETIC.csv 634888f2e4df4c4f5d1b27bd1b3c4dcd49955e743944bd37f9635cb04cb9227d
++z2g/in_GEODETIC_README.txt f211c210c6408b4c572b2bb3eaaecc02a5daf1748d1311a786d1c15ebad23900
++z2g/in_GEODETIC_full.csv a8845af05baec19ba518124f8e4e935ef06ef29b66dbb096d327a69bc75a02dc
++z2z_vert/in_MI-C.csv bade89dfd7b75e3d5c2e70c19ec0281b865aa94f1fe17f5d744538bd6e77115b
++z2z_vert/in_MI-C_README.txt 9f74a222b7ab4dc65dca8f8047db851f0077fe5ac306d3a65b8631bb4316e198
++z2z_vert/in_MI-C_full.csv 80497577adcaaae04ddf46a44a85a9e19e153eb4a95cf8d31b3ea8a2c693ebea
++vert_only/in_VERTICAL.csv 6297f0f53ec24f51e254eb163fe2978c74795668612360bb322ac01d4d37d4b1
++vert_only/in_VERTICAL_README.txt 4254dd1ecd1917aa9331199f186d0ea039b4badd10d959c35accc17d981de268
++vert_only/in_VERTICAL_full.csv 2a57491ffd2d29b1e7cf6d50e6b4be39bff4fcf967d1c4ba1d44e9c9d8542c6c
++swap/in_VERTICAL.csv 213fc4ff436dd1ae5e791aa16d5b1f29dfb084914422ec842d0a7efa91eaf183
++swap/in_VERTICAL_README.txt b016064f25912c93c68e5b0083e5533c50f98c8e4294877d3246414b1b53998b
++swap/in_VERTICAL_full.csv d02d71241a84e7128ac2e12d103d089728154c26d808cc05501a566e9b3c629d
+diff --git a/review/wp-e-byte-identity/digests_v0.5.0.txt b/review/wp-e-byte-identity/digests_v0.5.0.txt
+new file mode 100644
+index 0000000..a56ec43
+--- /dev/null
++++ b/review/wp-e-byte-identity/digests_v0.5.0.txt
+@@ -0,0 +1,27 @@
++z2z/in_MI-C.csv ffd14d25422a022eae37d876493ddb27f63ba9244a399e84d2d3f81d5c8befac
++z2z/in_MI-C_README.txt 73f394c65d43abd9b8a6da1ddc5133228d47884802be45c0cde9fa545dfcf80a
++z2z/in_MI-C_full.csv f3213cc2c0a6c216253a2ef55e5b52f407cc9251b3ca5e700cc68d849b93fe81
++z2g/in_GEODETIC.csv 346bb94891b9e375e5df1184df01a0dedabbb94ed9a58e73a544811b0633180c
++z2g/in_GEODETIC_README.txt 0747fc6b7608d8c36626ff998f80875ed7dfdc5a6b3eba21457eab1226c81223
++z2g/in_GEODETIC_full.csv bfed08982fb774d61eb0cb066b176a570ffd1aa98e304aecac5ec7c988ccc2fb
++z2z/in_MI-C.csv 7a2c56781e4c6df8664e377498793cd1157bb46d301e6af6bad553144f68a354
++z2z/in_MI-C_README.txt 6a58bab18033d5fdd9d6d3a495d2e85fc11cf47832986d3f4a809a5fe1512394
++z2z/in_MI-C_full.csv a59b2623beb655c0ed8646d7d59547c0f1b0512ad16d6406f39e024e27f9297f
++z2g/in_GEODETIC.csv 07e5294d9805825ad1d7c5309222a0352722f211232858a403460470373a6713
++z2g/in_GEODETIC_README.txt f3bc9fd2669afad090560bc07073d421e8d6abf5a97d295de17f4b1614bc3ae8
++z2g/in_GEODETIC_full.csv 20fd093085156da6a87926b4ef9e4c3ddece5686bb9cd05bcce17232a7385d44
++z2z/in_MI-C.csv 7fbdebfd636f76df6d43653c40390af499048b6898ab5de97e1b950e44b6afe5
++z2z/in_MI-C_README.txt 3a45139c0e8f0bf75034ef3eb33cae1ba1c41947680daab709dbee1fa0d5d821
++z2z/in_MI-C_full.csv 589304a471f56be5be14f27395f843a68b391b75cfe74f15d7bd1c9c42d6e36d
++z2g/in_GEODETIC.csv 634888f2e4df4c4f5d1b27bd1b3c4dcd49955e743944bd37f9635cb04cb9227d
++z2g/in_GEODETIC_README.txt 13c63e6a0746c7a52cddeb6d554dd992f551ba3da4b0d6977e1c96f1a14d3d77
++z2g/in_GEODETIC_full.csv a8845af05baec19ba518124f8e4e935ef06ef29b66dbb096d327a69bc75a02dc
++z2z_vert/in_MI-C.csv bade89dfd7b75e3d5c2e70c19ec0281b865aa94f1fe17f5d744538bd6e77115b
++z2z_vert/in_MI-C_README.txt afd345792f459789c1810cdd2befde23a921822e6e9928b9d1c08e090d1b182b
++z2z_vert/in_MI-C_full.csv 80497577adcaaae04ddf46a44a85a9e19e153eb4a95cf8d31b3ea8a2c693ebea
++vert_only/in_VERTICAL.csv 6297f0f53ec24f51e254eb163fe2978c74795668612360bb322ac01d4d37d4b1
++vert_only/in_VERTICAL_README.txt cdba3bd4d07a2e7931fe54f48cbddd3b4b7dafa3cb81d2c55473ab0075d8be5d
++vert_only/in_VERTICAL_full.csv 2a57491ffd2d29b1e7cf6d50e6b4be39bff4fcf967d1c4ba1d44e9c9d8542c6c
++swap/in_VERTICAL.csv 213fc4ff436dd1ae5e791aa16d5b1f29dfb084914422ec842d0a7efa91eaf183
++swap/in_VERTICAL_README.txt ae284d6fe122ded04a04820ad2715fa6f92fd3b9ef4b46bff34a4d4350ef810c
++swap/in_VERTICAL_full.csv d02d71241a84e7128ac2e12d103d089728154c26d808cc05501a566e9b3c629d
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "@'
+R=6372000.0; h=166.204; N=-33.084999084569645; H=h-N
+correct=R/(R+H+N); wrong=R/(R+h+N)
+print(H,correct,wrong,(wrong-correct)/correct*1e6)
+'@ | & 'C:\\Program Files\\ArcGIS\\Pro\\bin\\Python\\envs\\arcgispro-py3\\python.exe' -" in C:\claude-projects\coord-convert
+ succeeded in 509ms:
+199.28899908456964 0.9999739171900608 0.9999791091933534 5.192138718198507
+
+exec
+"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe" -Command "@'
+from pathlib import Path
+A=Path('review/wp-e-byte-identity/digests_v0.5.0.txt').read_text().splitlines()
+B=Path('review/wp-e-byte-identity/digests_head.txt').read_text().splitlines()
+print('entries',len(A),len(B),'same',sum(a==b for a,b in zip(A,B)))
+for ext in ('.csv','_full.csv','_README.txt'):
+ pairs=[(a,b) for a,b in zip(A,B) if a.split()[0].endswith(ext)]
+ print(ext,len(pairs),sum(a==b for a,b in pairs))
+'@ | & 'C:\\Program Files\\ArcGIS\\Pro\\bin\\Python\\envs\\arcgispro-py3\\python.exe' -" in C:\claude-projects\coord-convert
+ succeeded in 539ms:
+entries 27 27 same 18
+.csv 18 18
+_full.csv 9 9
+_README.txt 9 0
+
+codex
+The conversion arithmetic and refusal matrix are clean: I found no accepted configuration that applies the wrong sign, model, era, or conversion count. The failures are disclosure defects on horizontal GNSS jobs, plus a weak regression pin. I’m consolidating the line-cited verdict and the full matrix now.
+Completed the read-only code trace, executable configuration sweep, cross-version output comparison, disclosure/UI audit, and focused normal/-O tests. Confirmed two behavioral disclosure defects and one test-quality weakness; no accepted numerical-conversion defect was found.
+  ✓ Read repository instructions, memory routing, and design authorities #54/#50/#52/#48/#41/#36 plus METHOD.md
+  ✓ Inspect v0.5.0..HEAD and exhaustively trace conversion variables and refusal matrix
+  ✓ Audit reports, exports, GUI, and tests for false claims or vacuous coverage
+  ✓ Run focused counterexamples and regression/byte-identity checks
+  ✓ Report only confirmed line-cited findings and explicit verdict
+codex
+The numerical conversion and refusal logic are sound, but two user-facing surfaces misstate horizontal ellipsoid heights. No accepted configuration produced a wrong converted height or factor in my matrix.
+
+## Core trace
+
+The `_convert_row` invariant holds:
+
+- `elevation_m` begins as supplied Z in metres, then becomes `H = h - N` or `None` before downstream use. [job.py:1629](/C:/claude-projects/coord-convert/michspc/job.py:1629)
+- `supplied_m` preserves raw Z and is read only by horizontal output selection. [job.py:1662](/C:/claude-projects/coord-convert/michspc/job.py:1662)
+- Identity and VERTCON branches receive the rebound orthometric `elevation_m`. [job.py:1763](/C:/claude-projects/coord-convert/michspc/job.py:1763), [job.py:1908](/C:/claude-projects/coord-convert/michspc/job.py:1908)
+- `height_m` is exclusively the post-vertical/post-swap height or `None`.
+- `written_m` selects `height_m` for vertical modes and `supplied_m` for Horizontal. [job.py:1993](/C:/claude-projects/coord-convert/michspc/job.py:1993)
+- The #41 reverse path deliberately gives factors the derived source-era H, not shifted NGVD29 height or raw h. [job.py:2023](/C:/claude-projects/coord-convert/michspc/job.py:2023)
+
+At 43°N, −84.5°:
+
+- Supplied h = 166.204 m
+- GEOID18 N = −33.0849990846 m
+- Derived H = 199.2889990846 m
+- Horizontal output Z = 166.204 m
+- Correct elevation factor = 0.9999739171900608
+- Old double-N result = 0.9999791091933534, wrong by 5.192 ppm
+
+## Configuration matrix
+
+Cells are `orthometric / ellipsoid`. `A` = accepted; `R` = refused. Placements are N = neither model, I = input only, O = output only, B = both.
+
+Horizontal, with no vertical datum declaration:
+
+| Models | Result |
+|---|---|
+| N | A / R—no model for h→H |
+| I | R / R—input-side model is invalid in Horizontal |
+| O | A / A |
+| B | R / R—input-side model is invalid |
+
+Any identity, modeled-datum, or swap declaration in Horizontal mode is refused because Horizontal accepts no vertical datums.
+
+`HORIZONTAL_AND_VERTICAL` and `VERTICAL` produced the same matrix:
+
+| Vertical operation | N | I | O | B |
+|---|---|---|---|---|
+| NAVD88 identity | A / R | A / A | A / A | A / A¹ |
+| NGVD29 → NAVD88 | A / R | R / R | A / R² | R / R³ |
+| NAVD88 → NGVD29 | A / R | A / A | A / A⁴ | R / R³ |
+| GEOID12B → GEOID18 swap | A / R⁵ | A / A⁵ | A / A⁵ | A / R⁶ |
+
+1. Both sides use the same model, so no swap runs.
+2. h→H creates NAVD88 H, which cannot be labelled NGVD29 input.
+3. Both models around a modeled datum shift trigger the compound-operation refusal.
+4. The legacy output-field placement is normalized to the NAVD88 source side.
+5. With fewer than two different models, this is an identity job, not a swap.
+6. The owner’s ellipsoid-plus-geoid-change refusal.
+
+I found no bypass of the three ellipsoid refusals and no accepted wrong configuration.
+
+## Verified clean
+
+- Default ORTHOMETRIC output matched the actual `v0.5.0` source for 11 representative jobs spanning all directions, both vertical modes, modeled directions, identity, swap, and mixed units: clean rows, audit rows, and job records after normalizing the pre-existing timestamp.
+- The additional commit made during this review records 18/18 clean/audit CSV members with identical SHA-256 hashes. The nine records differ only in run timestamp and harness paths. [README.txt:1](/C:/claude-projects/coord-convert/review/wp-e-byte-identity/README.txt:1)
+- Clean PNEZD remains five headerless fields. [exports.py:93](/C:/claude-projects/coord-convert/michspc/fileio/exports.py:93)
+- The benchmark fixture honestly states that its N values come from GEOID18 and therefore do not independently validate the model. [ellipsoid_height_anchors.py:20](/C:/claude-projects/coord-convert/tests/fixtures/ellipsoid_height_anchors.py:20) Its values match the committed raw NGS capture; expected H and N were not read back from MCX output.
+- Focused checks: 54 tests passed in normal mode and 54 under `-O`; the frozen ellipsoid self-check passed in both. The complete suite could not be independently run here because the available interpreter lacks PySide6 and pytest initially had no writable temporary directory.
+
+The checkout advanced during review from the requested five-commit `6d484b4` to sixth commit `d71634d`. That commit adds evidence and release material, not production behavior. Its gate transcript remains externally modified; I did not alter it.
+
+VERDICT: FINDINGS
+
+1. HIGH — Horizontal GNSS heights are displayed and written under a false `Elevation` heading. The audit base header remains `Elevation`, and ellipsoid mode merely inserts `Input height kind` beside it; the value remains `point.output_elevation`, which Horizontal deliberately keeps as raw h. [exports.py:195](/C:/claude-projects/coord-convert/michspc/fileio/exports.py:195), [exports.py:264](/C:/claude-projects/coord-convert/michspc/fileio/exports.py:264), [exports.py:359](/C:/claude-projects/coord-convert/michspc/fileio/exports.py:359) The Multi point table has the same defect because its horizontal header remains `Elevation` while its cell renders the same passed-through Z. [results_model.py:37](/C:/claude-projects/coord-convert/michspc/gui/results_model.py:37), [results_model.py:161](/C:/claude-projects/coord-convert/michspc/gui/results_model.py:161), [results_model.py:267](/C:/claude-projects/coord-convert/michspc/gui/results_model.py:267) Concrete counterexample: geodetic-to-MI-C, 43.0, −84.5, h=166.204 m, GEOID18. MCX correctly derives H=199.288999 m for factors and writes h=166.204 m, but the audit emits `Elevation=166.2040`; the table shows the same value under `Elevation`. That is h escaping into a field labelled as H, wrong by 33.085 m. The adjacent audit kind column mitigates only the CSV; the table carries no such qualification. The GUI pin tests only a vertical heading, so this defect passes. [test_gui_ellipsoid_height.py:271](/C:/claude-projects/coord-convert/tests/test_gui_ellipsoid_height.py:271)
+
+2. MEDIUM — A horizontal off-grid GNSS job’s record contradicts the output and its own METHOD section. Concrete counterexample: geodetic-to-MI-S, 39.5, −84.0, h=166.204 m, GEOID18. MCX correctly writes clean Z `166.2040`, returns N/A factors, and warns that Z was passed through. But the ELEVATIONS summary says the elevation is “deliberately not written,” and the detailed block says it is “deliberately absent from the exports.” [report.py:1013](/C:/claude-projects/coord-convert/michspc/fileio/report.py:1013), [report.py:1115](/C:/claude-projects/coord-convert/michspc/fileio/report.py:1115) The branch tests only `ellipsoid_model_name`, not whether the mode writes derived elevations. The design-review regression uses only the vertical case, so the false horizontal sentence passes. [test_ellipsoid_disclosure.py:178](/C:/claude-projects/coord-convert/tests/test_ellipsoid_disclosure.py:178)
+
+3. LOW — The named default-compatibility unit test is self-comparison, not a `v0.5.0` regression pin. It compares current HEAD with the default against current HEAD with `ORTHOMETRIC` explicit. [test_ellipsoid_height_job.py:293](/C:/claude-projects/coord-convert/tests/test_ellipsoid_height_job.py:293) An unconditional regression—for example, adding 1 m to both outputs or adding a line to every report—leaves all its assertions passing. The mid-review cross-version digest evidence establishes the current build’s compatibility, but it is a manually captured artifact rather than an automated test that will fail on a later regression.
+tokens used
+287,258
+The numerical conversion and refusal logic are sound, but two user-facing surfaces misstate horizontal ellipsoid heights. No accepted configuration produced a wrong converted height or factor in my matrix.
+
+## Core trace
+
+The `_convert_row` invariant holds:
+
+- `elevation_m` begins as supplied Z in metres, then becomes `H = h - N` or `None` before downstream use. [job.py:1629](/C:/claude-projects/coord-convert/michspc/job.py:1629)
+- `supplied_m` preserves raw Z and is read only by horizontal output selection. [job.py:1662](/C:/claude-projects/coord-convert/michspc/job.py:1662)
+- Identity and VERTCON branches receive the rebound orthometric `elevation_m`. [job.py:1763](/C:/claude-projects/coord-convert/michspc/job.py:1763), [job.py:1908](/C:/claude-projects/coord-convert/michspc/job.py:1908)
+- `height_m` is exclusively the post-vertical/post-swap height or `None`.
+- `written_m` selects `height_m` for vertical modes and `supplied_m` for Horizontal. [job.py:1993](/C:/claude-projects/coord-convert/michspc/job.py:1993)
+- The #41 reverse path deliberately gives factors the derived source-era H, not shifted NGVD29 height or raw h. [job.py:2023](/C:/claude-projects/coord-convert/michspc/job.py:2023)
+
+At 43°N, −84.5°:
+
+- Supplied h = 166.204 m
+- GEOID18 N = −33.0849990846 m
+- Derived H = 199.2889990846 m
+- Horizontal output Z = 166.204 m
+- Correct elevation factor = 0.9999739171900608
+- Old double-N result = 0.9999791091933534, wrong by 5.192 ppm
+
+## Configuration matrix
+
+Cells are `orthometric / ellipsoid`. `A` = accepted; `R` = refused. Placements are N = neither model, I = input only, O = output only, B = both.
+
+Horizontal, with no vertical datum declaration:
+
+| Models | Result |
+|---|---|
+| N | A / R—no model for h→H |
+| I | R / R—input-side model is invalid in Horizontal |
+| O | A / A |
+| B | R / R—input-side model is invalid |
+
+Any identity, modeled-datum, or swap declaration in Horizontal mode is refused because Horizontal accepts no vertical datums.
+
+`HORIZONTAL_AND_VERTICAL` and `VERTICAL` produced the same matrix:
+
+| Vertical operation | N | I | O | B |
+|---|---|---|---|---|
+| NAVD88 identity | A / R | A / A | A / A | A / A¹ |
+| NGVD29 → NAVD88 | A / R | R / R | A / R² | R / R³ |
+| NAVD88 → NGVD29 | A / R | A / A | A / A⁴ | R / R³ |
+| GEOID12B → GEOID18 swap | A / R⁵ | A / A⁵ | A / A⁵ | A / R⁶ |
+
+1. Both sides use the same model, so no swap runs.
+2. h→H creates NAVD88 H, which cannot be labelled NGVD29 input.
+3. Both models around a modeled datum shift trigger the compound-operation refusal.
+4. The legacy output-field placement is normalized to the NAVD88 source side.
+5. With fewer than two different models, this is an identity job, not a swap.
+6. The owner’s ellipsoid-plus-geoid-change refusal.
+
+I found no bypass of the three ellipsoid refusals and no accepted wrong configuration.
+
+## Verified clean
+
+- Default ORTHOMETRIC output matched the actual `v0.5.0` source for 11 representative jobs spanning all directions, both vertical modes, modeled directions, identity, swap, and mixed units: clean rows, audit rows, and job records after normalizing the pre-existing timestamp.
+- The additional commit made during this review records 18/18 clean/audit CSV members with identical SHA-256 hashes. The nine records differ only in run timestamp and harness paths. [README.txt:1](/C:/claude-projects/coord-convert/review/wp-e-byte-identity/README.txt:1)
+- Clean PNEZD remains five headerless fields. [exports.py:93](/C:/claude-projects/coord-convert/michspc/fileio/exports.py:93)
+- The benchmark fixture honestly states that its N values come from GEOID18 and therefore do not independently validate the model. [ellipsoid_height_anchors.py:20](/C:/claude-projects/coord-convert/tests/fixtures/ellipsoid_height_anchors.py:20) Its values match the committed raw NGS capture; expected H and N were not read back from MCX output.
+- Focused checks: 54 tests passed in normal mode and 54 under `-O`; the frozen ellipsoid self-check passed in both. The complete suite could not be independently run here because the available interpreter lacks PySide6 and pytest initially had no writable temporary directory.
+
+The checkout advanced during review from the requested five-commit `6d484b4` to sixth commit `d71634d`. That commit adds evidence and release material, not production behavior. Its gate transcript remains externally modified; I did not alter it.
+
+VERDICT: FINDINGS
+
+1. HIGH — Horizontal GNSS heights are displayed and written under a false `Elevation` heading. The audit base header remains `Elevation`, and ellipsoid mode merely inserts `Input height kind` beside it; the value remains `point.output_elevation`, which Horizontal deliberately keeps as raw h. [exports.py:195](/C:/claude-projects/coord-convert/michspc/fileio/exports.py:195), [exports.py:264](/C:/claude-projects/coord-convert/michspc/fileio/exports.py:264), [exports.py:359](/C:/claude-projects/coord-convert/michspc/fileio/exports.py:359) The Multi point table has the same defect because its horizontal header remains `Elevation` while its cell renders the same passed-through Z. [results_model.py:37](/C:/claude-projects/coord-convert/michspc/gui/results_model.py:37), [results_model.py:161](/C:/claude-projects/coord-convert/michspc/gui/results_model.py:161), [results_model.py:267](/C:/claude-projects/coord-convert/michspc/gui/results_model.py:267) Concrete counterexample: geodetic-to-MI-C, 43.0, −84.5, h=166.204 m, GEOID18. MCX correctly derives H=199.288999 m for factors and writes h=166.204 m, but the audit emits `Elevation=166.2040`; the table shows the same value under `Elevation`. That is h escaping into a field labelled as H, wrong by 33.085 m. The adjacent audit kind column mitigates only the CSV; the table carries no such qualification. The GUI pin tests only a vertical heading, so this defect passes. [test_gui_ellipsoid_height.py:271](/C:/claude-projects/coord-convert/tests/test_gui_ellipsoid_height.py:271)
+
+2. MEDIUM — A horizontal off-grid GNSS job’s record contradicts the output and its own METHOD section. Concrete counterexample: geodetic-to-MI-S, 39.5, −84.0, h=166.204 m, GEOID18. MCX correctly writes clean Z `166.2040`, returns N/A factors, and warns that Z was passed through. But the ELEVATIONS summary says the elevation is “deliberately not written,” and the detailed block says it is “deliberately absent from the exports.” [report.py:1013](/C:/claude-projects/coord-convert/michspc/fileio/report.py:1013), [report.py:1115](/C:/claude-projects/coord-convert/michspc/fileio/report.py:1115) The branch tests only `ellipsoid_model_name`, not whether the mode writes derived elevations. The design-review regression uses only the vertical case, so the false horizontal sentence passes. [test_ellipsoid_disclosure.py:178](/C:/claude-projects/coord-convert/tests/test_ellipsoid_disclosure.py:178)
+
+3. LOW — The named default-compatibility unit test is self-comparison, not a `v0.5.0` regression pin. It compares current HEAD with the default against current HEAD with `ORTHOMETRIC` explicit. [test_ellipsoid_height_job.py:293](/C:/claude-projects/coord-convert/tests/test_ellipsoid_height_job.py:293) An unconditional regression—for example, adding 1 m to both outputs or adding a line to every report—leaves all its assertions passing. The mid-review cross-version digest evidence establishes the current build’s compatibility, but it is a manually captured artifact rather than an automated test that will fail on a later regression.

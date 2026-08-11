@@ -20,6 +20,7 @@ from PySide6.QtGui import QBrush, QColor
 from michspc.fileio import formatting as fmt
 from michspc.fileio import pnezd
 from michspc.fileio.exports import (
+    ELLIPSOID_ELEVATION_HEADING,
     vertical_shift_and_sigma_m,
     vertical_shift_heading,
     vertical_sigma_heading,
@@ -179,6 +180,14 @@ def columns_for(result: JobResult | None) -> tuple[str, ...]:
     columns = list(
         GEODETIC_COLUMNS if _geodetic_display_columns(settings) else COLUMNS
     )
+    if settings.input_height_kind is HeightKind.ELLIPSOID and not (
+        settings.vertical_mode.converts_elevations
+    ):
+        # HORIZONTAL: the cells hold the ellipsoid height, passed through, so
+        # the heading says so. "Elevation" over them was h in a column
+        # labelled H - about 33 m out (closing gate, HIGH 1). One wording with
+        # the audit CSV's own heading for the same cells (#17).
+        columns[columns.index("Elevation")] = ELLIPSOID_ELEVATION_HEADING
     if settings.vertical_mode.converts_elevations:
         at = columns.index("Elevation")
         columns[at] = _elevation_heading(settings, table_geoid_model_name(result))

@@ -216,6 +216,18 @@ AUDIT_COLUMNS = [
 ]
 
 
+ELLIPSOID_ELEVATION_HEADING = "Ellipsoid height (GNSS)"
+"""What the audit CSV's Elevation column is called on a HORIZONTAL job whose
+Z holds GNSS heights.
+
+The cell carries the height exactly as supplied - horizontal mode does not
+convert it - so "Elevation" over it is a false heading on a number about 33 m
+from the elevation it claims to be. Matches the panel's own wording for the
+same value (``results_model.ELLIPSOID_INPUT_LABEL``), per #17's one-wording
+rule.
+"""
+
+
 def audit_columns(result: JobResult) -> list[str]:
     """The audit CSV's header row for this job's direction.
 
@@ -270,6 +282,15 @@ def audit_columns(result: JobResult) -> list[str]:
         # of what kind of height it is - the same reasoning that put "Source
         # vertical datum" on every row of a vertical job.
         columns.insert(columns.index("Elevation") + 1, "Input height kind")
+        if not settings.vertical_mode.converts_elevations:
+            # HORIZONTAL: the Elevation cell holds the ellipsoid height itself,
+            # passed through, so the heading must say so. Leaving it as
+            # "Elevation" put h in a column labelled H - wrong by about 33 m,
+            # and the adjacent kind column mitigates it only for a reader who
+            # notices the column (closing gate, HIGH 1). In the vertical modes
+            # the heading is rewritten with the datum and model further down,
+            # which is already correct.
+            columns[columns.index("Elevation")] = ELLIPSOID_ELEVATION_HEADING
 
     if settings.vertical_mode.converts_elevations:
         # The vertical block sits directly after Elevation, so the target

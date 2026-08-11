@@ -467,6 +467,67 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #55 — 2026-08-11 — The ellipsoid-height closing gate: two false headings, one weak pin
+
+**The gate.** Codex CLI, read-only, over `v0.5.0..HEAD` (WP-E1..E5), at the
+owner's instruction. **Verdict FINDINGS: one HIGH, one MEDIUM, one LOW, no
+CRITICAL.** Its explicit negatives matter as much as the findings: the
+`_convert_row` invariant **holds** — it traced every read of `elevation_m`,
+`supplied_m`, `height_m` and `written_m` and confirmed the rebinding carries
+the feature — **no accepted configuration produced a wrong converted height or
+factor** across a full 3-modes x 4-operations x 4-model-placements matrix, no
+refusal could be bypassed, the clean PNEZD stayed five headerless fields, and
+the benchmark fixture's honesty statement about what it does not prove was
+checked and upheld. It independently recomputed the 5.192 ppm factor error at
+43 N / -84.5 W.
+
+**HIGH 1 — h escaping into a field labelled H, on two surfaces.** In
+HORIZONTAL mode the Z column holds the ellipsoid height, passed through by the
+owner's own rule, and both the audit CSV column and the Multi point table
+heading still read **"Elevation"** over it. At the gate's test point that is a
+number **33.085 m** from the elevation the heading claims. The CSV's adjacent
+`Input height kind` column mitigated it only for a reader who noticed that
+column; the table carried no qualification at all. This was one of the three
+decisions #54 recorded as taken by the session lead and open to review — the
+review took it, and it was wrong. Both headings now read
+`Ellipsoid height (GNSS)`, one wording on both surfaces (#17), and an
+orthometric job keeps the 0.1.0 heading to the string.
+
+**MEDIUM 2 — a record contradicting the file beside it.** The new ELEVATIONS
+branch keyed on `ellipsoid_model_name` alone, not on the mode. A horizontal
+job whose point falls off the geoid tile still WRITES its Z — that is what
+horizontal mode does — while the record said the elevation was "deliberately
+not written" and "deliberately absent from the exports". The same
+WP-R2-fix-C class the design review had already caught once in this feature,
+and the same section states it twice, so both copies were wrong. Both now
+branch on the mode and say what actually happened: the Z carries the ellipsoid
+height as supplied, and only the factors are missing.
+
+**LOW 3 — a compatibility pin that was self-comparison.**
+`test_the_default_leaves_every_existing_job_alone` compared HEAD-with-default
+against HEAD-with-ORTHOMETRIC-explicit, so an unconditional regression — a
+metre added to every height — left it green. The gate accepted the manual
+cross-version digest evidence as establishing the current build but correctly
+called it a captured artifact rather than a test. **Converted into one:**
+`tests/fixtures/orthometric_output_digests.txt` holds the SHA-256 of all 18
+CSV members of nine ordinary jobs, **computed by v0.5.0 itself** in a detached
+worktree, and `tests/test_orthometric_regression.py` compares against them
+with two anti-vacuousness tests beside it. The seeded metre now fails it.
+
+**A defect in the evidence, found while fixing LOW 3 and recorded rather than
+quietly corrected:** the original digest harness reused one output folder per
+job shape across all three units, so its member names collapsed three
+configurations into one. The comparison itself was still valid — each digest
+was taken immediately after its own write, and both runs wrote in the same
+order — but the naming was ambiguous. The frozen fixture was regenerated with
+unique names, 18 distinct keys.
+
+**Verification of the fixes.** Four falsifications, each caught by its own
+pins: the audit heading left as "Elevation", the table heading left as
+"Elevation", the horizontal record claiming the Z was withheld, and a metre
+added to every written height. Suite **1681 → 1690**, green in `pytest` and
+`-O`.
+
 ### #54 — 2026-08-11 — Owner's feature: ellipsoid (GNSS) heights as input
 
 **The owner's instruction**: the Z column may hold ellipsoid heights from a

@@ -204,6 +204,7 @@ docs/             DESIGN.md (authority), method/, the NOAA manual, reference/
 | SPCS2022 Michigan zones | Beta until 2027. The seam (§6) is built; the zones arrive as registry data plus a citation to NOAA SP NOS NGS 13 once NGS finalizes them. |
 | NAD 83 ↔ NATRF2022 transformation | Requires NGS transformation grids that are not final. Refuses loudly meanwhile (§6). |
 | UTM | Not requested. Requires the transverse Mercator engine (manual §3.2). |
+| IGLD 85 (International Great Lakes Datum of 1985) | **Cannot be built the way this program builds anything.** NGS's own converter runs two steps and both need data NGS does not publish for download: NAVD 88 -> dynamic height via **NGS's NAVD 88 gravity model**, then dynamic -> IGLD 85 via a **hydraulic corrector** (per-lake grids that flatten each lake to its master gauge). `PC_PROD/IGLD85/` is a 404; the corrector grids exist only inside NGS's web tool, and queried live they returned **"out of bounds" at Detroit and Sault Ste. Marie** while neighbouring points succeeded — the model does not blanket Michigan. Measured through NGS's tool, IGLD 85 minus NAVD 88 runs about **-15 cm to +2 cm** across Michigan, crossing zero near 45.5 N; not constant, not smooth (the corrector alone accounts for up to 9 cm). Facts worth keeping: `H_dyn = C / gamma_45` with **gamma_45 = 980.6199 gals = 9.806199 m/s²** (Zilkoski, NGS; Heck & Craymer, FIG 2021 §3.1.4, two independent NGS-authored sources); IGLD 85 and NAVD 88 share their zero at Father Point/Rimouski and their geopotential numbers, differing only in height TYPE. **The Michigan statute is IGLD 1955, not 1985** — MCL 324.32502 fixes the ordinary high water mark on IGLD 1955 (Superior 601.5 ft, Michigan/Huron 579.8 ft, St. Clair 574.7 ft, Erie 571.6 ft); EGLE publishes an IGLD 85 equivalent table administratively. NGS datasheets carry a `DYNAMIC HEIGHT` field (API `geodesy.noaa.gov/api/nde/radial`) with **no corrector applied** — it must never be labelled IGLD 85. **Revisit when IGLD 2020 lands (~2027, already slipped twice)**: it is tied to NAPGD2022, keeps dynamic heights, expects much smaller correctors, and will move lake elevations by **as much as 60 cm** as it removes a ~35 cm tilt in the NAVD 88 leveling. That is the same dependency the roadmap already has (#32, #21). Researched 2026-08-11 at the owner's request. |
 | Two-point azimuth/distance | Not selected by the owner. The three defects it inherits from the MATLAB tool are recorded in amendment #1 so the fixes travel with the feature if it is ever added. |
 | Other states, NAD 27 | Out of scope by design. A Michigan tool is not a national one. |
 
@@ -465,6 +466,109 @@ Not addressed, and still the owner's call: at 16 and 32 px the "COORD CONVERT"
 lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
+
+### #54 — 2026-08-11 — Owner's feature: ellipsoid (GNSS) heights as input
+
+**The owner's instruction**: the Z column may hold ellipsoid heights from a
+GNSS receiver; convert them with H = h - N. His answers to the scoping
+questions: **input only** (no ellipsoid output); the selector **defaults to
+Orthometric**; available in **all three modes**; and then, decisively, **"in
+horizontal only mode, the elevations should be passed through unchanged,
+regardless of the input"** — with the factors still computed correctly.
+Placement: **beneath the "Elevations: in file" button, grayed unless that is
+selected.**
+
+**What the feature fixes, beyond convenience.** The elevation factor is
+R / (R + H + N). Feed the program a height that already contains the
+separation and it adds it again — |N| is about 34 m in Michigan, so every
+combined factor is wrong by roughly **5 ppm**, measured at 5.9 ppm on a real
+Upper Peninsula point. About a third of a foot in ten miles, systematically,
+in one direction, making grid distances long. Nothing on screen looks wrong.
+
+**The design.** One conversion, one place; the mode decides only what is
+WRITTEN. `elevation_m` is rebound to the orthometric height immediately after
+it reaches metres, establishing the invariant that carries the feature — *from
+that line down, `elevation_m` is an orthometric height in metres, on every
+path, in every mode* — which is why the eight downstream readers needed no
+edit. The written Z is the supplied height in horizontal mode and the derived
+one in the vertical modes, in a single expression. `Factors` needed no new
+field: what reaches `factors_at` is genuinely orthometric, so
+`orthometric_height` keeps its meaning and `ellipsoid_height` stops
+double-counting and reconstructs the user's own h.
+
+**THE DESIGN REVIEW CAUGHT A BUG IN THE APPROVED PLAN before a line was
+written.** The plan converted into `height_m`; the identity branch a few lines
+below re-reads `elevation_m` through `apply_shift` and would have overwritten
+it — so on the flagship same-datum job the feature would have done nothing
+while every output reported a conversion, and both VERTCON and #41's
+source-era factor path would have been handed a raw ellipsoid height with
+nothing downstream able to notice. Pinned by name
+(`test_the_identity_branch_cannot_overwrite_the_converted_height`).
+
+**Three refusals, all before any point converts:** no geoid model on either
+side (no N, so no H); a source vertical datum that is not the model's own (an
+ellipsoid height is in no vertical datum, and the H derived from it is in the
+model's); and — **the owner's decision** — a geoid change combined with
+ellipsoid input. That last is not an arithmetic failure: the input model
+cancels out of `(h - N_in) + (N_in - N_out)`, so it changes no number, while
+the record would state a conversion FROM a model the height was never on. A
+false sentence in an audit document is the thing refused.
+
+**A second false sentence, also caught by the review.** A point off the geoid
+tile lands in the ELEVATIONS section's "read but not written" bucket, whose
+only branches were VERTCON and geoid-swap — so an identity job, which loads no
+VERTCON grid at all, would have blamed "the point lies outside the VERTCON
+grids". The WP-R2-fix-C class through a **third** door. The section states the
+fact twice, counted and then with the points named, so both copies gained the
+branch.
+
+**Supersessions and amendments, each recorded rather than slipped in:**
+
+* **#52 generalises.** The geoid model is named wherever the displayed
+  orthometric height DEPENDS on a model — a geoid change, **or** a height
+  derived from an ellipsoid height — and still never beside a leveled height,
+  which depends on none (#50's recorded geodetic fact). #52's two negative
+  pins survive unchanged.
+* **#48 is partially amended, with the owner.** Its reasoning covers the "in
+  file" button and its note and only those; they still hide in the vertical
+  modes. The Elevations label and the height-kind control stay visible in all
+  three, because the question is asked in all three and matters most where the
+  answer decides whether the Z is converted at all.
+* **A label collision resolved:** the supplied height reads
+  `Ellipsoid height (GNSS, m)`, because the factors block has carried a
+  computed `Ellipsoid height (m)` row since 0.1.0 and on a metres job the two
+  would have been the same string in the same section.
+
+**Disclosure.** An ELLIPSOID HEIGHT CONVERSION block in the record — model,
+tile, digest, arithmetic, and the datum of the result — placed before the
+vertical block because h → H runs first, ordering pinned. Its load-bearing
+paragraph is the mode one: a horizontal ellipsoid export is
+byte-indistinguishable from an elevation export, so the record says outright
+that the Z carries the ellipsoid height as supplied. The audit CSV gains
+`Input height kind` in every mode and `Ellipsoid height in (unit)` in the
+vertical ones, so `Source elevation` keeps meaning the pre-shift orthometric
+height and the row's arithmetic stays closed. The clean PNEZD export is
+unchanged: five headerless fields, pinned to contain no ellipsoid token.
+
+**Verification.** WP-E1 captured **fourteen NGS published Michigan
+benchmarks** (`tests/fixtures/ellipsoid_height_anchors.py`, raw capture and
+harness at `review/wp-e1-ellipsoid/`), each carrying both an NAVD 88
+orthometric height and a GEOID18 separation on its own datasheet; our reader
+matches NGS's published separations to **0.75 mm worst** across the state. The
+fixture states plainly what they do NOT prove — NGS derived those separations
+from the same model, so they are not an independent derivation of the geoid.
+The tolerance is derived: the published H cancels out of the comparison,
+leaving only the separation disagreement. The Houghton anchor pins both
+directions off #50's own frozen figure. A ninth frozen-bundle self-test check
+converts one ellipsoid point end to end. **Nineteen falsifications across the
+five packages**, each caught by its own pins. Suite **1609 → 1681**, green in
+`pytest` and `-O`.
+
+**Decisions taken by the session lead and open to the owner's review:** the
+`Input height kind` column on a horizontal CSV (a row cut out of the file must
+say what its Z is); `Source elevation` holding the derived pre-shift H rather
+than the raw h; and the control's wording, "Heights are:" with "Orthometric
+(elevation)" and "Ellipsoid (GNSS)".
 
 ### #53 — 2026-08-11 — The 0.5.0 closing gate: one MEDIUM, and it was a crash the per-side split introduced
 

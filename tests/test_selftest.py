@@ -195,6 +195,7 @@ def test_the_check_registry_holds_every_check_by_name():
         "bundled VERTCON 3.0 grid pair",
         "vertical conversion against NGS NCAT",
         "bundled GEOID12B tile",
+        "ellipsoid height conversion",
         "lazily imported dependencies",
         "Qt startup and bundled icon",
         "end-to-end conversion against NGS NCAT",

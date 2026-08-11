@@ -46,7 +46,37 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.5.0 — per-side geoid selection and geoid-to-geoid conversion ship (2026-08-11)
+## Current state: ellipsoid-height input ON MAIN, unreleased; 0.5.0 released (2026-08-11)
+
+**The owner's feature: the Z column may hold GNSS ellipsoid heights
+(DESIGN.md #54).** H = h - N, with the mode deciding only what is WRITTEN:
+horizontal passes the Z through unchanged (his instruction) and only fixes
+the factors; the two vertical modes write the derived elevation. The factor
+fix is the part that matters beyond convenience — R/(R+H+N) was adding the
+separation to a height that already contained it, **~5 ppm, measured at 5.9
+ppm**, a third of a foot in ten miles, always long. Selector defaults to
+Orthometric so every existing job is unchanged. Three refusals, including
+ellipsoid-plus-geoid-change (the input model cancels out, so the record would
+state a conversion FROM a model the height was never on).
+
+**The design review earned its keep twice, both before any code shipped:** the
+approved plan wrote to the wrong variable and would have been overwritten by
+the identity branch — the feature silently doing nothing on its flagship job —
+and the ELEVATIONS section would have blamed a missing VERTCON grid on an
+identity job that loads none.
+
+**Anchors:** 14 NGS published Michigan benchmarks carrying both heights,
+frozen with their raw capture; our reader matches NGS's separations to 0.75 mm
+worst. 19 falsifications across five work packages. Suite **1681**, both
+modes. **WP-E1..E5 done; the Codex gate is next, then the owner's screen
+review and a release.**
+
+**IGLD 85 is DEFERRED with its reasons recorded (DESIGN.md §10):** the
+hydraulic corrector grids are not published, NGS's tool returns out-of-bounds
+inside Michigan, and the Michigan statute is IGLD **1955** anyway. Revisit
+when IGLD 2020 lands with NAPGD2022.
+
+## Superseded status: 0.5.0 — per-side geoid selection and geoid-to-geoid conversion ship (2026-08-11)
 
 **0.5.0 carries #50, #51, #52 and the gate's fix #53.** The closing gate ran
 under **Codex** over the whole `v0.4.0..HEAD` range, at the owner's

@@ -345,6 +345,93 @@ def check_vertical_conversion() -> str:
     )
 
 
+def check_ellipsoid_height_conversion() -> str:
+    """One ellipsoid-height job, end to end, against NGS's own two figures.
+
+    The geoid checks above prove the tile authenticates and interpolates; this
+    proves the whole h -> H pipeline the GUI now reaches runs inside the
+    bundle. Both figures are NGS's: the anchor position's published GEOID18
+    separation, and the elevation that separation implies for an ellipsoid
+    height built from it. So the bundle is checked against NGS rather than
+    against itself.
+
+    A bundle whose wiring lost the conversion - the defect the design review
+    caught, where the identity branch overwrote the converted height - returns
+    the ellipsoid height unchanged and fails here by the whole separation,
+    about 33 m against a tolerance of a millimetre. A sign error fails by
+    twice that.
+    """
+    from michspc.fileio import pnezd
+    from michspc.job import (
+        Direction,
+        JobSettings,
+        LongitudeConvention,
+        VerticalMode,
+        run,
+    )
+    from michspc.fileio import geoid as geoid_module
+    from michspc.spc.units import METERS
+    from michspc.spc.vertical import NAVD88, HeightKind
+
+    # h = H + N at the anchor, from NGS's own published separation. Feeding
+    # that back must return the elevation it was built from.
+    elevation_m = 200.000
+    ellipsoid_m = elevation_m + GEOID_ANCHOR_HEIGHT_M
+
+    parsed = pnezd.parse_typed_point(
+        str(GEOID_ANCHOR_LATITUDE),
+        str(GEOID_ANCHOR_LONGITUDE),
+        f"{ellipsoid_m:.3f}",
+        source=pnezd.TYPED_POINT_SOURCE_GEODETIC,
+    )
+    result = run(
+        JobSettings(
+            input_path=None,
+            output_directory=None,
+            direction=Direction.VERTICAL_ONLY,
+            source_zone=None,
+            target_zone=None,
+            input_unit=METERS,
+            output_unit=METERS,
+            longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+            vertical_mode=VerticalMode.VERTICAL,
+            source_vertical_datum=NAVD88,
+            target_vertical_datum=NAVD88,
+            geoid_model=geoid_module.GEOID18_MODEL,
+            input_height_kind=HeightKind.ELLIPSOID,
+        ),
+        source=parsed,
+    )
+    point = result.points[0]
+
+    if point.output_elevation is None or point.ellipsoid_height is None:
+        raise SelfTestError(
+            f"the ellipsoid-height conversion produced no elevation at "
+            f"{GEOID_ANCHOR_LATITUDE}, {GEOID_ANCHOR_LONGITUDE}. The h -> H "
+            f"pipeline is in this bundle but did not run."
+        )
+
+    # NGS prints the separation to 0.001 m, so the recovered elevation carries
+    # that quantization and nothing tighter is claimable.
+    difference = abs(point.output_elevation - elevation_m)
+    if difference > 0.0015:
+        raise SelfTestError(
+            f"an ellipsoid height of {ellipsoid_m:.3f} m converted to "
+            f"{point.output_elevation:.4f} m at {GEOID_ANCHOR_LATITUDE}, "
+            f"{GEOID_ANCHOR_LONGITUDE}, where NGS's own separation of "
+            f"{GEOID_ANCHOR_HEIGHT_M:.3f} m gives {elevation_m:.3f} m - out "
+            f"by {difference:.4f} m. An unconverted height lands at "
+            f"{ellipsoid_m:.3f} and a flipped sign at "
+            f"{ellipsoid_m + GEOID_ANCHOR_HEIGHT_M:.3f}."
+        )
+
+    return (
+        f"ellipsoid height {ellipsoid_m:.3f} m -> "
+        f"{point.output_elevation:.4f} m NAVD 88 against NGS's "
+        f"{elevation_m:.3f} m via {point.ellipsoid_height.geoid_model_name}"
+    )
+
+
 def check_geoid12b_tile() -> str:
     """The GEOID12B tile ships, authenticates, and answers like NGS.
 
@@ -670,6 +757,7 @@ CHECKS: tuple[tuple[str, object], ...] = (
     ("bundled VERTCON 3.0 grid pair", check_vertcon_grids),
     ("vertical conversion against NGS NCAT", check_vertical_conversion),
     ("bundled GEOID12B tile", check_geoid12b_tile),
+    ("ellipsoid height conversion", check_ellipsoid_height_conversion),
     ("lazily imported dependencies", check_lazy_imports),
     ("Qt startup and bundled icon", check_icon_resource),
     ("end-to-end conversion against NGS NCAT", check_end_to_end_conversion),

@@ -916,6 +916,54 @@ def test_a_modeled_datum_shift_names_no_geoid_on_its_elevation_rows():
     assert not any("GEOID" in label for label in labels)
 
 
+def test_a_geoid_refusal_names_the_side_the_grid_was_read_from():
+    """The GEOID_UNAVAILABLE warning must name the model actually consulted.
+
+    Per-side selection (#50) split one question into two, and this warning
+    kept naming ``settings.geoid_model`` - the OUTPUT side. On a
+    NAVD 88 -> NGVD 29 job the output side has no model at all (NGVD 29 has
+    none), so the factors run off the INPUT side and ``settings.geoid_model``
+    is None: naming it raised ``AttributeError: 'NoneType' object has no
+    attribute 'name'`` and took the whole job down instead of warning about
+    one point. This is the GUI's DEFAULT state for that datum pair - the
+    output selector grays itself and emits None - so it needed only a point
+    off the tile to reach.
+
+    The point: 39.5 N is BELOW the GEOID18 CONUS grid #3's south edge of
+    40.0 N (``geoid.GEOID18_U3_GEOMETRY``), and VERTCON 3.0's CONUS grid
+    covers it, so the vertical shift succeeds and the geoid lookup is the
+    only thing that refuses - which is the order that reaches this branch.
+    """
+    settings = _swap_settings(
+        source_vertical_datum=NAVD88,
+        target_vertical_datum=NGVD29,
+        source_geoid_model=geoid.GEOID18_MODEL,
+        geoid_model=None,
+    )
+    assert geoid.GEOID18_U3_GEOMETRY.south_latitude == 40.0
+    assert settings.geoid_model is None
+
+    result = run(settings, source=pnezd.parse_lines(["1,39.5,-84.0,200.000,OFF"]))
+
+    messages = [
+        warning.message
+        for _row, warning in result.warnings
+        if warning.code is WarningCode.GEOID_UNAVAILABLE
+    ]
+    assert len(messages) == 1
+    # The INPUT side's model - the one `grid` was loaded from.
+    assert "no GEOID18 geoid height is available" in messages[0]
+    # And the point still converted: only the factors are unavailable. The
+    # elevation is the closing gate's own stated expected result for this
+    # input (Codex, 2026-08-11, the single MEDIUM of the 0.5.0 gate). It is
+    # this program's VERTCON reading at the point, so it pins the value
+    # against regression - it is not an independent check OF the value, which
+    # the frozen NCAT anchors elsewhere in the suite are.
+    point = result.points[0]
+    assert point.factors.combined_factor is None
+    assert point.output_elevation == pytest.approx(200.20998242497444, abs=1e-9)
+
+
 # ==========================================================================
 # GeoidSwapReading's own contract.
 # ==========================================================================

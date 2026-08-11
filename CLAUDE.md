@@ -46,7 +46,25 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.4.0 RELEASED; per-side geoid selection and one tooltip removal ON MAIN, unreleased (2026-08-10)
+## Current state: 0.5.0 — per-side geoid selection and geoid-to-geoid conversion ship (2026-08-11)
+
+**0.5.0 carries #50, #51, #52 and the gate's fix #53.** The closing gate ran
+under **Codex** over the whole `v0.4.0..HEAD` range, at the owner's
+instruction after he reversed his own "no review" answer mid-session:
+**verdict FINDINGS, one MEDIUM, no HIGH, no CRITICAL**, and the MEDIUM was a
+crash the session lead had already found from the same diff and fixed —
+`GEOID_UNAVAILABLE` naming `settings.geoid_model.name` when #50 made the
+factors grid come from the INPUT side, so a NAVD 88 → NGVD 29 job (the GUI's
+own default for that pair, output selector grayed to None) died on
+`AttributeError` at any point off the geoid tile. Fails closed, so no wrong
+coordinate — but the whole job, not the one point. Fixed at the root, pinned
+at the reviewer's input and expected elevation, falsified. Codex's
+independent negatives are worth keeping: no wrong in-coverage elevation, no
+sign reversal, no double swap, no wrong-era factor, no stale clipboard path,
+no false written disclosure. Suite **1609**, both modes.
+
+**Still human, still outstanding:** the clean-profile install proof
+(METHOD.md §6) and a real PNEZD file from an actual job.
 
 **A geoid-to-geoid elevation now names its geoid on screen (DESIGN.md #52),
 the owner's instruction:** `Elevation (NAVD88, m) (GEOID18)` — the model in a

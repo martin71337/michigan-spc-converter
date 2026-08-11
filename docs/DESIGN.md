@@ -466,6 +466,66 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #53 — 2026-08-11 — The 0.5.0 closing gate: one MEDIUM, and it was a crash the per-side split introduced
+
+**The gate.** Codex CLI, read-only, over the whole unreleased range
+`v0.4.0..HEAD` (#50, #51, #52), at the owner's instruction after he reversed
+his own "no review" answer. **Verdict FINDINGS: exactly one MEDIUM, no HIGH,
+no CRITICAL.** Everything load-bearing was re-verified independently and came
+back clean — the swap arithmetic recomputed (200.000 → 199.9676565265265 m
+and the reverse → 200.0323434734735 m), the ellipsoid height provably fixed
+across the swap, eighteen accepted/refused per-side configurations consistent
+at Houghton, the audit CSV naming each side correctly, the record's GEOID
+CHANGE arithmetic accurate, the clean PNEZD still five headerless fields, and
+the GUI's filtering, emission, invalidation and new headings tracing
+correctly. Its explicit negatives are worth recording: **no wrong in-coverage
+elevation, no sign reversal, no double swap, no wrong-era factor, no stale
+clipboard path, no false written disclosure.**
+
+**The finding, which the session lead had found independently from the same
+diff fragment and fixed before the gate returned — same defect, same
+counterexample, same test point.** `_convert_row`'s GEOID_UNAVAILABLE warning
+named `settings.geoid_model.name`, whose comment claimed "grid is only ever
+non-None when settings.geoid_model is a record". **#50 made that false.**
+`grid` is now loaded from `factors_geoid_model`, which is the INPUT side when
+the output side has no model — and NGVD 29 has none, so a NAVD 88 → NGVD 29
+job carries `geoid_model=None` with a real input-side grid. At a point off
+the geoid tile the warning dereferenced None: `AttributeError`, killing the
+whole job where one point should have converted with N/A factors.
+
+**Reachability, which is what set the severity.** It is not an exotic call
+shape — it is **exactly what both GUI tabs emit for that datum pair**, since
+the output geoid selector grays itself and emits None (#50's own design). It
+needs only a point off the tile. Codex's input: vertical-only, geodetic,
+metres, negative west, NAVD 88 → NGVD 29, input geoid GEOID18, output None,
+`1,39.5,-84.0,200.000,OFF` — 39.5 N is south of the tiles' 40.0 N edge while
+VERTCON covers it, so the datum shift succeeds and the geoid lookup is the
+only refusal. Expected: 200.20998242497444 m NGVD 29, combined factor N/A,
+one geoid-unavailable warning. **MEDIUM rather than HIGH because it fails
+closed** — the job stops, and no wrong coordinate is written.
+
+**Why the suite missed it.** Two pins bracketed it without meeting: an
+in-grid source-only model (`test_the_new_shape_writes_the_record_the_old_shape_wrote`)
+and an off-grid two-model swap
+(`test_a_point_outside_the_geoid_tiles_refuses_the_swap_and_stands`). The
+defect lives at their intersection. The #42-finding-3 class again — a
+sentence about a height going false when the thing it names moves — which
+#50 itself cited and still reintroduced one line away.
+
+**Fixed at the root**: the message names `factors_geoid_model`, the side the
+grid was actually loaded from, so it cannot name a model the point did not
+consult. Pinned by
+`test_a_geoid_refusal_names_the_side_the_grid_was_read_from` at the
+reviewer's own input and expected elevation; **falsified** by restoring the
+original expression, which reproduces the AttributeError at that line. Suite
+**1608 → 1609**, green in `pytest` and `-O`.
+
+**Gate limits, recorded not hidden:** the read-only sandbox blocked eight
+filesystem tests (no writable temp directory) and the fallback interpreter
+lacked PySide6, so the GUI suites did not collect under Codex. Both were run
+in full by the session lead in the ordinary environment, and the release
+build's own gate 3 runs the whole suite in both modes.
+
 ### #52 — 2026-08-10 — Owner's instruction: a geoid-to-geoid elevation names its geoid on screen
 
 **The owner's instruction**: on a same-datum geoid conversion the output must

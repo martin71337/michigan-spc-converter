@@ -1742,6 +1742,13 @@ def _convert_row(
 
     geoid_height = None
     if grid is not None and factor_height_m is not None:
+        # The model `grid` was loaded from, named the same way `run` chose it,
+        # so the warning below cannot name a model this point did not consult.
+        # Non-None whenever `grid` is: `run` derives one from the other.
+        factors_model = factors_geoid_model(settings, transformation)
+        geoid_model_consulted = (
+            factors_model.name if factors_model is not None else "geoid"
+        )
         try:
             geoid_height = geoid.geoid_height(
                 conversion.latitude, conversion.longitude, grid
@@ -1766,9 +1773,15 @@ def _convert_row(
                         f"{context}: the elevation "
                         # Not "read from the file": a typed point has none.
                         f"{row.elevation:,.3f} {settings.input_unit.code} was "
-                        # The model this job actually consulted: grid is only
-                        # ever non-None when settings.geoid_model is a record.
-                        f"supplied, but no {settings.geoid_model.name} "
+                        # The model this job actually consulted - the FACTORS
+                        # side, which is the side `grid` was loaded from. It
+                        # was `settings.geoid_model` until per-side selection
+                        # (DESIGN.md #50) made that a different question: on a
+                        # NAVD 88 -> NGVD 29 job the output side has no model
+                        # at all (NGVD 29 has none), the factors run off the
+                        # INPUT side, and naming settings.geoid_model here
+                        # raised AttributeError on None instead of warning.
+                        f"supplied, but no {geoid_model_consulted} "
                         f"geoid height is available at "
                         f"{conversion.latitude:.6f}, {conversion.longitude:.6f}, "
                         f"so the elevation factor and combined factor for this "

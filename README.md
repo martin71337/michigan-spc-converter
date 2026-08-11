@@ -38,4 +38,4 @@ py -O -m pytest
 
 ## Status
 
-Under development. Not yet released.
+Live and verified

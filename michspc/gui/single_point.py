@@ -58,6 +58,9 @@ from PySide6.QtWidgets import (
 from michspc import APP_NAME
 from michspc.fileio import dms, geoid, pnezd
 from michspc.gui.controls import (
+    HEIGHT_KIND_LABEL,
+    height_kind_combo,
+    height_kind_for,
     AMBER,
     GEODETIC,
     GEOID_MODEL_LABEL,
@@ -438,13 +441,26 @@ class SinglePointTab(QWidget):
         grid.addWidget(self.elevation_label, 11, 0)
         grid.addWidget(self.elevation_edit, 11, 1, 1, 3)
 
+        # Directly beneath the elevation field, so this tab and the Multi
+        # point tab read the same way top to bottom (the owner's placement,
+        # 2026-08-11). There is no "in file" button here to gray it against -
+        # a typed height is always "in the box" - so it is enabled in every
+        # mode. Connected to _invalidate_result and NOT to
+        # _update_convert_enabled: the elevation does not gate Convert on this
+        # tab, and the kind of height it is must not start gating it.
+        self.height_kind_label = QLabel(HEIGHT_KIND_LABEL, box)
+        self.height_kind_combo = height_kind_combo(box)
+        self.height_kind_combo.currentIndexChanged.connect(self._invalidate_result)
+        grid.addWidget(self.height_kind_label, 12, 0)
+        grid.addWidget(self.height_kind_combo, 12, 1, 1, 3)
+
         # --- convert ----------------------------------------------------
         self.convert_button = QPushButton("Convert", box)
         buttons = QHBoxLayout()
         buttons.addStretch(1)
         buttons.addWidget(self.convert_button)
         self.convert_button.clicked.connect(self.convert)
-        grid.addLayout(buttons, 12, 0, 1, 4)
+        grid.addLayout(buttons, 13, 0, 1, 4)
 
         grid.setColumnStretch(1, 3)
         grid.setColumnStretch(3, 2)
@@ -662,6 +678,7 @@ class SinglePointTab(QWidget):
             # the owner's 2026-08-09 feature), exactly as MainWindow.settings
             # reads its own. A grayed side emits None.
             geoid_model=self.output_geoid_model(),
+            input_height_kind=height_kind_for(self.height_kind_combo),
             source_geoid_model=self.input_geoid_model(),
             vertical_mode=mode,
             source_vertical_datum=source_datum,
@@ -710,6 +727,7 @@ class SinglePointTab(QWidget):
             input_unit=input_unit,
             output_unit=input_unit,
             geoid_model=self.output_geoid_model(),
+            input_height_kind=height_kind_for(self.height_kind_combo),
             source_geoid_model=self.input_geoid_model(),
             vertical_mode=VerticalMode.VERTICAL,
             source_vertical_datum=source_datum,

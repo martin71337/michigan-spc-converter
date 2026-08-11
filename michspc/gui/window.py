@@ -61,6 +61,9 @@ from michspc.fileio import exports
 # definition, two spellings — never two definitions.
 from michspc.fileio import geoid
 from michspc.gui.controls import (
+    HEIGHT_KIND_LABEL,
+    height_kind_combo,
+    height_kind_for,
     AMBER,
     GEODETIC,
     GEOID_MODEL_LABEL,
@@ -401,12 +404,33 @@ class MainWindow(QMainWindow):
         self.geoid_label = QLabel(GEOID_MODEL_LABEL, box)
         self.geoid_combo = geoid_combo(box)
 
+        # The height-kind control sits BENEATH the "in file" button, the
+        # owner's placement (2026-08-11), so the cell became a two-row stack.
+        # Stacking rather than inserting a grid row keeps every row index
+        # below this one exactly where it was, which is the lower-risk change
+        # for a layout the owner has already approved.
+        self.height_kind_label = QLabel(HEIGHT_KIND_LABEL, box)
+        self.height_kind_combo = height_kind_combo(box)
+        self.height_kind_combo.currentIndexChanged.connect(
+            self._update_convert_enabled
+        )
+        self.elevation_in_file.toggled.connect(self._update_height_kind_enabled)
+
         elevations_cell = QWidget(box)
-        beside = QHBoxLayout(elevations_cell)
+        stacked = QVBoxLayout(elevations_cell)
+        stacked.setContentsMargins(0, 0, 0, 0)
+        beside = QHBoxLayout()
         beside.setContentsMargins(0, 0, 0, 0)
         beside.addWidget(self.elevation_in_file)
         beside.addWidget(self.elevation_note)
         beside.addStretch(1)
+        stacked.addLayout(beside)
+        kind_row = QHBoxLayout()
+        kind_row.setContentsMargins(0, 0, 0, 0)
+        kind_row.addWidget(self.height_kind_label)
+        kind_row.addWidget(self.height_kind_combo)
+        kind_row.addStretch(1)
+        stacked.addLayout(kind_row)
 
         grid.addWidget(self.elevations_label, 9, 0)
         grid.addWidget(elevations_cell, 9, 1)
@@ -597,6 +621,7 @@ class MainWindow(QMainWindow):
             # job.run refuses an impostor by name. A grayed side emits
             # None - its datum has no published model.
             geoid_model=self.output_geoid_model(),
+            input_height_kind=height_kind_for(self.height_kind_combo),
             source_geoid_model=self.input_geoid_model(),
             vertical_mode=mode,
             source_vertical_datum=source_datum,
@@ -647,6 +672,7 @@ class MainWindow(QMainWindow):
             input_unit=input_unit,
             output_unit=input_unit,
             geoid_model=self.output_geoid_model(),
+            input_height_kind=height_kind_for(self.height_kind_combo),
             source_geoid_model=self.input_geoid_model(),
             vertical_mode=VerticalMode.VERTICAL,
             source_vertical_datum=source_datum,
@@ -801,12 +827,23 @@ class MainWindow(QMainWindow):
         # button states the only possibility, and its "passed through
         # unchanged" tooltip would be false there. Hidden with its label and
         # its note; the geoid dropdown beside them stays in every mode.
+        #
+        # AMENDED for the height-kind control (the owner's instruction,
+        # 2026-08-11): #48's reasoning covers the "in file" BUTTON and its
+        # note, and only those. The question "what kind of height is this?"
+        # is asked in every mode, and matters MOST in the vertical ones,
+        # where the answer decides whether the Z column gets converted at
+        # all - so the label and the kind control stay visible while the
+        # button and its note still hide.
+        for widget in (self.elevation_in_file, self.elevation_note):
+            widget.setVisible(not mode.converts_elevations)
         for widget in (
             self.elevations_label,
-            self.elevation_in_file,
-            self.elevation_note,
+            self.height_kind_label,
+            self.height_kind_combo,
         ):
-            widget.setVisible(not mode.converts_elevations)
+            widget.setVisible(True)
+        self._update_height_kind_enabled()
         # No output horizontal system exists in vertical-only mode (the To
         # row), and the export mirrors the input's unit (the output Units
         # selector) - visible, either control would be a question this job
@@ -819,6 +856,17 @@ class MainWindow(QMainWindow):
             self.output_unit,
         ):
             widget.setVisible(not vertical_only)
+
+    def _update_height_kind_enabled(self) -> None:
+        """Grayed unless the "in file" button is selected — the owner's rule.
+
+        In the two vertical modes that button is hidden but still checked, so
+        the control is enabled there, which is where it matters most. Grayed
+        rather than hidden is #50's own distinction: a disabled control shows
+        that the question exists and does not apply, where a missing one shows
+        nothing at all.
+        """
+        self.height_kind_combo.setEnabled(self.elevation_in_file.isChecked())
 
     def _update_convert_enabled(self) -> None:
         self.convert_button.setEnabled(self.settings() is not None)

@@ -25,8 +25,14 @@ from michspc.fileio.exports import (
     vertical_sigma_heading,
 )
 from michspc.gui.controls import zone_label
-from michspc.job import Direction, JobResult, LongitudeConvention, geoid_swap_models
-from michspc.spc.vertical import require_vertical_pair
+from michspc.job import (
+    Direction,
+    JobResult,
+    LongitudeConvention,
+    factors_geoid_model,
+    geoid_swap_models,
+)
+from michspc.spc.vertical import HeightKind, require_vertical_pair
 
 COLUMNS: tuple[str, ...] = (
     "Point",
@@ -126,6 +132,21 @@ def table_geoid_model_name(result: JobResult | None) -> str | None:
     if result is None:
         return None
     settings = result.settings
+    # GENERALISED from #52 (DESIGN.md #54): the model is named wherever the
+    # displayed orthometric height DEPENDS on a model - where a geoid change
+    # ran, or where the height was derived from an ellipsoid height. It is
+    # still not named beside a leveled height, which depends on no model
+    # (#50's recorded geodetic fact), so #52's two negative pins stand.
+    if settings.input_height_kind is HeightKind.ELLIPSOID:
+        model = factors_geoid_model(
+            settings,
+            require_vertical_pair(
+                settings.source_vertical_datum, settings.target_vertical_datum
+            )
+            if settings.vertical_mode.converts_elevations
+            else None,
+        )
+        return None if model is None else model.name
     if not settings.vertical_mode.converts_elevations:
         return None
     swap = geoid_swap_models(
@@ -408,6 +429,26 @@ def geoid_swap_label(swap, unit) -> str:
     )
 
 
+ELLIPSOID_INPUT_LABEL = "Ellipsoid height"
+"""What the INPUT row is called when the Z column held a GNSS height.
+
+Not "Elevation". The two differ by about 34 m in Michigan, and a row labelled
+"Elevation" over an ellipsoid height is the ordinary-looking wrong number this
+program is built against. It is also what the OUTPUT row is called in
+HORIZONTAL mode, where the Z is written back unconverted - there the output
+genuinely still is an ellipsoid height, and saying "Elevation" over it would
+be the same falsehood one column to the right.
+
+**The "(GNSS)" is load-bearing, not decoration.** ``ELLIPSOID_HEIGHT_LABEL``
+below is the FACTORS row - h = H + N recomputed from the conversion, always in
+metres - and on a metres job with ellipsoid input the two would otherwise be
+the SAME STRING in the same section: two rows, identical labels, one of them
+what the user typed and the other what the program derived. Both are true and
+both belong on screen, so they have to be told apart, and naming the source is
+how a surveyor tells them apart anyway.
+"""
+
+
 def _datum_elevation_label(datum, unit, geoid_model_name: str | None = None) -> str:
     """``Elevation (NAVD88, m)``, or ``Elevation (NAVD88, m) (GEOID18)`` on a
     geoid-to-geoid job - the datum, the unit, and the geoid where one applies.
@@ -682,8 +723,17 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
     # GEOID_SWAP_UNAVAILABLE warning) carries no reading and gets no model
     # name, which is the truth about that point even in a job where every
     # other point converted.
+    #
+    # An ELLIPSOID input relabels both rows, in every mode. The input row
+    # says what the user actually supplied; the output row says what is in
+    # the Z column, which in horizontal mode is still the ellipsoid height
+    # (the owner's pass-through rule) and in the vertical modes is the
+    # derived elevation, model-tagged. A row reading "Elevation" over an
+    # unconverted h is the falsehood this feature exists to remove, and it
+    # would be one column away from a row that reads correctly.
     reading = point.vertical
     swap = point.geoid_swap
+    ellipsoid_input = settings.input_height_kind is HeightKind.ELLIPSOID
     if reading is not None:
         input_elevation_label = _datum_elevation_label(
             reading.transformation.source,
@@ -698,6 +748,28 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
     else:
         input_elevation_label = ELEVATION_LABEL
         output_elevation_label = ELEVATION_LABEL
+
+    if ellipsoid_input:
+        input_elevation_label = (
+            f"{ELLIPSOID_INPUT_LABEL} (GNSS, {settings.input_unit.code})"
+        )
+        if not settings.vertical_mode.converts_elevations:
+            # Horizontal: the Z was written back untouched, so it is still an
+            # ellipsoid height and the label must not promote it.
+            output_elevation_label = (
+                f"{ELLIPSOID_INPUT_LABEL} (GNSS, {settings.output_unit.code})"
+            )
+        elif point.ellipsoid_height is not None:
+            # A vertical mode DID derive an elevation. Name the datum the
+            # model publishes for and the model itself - here, unlike a
+            # leveled height, the number genuinely depends on the model.
+            output_elevation_label = _datum_elevation_label(
+                reading.transformation.target
+                if reading is not None
+                else settings.target_vertical_datum,
+                settings.output_unit,
+                point.ellipsoid_height.geoid_model_name,
+            )
     vertical_rows = _vertical_rows(reading, swap, settings.input_unit)
 
     if settings.direction is Direction.VERTICAL_ONLY:

@@ -26,7 +26,11 @@ from PySide6.QtWidgets import QButtonGroup, QComboBox, QMessageBox, QRadioButton
 from michspc.fileio import geoid
 from michspc.job import Direction, LongitudeConvention, VerticalMode
 from michspc.spc.units import ALL_UNITS, INTERNATIONAL_FEET
-from michspc.spc.vertical import ALL_VERTICAL_DATUMS, VerticalDatum
+from michspc.spc.vertical import (
+    ALL_VERTICAL_DATUMS,
+    HeightKind,
+    VerticalDatum,
+)
 from michspc.spc.zones import ALL_ZONES, Zone
 
 UNCHOSEN = "unchosen"
@@ -315,6 +319,61 @@ def vertical_datum_combo(parent, on_change) -> QComboBox:
 def vertical_datum_for(data) -> VerticalDatum | None:
     """The datum a dropdown's current data names, or None while unanswered."""
     return data if isinstance(data, VerticalDatum) else None
+
+
+HEIGHT_KIND_LABEL = "Heights are:"
+HEIGHT_KIND_ORTHOMETRIC = "Orthometric (elevation)"
+HEIGHT_KIND_ELLIPSOID = "Ellipsoid (GNSS)"
+"""The wording of the height-kind control, one spelling on both tabs (#17).
+
+"Heights are", not "Elevations are", because the whole premise of the control
+is that the Z column may not hold elevations at all - and it dodges the
+singular/plural mismatch between a tab that reads a file of them and a tab
+that takes one, which would otherwise need two constants free to drift apart.
+
+Each item names the thing AND what a surveyor calls it: "Orthometric" alone
+sends people to a textbook, and "GNSS" is how the ellipsoid case actually
+arrives on a job.
+"""
+
+
+def height_kind_combo(parent) -> QComboBox:
+    """What the Z column holds: an elevation, or a GNSS height.
+
+    Opens on ORTHOMETRIC, the owner's instruction and the status quo - it is
+    what every file this program has read contained, so the default assumes
+    nothing that was not already assumed, and every existing job is unchanged.
+    That is the same ground ``VerticalMode``'s default stands on, and it is
+    why a default is defensible here where it is not for the vertical datums.
+
+    NO TOOLTIP (#34, #51): the item strings carry the meaning. "Ellipsoid
+    (GNSS)" is the explanation a tooltip would have given.
+    """
+    combo = QComboBox(parent)
+    combo.addItem(HEIGHT_KIND_ORTHOMETRIC, HeightKind.ORTHOMETRIC)
+    combo.addItem(HEIGHT_KIND_ELLIPSOID, HeightKind.ELLIPSOID)
+    combo.setCurrentIndex(combo.findData(HeightKind.ORTHOMETRIC))
+    return combo
+
+
+def height_kind_for(combo) -> HeightKind:
+    """The kind a dropdown names, refusing rather than guessing.
+
+    A disabled combo still reports its selection: unlike the geoid selectors,
+    this control has no "unanswered" state to fall back to - the Z column
+    holds one kind of height or the other, and ORTHOMETRIC is a real answer
+    rather than an absence.
+    """
+    data = combo.currentData()
+    if not isinstance(data, HeightKind):
+        raise ValueError(
+            f"The height-kind dropdown holds {data!r}, which is not a "
+            f"HeightKind. Every item this control offers carries one; a "
+            f"selection that does not is a wiring defect, and guessing "
+            f"orthometric here would silently answer the question the "
+            f"control exists to ask."
+        )
+    return data
 
 
 def geoid_combo(parent) -> QComboBox:

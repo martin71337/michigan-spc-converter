@@ -1006,10 +1006,21 @@ def test_the_elevations_row_hides_when_elevations_convert(window):
     would be false there (owner instruction, DESIGN.md #48). Hidden with its
     label and note; the geoid dropdown beside them stays. Falsified by
     disconnecting the visibility update: the vertical halves fail."""
+    # AMENDED for the height-kind control (the owner's instruction,
+    # 2026-08-11, DESIGN.md #54): #48's reasoning covers the "in file" BUTTON
+    # and its note and only those - a question the vertical modes never ask.
+    # The Elevations LABEL and the height-kind control stay visible in every
+    # mode, because "what kind of height is this?" is asked in all three and
+    # matters most in the two where the answer decides whether the Z column
+    # is converted at all.
     row = (
-        window.elevations_label,
         window.elevation_in_file,
         window.elevation_note,
+    )
+    always_visible = (
+        window.elevations_label,
+        window.height_kind_label,
+        window.height_kind_combo,
     )
 
     # Horizontal: all three visible, and the tooltip claims only what is
@@ -1026,19 +1037,32 @@ def test_the_elevations_row_hides_when_elevations_convert(window):
     assert "re-expresses" in tooltip
     assert "unchanged" not in tooltip
 
+    for widget in always_visible:
+        assert not widget.isHidden()
+
     window.mode_vertical.setChecked(True)  # Horizontal + Vertical
     for widget in row:
         assert widget.isHidden()
     assert not window.geoid_combo.isHidden()
+    for widget in always_visible:
+        assert not widget.isHidden()
+    # Enabled, not merely present: this is the mode where the answer decides
+    # whether the Z column gets converted.
+    assert window.height_kind_combo.isEnabled()
 
     window.mode_vertical_only.setChecked(True)  # Vertical
     for widget in row:
         assert widget.isHidden()
     assert not window.geoid_combo.isHidden()
+    for widget in always_visible:
+        assert not widget.isHidden()
+    assert window.height_kind_combo.isEnabled()
 
     # And back: the row returns with Horizontal.
     window.mode_horizontal.setChecked(True)
     for widget in row:
+        assert not widget.isHidden()
+    for widget in always_visible:
         assert not widget.isHidden()
 
 

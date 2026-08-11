@@ -48,7 +48,16 @@ commands too, where the diff usually goes unread.
 
 ## Current state: 0.4.0 RELEASED; per-side geoid selection and one tooltip removal ON MAIN, unreleased (2026-08-10)
 
-**The owner looked at the real screen and found a false tooltip (DESIGN.md
+**A geoid-to-geoid elevation now names its geoid on screen (DESIGN.md #52),
+the owner's instruction:** `Elevation (NAVD88, m) (GEOID18)` — the model in a
+parenthesis after the units, both ends naming their own model, screen only
+(the audit CSV and the record already said it). Only where a swap actually
+ran: not on a modeled datum shift, not on same-model identity, because a
+leveled height does not depend on the hybrid model (#50). The heading and the
+panel label are now ONE template, where they were two f-strings producing the
+same text. Suite **1608**, both modes.
+
+**Before that, the owner found a false tooltip on the real screen (DESIGN.md
 #51), removed with no cross-check on his instruction:** the Single point
 elevation field called the elevation *optional* in all three modes, because
 the tooltip was set once when the field was built — false in Horizontal +

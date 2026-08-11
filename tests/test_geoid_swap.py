@@ -802,8 +802,19 @@ def test_the_panel_names_the_models_and_reads_na_for_sigma():
     # The datum-labelled shift row is REPLACED, not doubled: the datum did
     # not move, so no "Vertical shift NAVD88 -> NAVD88" row appears.
     assert not any(label.startswith("Vertical shift") for label in labels)
-    # The elevation rows still carry the (identity) datum tags.
-    assert "Elevation (NAVD88, m)" in by_label
+    # The elevation rows carry the (identity) datum tag AND the geoid the
+    # height is on, in a parenthesis of its own after the unit one - the
+    # owner's instruction of 2026-08-10 (docs/DESIGN.md #52). Each side names
+    # ITS OWN model, so the two rows are told apart by the one thing that
+    # differs between them; untagged they were the same string over two
+    # different heights.
+    assert "Elevation (NAVD88, m) (GEOID18)" in by_label
+    assert "Elevation (NAVD88, m)" not in by_label
+
+    source = next(s for s in sections if s.title == results_model.INPUT_TITLE)
+    input_labels = {v.label for v in source.values}
+    assert "Elevation (NAVD88, m) (GEOID12B)" in input_labels
+    assert "Elevation (NAVD88, m)" not in input_labels
 
 
 def test_the_multi_table_cells_mirror_the_audit_csv_for_a_swap(tmp_path):
@@ -826,6 +837,83 @@ def test_the_multi_table_cells_mirror_the_audit_csv_for_a_swap(tmp_path):
     assert table_rows[0][sigma_at] == audit["Shift sigma (m)"]
     assert table_rows[0][shift_at] == "-0.0323"
     assert table_rows[0][sigma_at] == fmt.NOT_AVAILABLE
+
+
+def test_the_table_heading_names_the_output_geoid_on_a_swap_job():
+    """The owner's instruction, 2026-08-10 (docs/DESIGN.md #52).
+
+    The table has ONE elevation column and it holds the converted height, so
+    the heading names the OUTPUT model - the model those cells are on. The
+    geoid sits in its own parenthesis after the unit one, his words.
+    """
+    result = run(_swap_settings(), source=_swap_source())
+
+    columns = results_model.columns_for(result)
+    assert "Elevation (NAVD88, m) (GEOID18)" in columns
+    assert "Elevation (NAVD88, m)" not in columns
+
+    # The heading a cell is under and the panel label for the same value are
+    # ONE template (`_datum_elevation_label`), so the two surfaces cannot word
+    # this differently - the property #26 established for these two tabs.
+    sections = results_model.single_point_sections(result)
+    output = next(s for s in sections if s.title == results_model.OUTPUT_TITLE)
+    panel = {v.label for v in output.values}
+    at = columns.index("Elevation (NAVD88, m) (GEOID18)")
+    assert columns[at] in panel
+
+
+def test_the_same_model_on_both_sides_names_no_geoid_anywhere():
+    """No swap, no tag. Identity datums with ONE model is the ordinary job
+    ``geoid_swap_models`` returns None for; a tag there would name a model
+    that changed nothing, and would appear on jobs that ran before the
+    feature existed.
+    """
+    result = run(
+        _swap_settings(source_geoid_model=geoid.GEOID18_MODEL),
+        source=_swap_source(),
+    )
+
+    assert "Elevation (NAVD88, m)" in results_model.columns_for(result)
+    assert results_model.table_geoid_model_name(result) is None
+
+    labels = {
+        value.label
+        for section in results_model.single_point_sections(result)
+        for value in section.values
+    }
+    assert "Elevation (NAVD88, m)" in labels
+    assert not any("GEOID18" in label for label in labels)
+
+
+def test_a_modeled_datum_shift_names_no_geoid_on_its_elevation_rows():
+    """NGVD 29 -> NAVD 88 is not a geoid conversion and must not read as one.
+
+    The leveled height it produces does not depend on the hybrid model
+    (DESIGN.md #50's recorded geodetic fact), and the two rows are already
+    told apart by their datum codes. This is the pin that keeps the tag from
+    spreading to every vertical job.
+    """
+    result = run(
+        _swap_settings(
+            source_vertical_datum=NGVD29,
+            target_vertical_datum=NAVD88,
+            source_geoid_model=None,
+            geoid_model=geoid.GEOID18_MODEL,
+        ),
+        source=_swap_source(),
+    )
+
+    columns = results_model.columns_for(result)
+    assert "Elevation (NAVD88, m)" in columns
+    assert results_model.table_geoid_model_name(result) is None
+
+    labels = {
+        value.label
+        for section in results_model.single_point_sections(result)
+        for value in section.values
+    }
+    assert {"Elevation (NGVD29, m)", "Elevation (NAVD88, m)"} <= labels
+    assert not any("GEOID" in label for label in labels)
 
 
 # ==========================================================================

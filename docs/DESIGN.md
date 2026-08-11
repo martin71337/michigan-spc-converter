@@ -466,6 +466,51 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #52 — 2026-08-10 — Owner's instruction: a geoid-to-geoid elevation names its geoid on screen
+
+**The owner's instruction**: on a same-datum geoid conversion the output must
+say which geoid the result is displayed in, **in a parenthesis after the
+units**. Answers to the two scoping questions, his: **both ends**, each naming
+its own model; **screen only** — the audit CSV already carries `Source geoid
+model` and `Geoid model` columns and the record already carries its GEOID
+CHANGE block, so those two say it already.
+
+**The problem it fixes.** On a swap job the two elevation rows read
+`Elevation (NAVD88, m)` at both ends — identical strings over two different
+heights, because the datum and the unit are the same on both sides and the
+model is the entire difference between them. The panel showed the shift row's
+`Geoid change GEOID12B -> GEOID18 (m)` but nothing said which of the two the
+number above it was on.
+
+**What changed.** `Elevation (NAVD88, m) (GEOID18)`, a separate parenthesis
+after the unit one as instructed. INPUT names the input model, OUTPUT the
+output model; the Multi point table's single elevation column names the
+OUTPUT model, the model its cells are on. Named **only** where
+`job.geoid_swap_models` says a swap ran — not on a modeled datum shift and
+not on same-model identity — because #50's recorded geodetic fact is that a
+leveled orthometric height does not depend on the hybrid model, and tagging
+one beside a leveled height would assert a dependence that does not exist.
+The panel reads the point's **own** `GeoidSwapReading`, so a point whose swap
+was refused carries no model name even where every other point converted; the
+heading reads the job's settings through the same registry lookup `job.run`
+and the record perform.
+
+**A duplicate removed on the way.** `_elevation_heading` and
+`_datum_elevation_label` were two f-strings producing the same text; the
+heading now delegates to the label. One fact in two places is what lets a
+panel and a table drift apart, and #26 spent a whole gate establishing that
+these two cannot.
+
+**Verification.** Four pins: the swap panel's two tagged rows (each naming its
+own side), the tagged table heading, and two negatives — same model both sides,
+and a modeled NGVD 29 → NAVD 88 shift — asserting no geoid token appears on
+any label. The heading pin also asserts the table's string is one the panel
+also shows, which is the shared template pinned as a property rather than as
+two literals. Three falsifications, each caught by exactly its own pins: the
+heading tag suppressed, the tag leaked to every vertical job, the input row
+named with the output model. Suite **1605 → 1608**, green in `pytest` and
+`-O`. No computation, no written output, no clean PNEZD byte touched.
+
 ### #51 — 2026-08-10 — Owner removes the Single point elevation tooltip
 
 **The owner's instruction, from looking at the real screen**: the Single point

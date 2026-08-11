@@ -25,7 +25,8 @@ from michspc.fileio.exports import (
     vertical_sigma_heading,
 )
 from michspc.gui.controls import zone_label
-from michspc.job import Direction, JobResult, LongitudeConvention
+from michspc.job import Direction, JobResult, LongitudeConvention, geoid_swap_models
+from michspc.spc.vertical import require_vertical_pair
 
 COLUMNS: tuple[str, ...] = (
     "Point",
@@ -82,7 +83,7 @@ def _geodetic_display_columns(settings) -> bool:
     )
 
 
-def _elevation_heading(base: str, settings) -> str:
+def _elevation_heading(settings, geoid_model_name: str | None) -> str:
     """``Elevation (NAVD88, m)`` - the ordinary heading with the TARGET datum
     and the OUTPUT unit.
 
@@ -95,11 +96,45 @@ def _elevation_heading(base: str, settings) -> str:
     ``settings.output_unit``), NOT the input unit that governs the shift and
     sigma columns beside it. The datum and unit come from the settings the
     job actually ran with, never from a dropdown's current state.
+
+    Delegates to ``_datum_elevation_label`` rather than repeating its
+    template. The two were separate f-strings producing the same text until
+    the geoid tag arrived (DESIGN.md #52), which is one fact in two places -
+    exactly the arrangement that lets a panel and a table drift apart, and
+    the property amendment #26 spent a whole gate establishing is that they
+    cannot.
     """
-    return (
-        f"{base} ({settings.target_vertical_datum.code}, "
-        f"{settings.output_unit.code})"
+    return _datum_elevation_label(
+        settings.target_vertical_datum, settings.output_unit, geoid_model_name
     )
+
+
+def table_geoid_model_name(result: JobResult | None) -> str | None:
+    """The geoid model the table's elevation cells are ON, or None.
+
+    Named only for a geoid-to-geoid job, where the output elevation's identity
+    is the model and nothing else: both ends carry the same datum and the same
+    unit, so without it the heading describes the input column equally well
+    (the owner's instruction, 2026-08-10). Every other job leaves it None -
+    a leveled NAVD 88 height does not belong to a geoid model (DESIGN.md #50),
+    and a horizontal job asked no vertical question at all.
+
+    The transformation is resolved through the same registry lookup ``job.run``
+    and the record perform, and the swap decision through ``job.geoid_swap_models``,
+    so the heading cannot claim a swap the computation did not make.
+    """
+    if result is None:
+        return None
+    settings = result.settings
+    if not settings.vertical_mode.converts_elevations:
+        return None
+    swap = geoid_swap_models(
+        settings,
+        require_vertical_pair(
+            settings.source_vertical_datum, settings.target_vertical_datum
+        ),
+    )
+    return None if swap is None else swap[1].name
 
 
 def columns_for(result: JobResult | None) -> tuple[str, ...]:
@@ -125,7 +160,7 @@ def columns_for(result: JobResult | None) -> tuple[str, ...]:
     )
     if settings.vertical_mode.converts_elevations:
         at = columns.index("Elevation")
-        columns[at] = _elevation_heading(columns[at], settings)
+        columns[at] = _elevation_heading(settings, table_geoid_model_name(result))
         # The shift and sigma headings carry the INPUT unit - the unit the
         # elevations were supplied in, the owner's instruction (2026-08-09).
         # In vertical-only mode input and output units are equal by
@@ -373,9 +408,13 @@ def geoid_swap_label(swap, unit) -> str:
     )
 
 
-def _datum_elevation_label(datum, unit) -> str:
-    """``Elevation (NAVD88, m)`` - the ordinary label, with its datum and its
-    unit named.
+def _datum_elevation_label(datum, unit, geoid_model_name: str | None = None) -> str:
+    """``Elevation (NAVD88, m)``, or ``Elevation (NAVD88, m) (GEOID18)`` on a
+    geoid-to-geoid job - the datum, the unit, and the geoid where one applies.
+
+    THE one elevation-label template. The Multi point table heading builds on
+    it too (``_elevation_heading``), so the two surfaces cannot word the same
+    fact differently.
 
     Only a vertical conversion uses this: a horizontal job asked no vertical
     question and its rows must not claim a datum nobody stated (plan section
@@ -386,8 +425,21 @@ def _datum_elevation_label(datum, unit) -> str:
     unit for the INPUT section's elevation, the output unit for the OUTPUT
     section's - passed by the caller that formats the value, so label and
     value cannot name different units.
+
+    ``geoid_model_name`` is the owner's instruction of 2026-08-10, and it is
+    a SEPARATE parenthesis after the unit one, in his words. Supplied only on
+    a geoid-to-geoid job, where the two elevations sit on the same datum in
+    the same unit and the model is the whole difference between them: without
+    it the INPUT and OUTPUT labels are the same string over two different
+    heights. Left None everywhere else, because an ordinary orthometric
+    height is not "in" a geoid model - the hybrid models were fitted to the
+    leveled network, and naming one beside a leveled height would state a
+    dependence that does not exist (DESIGN.md #50's recorded geodetic fact).
     """
-    return f"{ELEVATION_LABEL} ({datum.code}, {unit.code})"
+    label = f"{ELEVATION_LABEL} ({datum.code}, {unit.code})"
+    if geoid_model_name is None:
+        return label
+    return f"{label} ({geoid_model_name})"
 
 
 def _vertical_rows(reading, swap, unit) -> tuple[ResultValue, ...]:
@@ -620,18 +672,33 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
     # because a unit on the output row alone would invite "in what?" of the
     # input one. The shift and sigma rows carry the INPUT unit (the owner's
     # instruction, 2026-08-09).
+    #
+    # On a geoid-to-geoid point each label also names ITS OWN side's model -
+    # input GEOID12B, output GEOID18 (the owner's instruction, 2026-08-10) -
+    # because there the datum and the unit are identical at both ends and the
+    # model is the only thing telling the two heights apart. The names come
+    # from the point's own ``GeoidSwapReading``, not from the settings: a
+    # point whose swap was refused (its grids would not read - the
+    # GEOID_SWAP_UNAVAILABLE warning) carries no reading and gets no model
+    # name, which is the truth about that point even in a job where every
+    # other point converted.
     reading = point.vertical
+    swap = point.geoid_swap
     if reading is not None:
         input_elevation_label = _datum_elevation_label(
-            reading.transformation.source, settings.input_unit
+            reading.transformation.source,
+            settings.input_unit,
+            None if swap is None else swap.source_model_name,
         )
         output_elevation_label = _datum_elevation_label(
-            reading.transformation.target, settings.output_unit
+            reading.transformation.target,
+            settings.output_unit,
+            None if swap is None else swap.target_model_name,
         )
     else:
         input_elevation_label = ELEVATION_LABEL
         output_elevation_label = ELEVATION_LABEL
-    vertical_rows = _vertical_rows(reading, point.geoid_swap, settings.input_unit)
+    vertical_rows = _vertical_rows(reading, swap, settings.input_unit)
 
     if settings.direction is Direction.VERTICAL_ONLY:
         # The vertical-only layouts (the owner's feature, 2026-08-09). The

@@ -81,6 +81,34 @@ class VerticalTransformationUnavailableError(VerticalDatumError):
     """
 
 
+class HeightKind(Enum):
+    """Which surface a height is measured FROM. Not which datum it is in.
+
+    The two questions are orthogonal, and conflating them is the error this
+    enum exists to prevent:
+
+    * an **orthometric** height is measured from the geoid, and it IS in a
+      vertical datum - NGVD 29 or NAVD 88, the rest of this module;
+    * an **ellipsoid** height is measured from the GRS 80 ellipsoid, and it is
+      in **no vertical datum at all**. It belongs to a reference frame
+      (``frames.py``), which is a different thing entirely.
+
+    A GNSS receiver produces the second; a plat needs the first. The bridge is
+    the geoid separation, ``H = h - N``, and since N comes from a geoid model
+    published for one datum, **the datum of a converted height is the model's,
+    not the user's choice**. That is why stating an ellipsoid input alongside
+    an input vertical datum the model does not publish for is refused rather
+    than reconciled (``job.run``).
+
+    ORTHOMETRIC is the default everywhere it appears: it is what every survey
+    file this program has ever read contained, and what it assumed silently
+    until this enum existed.
+    """
+
+    ORTHOMETRIC = "orthometric"
+    ELLIPSOID = "ellipsoid"
+
+
 class VerticalDatumStatus(Enum):
     """Whether this program may actually convert heights in a datum.
 

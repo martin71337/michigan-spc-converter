@@ -117,6 +117,26 @@ class WarningCode(Enum):
     is not a reason to pass a height through silently when it is reached.
     """
 
+    ELLIPSOID_HEIGHT_UNCONVERTIBLE = "ellipsoid-height-unconvertible"
+    """A point's height was supplied as an ELLIPSOID height in one of the
+    vertical modes, but the geoid tile does not cover its position, so
+    H = h - N could not be computed and no orthometric height exists for it.
+
+    Distinct from GEOID_UNAVAILABLE on purpose, and the distinction is the
+    whole point of a separate code: GEOID_UNAVAILABLE costs a point its
+    FACTORS and its Z still goes out, while this costs it the Z ITSELF. The
+    vertical modes exist to produce a datum-tagged elevation; there is none
+    here, and writing the unconverted ellipsoid height into a Z column those
+    modes label with a vertical datum would be a height roughly 34 m wrong in
+    Michigan wearing the right label - the ordinary-looking wrong number this
+    project is built against.
+
+    Horizontal mode raises GEOID_UNAVAILABLE for the same failure instead,
+    because there the Z is the supplied height passed through unchanged (the
+    owner's instruction) and only the factors are lost - which is exactly what
+    that older code has always meant.
+    """
+
 
 @dataclass(frozen=True)
 class ConversionWarning:

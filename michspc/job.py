@@ -36,6 +36,7 @@ from michspc.spc.factors import Factors, factors_at
 from michspc.spc.frames import NAD83_2011, ReferenceFrame
 from michspc.spc.units import LinearUnit
 from michspc.spc.vertical import (
+    HeightKind,
     VerticalDatum,
     VerticalTransformation,
     apply_shift,
@@ -288,6 +289,45 @@ class JobSettings:
     rather than a special rule.
     """
 
+    input_height_kind: HeightKind = HeightKind.ORTHOMETRIC
+    """What the input Z column HOLDS - an elevation, or a GNSS height.
+
+    ORTHOMETRIC by default, and the default is load-bearing: it is what every
+    survey file this program has read contained and what it assumed silently
+    before this field existed, so every pre-existing job is unchanged to the
+    byte. This is one of the few defaults in the program, and it earns its
+    place the way ``VerticalMode.HORIZONTAL`` does - the default member IS the
+    status quo, so nothing is assumed that was not already being assumed.
+
+    ELLIPSOID says the Z column holds heights above the GRS 80 ellipsoid, as a
+    GNSS receiver produces them. The program then computes H = h - N at each
+    point from the job's geoid model, and what it DOES with H depends on the
+    mode - the only place in this feature where the mode matters:
+
+    * **HORIZONTAL**: the Z column is written back exactly as supplied (the
+      owner's instruction, 2026-08-11) and only the FACTORS change. That is
+      not cosmetic: the elevation factor is R / (R + H + N), so a height that
+      already contains the separation gets it added twice, which in Michigan
+      is ~34 m of denominator - about **5 ppm** on every combined factor, a
+      third of a foot in ten miles, always the same direction.
+    * **HORIZONTAL_AND_VERTICAL and VERTICAL**: H is the height, and it goes
+      on to the datum shift and into the Z column, datum-tagged.
+
+    The rules ``run`` enforces:
+
+    * ELLIPSOID with no geoid model on either side refuses - there is no N,
+      so there is no H;
+    * ELLIPSOID on a vertical job whose ``source_vertical_datum`` is not the
+      model's own datum refuses: an ellipsoid height is in no vertical datum,
+      and the H derived from it is in the MODEL's, so any other input datum
+      would mislabel it before a single shift ran;
+    * ELLIPSOID on a geoid-to-geoid job refuses. The input model cancels out
+      of ``(h - N_in) + (N_in - N_out)``, so the input selection changes no
+      number - and the record would state a conversion "from GEOID12B" of a
+      height that was never on GEOID12B, a false sentence in an audit
+      document (the owner's decision, 2026-08-11).
+    """
+
 
 _IDENTITY_SIGMA_REASON = (
     "no modeled transformation was applied, so no model uncertainty exists"
@@ -411,6 +451,77 @@ class VerticalReading:
 
 
 @dataclass(frozen=True)
+class EllipsoidHeightReading:
+    """The h -> H half of one converted point: the model, the separation it
+    read, and both heights.
+
+    Recorded whenever an ellipsoid height was converted, in EVERY mode - the
+    horizontal modes convert it too, for the factors, even though the Z column
+    keeps the height as supplied (the owner's instruction). The arithmetic:
+
+        H = h - N
+
+    with N the geoid separation at the point's own position, negative
+    throughout Michigan, so H is about 34 m LARGER than h here. The datum of H
+    is the MODEL's, not anything the user typed - which is why the model's
+    datum code is carried on the record rather than derived later from
+    settings that may name a different one.
+
+    ``__post_init__`` enforces the arithmetic, in ``GeoidSwapReading``'s
+    idiom: a record whose stated orthometric height disagrees with its own two
+    ingredients cannot be constructed, so a sign error cannot be recorded as
+    though it were intended.
+    """
+
+    geoid_model_name: str
+    """The model that supplied N, e.g. "GEOID18"."""
+
+    vertical_datum_code: str
+    """The model's own vertical datum - the datum H is in. NAVD88 for both
+    shipped models."""
+
+    ellipsoid_height_m: float
+    """h, exactly as supplied, converted to metres. The smaller number."""
+
+    geoid_height_m: float
+    """N at the point's pivot position, metres. Negative in Michigan."""
+
+    orthometric_height_m: float
+    """H = h - N, metres. Enforced against its ingredients below."""
+
+    def __post_init__(self) -> None:
+        for name in ("geoid_model_name", "vertical_datum_code"):
+            value = getattr(self, name)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(
+                    f"EllipsoidHeightReading.{name} must be a non-empty "
+                    f"string naming what was used; got {value!r}."
+                )
+        for name in (
+            "ellipsoid_height_m",
+            "geoid_height_m",
+            "orthometric_height_m",
+        ):
+            value = getattr(self, name)
+            if not isinstance(value, float) or not math.isfinite(value):
+                raise ValueError(
+                    f"EllipsoidHeightReading.{name} must be a finite float in "
+                    f"metres; got {value!r}."
+                )
+        expected = self.ellipsoid_height_m - self.geoid_height_m
+        if abs(self.orthometric_height_m - expected) > 1e-12:
+            raise ValueError(
+                f"EllipsoidHeightReading states an orthometric height of "
+                f"{self.orthometric_height_m!r} m, but its own ingredients "
+                f"give H = h - N = {self.ellipsoid_height_m!r} - "
+                f"{self.geoid_height_m!r} = {expected!r} m. The record must "
+                f"agree with its own arithmetic; a height and a separation "
+                f"are both bare floats, and adding where the rule subtracts "
+                f"is wrong by twice the separation - about 68 m in Michigan."
+            )
+
+
+@dataclass(frozen=True)
 class GeoidSwapReading:
     """The geoid-to-geoid half of one converted point: which two models, the
     two separations read at the pivot, and the value that moved the height.
@@ -530,6 +641,17 @@ class ConvertedPoint:
     None on every point of a HORIZONTAL job, on a vertical job's point that
     carried no elevation (there is no height to shift), and on a point whose
     shift was unavailable (the warning beside it says so).
+    """
+
+    ellipsoid_height: EllipsoidHeightReading | None = None
+    """The h -> H evidence for this point, or None.
+
+    Present exactly when this point's height was supplied as an ellipsoid
+    height and the geoid tile covered its position - in ANY mode, including
+    horizontal, where the conversion still happens for the factors even
+    though the Z column keeps the ellipsoid height. None on every
+    orthometric-input point, on a point with no height at all, and on one
+    whose position the tile does not cover, where the warning says so.
     """
 
     geoid_swap: GeoidSwapReading | None = None
@@ -913,6 +1035,72 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
                 f"elevations to {model.vertical_datum.code} in a job that "
                 f"targets it."
             )
+
+    # ------------------------------------------------------------------
+    # Ellipsoid input's refusals, all before any point converts (the owner's
+    # feature, 2026-08-11). They sit here, after the geoid-model guards
+    # above, so a model impostor is still refused by its own message first
+    # and these never fire on a nonsense record.
+    # ------------------------------------------------------------------
+    if not isinstance(settings.input_height_kind, HeightKind):
+        raise TypeError(
+            f"JobSettings.input_height_kind must be a HeightKind stating what "
+            f"the Z column holds; got "
+            f"{type(settings.input_height_kind).__name__} "
+            f"({settings.input_height_kind!r}). In particular True is not "
+            f"'the ellipsoid one'."
+        )
+
+    if settings.input_height_kind is HeightKind.ELLIPSOID:
+        ellipsoid_model = factors_geoid_model(settings, transformation)
+        if ellipsoid_model is None:
+            raise geoid.GeoidError(
+                "This job states that its input heights are ELLIPSOID "
+                "heights, but it carries no geoid model on either side. An "
+                "ellipsoid height is measured from the GRS 80 ellipsoid; "
+                "turning it into an elevation needs the geoid separation N at "
+                "each point, and with no model there is none - so there is no "
+                "orthometric height to compute, to write, or to build a "
+                "factor from. Choose a geoid model, or state that the Z "
+                "column holds orthometric heights."
+            )
+
+        if geoid_swap_models(settings, transformation) is not None:
+            raise geoid.GeoidError(
+                f"This job states ELLIPSOID input heights AND a geoid change "
+                f"({settings.source_geoid_model.name} -> "
+                f"{settings.geoid_model.name}). Those two cannot be combined, "
+                f"and not because the arithmetic fails - because it makes the "
+                f"input model meaningless. An ellipsoid height is on no geoid "
+                f"model at all, so (h - N_in) + (N_in - N_out) is just "
+                f"h - N_out: the input model cancels out and changes no "
+                f"number this job produces, while every output would state a "
+                f"conversion FROM {settings.source_geoid_model.name} of a "
+                f"height that was never on it. State "
+                f"{settings.geoid_model.name} on both sides to get "
+                f"orthometric heights on {settings.geoid_model.name}."
+            )
+
+        if transformation is not None:
+            source_code = settings.source_vertical_datum.code
+            if ellipsoid_model.vertical_datum.code != source_code:
+                raise geoid.GeoidError(
+                    f"This job states ELLIPSOID input heights and an INPUT "
+                    f"vertical datum of {source_code}. An ellipsoid height is "
+                    f"measured from the GRS 80 ellipsoid and is in no "
+                    f"vertical datum at all; the orthometric height this "
+                    f"program derives from it is in the datum its geoid model "
+                    f"publishes separations for - "
+                    f"{ellipsoid_model.vertical_datum.code} for "
+                    f"{ellipsoid_model.name} - so an input datum of "
+                    f"{source_code} would label a "
+                    f"{ellipsoid_model.vertical_datum.code} height as a "
+                    f"{source_code} one before a single shift was applied. "
+                    f"State {ellipsoid_model.vertical_datum.code} as the "
+                    f"input vertical datum (and {source_code} as the OUTPUT "
+                    f"datum if {source_code} elevations are what you need), "
+                    f"or state that the Z column holds orthometric heights."
+                )
 
     # The factors' grid: the one side whose height and separation share an
     # era (factors_geoid_model - output side preferred, else input side).
@@ -1445,6 +1633,98 @@ def _convert_row(
     )
 
     # ----------------------------------------------------------------------
+    # Ellipsoid height in, orthometric height out - H = h - N (the owner's
+    # feature, 2026-08-11).
+    #
+    # ``supplied_m`` keeps the height exactly as the file gave it, because
+    # HORIZONTAL MODE WRITES THAT NUMBER BACK UNCHANGED (the owner's
+    # instruction: "in horizontal only mode, the elevations should be passed
+    # through unchanged, regardless of the input"). Everything else works from
+    # ``elevation_m``, and the point of rebinding it HERE, before anything
+    # reads it, is the invariant that establishes:
+    #
+    #     from this line down, elevation_m is an ORTHOMETRIC height in metres,
+    #     on every path, in every mode.
+    #
+    # That invariant is why the eight places below need no edit at all.
+    # Assigning only ``height_m`` instead would have been silently overwritten
+    # a few lines later by the identity branch's ``apply_shift(elevation_m,
+    # ...)`` - on the flagship same-datum job the feature would have done
+    # nothing at all - and would have fed a raw ellipsoid height to VERTCON and
+    # to #41's source-era factor path. Found by the design review before the
+    # code was written; pinned by
+    # ``test_the_identity_branch_cannot_overwrite_the_converted_height``.
+    #
+    # ``grid`` is the right grid to read: with the swap refused for ellipsoid
+    # input (``run``), the h -> H model IS ``factors_geoid_model`` in every
+    # accepted configuration, and ``grid`` is loaded from exactly that record.
+    # ----------------------------------------------------------------------
+    supplied_m = elevation_m
+    ellipsoid_reading: EllipsoidHeightReading | None = None
+    if settings.input_height_kind is HeightKind.ELLIPSOID and elevation_m is not None:
+        model = factors_geoid_model(settings, transformation)
+        if grid is None or model is None:
+            raise ValueError(
+                f"{context}: the input heights are stated as ellipsoid heights "
+                f"but this job carries no geoid model, so no geoid separation "
+                f"exists to convert them with. run() refuses this combination "
+                f"before any point converts; reaching it here is an internal "
+                f"wiring defect."
+            )
+        try:
+            separation_m = geoid.geoid_height(
+                conversion.latitude, conversion.longitude, grid
+            )
+        except geoid.GeoidError as error:
+            # No separation, so no orthometric height. In the vertical modes
+            # that refuses the Z outright - those modes exist to produce a
+            # datum-tagged elevation and there is none. In horizontal mode the
+            # Z is the supplied ellipsoid height and still goes out unchanged;
+            # only the factors are lost, which is the GEOID_UNAVAILABLE shape
+            # that path has always had. The horizontal coordinate stands
+            # either way.
+            elevation_m = None
+            warnings.append(
+                ConversionWarning(
+                    code=(
+                        WarningCode.ELLIPSOID_HEIGHT_UNCONVERTIBLE
+                        if settings.vertical_mode.converts_elevations
+                        else WarningCode.GEOID_UNAVAILABLE
+                    ),
+                    message=(
+                        f"{context}: the height {row.elevation:,.3f} "
+                        f"{settings.input_unit.code} was supplied as an "
+                        f"ELLIPSOID height, but no {model.name} geoid height "
+                        f"is available at {conversion.latitude:.6f}, "
+                        f"{conversion.longitude:.6f}, so the orthometric "
+                        f"height H = h - N could not be computed for it. "
+                        + (
+                            "No elevation is written for this point and its "
+                            "elevation and combined factors read "
+                            if settings.vertical_mode.converts_elevations
+                            else "The Z column carries the ellipsoid height "
+                            "as supplied, unconverted, and the elevation and "
+                            "combined factors read "
+                        )
+                        + f"{formatting.NOT_AVAILABLE}. The HORIZONTAL "
+                        f"coordinate is unaffected and stands: it does not "
+                        f"depend on elevation at all. Underlying reason: "
+                        f"{error}"
+                    ),
+                )
+            )
+        else:
+            orthometric_m = elevation_m - separation_m
+            ellipsoid_reading = EllipsoidHeightReading(
+                geoid_model_name=model.name,
+                vertical_datum_code=model.vertical_datum.code,
+                ellipsoid_height_m=elevation_m,
+                geoid_height_m=separation_m,
+                orthometric_height_m=orthometric_m,
+            )
+            elevation_m = orthometric_m
+
+    # ----------------------------------------------------------------------
     # Vertical shift - plan section 3.6 step 3, and it MUST run before the
     # geoid lookup and the factors below, because GEOID18/GEOID12B N and the
     # elevation factor are defined against the TARGET-era (NAVD 88) height.
@@ -1710,9 +1990,17 @@ def _convert_row(
                         sigma_unavailable_reason=reason,
                     )
 
+    # The Z that gets WRITTEN, and the one line where the mode decides
+    # anything about it. Horizontal mode passes the supplied height through
+    # untouched - the owner's instruction - so a GNSS file converted in
+    # horizontal mode keeps its ellipsoid heights in the Z column and gains
+    # only correct factors. The vertical modes write the orthometric height,
+    # shifted. With ORTHOMETRIC input the two are the same value and every
+    # pre-existing job is byte-identical.
+    written_m = height_m if settings.vertical_mode.converts_elevations else supplied_m
     output_elevation = (
-        settings.output_unit.from_meters(height_m)
-        if height_m is not None
+        settings.output_unit.from_meters(written_m)
+        if written_m is not None
         else None
     )
 
@@ -1809,6 +2097,7 @@ def _convert_row(
         output_easting=output_easting,
         output_elevation=output_elevation,
         vertical=vertical_reading,
+        ellipsoid_height=ellipsoid_reading,
         geoid_swap=geoid_swap_reading,
         warnings=tuple(warnings) + conversion.warnings,
     )

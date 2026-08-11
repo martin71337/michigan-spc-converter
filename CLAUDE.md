@@ -46,7 +46,20 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.6.2 — the owner's layout round ships (2026-08-11)
+## Current state: 0.6.3 — every geodetic selection names the datum (2026-08-11)
+
+**0.6.3 carries #58 only.** The geodetic entry in all four zone dropdowns now
+reads **NAD83(2011) geodetic (latitude / longitude)**. The owner's reasoning:
+NAD 83 is not WGS 84 — a metre or more apart in CONUS, boundary-moving by this
+project's own tier sentence — and a handheld's WGS 84 position pastes in
+cleanly and converts to something plausible and wrong. The label is DERIVED
+from `NAD83_2011.code`, so it follows the mathematics and renames itself when
+NATRF2022 arrives, which is the second half of what he asked for.
+
+**Still human, still outstanding:** the clean-profile install proof
+(METHOD.md §6) and a real PNEZD file from an actual job.
+
+## Superseded status: 0.6.2 — the owner's layout round ships (2026-08-11)
 
 **0.6.2 carries #57 only: interface, no computation.** A grey italic hint in
 the Single point elevation box, HORIZONTAL ONLY (#51's rule applied to a

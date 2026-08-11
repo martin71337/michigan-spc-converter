@@ -467,6 +467,36 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #58 — 2026-08-11 — Owner: every geodetic selection names the datum
+
+**The owner's instruction**, in his words: *"before all 'geodetic' selections
+we should add NAD83. this is because NAD83 is different from WGS84, and the
+new ellipsoid will be different again."*
+
+**Why it matters more than a label usually does.** NAD 83 and WGS 84 differ by
+**a metre or more** in the conterminous United States — a boundary-moving
+amount by this project's own tier sentence. A dropdown reading only "Geodetic"
+asks no question at all, and the obvious wrong answer is close enough to look
+right: a handheld or a phone gives WGS 84, it pastes in cleanly, and it
+converts to a plausible State Plane coordinate a metre from the truth. The
+program has always converted against NAD 83(2011) and always said so in the
+job record; it did not say so at the point of choosing.
+
+**Derived, not typed.** `GEODETIC_LABEL` is built from `NAD83_2011.code`, the
+frame record the projection actually uses, so the label cannot drift from the
+mathematics — and it answers the second half of his sentence by itself: when a
+job eventually runs on NATRF2022 the dropdown renames itself rather than
+needing to be remembered. The pin asserts the derivation, not just the text,
+and a hard-coded "NAD83 geodetic..." fails it.
+
+One change reaches all four dropdowns — both ends of both tabs — because
+`zone_combo` builds every one of them. The realization travels with the datum
+("NAD83(2011)", not "NAD83") because the record's own code is the
+authoritative string and the realization is the thing that changes next.
+
+Suite **1695 → 1696**, green in `pytest` and `-O`. Two falsifications: the
+datum dropped from the label, and the label hard-coded instead of derived.
+
 ### #57 — 2026-08-11 — Owner's layout round: a hint, three saved rows, and a geoid that grays
 
 **Five instructions, all interface, no computation touched.**

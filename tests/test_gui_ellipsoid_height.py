@@ -422,3 +422,28 @@ def test_the_geoid_stays_live_in_the_vertical_modes(window):
     for combo in (window.vertical_source_combo, window.vertical_target_combo):
         combo.setCurrentIndex(combo.findData(NAVD88))
     assert window.geoid_combo.isEnabled()
+
+
+def test_every_geodetic_selection_names_the_datum(window, tab):
+    """The owner's instruction, 2026-08-11: NAD 83 is not WGS 84.
+
+    They differ by a metre or more in the conterminous United States, which is
+    a boundary-moving amount, and a dropdown reading only "Geodetic" invites a
+    handheld's WGS 84 position to be pasted in for a plausible wrong answer.
+    Asserted on EVERY zone dropdown - both ends of both tabs - because the
+    From selection and the To selection are equally able to be misread.
+    """
+    from michspc.gui.controls import GEODETIC, GEODETIC_LABEL
+    from michspc.spc.frames import NAD83_2011
+
+    for combo in (window.from_zone, window.to_zone, tab.from_zone, tab.to_zone):
+        at = combo.findData(GEODETIC)
+        assert at != -1
+        assert combo.itemText(at) == GEODETIC_LABEL
+        assert combo.itemText(at).startswith("NAD83")
+
+    # Derived from the frame record, not typed: the day this program converts
+    # on another frame the label follows the mathematics by itself, which is
+    # the reason the owner gave for asking.
+    assert NAD83_2011.code in GEODETIC_LABEL
+    assert GEODETIC_LABEL == f"{NAD83_2011.code} geodetic (latitude / longitude)"

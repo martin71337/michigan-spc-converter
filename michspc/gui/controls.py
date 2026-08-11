@@ -26,6 +26,7 @@ from PySide6.QtWidgets import QButtonGroup, QComboBox, QMessageBox, QRadioButton
 from michspc.fileio import geoid
 from michspc.job import Direction, LongitudeConvention, VerticalMode
 from michspc.spc.units import ALL_UNITS, INTERNATIONAL_FEET
+from michspc.spc.frames import NAD83_2011
 from michspc.spc.vertical import (
     ALL_VERTICAL_DATUMS,
     HeightKind,
@@ -92,6 +93,27 @@ def zone_label(zone: Zone) -> str:
     return f"{zone.name} {zone.code}"
 
 
+GEODETIC_LABEL = f"{NAD83_2011.code} geodetic (latitude / longitude)"
+"""What the geodetic entry in every zone dropdown is called.
+
+The owner's instruction, 2026-08-11: name the datum, because **NAD 83 is not
+WGS 84** — they differ by a metre or more in the conterminous United States,
+which is a boundary-moving amount — and the modernized frame coming after it
+will differ again. A dropdown reading only "Geodetic" invites a surveyor to
+paste in a handheld's WGS 84 position and get a plausible, wrong answer.
+
+**Derived from the frame record, never typed.** ``NAD83_2011.code`` is what
+this program actually converts against, so the label cannot drift from the
+mathematics, and the day a job runs on NATRF2022 the dropdown renames itself
+rather than needing to be remembered. That is the same rule the zone names
+follow, and the reason the owner gave for asking.
+
+It carries the realization as well as the datum - "NAD83(2011)", not "NAD83" -
+because the frame record's own code is the authoritative string and the
+realization is the thing that will change next.
+"""
+
+
 def zone_combo(parent, on_change) -> QComboBox:
     """A zone dropdown, built from the registry.
 
@@ -104,7 +126,7 @@ def zone_combo(parent, on_change) -> QComboBox:
     """
     combo = QComboBox(parent)
     combo.addItem("— choose —", UNCHOSEN)
-    combo.addItem("Geodetic (latitude / longitude)", GEODETIC)
+    combo.addItem(GEODETIC_LABEL, GEODETIC)
     for zone in ALL_ZONES:
         combo.addItem(zone_label(zone), zone)
     combo.currentIndexChanged.connect(on_change)

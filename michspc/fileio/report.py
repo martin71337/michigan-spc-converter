@@ -30,7 +30,7 @@ from michspc.job import (
 from michspc.spc.convert import WarningCode
 from michspc.spc.factors import MEAN_EARTH_RADIUS_M
 from michspc.spc.lambert import constants_for
-from michspc.spc.vertical import require_vertical_pair
+from michspc.spc.vertical import HeightKind, require_vertical_pair
 
 _RULE = "=" * 78
 _THIN = "-" * 78
@@ -356,6 +356,77 @@ def _vertical_method_block(settings, transformation, result) -> list[str]:
     return lines
 
 
+def _ellipsoid_height_method_block(settings, model_name) -> list[str]:
+    """The METHOD section's account of an ellipsoid-height input.
+
+    Facts only, in ``_geoid_swap_method_block``'s shape and under the same
+    standing instruction (the owner's, 2026-08-09, #33/#34/#45 extended to the
+    written record): the model with its tile filename and digest resolved from
+    the registry, the arithmetic, and the datum the derived heights are in.
+
+    The mode paragraph is the load-bearing one, because the two modes do
+    different things with the same conversion and the difference is invisible
+    in the numbers alone: horizontal mode writes the Z column back exactly as
+    supplied and uses the derived height only for the factors, while the
+    vertical modes write the derived height. A reader holding only the clean
+    export needs the record to say which of those produced it.
+    """
+    record = geoid_model_by_name(model_name)
+    lines: list[str] = []
+    add = lines.append
+
+    add("ELLIPSOID HEIGHT CONVERSION")
+    add("")
+    add(
+        f"Input heights      stated as ELLIPSOID heights (above the GRS 80 "
+        f"ellipsoid),"
+    )
+    add("                   as a GNSS receiver produces them.")
+    add(
+        f"Geoid model        {record.name}, NGS grid tile "
+        f"{record.tile_filename}"
+    )
+    add(f"                   SHA-256 {record.sha256}")
+    lines.extend(
+        _labelled_paragraph(
+            "Arithmetic",
+            f"The orthometric height is derived at each point's own "
+            f"horizontal position: H = h - N, where h is the height the Z "
+            f"column supplied and N is the {record.name} geoid height there, "
+            f"in metres. N is negative throughout Michigan, so H is the "
+            f"LARGER number - about 34 m larger. The derived heights are in "
+            f"{record.vertical_datum.code}, the datum {record.name} publishes "
+            f"separations for; an ellipsoid height is in no vertical datum "
+            f"itself.",
+        )
+    )
+    if settings.vertical_mode.converts_elevations:
+        lines.extend(
+            _labelled_paragraph(
+                "This job",
+                "converts the elevations, so the Z column of every export "
+                "carries the derived orthometric height, after any vertical "
+                "datum shift stated below.",
+            )
+        )
+    else:
+        lines.extend(
+            _labelled_paragraph(
+                "This job",
+                "is horizontal, so the Z column of every export carries the "
+                "ELLIPSOID HEIGHT EXACTLY AS SUPPLIED, re-expressed into the "
+                "output unit and otherwise unchanged. The derived orthometric "
+                "height was used only to compute the elevation and combined "
+                "factors, which is what it is for: the elevation factor is "
+                "R / (R + H + N), so supplying h where H is expected would "
+                "add the geoid separation to a height that already contains "
+                "it.",
+            )
+        )
+    add("")
+    return lines
+
+
 def _geoid_swap_method_block(swap_models) -> list[str]:
     """The METHOD section's account of a geoid-to-geoid conversion.
 
@@ -637,6 +708,14 @@ def build_report(result: JobResult) -> str:
     # this gates is additive and swap-only: a job without a swap keeps every
     # byte it wrote before the feature.
     swap_models = geoid_swap_models(settings, transformation)
+    # The model that derived H from h, or None when the Z column already held
+    # elevations. Resolved through the same job-layer rule the computation
+    # used, so the record cannot name a model the conversion did not read.
+    ellipsoid_model_name = (
+        factors_geoid_model(settings, transformation).name
+        if settings.input_height_kind is HeightKind.ELLIPSOID
+        else None
+    )
 
     lines: list[str] = []
     add = lines.append
@@ -833,6 +912,14 @@ def build_report(result: JobResult) -> str:
         add("                   were computed for this job.")
         add("")
 
+    # Before the vertical account, because h -> H runs before the datum
+    # shift does, and a METHOD section read top to bottom should be the order
+    # the program actually worked in. Pinned.
+    if ellipsoid_model_name is not None:
+        lines.extend(
+            _ellipsoid_height_method_block(settings, ellipsoid_model_name)
+        )
+
     if vertical:
         lines.extend(_vertical_method_block(settings, transformation, result))
         if swap_models is not None:
@@ -923,6 +1010,25 @@ def build_report(result: JobResult) -> str:
                 f"{swap_models[0].name} and every elevation this job writes "
                 f"is stated against {swap_models[1].name}."
             )
+        elif unshifted and ellipsoid_model_name is not None:
+            # The THIRD cause of a refused-but-populated Z, and it needed its
+            # own branch for the reason the swap branch above needed one: an
+            # ellipsoid-input job that fails here read no VERTCON grid at all
+            # - on an identity job none is even loaded - so the sentence below
+            # would name a grid that was never consulted. The same WP-R2 fix C
+            # class arriving through a third door, caught by the design review
+            # before this feature shipped rather than by a gate afterwards.
+            add(
+                f"{len(unshifted)} of {len(result.points)} points carried an "
+                f"ellipsoid height that could NOT be converted to an "
+                f"orthometric height: the point lies outside the "
+                f"{ellipsoid_model_name} tile this program ships, so no geoid "
+                f"separation exists there and H = h - N has no value. The Z "
+                f"field was read; the elevation is deliberately not written, "
+                f"because the height in hand is measured from the ellipsoid "
+                f"and every elevation this job writes is measured from the "
+                f"geoid."
+            )
         elif unshifted:
             add(
                 f"{len(unshifted)} of {len(result.points)} points carried an "
@@ -1006,6 +1112,35 @@ def build_report(result: JobResult) -> str:
             add("  written unconverted. The HORIZONTAL coordinate of each point is")
             add("  unaffected and stands. Each point is named again, with its")
             add("  position, under WARNINGS below.")
+        elif unshifted and ellipsoid_model_name is not None:
+            # The detail block's copy of the third branch. The summary above
+            # has the same three-way split; both had to gain it, because this
+            # section states the same fact twice - once counted, once with the
+            # points named - and a reader who scrolled to the named list would
+            # otherwise be told about a grid the job never opened.
+            add("")
+            add(
+                f"  Ellipsoid height recorded, but no geoid separation exists "
+                f"there ({len(unshifted)}):"
+            )
+            lines.extend(_point_id_block(unshifted))
+            add("")
+            add("  These Z fields were read. They are NOT blank and they are NOT")
+            add(
+                f"  zero. They hold ELLIPSOID heights, and the position lies "
+                f"outside the"
+            )
+            add(
+                f"  {ellipsoid_model_name} tile this program ships, so no geoid "
+                f"separation"
+            )
+            add("  exists there and H = h - N has no value. The elevation is")
+            add("  deliberately absent from the exports rather than written")
+            add("  unconverted: a height measured from the ellipsoid, sitting in a")
+            add("  column of heights measured from the geoid, would look ordinary")
+            add("  and be wrong by about 34 m. The HORIZONTAL coordinate of each")
+            add("  point is unaffected and stands. Each point is named again, with")
+            add("  its position, under WARNINGS below.")
         elif unshifted:
             add("")
             add(

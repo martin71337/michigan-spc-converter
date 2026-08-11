@@ -26,6 +26,7 @@ from pathlib import Path
 from michspc.fileio import formatting as fmt
 from michspc.fileio.writers import WriteError, staged_write
 from michspc.job import Direction, JobResult
+from michspc.spc.vertical import HeightKind
 
 _PNEZD_HEADERLESS = True
 """The clean export has no header row, matching the input format exactly.
@@ -260,18 +261,42 @@ def audit_columns(result: JobResult) -> list[str]:
         columns[2], columns[3] = SOURCE_COLUMNS_GEODETIC
     if _geodetic_coordinate_columns(settings):
         columns[5], columns[6] = TARGET_COLUMNS_GEODETIC
+    if settings.input_height_kind is HeightKind.ELLIPSOID:
+        # One column, present exactly when the job stated ellipsoid input, so
+        # no pre-existing job's layout moves by a byte. It earns its place on
+        # a HORIZONTAL job especially: there the Elevation column holds the
+        # ellipsoid height itself, passed through, and a row cut out of this
+        # file and pasted elsewhere would otherwise carry no statement at all
+        # of what kind of height it is - the same reasoning that put "Source
+        # vertical datum" on every row of a vertical job.
+        columns.insert(columns.index("Elevation") + 1, "Input height kind")
+
     if settings.vertical_mode.converts_elevations:
         # The vertical block sits directly after Elevation, so the target
         # height and the ingredients it was derived from read side by side;
         # Geoid model sits directly before the geoid height it governs.
-        anchor = columns.index("Elevation") + 1
-        columns[anchor:anchor] = [
+        anchor = (
+            columns.index("Input height kind") + 1
+            if settings.input_height_kind is HeightKind.ELLIPSOID
+            else columns.index("Elevation") + 1
+        )
+        vertical_block = [
             "Source vertical datum",
             "Target vertical datum",
             f"Source elevation ({settings.input_unit.code})",
             vertical_shift_heading(settings.input_unit),
             vertical_sigma_heading(settings.input_unit),
         ]
+        if settings.input_height_kind is HeightKind.ELLIPSOID:
+            # The height the file actually supplied, in its own column, so
+            # "Source elevation" can go on meaning what it has always meant -
+            # the PRE-SHIFT orthometric height - and the row's arithmetic
+            # stays closed: Source elevation + Vertical shift = Elevation.
+            # Without it one of those two facts has to give.
+            vertical_block.insert(
+                2, f"Ellipsoid height in ({settings.input_unit.code})"
+            )
+        columns[anchor:anchor] = vertical_block
         if settings.source_geoid_model is not None:
             # The per-side feature's one new column, present exactly when
             # the job STATED an input-side model: which geoid model the
@@ -362,6 +387,11 @@ def audit_rows(result: JobResult) -> list[list[str]]:
             ]
         )
 
+        if settings.input_height_kind is HeightKind.ELLIPSOID:
+            row.insert(
+                header.index("Input height kind"), settings.input_height_kind.value
+            )
+
         if vertical:
             # Inserted at the vertical header's own indexes, computed from the
             # header this function just built, so the cells cannot land under
@@ -379,19 +409,34 @@ def audit_rows(result: JobResult) -> list[list[str]]:
             # through the formatter, never the raw figure.
             shift_m, sigma_m = vertical_shift_and_sigma_m(point)
             insert_at = header.index("Source vertical datum")
-            row[insert_at:insert_at] = [
+            # The PRE-shift ORTHOMETRIC height. For an orthometric-input job
+            # that is exactly what the file supplied; for an ellipsoid-input
+            # job it is the height DERIVED from it, because this column means
+            # "what the vertical shift was applied to" and the shift was
+            # applied to H, never to h. N/A where no height was derived - a
+            # blank Z, or a point off the geoid tile.
+            source_elevation = point.row.elevation
+            if settings.input_height_kind is HeightKind.ELLIPSOID:
+                source_elevation = (
+                    in_unit.from_meters(point.ellipsoid_height.orthometric_height_m)
+                    if point.ellipsoid_height is not None
+                    else None
+                )
+            vertical_cells = [
                 settings.source_vertical_datum.code,
                 settings.target_vertical_datum.code,
-                # The PRE-shift height exactly as the file supplied it, in the
-                # input unit - N/A for a blank Z field, exactly as the target
-                # Elevation cell is.
-                fmt.coordinate(point.row.elevation, in_unit),
+                fmt.coordinate(source_elevation, in_unit),
                 # Both cells are converted into IN_UNIT - the same unit
                 # object the two headings above were built from, so heading
                 # and value cannot claim different units.
                 fmt.vertical_quantity(shift_m, in_unit),
                 fmt.vertical_quantity(sigma_m, in_unit),
             ]
+            if settings.input_height_kind is HeightKind.ELLIPSOID:
+                vertical_cells.insert(
+                    2, fmt.coordinate(point.row.elevation, in_unit)
+                )
+            row[insert_at:insert_at] = vertical_cells
             if settings.source_geoid_model is not None:
                 row.insert(
                     header.index("Source geoid model"),

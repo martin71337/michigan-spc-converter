@@ -71,6 +71,9 @@ and the factors read N/A.
 - The audit CSV names the input height kind on every row, and vertical jobs
   carry the supplied ellipsoid height in its own column so the row's arithmetic
   still closes: source elevation + shift = elevation.
+- In Horizontal mode the elevation column — on screen and in the audit CSV — is
+  renamed **Ellipsoid height (GNSS)**, because that is what it holds. Nothing
+  labelled "Elevation" ever contains an unconverted GNSS height.
 - The clean PNEZD export is unchanged — **five fields, no header**, exactly as
   every CAD import expects.
 
@@ -97,8 +100,15 @@ findings, with sources, are in the design record.
   them.
 - Every new test was **falsified** — the defect it claims to catch was put back
   and the test watched to fail. Nineteen of them across this feature.
-- An **independent adversarial reviewer** examined the entire change.
-- **1,681 automated tests**, green in both run modes.
+- An **independent adversarial reviewer** examined the entire change and
+  found three issues, all fixed before release: two places where a GNSS height
+  sat under a heading that said "Elevation", and one weak test. It separately
+  confirmed the conversion logic, the refusals and the factor correction were
+  sound across every accepted configuration.
+- **1,690 automated tests**, green in both run modes, including a
+  cross-version pin: the digests of every CSV that nine ordinary jobs write,
+  computed by the previous release and frozen, so a future change that moves
+  any byte of an existing job's output fails a test.
 - The installer is built only through a gated script: version check, clean
   tree, full test suite twice, icon, bundle, a **self-test run inside the
   frozen application** against live NGS values, installer, checksums. Any

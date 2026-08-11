@@ -46,7 +46,25 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: ellipsoid-height input ON MAIN, unreleased; 0.5.0 released (2026-08-11)
+## Current state: 0.6.0 — ellipsoid (GNSS) height input ships (2026-08-11)
+
+**0.6.0 carries #54 (the feature) and #55 (its closing gate).** The gate ran
+under Codex over `v0.5.0..HEAD`: **one HIGH, one MEDIUM, one LOW, no
+CRITICAL**, all fixed and pinned before the tag. The HIGH was h escaping into
+a field labelled H on two horizontal surfaces — one of the three decisions #54
+had recorded as the session lead's and open to review; the review took it and
+it was wrong. The gate's negatives are worth keeping: the `_convert_row`
+invariant holds, no accepted configuration produced a wrong height or factor
+across the full matrix, and no refusal could be bypassed.
+
+**The owner asked that the release read as a finished product**, not a work in
+progress — the release notes say so, and say that future releases are
+additions as NGS publishes data rather than further construction.
+
+**Still human, still outstanding:** the clean-profile install proof
+(METHOD.md §6) and a real PNEZD file from an actual job.
+
+## Superseded status: ellipsoid-height input ON MAIN, unreleased (2026-08-11)
 
 **The owner's feature: the Z column may hold GNSS ellipsoid heights
 (DESIGN.md #54).** H = h - N, with the mode deciding only what is WRITTEN:

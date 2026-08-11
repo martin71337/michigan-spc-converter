@@ -467,6 +467,37 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #59 — 2026-08-11 — Field validation: the owner has run real jobs end to end
+
+**The owner's report, at the close of the session:** *"i have ran jobs end to
+end. no issues."*
+
+This closes the longest-standing open item in this record. METHOD.md §7 makes
+field validation a precondition for anything real leaning on the outputs, and
+§6 makes the human proof a release requirement; every release from 0.1.0 to
+0.6.3 carried it forward unmet, and the working summary named it after each
+one. It is met: the program has converted real work, on the owner's own
+machine, and produced nothing he had to correct.
+
+**What it does and does not cover.** He states jobs run end to end — the
+program installed, read real input, converted, and wrote outputs he accepted.
+The half of METHOD §6 that remains unconfirmed in his own words is the
+**clean-profile** install specifically: whether a machine without a developer's
+Python and Qt already on it was among those tested. That distinction is
+recorded rather than assumed either way, because it is the one an installer
+defect would hide behind, and the frozen-bundle self-test is evidence but not
+proof of it.
+
+**What still has no substitute:** a real PNEZD file from an actual job
+committed as a fixture. The reader is still built to a documented convention.
+Jobs running clean is strong evidence the convention matches reality; a
+committed file would make it a regression pin. Downgraded from an open risk to
+a nice-to-have.
+
+No code changed for this amendment. It is recorded because the absence of
+field validation was recorded, repeatedly, and a record that only carries the
+gap and never its closing is a record that misleads.
+
 ### #58 — 2026-08-11 — Owner: every geodetic selection names the datum
 
 **The owner's instruction**, in his words: *"before all 'geodetic' selections

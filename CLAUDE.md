@@ -56,8 +56,15 @@ cleanly and converts to something plausible and wrong. The label is DERIVED
 from `NAD83_2011.code`, so it follows the mathematics and renames itself when
 NATRF2022 arrives, which is the second half of what he asked for.
 
-**Still human, still outstanding:** the clean-profile install proof
-(METHOD.md §6) and a real PNEZD file from an actual job.
+**FIELD VALIDATION IS DONE (DESIGN.md #59).** The owner reports running real
+jobs end to end with no issues (2026-08-11) — the longest-standing open item
+in this record, carried unmet from 0.1.0 through 0.6.3, is closed. Two
+qualifications recorded rather than assumed: he did not say whether a
+CLEAN-PROFILE machine was among those tested (the half of METHOD §6 an
+installer defect would hide behind), and a real PNEZD file from an actual job
+is still not committed as a fixture — now a nice-to-have rather than an open
+risk, since jobs running clean is strong evidence the reader's convention
+matches reality.
 
 ## Superseded status: 0.6.2 — the owner's layout round ships (2026-08-11)
 

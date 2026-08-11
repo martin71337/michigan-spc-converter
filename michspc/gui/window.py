@@ -115,7 +115,7 @@ Single point is index 0 and the window opens there: it is the everyday case
 second tab.
 """
 
-ELEVATION_NOTE = "— used for the elevation and combined factors"
+ELEVATION_NOTE = "— used for combined scale factor"
 """The visible note beside the Elevations button, HORIZONTAL mode only.
 
 The owner's instruction (DESIGN.md #48): where the "in file" button remains,
@@ -414,7 +414,9 @@ class MainWindow(QMainWindow):
         self.height_kind_combo.currentIndexChanged.connect(
             self._update_convert_enabled
         )
-        self.elevation_in_file.toggled.connect(self._update_height_kind_enabled)
+        self.elevation_in_file.toggled.connect(
+            self._update_elevation_dependent_enabled
+        )
 
         elevations_cell = QWidget(box)
         stacked = QVBoxLayout(elevations_cell)
@@ -843,7 +845,7 @@ class MainWindow(QMainWindow):
             self.height_kind_combo,
         ):
             widget.setVisible(True)
-        self._update_height_kind_enabled()
+        self._update_elevation_dependent_enabled()
         # No output horizontal system exists in vertical-only mode (the To
         # row), and the export mirrors the input's unit (the output Units
         # selector) - visible, either control would be a question this job
@@ -857,16 +859,33 @@ class MainWindow(QMainWindow):
         ):
             widget.setVisible(not vertical_only)
 
-    def _update_height_kind_enabled(self) -> None:
-        """Grayed unless the "in file" button is selected — the owner's rule.
+    def _update_elevation_dependent_enabled(self) -> None:
+        """Gray the controls that only matter when elevations are read.
 
-        In the two vertical modes that button is hidden but still checked, so
-        the control is enabled there, which is where it matters most. Grayed
-        rather than hidden is #50's own distinction: a disabled control shows
-        that the question exists and does not apply, where a missing one shows
-        nothing at all.
+        The owner's instruction, 2026-08-11. In HORIZONTAL mode, with no
+        elevations in the file, there is no height to look a geoid separation
+        up FOR: every factor that would use it reads N/A, so the model choice
+        changes nothing the job produces and the dropdown says so by graying.
+
+        Only in horizontal mode. In the two vertical modes the geoid is
+        load-bearing whatever the "in file" button says - it is what converts
+        the heights - so it stays live there, and the button itself is hidden
+        anyway (#48).
+
+        Grayed rather than hidden, the owner's standing distinction (#50): a
+        disabled dropdown shows that the question exists and does not apply.
         """
-        self.height_kind_combo.setEnabled(self.elevation_in_file.isChecked())
+        elevations = self.elevation_in_file.isChecked()
+        self.height_kind_combo.setEnabled(elevations)
+        # ONLY EVER DISABLES, and only in horizontal mode. In the vertical
+        # modes the output geoid's enablement belongs entirely to
+        # _refresh_geoid_sides, which grays it when its side's datum has no
+        # published model (NGVD 29). Writing `setEnabled(vertical or
+        # elevations)` here instead re-enabled it in exactly that case and
+        # broke that rule - two methods driving one property, the later call
+        # winning. Caught by #50's own graying pin.
+        if not self.vertical_mode().converts_elevations:
+            self.geoid_combo.setEnabled(elevations)
 
     def _update_convert_enabled(self) -> None:
         self.convert_button.setEnabled(self.settings() is not None)

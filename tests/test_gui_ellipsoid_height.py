@@ -309,3 +309,116 @@ def test_an_orthometric_job_names_no_model_and_no_ellipsoid_row():
     # job: its suppression is opt-in with the feature, not a deletion. On a
     # leveled height h = H + N is a genuinely separate fact from the Z.
     assert "Ellipsoid height (m)" in labels
+
+
+# ==========================================================================
+# The owner's layout and hint round, 2026-08-11.
+# ==========================================================================
+
+
+def test_the_elevation_box_hints_only_where_the_elevation_is_optional(tab):
+    """The #51 rule, applied to a placeholder instead of a tooltip.
+
+    #51 removed a tooltip from this box for calling the elevation "optional"
+    in all three modes. A placeholder saying the same thing sits INSIDE the
+    field, which is more prominent, so the mode rule matters more, not less.
+    """
+    from michspc.gui.single_point import ELEVATION_PLACEHOLDER
+
+    assert ELEVATION_PLACEHOLDER == "optional, used for combined scale factor"
+
+    tab.mode_horizontal.setChecked(True)
+    assert tab.elevation_edit.placeholderText() == ELEVATION_PLACEHOLDER
+
+    for mode_button in (tab.mode_vertical, tab.mode_vertical_only):
+        mode_button.setChecked(True)
+        assert tab.elevation_edit.placeholderText() == ""
+
+    # And back, so the hint is restored rather than lost on the first switch.
+    tab.mode_horizontal.setChecked(True)
+    assert tab.elevation_edit.placeholderText() == ELEVATION_PLACEHOLDER
+
+
+def test_the_elevation_box_is_italic_only_while_it_is_empty(tab):
+    """Qt cannot italicise placeholder text alone, so the widget is italic
+    while empty — which renders exactly the placeholder in italic — and
+    upright the moment a value is typed."""
+    tab.mode_horizontal.setChecked(True)
+    tab.elevation_edit.setText("")
+    assert tab.elevation_edit.font().italic()
+
+    tab.elevation_edit.setText("900.00")
+    assert not tab.elevation_edit.font().italic()
+
+    tab.elevation_edit.setText("")
+    assert tab.elevation_edit.font().italic()
+
+
+def test_the_paired_controls_share_their_rows(tab):
+    """The owner's compaction, 2026-08-11: three rows saved.
+
+    Asserted through the layout rather than by eye — each pair must be on ONE
+    grid row, with each control still carrying its own label so nothing is
+    inferred from position.
+    """
+    grid = tab.elevation_edit.parentWidget().layout()
+
+    def row_of(widget):
+        return grid.getItemPosition(grid.indexOf(widget))[0]
+
+    assert row_of(tab.vertical_source_combo) == row_of(tab.vertical_target_combo)
+    assert row_of(tab.input_geoid_combo) == row_of(tab.geoid_combo)
+    assert row_of(tab.elevation_edit) == row_of(tab.height_kind_combo)
+
+    # Distinct rows from each other, so the compaction did not collapse
+    # everything into one line.
+    rows = {
+        row_of(tab.vertical_source_combo),
+        row_of(tab.input_geoid_combo),
+        row_of(tab.elevation_edit),
+    }
+    assert len(rows) == 3
+
+    # Every control still has its own label on the same row.
+    for label, control in (
+        (tab.vertical_source_label, tab.vertical_source_combo),
+        (tab.vertical_target_label, tab.vertical_target_combo),
+        (tab.input_geoid_label, tab.input_geoid_combo),
+        (tab.geoid_label, tab.geoid_combo),
+        (tab.elevation_label, tab.elevation_edit),
+        (tab.height_kind_label, tab.height_kind_combo),
+    ):
+        assert row_of(label) == row_of(control)
+
+
+def test_the_geoid_grays_when_no_elevations_are_read(window):
+    """The owner's instruction, 2026-08-11. With no elevations there is no
+    height to look a separation up for, so the model changes nothing."""
+    window.mode_horizontal.setChecked(True)
+    assert window.elevation_in_file.isChecked()
+    assert window.geoid_combo.isEnabled()
+
+    window.elevation_in_file.setChecked(False)
+    assert not window.geoid_combo.isEnabled()
+    assert not window.geoid_combo.isHidden()
+
+    window.elevation_in_file.setChecked(True)
+    assert window.geoid_combo.isEnabled()
+
+
+def test_the_geoid_stays_live_in_the_vertical_modes(window):
+    """The graying is horizontal-only: in the vertical modes the geoid is what
+    converts the heights, and its enablement belongs to the per-datum rule.
+
+    This is the pin that caught the first version of the graying, which wrote
+    ``setEnabled(vertical or elevations)`` and re-enabled a combo the datum
+    filter had deliberately grayed.
+    """
+    window.mode_vertical.setChecked(True)
+    window.elevation_in_file.setChecked(False)
+
+    # NAVD 88 by data, not by index: index 1 is NGVD 29, which genuinely has
+    # no published model and is grayed on purpose.
+    for combo in (window.vertical_source_combo, window.vertical_target_combo):
+        combo.setCurrentIndex(combo.findData(NAVD88))
+    assert window.geoid_combo.isEnabled()

@@ -133,6 +133,22 @@ ELEVATION_LABEL = "Elevation:"
 the coordinates are going, so this label never moves and the field is never
 disabled."""
 
+ELEVATION_PLACEHOLDER = "optional, used for combined scale factor"
+"""The hint inside the empty elevation box, HORIZONTAL MODE ONLY.
+
+The owner's instruction, 2026-08-11. It says the two things a surveyor needs
+about that field in that mode: the conversion runs without it, and what it
+buys if supplied.
+
+**It is cleared in the two vertical modes, and that is the whole care this
+constant needs.** Amendment #51 removed a tooltip from this very box for
+saying "Optional" in all three modes, when in Horizontal + Vertical and in
+Vertical the elevation is the value the job exists to convert. A placeholder
+that stayed put would reintroduce the identical falsehood in a more prominent
+place - inside the field rather than behind a hover. ``_update_vertical_rows``
+sets it, and a test asserts it is empty in both vertical modes.
+"""
+
 # The elevation box had a tooltip here calling the elevation OPTIONAL and
 # explaining that a blank or exactly-zero value reads N/A in the factor
 # columns. Deleted at the owner's instruction (docs/DESIGN.md amendment #51).
@@ -339,10 +355,14 @@ class SinglePointTab(QWidget):
             box, self._on_vertical_datum_changed
         )
 
+        # The two datums share a line, and the two geoids share the next
+        # one - the owner's instruction of 2026-08-11, to save vertical space
+        # on a tab that had grown to fourteen rows. Each control keeps its own
+        # label beside it, so nothing is inferred from position.
         grid.addWidget(self.vertical_source_label, 3, 0)
-        grid.addWidget(self.vertical_source_combo, 3, 1, 1, 3)
-        grid.addWidget(self.vertical_target_label, 4, 0)
-        grid.addWidget(self.vertical_target_combo, 4, 1, 1, 3)
+        grid.addWidget(self.vertical_source_combo, 3, 1)
+        grid.addWidget(self.vertical_target_label, 3, 2)
+        grid.addWidget(self.vertical_target_combo, 3, 3)
 
         # --- input-side geoid model -------------------------------------
         # Directly under the datum rows it is filtered by (the owner's
@@ -358,8 +378,8 @@ class SinglePointTab(QWidget):
         self.input_geoid_combo = geoid_combo(box)
         self.input_geoid_combo.currentIndexChanged.connect(self._invalidate_result)
 
-        grid.addWidget(self.input_geoid_label, 5, 0)
-        grid.addWidget(self.input_geoid_combo, 5, 1, 1, 3)
+        grid.addWidget(self.input_geoid_label, 4, 0)
+        grid.addWidget(self.input_geoid_combo, 4, 1)
 
         # --- geoid model ------------------------------------------------
         # New to this tab, which had no geoid control at all (plan section
@@ -375,8 +395,8 @@ class SinglePointTab(QWidget):
         self.geoid_combo = geoid_combo(box)
         self.geoid_combo.currentIndexChanged.connect(self._invalidate_result)
 
-        grid.addWidget(self.geoid_label, 6, 0)
-        grid.addWidget(self.geoid_combo, 6, 1, 1, 3)
+        grid.addWidget(self.geoid_label, 4, 2)
+        grid.addWidget(self.geoid_combo, 4, 3)
 
         # --- longitude sign convention ----------------------------------
         self.longitude_label = QLabel("Longitude sign:", box)
@@ -390,8 +410,8 @@ class SinglePointTab(QWidget):
         # produced (DESIGN.md #43, correcting #26).
         self.longitude_combo = longitude_combo(box, self._on_longitude_changed)
 
-        grid.addWidget(self.longitude_label, 7, 0)
-        grid.addWidget(self.longitude_combo, 7, 1, 1, 3)
+        grid.addWidget(self.longitude_label, 5, 0)
+        grid.addWidget(self.longitude_combo, 5, 1, 1, 3)
 
         # --- how a latitude and longitude are typed ----------------------
         self.angle_format_label = QLabel(ANGLE_FORMAT_LABEL, box)
@@ -400,8 +420,8 @@ class SinglePointTab(QWidget):
         self.angle_format.addItem(ANGLE_FORMAT_DMS, DMS_PAGE)
         self.angle_format.currentIndexChanged.connect(self._on_angle_format_changed)
 
-        grid.addWidget(self.angle_format_label, 8, 0)
-        grid.addWidget(self.angle_format, 8, 1, 1, 3)
+        grid.addWidget(self.angle_format_label, 6, 0)
+        grid.addWidget(self.angle_format, 6, 1, 1, 3)
 
         # --- the typed coordinate ---------------------------------------
         # Each coordinate row is a two-page stack: one decimal box, or four DMS
@@ -422,6 +442,16 @@ class SinglePointTab(QWidget):
         self.elevation_label = QLabel(ELEVATION_LABEL, box)
         self.elevation_edit = QLineEdit(box)
         # No tooltip on this field, at the owner's instruction (#51 above).
+        # The placeholder is set per mode by _update_vertical_rows, not here:
+        # it is true only in Horizontal, and #51 is what that rule is for.
+        #
+        # Grey comes free - Qt renders placeholder text in the palette's
+        # placeholder colour - but italic does not, and Qt has no
+        # placeholder-only font. Italicising the WIDGET while it is empty is
+        # the same thing seen from the user's side, since the placeholder is
+        # the only text an empty box shows; the italic comes off the moment a
+        # digit is typed, so the value itself is never italic.
+        self._italicise_when_empty(self.elevation_edit)
 
         # Only the two coordinate fields gate Convert. The elevation is optional
         # by the file reader's own convention, so it does not participate in
@@ -434,12 +464,12 @@ class SinglePointTab(QWidget):
         self.second_edit.textChanged.connect(self._invalidate_result)
         self.elevation_edit.textChanged.connect(self._invalidate_result)
 
-        grid.addWidget(self.first_label, 9, 0)
-        grid.addWidget(self.first_stack, 9, 1, 1, 3)
-        grid.addWidget(self.second_label, 10, 0)
-        grid.addWidget(self.second_stack, 10, 1, 1, 3)
-        grid.addWidget(self.elevation_label, 11, 0)
-        grid.addWidget(self.elevation_edit, 11, 1, 1, 3)
+        grid.addWidget(self.first_label, 7, 0)
+        grid.addWidget(self.first_stack, 7, 1, 1, 3)
+        grid.addWidget(self.second_label, 8, 0)
+        grid.addWidget(self.second_stack, 8, 1, 1, 3)
+        grid.addWidget(self.elevation_label, 9, 0)
+        grid.addWidget(self.elevation_edit, 9, 1)
 
         # Directly beneath the elevation field, so this tab and the Multi
         # point tab read the same way top to bottom (the owner's placement,
@@ -451,8 +481,8 @@ class SinglePointTab(QWidget):
         self.height_kind_label = QLabel(HEIGHT_KIND_LABEL, box)
         self.height_kind_combo = height_kind_combo(box)
         self.height_kind_combo.currentIndexChanged.connect(self._invalidate_result)
-        grid.addWidget(self.height_kind_label, 12, 0)
-        grid.addWidget(self.height_kind_combo, 12, 1, 1, 3)
+        grid.addWidget(self.height_kind_label, 9, 2)
+        grid.addWidget(self.height_kind_combo, 9, 3)
 
         # --- convert ----------------------------------------------------
         self.convert_button = QPushButton("Convert", box)
@@ -460,11 +490,31 @@ class SinglePointTab(QWidget):
         buttons.addStretch(1)
         buttons.addWidget(self.convert_button)
         self.convert_button.clicked.connect(self.convert)
-        grid.addLayout(buttons, 13, 0, 1, 4)
+        grid.addLayout(buttons, 10, 0, 1, 4)
 
         grid.setColumnStretch(1, 3)
         grid.setColumnStretch(3, 2)
         return box
+
+    def _italicise_when_empty(self, edit) -> None:
+        """Italic while the box is empty, upright as soon as it holds a value.
+
+        Qt styles placeholder text grey but offers no way to italicise it
+        alone. An empty box shows nothing but its placeholder, so italicising
+        the widget in that state renders exactly the placeholder in italic -
+        and switching back on the first keystroke keeps the typed elevation in
+        the ordinary face, which matters because a slanted number is harder to
+        read back against a field book.
+        """
+
+        def restyle(text: str) -> None:
+            font = edit.font()
+            if font.italic() != (not text):
+                font.setItalic(not text)
+                edit.setFont(font)
+
+        edit.textChanged.connect(restyle)
+        restyle(edit.text())
 
     @staticmethod
     def _entry_stack(box: QWidget, decimal: QWidget, degrees: QWidget) -> QStackedWidget:
@@ -901,6 +951,14 @@ class SinglePointTab(QWidget):
         ):
             widget.setVisible(mode.converts_elevations)
         self._refresh_geoid_sides()
+        # The elevation hint is HORIZONTAL-ONLY, and this line is why #51
+        # cannot happen twice: in the two vertical modes the elevation is the
+        # value being converted, so "optional" would be false, and a
+        # placeholder is a more prominent place to be false than a tooltip
+        # was.
+        self.elevation_edit.setPlaceholderText(
+            "" if mode.converts_elevations else ELEVATION_PLACEHOLDER
+        )
         vertical_only = mode is VerticalMode.VERTICAL
         for widget in (
             self.to_zone_label,

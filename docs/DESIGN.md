@@ -467,6 +467,47 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #57 — 2026-08-11 — Owner's layout round: a hint, three saved rows, and a geoid that grays
+
+**Five instructions, all interface, no computation touched.**
+
+1. **A hint inside the Single point elevation box** — grey italic, "optional,
+   used for combined scale factor" — **in HORIZONTAL MODE ONLY**. That last
+   clause is the whole care this needs: #51 removed a TOOLTIP from this very
+   box for calling the elevation optional in all three modes, and a
+   placeholder saying it sits inside the field, which is more prominent. It is
+   cleared in both vertical modes and pinned empty there. Grey comes free from
+   Qt's placeholder palette; italic does not, and Qt has no placeholder-only
+   font, so **the widget is italic while empty** — an empty box shows nothing
+   but its placeholder, and the italic comes off on the first keystroke so a
+   typed elevation is never slanted.
+2. **Three paired rows compacted onto one line each** on the Single point tab:
+   the two vertical datums, the two geoids, and the elevation beside the
+   height-kind control. Fourteen grid rows to eleven. Every control keeps its
+   own label on the same row, so nothing is inferred from position, and the
+   pairing is pinned through the layout rather than by eye.
+3. **The Multi point geoid dropdown grays when no elevations are read**, in
+   horizontal mode. With no height there is nothing to look a separation up
+   for and every factor that would use it reads N/A, so the model choice
+   changes nothing the job produces.
+4. **The elevations note** now reads "used for combined scale factor", from
+   "used for the elevation and combined factors" — the combined factor is the
+   number that reaches a drawing; the elevation factor is an intermediate
+   nobody asks for.
+
+**The defect this round produced, caught by an existing pin.** The first
+graying wrote `geoid_combo.setEnabled(vertical or elevations)`, which
+**re-enabled a combo the per-datum filter had deliberately grayed** — two
+methods driving one property, the later call winning, so an NGVD 29 target's
+output geoid came back to life. #50's own graying pin caught it. The rule now
+only ever DISABLES, and only in horizontal mode; in the vertical modes the
+enablement belongs entirely to `_refresh_geoid_sides`, and a pin says so.
+
+**Verification.** Five falsifications, each caught by its own pin: the hint
+left in place in the vertical modes (#51 again), the italic never coming off a
+typed value, the paired rows split apart, the geoid no longer graying, and the
+note reverting. Suite **1690 → 1695**, green in `pytest` and `-O`.
+
 ### #56 — 2026-08-11 — Owner removes the glosses, and a duplicated row goes with them
 
 **The owner's instruction**: drop the "(elevation)" and "(GNSS)" after

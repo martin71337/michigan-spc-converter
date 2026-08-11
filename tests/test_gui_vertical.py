@@ -1068,14 +1068,19 @@ def test_the_elevations_row_hides_when_elevations_convert(window):
 
 def test_the_elevation_note_says_what_the_elevations_are_for(window):
     """The owner asked for a visible note, not a tooltip (#34 stands): where
-    the in-file button remains, the note says the elevations feed the
-    elevation and combined factor calculations. Falsified by dropping the
-    note from the row: this fails."""
+    the in-file button remains, the note says what the elevations are FOR.
+
+    Reworded at his instruction on 2026-08-11, from "used for the elevation
+    and combined factors" to "used for combined scale factor" - the combined
+    factor is the number a surveyor carries onto a drawing, and naming the
+    elevation factor beside it named an intermediate nobody asks for.
+    Falsified by dropping the note from the row: this fails."""
     from michspc.gui.window import ELEVATION_NOTE
 
     window.mode_horizontal.setChecked(True)
     assert window.elevation_note.text() == ELEVATION_NOTE
-    assert "elevation and combined factor" in ELEVATION_NOTE
+    assert ELEVATION_NOTE == "— used for combined scale factor"
+    assert "elevation and combined factor" not in ELEVATION_NOTE
     assert not window.elevation_note.isHidden()
     # And it is genuinely IN the row: an orphaned label with the right text
     # still reports itself visible, which is how the first version of this

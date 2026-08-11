@@ -46,7 +46,24 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.6.1 — the owner's wording edit ships (2026-08-11)
+## Current state: 0.6.2 — the owner's layout round ships (2026-08-11)
+
+**0.6.2 carries #57 only: interface, no computation.** A grey italic hint in
+the Single point elevation box, HORIZONTAL ONLY (#51's rule applied to a
+placeholder, which is more prominent than the tooltip #51 removed); three
+paired rows compacted onto single lines, fourteen grid rows to eleven; the
+Multi point geoid grayed when no elevations are read; and the elevations note
+reworded to "used for combined scale factor".
+
+**One defect produced and caught in the same round:** the first graying wrote
+`setEnabled(vertical or elevations)` and re-enabled a combo the per-datum
+filter had deliberately grayed — two methods driving one property. #50's own
+pin caught it; the rule now only ever disables, and only in horizontal mode.
+
+**Still human, still outstanding:** the clean-profile install proof
+(METHOD.md §6) and a real PNEZD file from an actual job.
+
+## Superseded status: 0.6.1 — the owner's wording edit ships (2026-08-11)
 
 **0.6.1 carries #56 only: text removed, no calculation touched.** The
 "(elevation)" and "(GNSS)" glosses are gone from the height selector and the

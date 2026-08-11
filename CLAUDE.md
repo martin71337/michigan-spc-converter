@@ -46,7 +46,25 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.6.0 — ellipsoid (GNSS) height input ships (2026-08-11)
+## Current state: 0.6.1 — the owner's wording edit ships (2026-08-11)
+
+**0.6.1 carries #56 only: text removed, no calculation touched.** The
+"(elevation)" and "(GNSS)" glosses are gone from the height selector and the
+horizontal elevation heading. The removal exposed that the panel's computed
+`Ellipsoid height (m)` row holds the SAME NUMBER as the supplied height on a
+GNSS job — `(h − N) + N` is `h` — so the qualifier had been distinguishing a
+value from itself; the row is dropped on those jobs and untouched on ordinary
+ones. A vacuous wording pin was found and fixed in the same round (the LOW-3
+class, recurring in a test written after the gate that named it).
+
+**Flagged and left for the owner:** the audit CSV carries both
+`Ellipsoid height` (the Z, output unit) and `Ellipsoid height (m)` (computed,
+metres) — two distinct strings, same number on a metres job.
+
+**Still human, still outstanding:** the clean-profile install proof
+(METHOD.md §6) and a real PNEZD file from an actual job.
+
+## Superseded status: 0.6.0 — ellipsoid (GNSS) height input ships (2026-08-11)
 
 **0.6.0 carries #54 (the feature) and #55 (its closing gate).** The gate ran
 under Codex over `v0.5.0..HEAD`: **one HIGH, one MEDIUM, one LOW, no

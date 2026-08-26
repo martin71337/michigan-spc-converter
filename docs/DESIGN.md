@@ -467,6 +467,65 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #60 — 2026-08-26 — 0.6.4: new application artwork, chosen from three
+
+**The owner's instruction:** a new icon, presented for approval before anything
+was committed. Three candidates were drawn and shown at 16, 32, 48 and 128 px —
+reduced through `make_icon.resample_area`, the build's own premultiplied area
+average, so the comparison was of what Explorer would actually receive and not
+of a browser downscale. He chose the one titled **Converted Point**. He gave no
+reason and none is recorded here; the other two are described only so the
+record says what the choice was made against.
+
+- **Converted Point (chosen).** A survey monument — ring, crosshair, amber
+  centre — with two arc arrows turning around it, on the graphite tile over a
+  faint square grid. The most legible of the three at 16 px, where the ring and
+  centre still resolve.
+- **Three Zones.** Michigan with its three State Plane zones tinted separately,
+  North being the whole Upper Peninsula. Recommended by the session lead and not
+  taken. Had it been, this amendment would have had to record that its outline
+  was hand-traced rather than derived from boundary data, which on this
+  program's tier sentence is a claim worth being careful about.
+- **Grid Exchange.** Two arrows bending along a Lambert graticule drawn with
+  converging meridians. Rejected in review before it reached him as the weakest:
+  the convergence carrying the whole idea is gone by 32 px.
+
+**The compass rose it replaces** had been the artwork since 0.1.0. It read as
+*direction*, which is not what this program does.
+
+**No computation changed, and the amendment claims nothing beyond artwork.**
+The suite is 1,696 green in both run modes, including the cross-version digest
+pin, so a change that quietly moved a number would have failed rather than
+needed arguing about.
+
+**The invariant of #15 note 1 is intact and was deliberately not renegotiated.**
+`assets/icon/mcx-1024.png` is still the single authoritative representation and
+the `.ico` is still derived by `tools/make_icon.py` into build output. The new
+artwork was drawn by a script rather than by hand, which raises the question of
+whether the script becomes the authoritative source and the PNG a derived
+artifact. **It does not, and the reasoning is #24's:** that amendment's
+derivation script was a one-shot and was not committed either. A drawing tool
+stands in the same relation to the artwork as an image editor does — nobody
+commits the editor's project file — and committing it would create the second
+representation §7 exists to forbid. The previous artwork remains in history, as
+#24's did.
+
+**Verified against the pins rather than assumed.** `tests/test_icon.py` passes
+unchanged, 25 tests: 1024×1024 8-bit RGBA through `decode_png_rgba8`, all four
+corners alpha 0, centre alpha 255, and an anti-aliased edge. The build step
+produces the same six-size 370,070-byte `.ico`.
+
+**One caveat worth carrying, found by measuring rather than by a failure.** The
+edge pin requires more than 1,000 partially transparent pixels. The old artwork
+had 8,205; this one has **1,536**. The margin narrowed because the new tile's
+straight sides fall on integer pixel boundaries, so only the four corner arcs
+produce partial coverage, where the old artwork's baked soft edge produced it
+everywhere. 1,536 passes and the property the pin exists to protect — a real
+alpha channel, not a 1-bit cutout — is fully intact. But **a future master that
+is more axis-aligned still, or drawn at a smaller corner radius, could cross
+that floor while being perfectly correct.** Anyone replacing the artwork should
+read that number rather than assume the pin is slack.
+
 ### #59 — 2026-08-11 — Field validation: the owner has run real jobs end to end
 
 **The owner's report, at the close of the session:** *"i have ran jobs end to

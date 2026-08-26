@@ -46,7 +46,34 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.6.3 — every geodetic selection names the datum (2026-08-11)
+## Current state: 0.6.4 — new application artwork (2026-08-26)
+
+**0.6.4 carries #60 only, and it is artwork.** The compass rose that had been
+the icon since 0.1.0 is replaced by a survey monument — ring, crosshair, amber
+centre — with two arc arrows turning around it. The owner picked it from three
+candidates shown at 16/32/48/128 px, reduced through the build's own
+`resample_area` so the comparison was of what Explorer receives. **No
+computation changed**; suite **1696** green in both modes, and the
+cross-version digest pin is what establishes that no number moved.
+
+**The #15-note-1 invariant was deliberately not renegotiated.** The new artwork
+was drawn by a script, but `assets/icon/mcx-1024.png` remains the single
+authoritative representation and the `.ico` stays derived. The drawing script
+is NOT committed, on #24's precedent — its derivation script was a one-shot
+too, and committing a tool that regenerates the master would create the second
+representation §7 forbids.
+
+**One caveat worth reading before the next artwork change (#60):** the edge pin
+in `tests/test_icon.py` wants >1,000 partially transparent pixels. The old
+master had 8,205; this one has **1,536**, because the tile's straight sides
+land on integer pixel boundaries and only the corner arcs are anti-aliased. It
+passes and the property is intact, but the margin is no longer generous —
+measure it, do not assume it.
+
+**Still human, still outstanding:** the clean-profile install proof
+(METHOD.md §6) and a real PNEZD file from an actual job.
+
+## Superseded status: 0.6.3 — every geodetic selection names the datum (2026-08-11)
 
 **0.6.3 carries #58 only.** The geodetic entry in all four zone dropdowns now
 reads **NAD83(2011) geodetic (latitude / longitude)**. The owner's reasoning:

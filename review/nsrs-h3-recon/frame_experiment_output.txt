@@ -1,0 +1,70 @@
+﻿12 forward frame anchors
+keys: ['auto_spc_convergence', 'auto_spc_easting_m', 'auto_spc_northing_m', 'auto_spc_scale_factor', 'auto_spc_zone', 'direction', 'input_datum', 'input_epoch', 'input_lat_dd', 'input_lon_dd', 'lat_change_sigma', 'lon_change_sigma', 'name', 'ncat_echo_lat', 'ncat_echo_lon', 'output_datum', 'output_epoch', 'output_lat_cell', 'output_lat_dd', 'output_lon_cell', 'output_lon_dd', 'raw', 'sha256', 'verified', 'verify_notes']
+                anchor cand  dLat_mas_err  dLon_mas_err
+        frame_p01.html   P1        -0.564        13.683
+        frame_p01.html   P2         0.116         0.226
+        frame_p01.html   P3        -0.224         6.954
+        frame_p01.html   P4         0.100         6.113
+        frame_p01.html   P5         0.440        -0.615
+        frame_p02.html   P1        -0.950        14.010
+        frame_p02.html   P2        -0.172         0.336
+        frame_p02.html   P3        -0.561         7.173
+        frame_p02.html   P4        -0.233         6.322
+        frame_p02.html   P5         0.156        -0.515
+        frame_p03.html   P1        -0.185        13.907
+        frame_p03.html   P2        -0.170         0.214
+        frame_p03.html   P3        -0.177         7.060
+        frame_p03.html   P4         0.112         6.199
+        frame_p03.html   P5         0.120        -0.648
+        frame_p04.html   P1        -0.433        14.345
+        frame_p04.html   P2         0.001         0.341
+        frame_p04.html   P3        -0.216         7.343
+        frame_p04.html   P4         0.094         6.471
+        frame_p04.html   P5         0.311        -0.530
+        frame_p05.html   P1        -1.818        19.663
+        frame_p05.html   P2        -1.852         5.282
+        frame_p05.html   P3        -1.835        12.472
+        frame_p05.html   P4        -1.550        11.576
+        frame_p05.html   P5        -1.567         4.386
+        frame_p06.html   P1        -0.134        15.077
+        frame_p06.html   P2         0.250         0.465
+        frame_p06.html   P3         0.058         7.771
+        frame_p06.html   P4         0.363         6.868
+        frame_p06.html   P5         0.555        -0.438
+        frame_p07.html   P1        -0.460        15.280
+        frame_p07.html   P2         0.220         0.292
+        frame_p07.html   P3        -0.120         7.786
+        frame_p07.html   P4         0.198         6.867
+        frame_p07.html   P5         0.538        -0.627
+        frame_p08.html   P1         0.013        15.649
+        frame_p08.html   P2         0.398         0.302
+        frame_p08.html   P3         0.205         7.976
+        frame_p08.html   P4         0.507         7.035
+        frame_p08.html   P5         0.700        -0.639
+        frame_p09.html   P1         0.229        15.741
+        frame_p09.html   P2         0.416         0.135
+        frame_p09.html   P3         0.322         7.938
+        frame_p09.html   P4         0.613         6.982
+        frame_p09.html   P5         0.707        -0.821
+        frame_p10.html   P1         0.548        15.825
+        frame_p10.html   P2         0.268         0.067
+        frame_p10.html   P3         0.408         7.946
+        frame_p10.html   P4         0.675         6.977
+        frame_p10.html   P5         0.534        -0.902
+        frame_p11.html   P1         0.906        16.427
+        frame_p11.html   P2         0.355         0.363
+        frame_p11.html   P3         0.631         8.395
+        frame_p11.html   P4         0.882         7.406
+        frame_p11.html   P5         0.606        -0.626
+        frame_p12.html   P1         0.768        16.606
+        frame_p12.html   P2         0.193         0.058
+        frame_p12.html   P3         0.481         8.332
+        frame_p12.html   P4         0.728         7.318
+        frame_p12.html   P5         0.441        -0.956
+
+mean position error vs NCAT (mas; 1 mas ~ 31 mm lat):
+  P1:     11.024 mas ~    340.7 mm
+  P2:      0.644 mas ~     19.9 mm
+  P3:      5.769 mas ~    178.3 mm
+  P4:      5.127 mas ~    158.4 mm
+  P5:      0.915 mas ~     28.3 mm

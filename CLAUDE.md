@@ -57,6 +57,12 @@ NGS's official ~Q1 2027 rollout, every beta artifact capture-dated with a
 committed re-freeze obligation (`docs/REFREEZE-NSRS.md`, arrives with the
 first beta artifact in code).
 
+**The vertical half is DEFERRED FUTURE WORK, not dropped —
+`docs/DEFERRED-NAPGD2022.md` is the standing marker**: every reason measured
+and documented, the reopen conditions listed, the designs waiting. Scale
+factors (grid, elevation, combined) all still work on every zone including
+the 2022 zones — only conversion TO the new vertical datum waits on NGS.
+
 **H0/N0 is DONE and committed** (`review/nsrs-n0/`, DESIGN.md #61): all 19
 zone definitions captured and digest-pinned; beta NCAT performs the frame
 transformation (web app only — NO REST API accepts NATRF2022 tokens; the

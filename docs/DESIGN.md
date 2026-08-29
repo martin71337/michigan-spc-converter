@@ -515,10 +515,24 @@ probe of each decisive family before accepting. Verdicts:
   ellipsoid height changes by **−1.115 m**, load-bearing for factors). **No
   REST API on either host accepts any NATRF2022 token** — the probe matrix is
   frozen — so anchors are captured by driving NCAT's own form (harness
-  committed) and frozen, as GEOID12B's were. NGS's NCAT engine is open source
-  (`github.com/noaa-ngs/ncat-lib`, Java) — the reference-implementation path
-  the transformation math will be verified against, as `Vertcon.java` was for
-  VERTCON. EPP2022 captured (181 bytes, SHA-256 `63d80d64…`). One
+  committed) and frozen, as GEOID12B's were. ~~NGS's NCAT engine is open
+  source (`github.com/noaa-ngs/ncat-lib`, Java) — the reference-implementation
+  path the transformation math will be verified against, as `Vertcon.java` was
+  for VERTCON.~~ **[ANNOTATED same day, measured false: `ncat-lib` is the
+  2021 legacy engine (commit `77bcff1`, pushed 2021-05-06) with zero NATRF2022
+  content, and no public NOAA repo carries the v3 code — GitHub-wide search
+  for SPCS2022 returns nothing of NOAA's. The v3 engine is unpublished. H3's
+  oracles are therefore the frozen beta NCAT web-app anchors and NOAA TR NOS
+  NGS 63, with HTDP v3.6.0 (`noaa-ngs/HTDP`, real NGS Fortran) supplying the
+  citable candidate NAD83(2011)↔ITRF Helmert parameters — and a recorded
+  sign-convention conflict (EPSG 1056 coordinate-frame vs NGS's "positive
+  counterclockwise right-hand rule" prose, worth ~0.4–0.9 m over the ten-year
+  span) that MUST be settled numerically against a discriminating anchor
+  before any transformation code is accepted. A corroborating negative:
+  ncat-lib's NADCON5 stencil is logic-identical to the VERTCON stencil MCX
+  replicated at #36/#37 — the nearest-node re-anchoring matched NOAA across
+  two grid families.]** EPP2022 captured (181 bytes, SHA-256 `63d80d64…`),
+  independently confirmed against NGS's beta page prose. One
   contradiction is recorded and MUST be resolved at H3, not assumed: the
   single-point app labels its input "NAD83(2011) epoch 2010.00" yet reports
   "Input Epoch 2020.00".

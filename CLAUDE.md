@@ -67,8 +67,12 @@ the 2022 zones — only conversion TO the new vertical datum waits on NGS.
 zone definitions captured and digest-pinned; beta NCAT performs the frame
 transformation (web app only — NO REST API accepts NATRF2022 tokens; the
 form-driving harness is committed) and emits SPCS2022 coordinates for all
-three projection kinds; EPP2022 frozen; `github.com/noaa-ngs/ncat-lib` is
-the reference implementation for H3. **The vertical half (NAPGD2022 /
+three projection kinds; EPP2022 frozen. **The v3 NCAT engine is NOT
+published** (ncat-lib is the 2021 legacy engine; HTDP has no NATRF2022) —
+H3's oracles are the frozen beta NCAT anchors + NOAA TR NOS NGS 63, with
+HTDP's NAD83↔ITRF Helmert constants as the citable candidate set, and a
+**rotation-sign-convention conflict (~0.4–0.9 m) that a discriminating
+anchor must settle before any H3 code is accepted** (#61 annotation). **The vertical half (NAPGD2022 /
 GEOID2022 / chained NGVD29) is DEFERRED by the owner** — N0 proved NGS
 publishes no NAVD88↔NAPGD2022 product at all; the reasons and the future
 path are in #61. **Hazard: beta's REST API fails open** (`200 OK` with

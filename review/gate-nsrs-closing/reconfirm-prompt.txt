@@ -1,0 +1,34 @@
+You are the independent adversarial reviewer running the NARROWING
+re-confirmation of the closing gate over MCX's modernized-NSRS build. Your
+gate: review/gate-nsrs-closing/output.txt (one HIGH, two MEDIUM, one LOW).
+The fixes: commit d37b911, touching michspc/job.py, michspc/selftest.py,
+tests/test_fileio.py, tests/test_selftest.py, plus release-notes/CLAUDE.md
+wording and a DESIGN.md #61 annotation. TIER: a wrong coordinate lands on
+a sealed survey. Review ONLY the fixed surfaces, against your findings:
+
+1. HIGH: the new ellipsoid-height frame gate (_require_a_convertible_
+   ellipsoid_height_frame, third settings gate). Verify with your exact
+   vertical-only job that it refuses before any file work; verify the
+   _height_frame reader picks the right frame per direction (geodetic vs
+   zone-input vs geodetic VERTICAL_ONLY — construct a case per branch);
+   verify the two controls (NAD 83 ellipsoid jobs and orthometric 2022
+   jobs still convert); try to construct ANY remaining path where an
+   NATRF2022 ellipsoid height reaches H = h − N or h = H + N with a
+   NAD 83-era N and emits a number.
+2. MEDIUM: the VERTICAL_ONLY frame coverage (frame-against-itself through
+   the registry). Verify your WGS 84 job refuses, both usable frames
+   still produce your digits, and probe: is any OTHER direction still
+   outside the gate (zone-input vertical jobs are documented as unchecked
+   — assess whether that documented exclusion can certify a wrong
+   number)?
+3. MEDIUM: the stray-zone refusals. Verify your 260001/261008 case both
+   directions; probe the remaining direction combinations (VERTICAL_ONLY
+   with a target_zone was already refused pre-existing — confirm) and
+   whether any settings shape can still print a zone block for a zone
+   nothing projected.
+4. LOW: self-test check 11 through convert.project_point. Verify your
+   no-op mutation now fails check 11; assess the order-dependence fix in
+   the two renamed self-test tests.
+
+METHOD: concrete inputs and wrong outputs, with severity. End with exactly
+one line: VERDICT: APPROVED or VERDICT: FINDINGS

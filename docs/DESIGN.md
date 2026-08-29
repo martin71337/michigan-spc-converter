@@ -664,8 +664,19 @@ Multi point table now clears on a filter-forced unit snap — a narrowing of
 "the table describes a written archive, not the controls" — with a status
 line saying the archive on disk was untouched.
 
-**Remaining before 0.7.0:** the closing adversarial gate over the whole
-`aec20dd..HEAD` range; the owner's screen review of both tabs; his release
+**Remaining before 0.7.0** ~~: the closing adversarial gate over the whole
+`aec20dd..HEAD` range~~ **[CLOSED 2026-08-29: the gate ran under Codex —
+FINDINGS, one HIGH (an NATRF2022 ellipsoid height reached a NAD 83-era
+geoid and escaped an elevation wrong by 1.115 m — now refuses before the
+file is read), two MEDIUM (vertical-only geodetic jobs skipped the frame
+gate; stray direction-inapplicable zone fields printed a false FROM block),
+one LOW (self-test coverage of the public gate). All fixed at the root,
+pinned at the reviewer's own inputs, falsified; the narrowing
+re-confirmation ran under Codex and returned VERDICT: APPROVED, having
+probed every `_height_frame` branch, all sixteen direction/zone-presence
+shapes, and the no-op mutation under both run modes. Record:
+`review/gate-nsrs-closing/`. Suite 3,733 both modes; self-test 11/11.]**
+Still before 0.7.0: the owner's screen review of both tabs; his release
 build (`py tools/build_release.py --acknowledge-ngs-beta`) and tag; and
 the standing human items (clean-profile install; a real job end to end on
 the new surfaces before any sealed deliverable leans on them, the #59

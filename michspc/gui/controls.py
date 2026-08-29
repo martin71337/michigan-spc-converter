@@ -19,20 +19,21 @@ through this module.
 from __future__ import annotations
 
 import traceback
+from dataclasses import dataclass
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QButtonGroup, QComboBox, QMessageBox, QRadioButton
 
 from michspc.fileio import geoid
 from michspc.job import Direction, LongitudeConvention, VerticalMode
-from michspc.spc.units import ALL_UNITS, INTERNATIONAL_FEET
-from michspc.spc.frames import NAD83_2011
+from michspc.spc.units import ALL_UNITS, INTERNATIONAL_FEET, LinearUnit
+from michspc.spc.frames import ALL_FRAMES, ReferenceFrame
 from michspc.spc.vertical import (
     ALL_VERTICAL_DATUMS,
     HeightKind,
     VerticalDatum,
 )
-from michspc.spc.zones import SPCS83_ZONES, Zone
+from michspc.spc.zones import ALL_ZONES, SPCS2022_ZONES, SPCS83_ZONES, Zone
 
 UNCHOSEN = "unchosen"
 """Sentinel for a dropdown the user has not answered yet.
@@ -43,14 +44,61 @@ longitude convention rule exists to prevent, so the zone and convention combos
 open on a placeholder and Convert stays disabled until they are answered.
 """
 
-GEODETIC = "geodetic"
-"""Sentinel for "this side of the conversion is latitude/longitude, not a zone".
+@dataclass(frozen=True)
+class GeodeticChoice:
+    """"This side of the conversion is latitude/longitude, in THIS frame".
 
-Carried in the same dropdown as the zones because the direction of a job is
-exactly the question "what is it coming from, and what is it going to" — the
-program converts zone to zone, geodetic to zone, and zone to geodetic
-(docs/DESIGN.md section 2), and one pair of dropdowns states all three.
-"""
+    Carried in the same dropdown as the zones because the direction of a job is
+    exactly the question "what is it coming from, and what is it going to" — the
+    program converts zone to zone, geodetic to zone, and zone to geodetic
+    (docs/DESIGN.md section 2), and one pair of dropdowns states all three.
+
+    **It replaces a bare ``"geodetic"`` string, and the frame is the whole
+    reason** (docs/DESIGN.md amendment #62, and #58 before it). Until the
+    SPCS2022 zones landed there was exactly one frame a geodetic position could
+    be in, so a sentinel that carried nothing was carrying everything there was
+    to carry. There are two now. NAD83(2011) and NATRF2022 differ by one to two
+    metres in Michigan and nothing in a latitude shows which one it is, so a
+    geodetic selection that does not name its frame is the #58 failure with a
+    second frame instead of WGS 84: the number pastes in cleanly and converts to
+    something plausible and wrong.
+
+    A frozen dataclass rather than an enum member so the frame record itself
+    travels with the selection — ``settings()`` on both tabs reads
+    ``choice.frame`` straight into ``JobSettings.geodetic_frame``, and no
+    interface anywhere maps a label back to a frame.
+
+    **The records below are the only ones that exist**, for the reason the zone
+    records are singletons: ``QComboBox.findData`` compares stored Python
+    objects by identity, not by ``==``, so a second equal instance is not
+    findable in a dropdown that holds the first. Build one through
+    ``geodetic_choice``; never construct one at a call site.
+    """
+
+    frame: ReferenceFrame
+
+    @property
+    def label(self) -> str:
+        """What the dropdown calls this choice. Derived, never typed."""
+        return geodetic_label(self.frame)
+
+    def __str__(self) -> str:
+        return self.label
+
+
+def is_geodetic(data) -> bool:
+    """Whether a zone dropdown's current data names a geodetic end.
+
+    **The one predicate**, and the reason it is a function rather than an
+    ``isinstance`` at fourteen call sites: those fourteen sites were fourteen
+    ``== GEODETIC`` comparisons against a string, and a string comparison
+    answers False for anything unexpected instead of saying so. Every one of
+    them decides something that shows on screen or reaches ``JobSettings`` —
+    which unit label is shown, which column layout the file is read as, whether
+    a longitude convention is asked for — so they must be incapable of
+    disagreeing about what "geodetic" means.
+    """
+    return isinstance(data, GeodeticChoice)
 
 UNITS_LABEL = "Units:"
 UNITS_LABEL_ELEVATION_ONLY = "Units (elevation only):"
@@ -89,68 +137,162 @@ text stays legible; the hue is what carries the meaning.
 
 
 def zone_label(zone: Zone) -> str:
-    """"Michigan South 2113" — built from the registry, never typed out."""
-    return f"{zone.name} {zone.code}"
+    """"Michigan South 2113 - NAD83(2011)" — built from the registry.
+
+    **The frame joins the label at H6**, and it is not decoration: two eras of
+    Michigan zone are offered in one dropdown from this release on, the two
+    frames are one to two metres apart, and "Michigan South" names a zone in
+    each of them (2113 in SPCS 83, and the 2022 design has its own southern
+    zones). The number alone distinguishes them only to somebody who knows both
+    numbering schemes.
+
+    Derived from the record's own fields — name, code, and the frame's code —
+    so a label cannot drift from the mathematics the zone converts through,
+    which is the #58 rule applied to the zone entries for the same reason it
+    was applied to the geodetic ones.
+    """
+    return f"{zone.name} {zone.code} - {zone.frame.code}"
 
 
-GEODETIC_LABEL = f"{NAD83_2011.code} geodetic (latitude / longitude)"
-"""What the geodetic entry in every zone dropdown is called.
+def geodetic_label(frame: ReferenceFrame) -> str:
+    """What a frame's geodetic entry in every zone dropdown is called.
 
-The owner's instruction, 2026-08-11: name the datum, because **NAD 83 is not
-WGS 84** — they differ by a metre or more in the conterminous United States,
-which is a boundary-moving amount — and the modernized frame coming after it
-will differ again. A dropdown reading only "Geodetic" invites a surveyor to
-paste in a handheld's WGS 84 position and get a plausible, wrong answer.
+    The owner's instruction, 2026-08-11: name the datum, because **NAD 83 is not
+    WGS 84** — they differ by a metre or more in the conterminous United States,
+    which is a boundary-moving amount — and the modernized frame coming after it
+    will differ again. A dropdown reading only "Geodetic" invites a surveyor to
+    paste in a handheld's WGS 84 position and get a plausible, wrong answer.
 
-**Derived from the frame record, never typed.** ``NAD83_2011.code`` is what
-this program actually converts against, so the label cannot drift from the
-mathematics, and the day a job runs on NATRF2022 the dropdown renames itself
-rather than needing to be remembered. That is the same rule the zone names
-follow, and the reason the owner gave for asking.
+    **Derived from the frame record, never typed.** The frame's own ``code`` is
+    what this program converts against, so the label cannot drift from the
+    mathematics. That was #58's promise in its own words - "the day a job runs
+    on NATRF2022 the dropdown renames itself rather than needing to be
+    remembered" - and H6 is the day: the constant became this function, the one
+    entry became one per frame, and the promise was kept by the derivation
+    rather than by anybody remembering.
 
-It carries the realization as well as the datum - "NAD83(2011)", not "NAD83" -
-because the frame record's own code is the authoritative string and the
-realization is the thing that will change next.
+    It carries the realization as well as the datum - "NAD83(2011)", not
+    "NAD83" - because the frame record's own code is the authoritative string.
+    """
+    return f"{frame.code} geodetic (latitude / longitude)"
+
+
+def frames_offered(frames=ALL_FRAMES, zones=ALL_ZONES) -> tuple[ReferenceFrame, ...]:
+    """Every frame a geodetic entry is offered for, in declaration order.
+
+    Two conditions, both necessary, and each one keeps out a different wrong
+    entry:
+
+    * **usable** - ``ALL_FRAMES`` carries WGS 84 precisely so this program can
+      refuse it by name (``frames.FrameNotUsableError``). Offering it would put
+      the one frame the registry has no path for into the dropdown that decides
+      the frame, which is the exact mistake #58 was written about;
+    * **referenced by at least one registered zone** - a usable frame with no
+      zones is a frame nothing can be converted INTO or out of, so its geodetic
+      entry could only ever pair with the placeholder or with itself, and
+      geodetic-to-geodetic is not a conversion (``direction_for``). The entry
+      would be a question with no answer.
+
+    Derived, so a frame arriving in the registry with zones on it appears here
+    with no interface change - the ``zone_combo`` property - and a frame whose
+    status changes to not-usable disappears the same way.
+
+    The two registries are parameters defaulting to themselves. Nothing in the
+    program passes them: it is a seam for the pin, which has to be able to ask
+    this rule about a frame that does not exist - "a usable frame carrying no
+    zones is not offered" is a claim about a case the registry does not contain
+    today and would otherwise be untestable, which is how a rule ends up being
+    believed rather than checked.
+    """
+    with_zones = {zone.frame.code for zone in zones}
+    return tuple(
+        frame
+        for frame in frames
+        if frame.is_usable and frame.code in with_zones
+    )
+
+
+GEODETIC_CHOICES: tuple[GeodeticChoice, ...] = tuple(
+    GeodeticChoice(frame=frame) for frame in frames_offered()
+)
+"""The canonical geodetic selection records, one per offered frame.
+
+Singletons, in ``ALL_FRAMES`` declaration order, for the reason
+``GeodeticChoice`` states: a dropdown finds stored Python objects by identity.
 """
+
+_CHOICES_BY_FRAME_CODE = {choice.frame.code: choice for choice in GEODETIC_CHOICES}
+
+
+def geodetic_choice(frame: ReferenceFrame) -> GeodeticChoice:
+    """The canonical geodetic selection for a frame, or a loud refusal.
+
+    The same contract as ``zones.zone_by_code`` and ``frames.frame_by_code``:
+    an unoffered frame is named, together with what is offered, rather than
+    silently answered with a fresh record that no dropdown could find.
+    """
+    try:
+        return _CHOICES_BY_FRAME_CODE[frame.code]
+    except (AttributeError, KeyError, TypeError):
+        offered = ", ".join(choice.frame.code for choice in GEODETIC_CHOICES)
+        raise KeyError(
+            f"No geodetic dropdown entry exists for {frame!r}. The frames "
+            f"offered are: {offered} (see controls.frames_offered - a frame "
+            f"must be usable and must carry at least one registered zone)."
+        ) from None
 
 
 def zone_combo(parent, on_change) -> QComboBox:
-    """A zone dropdown, built from the registry.
+    """A zone dropdown, built from the registry. Both eras, since H6.
 
-    Zone names are never typed out here — a zone added to the era tuple this
-    reads appears in the list with no interface change (docs/DESIGN.md
-    section 6).
+    Zone names are never typed out here — a zone added to either era tuple
+    appears in the list with no interface change (docs/DESIGN.md section 6).
 
-    **It reads ``SPCS83_ZONES``, not ``ALL_ZONES``, and that is deliberate.**
-    Michigan's nineteen SPCS2022 zones are in the registry as of H2 and convert
-    correctly through the engines, but the interface does not speak 2022 yet.
-    Until H5 the record could not either: ``michspc.fileio.report``'s zone block
-    wrote the two-standard-parallel wording unconditionally and read
-    ``definition.lat_south``, so a 2022 job would convert every point and then
-    die with an ``AttributeError`` while writing its record — after the work,
-    before the archive. **H5 has landed and that half is fixed**: the record
-    describes each projection kind in its own constants and carries the
-    era-dependent authority and verification prose. What is still missing is
-    this tab — the separator, the frame-derived labels, and the geodetic entry
-    per frame — so the gate stays until H6 supplies them. Offering a zone the
-    interface cannot state the frame of is worse than not offering it.
+    The order, and why it is this order:
 
-    **The flip condition, so this is a gate and not an oversight:** H5 rewrites
-    the record's zone block per projection kind and the era-dependent
-    verification prose; H6 then changes this one line to ``ALL_ZONES`` and adds
-    the separator and the frame-derived labels. Until both have landed, a 2022
-    zone is reachable from the registry and from the test suite, and from no
-    interface. Pinned in tests/test_gui_tabs.py, which also checks that
-    ``SPCS2022_ZONES`` is not empty — otherwise the pin would pass by having
-    nothing to exclude.
+    1. the unanswered placeholder;
+    2. one geodetic entry per offered frame, in ``ALL_FRAMES`` declaration
+       order (``frames_offered``), each naming its own datum (#58);
+    3. ``SPCS83_ZONES``, the three zones every Michigan job has used since
+       0.1.0 — first, because they are today's work;
+    4. a separator;
+    5. ``SPCS2022_ZONES``, the nineteen zones of the modernized design.
+
+    **The separator is the only thing in this dropdown that carries no
+    meaning**, and it is here because the two blocks below it are not
+    interchangeable: a job cannot cross between them (the NAD83(2011) <->
+    NATRF2022 bridge is unpublished, DESIGN.md #62), so a surveyor scrolling
+    one flat list of twenty-two names needs the boundary to be visible. It
+    holds no data; ``direction_for`` refuses it by name if it is ever reached,
+    which no user action can do — Qt gives a separator no selectable flags.
+
+    **The H2 gate that kept the 2022 zones out of here is gone, and this
+    package is what its flip condition named.** It required the record to be
+    able to describe a 2022 job (H5: ``report``'s zone block per projection
+    kind) and this dropdown to be able to state a zone's frame (H6: the
+    frame-derived labels and the per-frame geodetic entries above). Both have
+    landed. What replaced the gate is a count pinned against the registries
+    themselves, so an era silently dropping out of this list still fails.
+
+    A pair the frame registry has no path for — a NAD83(2011) geodetic entry
+    against a 2022 zone — is SELECTABLE here and refused at Convert by
+    ``job.run``, in the frame registry's own words. That is deliberate and it
+    is #33's standing stance: this interface informs, it does not decide. A
+    pre-filtered dropdown would silently answer the question of which frame the
+    user's file is in, which is the one question a surveyor must answer for
+    himself.
 
     The change handler is passed in rather than hard-wired, so each tab connects
     its own — the tabs share no state (docs/DESIGN.md amendment #26).
     """
     combo = QComboBox(parent)
     combo.addItem("— choose —", UNCHOSEN)
-    combo.addItem(GEODETIC_LABEL, GEODETIC)
+    for choice in GEODETIC_CHOICES:
+        combo.addItem(choice.label, choice)
     for zone in SPCS83_ZONES:
+        combo.addItem(zone_label(zone), zone)
+    combo.insertSeparator(combo.count())
+    for zone in SPCS2022_ZONES:
         combo.addItem(zone_label(zone), zone)
     combo.currentIndexChanged.connect(on_change)
     return combo
@@ -168,6 +310,113 @@ def unit_combo(parent) -> QComboBox:
         combo.addItem(unit.name, unit)
     combo.setCurrentIndex(ALL_UNITS.index(INTERNATIONAL_FEET))
     return combo
+
+
+def unit_for(combo) -> LinearUnit:
+    """The unit a dropdown names, refusing rather than guessing.
+
+    Both tabs used to read ``unit_combo.currentData()`` raw, and that was
+    honest while every unit dropdown held all three units for the whole life of
+    the window: the data could not be anything else. **H6's per-zone filtering
+    makes it possible for the combo to hold nothing** - it is cleared and
+    rebuilt when the offering changes, and a rebuild that produced an empty
+    list would leave ``currentData()`` returning None. None would then travel
+    into ``JobSettings.input_unit`` and fail somewhere inside the writer, on a
+    job whose Convert button was enabled.
+
+    So this is the ``height_kind_for`` contract at the unit combos: name the
+    impostor here, where the sentence can say which control is wrong, rather
+    than several layers down. ``refresh_unit_combo`` refuses an empty offering
+    for the same reason from the other side.
+    """
+    data = combo.currentData()
+    if not isinstance(data, LinearUnit):
+        raise ValueError(
+            f"A unit dropdown holds {data!r}, which is not a "
+            f"michspc.spc.units.LinearUnit. Every item these controls offer "
+            f"carries one, and the per-zone filter only ever rebuilds them "
+            f"from a zone's own allowed_units; a selection that carries "
+            f"anything else is a wiring defect. Guessing a unit here would "
+            f"silently decide what every northing, easting and elevation in "
+            f"the job is read and written in."
+        )
+    return data
+
+
+def units_for_selection(data) -> tuple[LinearUnit, ...]:
+    """The units a zone dropdown's current selection may be read or written in.
+
+    ``Zone.allowed_units`` is the authority and this is a convenience over it,
+    never a second rule: ``job._require_units_the_zones_publish`` enforces the
+    same tuple on the settings, so a caller that bypasses the interface is
+    refused exactly where the interface would have filtered. A filter a caller
+    can bypass is not a rule; this one does not have to be.
+
+    A geodetic end and the unanswered placeholder both offer all three units.
+    That is not a fallback: a geodetic end's coordinate columns are degrees,
+    and the unit selector governs its ELEVATION column, which no zone's
+    publishing authority constrains (``UNITS_LABEL_ELEVATION_ONLY``). The
+    placeholder offers all three because the question of which zone applies is
+    unanswered, and narrowing the units first would answer part of it.
+    """
+    if isinstance(data, Zone):
+        return data.allowed_units
+    return ALL_UNITS
+
+
+def refresh_unit_combo(combo, units) -> bool:
+    """Make a unit combo offer exactly ``units``. True if the selection moved.
+
+    The ``refresh_geoid_combo`` idiom - items cleared and rebuilt, the user's
+    own selection preserved when it survives, a no-op when the offering is
+    already right so the many paths that call it fire no signals - with one
+    deliberate difference:
+
+    **THIS CONTROL IS NEVER DISABLED**, in any state, and the reasoning of
+    ``UNITS_LABEL_ELEVATION_ONLY`` survives H6 literally: a unit selector is
+    disabled only if it governs nothing, and neither one ever governs nothing,
+    because even a geodetic end's Z column carries a linear unit that the
+    elevation and combined factors are computed from. What narrows here is the
+    OFFERING - the SPCS2022 zones publish metres and international feet only -
+    and a narrowed offering is not an absent question. Where
+    ``refresh_geoid_combo`` grays a side whose datum has no published model,
+    this one has no such state to reach: every zone publishes at least one
+    unit, and an offering that came up empty is refused below rather than
+    grayed.
+
+    **The return value is load-bearing.** When the previous selection does not
+    survive the new offering - US survey feet selected, then an SPCS2022 zone
+    chosen - the selection SNAPS to another unit, and a displayed result
+    computed in the old one no longer describes what the controls say. That is
+    the amendment #26 / #43 stale-result class arriving through a control the
+    user did not touch, so the caller is told and invalidates.
+    """
+    units = tuple(units)
+    if not units:
+        raise ValueError(
+            "A unit dropdown was asked to offer no units at all. Every zone "
+            "publishes at least one (Zone.allowed_units), and an empty "
+            "dropdown would leave the control holding nothing while still "
+            "looking answerable. Pass the zone's own allowed_units."
+        )
+
+    offered = tuple(combo.itemData(i) for i in range(combo.count()))
+    if offered == units:
+        return False
+
+    previous = combo.currentData()
+    combo.clear()
+    for unit in units:
+        combo.addItem(unit.name, unit)
+    preferred = (
+        previous
+        if previous in units
+        else INTERNATIONAL_FEET
+        if INTERNATIONAL_FEET in units
+        else units[0]
+    )
+    combo.setCurrentIndex(combo.findData(preferred))
+    return preferred is not previous
 
 
 DEFAULT_LONGITUDE_CONVENTION = LongitudeConvention.POSITIVE_WEST
@@ -523,16 +772,69 @@ def direction_for(source_data, target_data) -> Direction | None:
     Michigan South in metres is a conversion the surveyor asked for, and
     even the identity case produces the per-point scale, convergence and
     combined factors that the audit CSV and the job record exist to report.
+
+    **Geodetic to geodetic returns None whatever the two frames are**, and H6
+    changes nothing about that: with two frames offered it is now possible to
+    select NAD83(2011) geodetic against NATRF2022 geodetic, which reads like a
+    datum transformation and is not one this program has - there is no zone at
+    either end to project through, and the frame bridge is unpublished
+    (DESIGN.md #62). It is not a conversion, so it is not a direction.
+
+    **A cross-frame pair that IS a direction - a NAD83(2011) geodetic entry
+    against an SPCS2022 zone - is answered here rather than refused.** The rule
+    this function owns is what SHAPE of job the two dropdowns describe; whether
+    that job's frames have a published path between them is the frame
+    registry's question, and ``job.run`` asks it before a file is read. Two
+    layers answering it would eventually disagree, and the one that would be
+    wrong is this one, which has no registry.
+
+    Anything else in a dropdown is refused by name. Since H6 the list contains
+    one item that is not a selection at all - the separator between the two
+    eras - and Qt gives it no selectable flags, so no user action reaches this
+    with it. A programmatic ``setCurrentIndex`` onto it, or onto -1, would
+    otherwise fall through to ``ZONE_TO_ZONE`` and hand ``job.run`` a job with
+    no source zone.
     """
     if source_data == UNCHOSEN or target_data == UNCHOSEN:
         return None
-    if source_data == GEODETIC and target_data == GEODETIC:
+    if is_geodetic(source_data) and is_geodetic(target_data):
         return None
-    if source_data == GEODETIC:
+    if is_geodetic(source_data):
         return Direction.GEODETIC_TO_ZONE
-    if target_data == GEODETIC:
+    if is_geodetic(target_data):
         return Direction.ZONE_TO_GEODETIC
-    return Direction.ZONE_TO_ZONE
+    if isinstance(source_data, Zone) and isinstance(target_data, Zone):
+        return Direction.ZONE_TO_ZONE
+    raise ValueError(
+        f"A zone dropdown holds {source_data!r} / {target_data!r}, and at "
+        f"least one of those is neither the unanswered placeholder, nor a "
+        f"geodetic entry, nor a zone. Every item zone_combo offers is one of "
+        f"those three; the separator between the eras is not selectable and "
+        f"carries no data. Refusing rather than reading it as a zone-to-zone "
+        f"job, which would reach job.run with no zone."
+    )
+
+
+def geodetic_frame_for(*sides) -> ReferenceFrame | None:
+    """The frame this job's geodetic END is in, or None if it has none.
+
+    What ``JobSettings.geodetic_frame`` is threaded from, on both tabs. The
+    sides are passed in the order the tab reads them - source then target,
+    or source alone in vertical-only mode - and the first geodetic one
+    answers.
+
+    First-wins is safe rather than lucky: the only pair with two geodetic
+    sides is geodetic-to-geodetic, and ``direction_for`` has already made that
+    not a job, so no caller reaches this with two frames in play.
+
+    None means "no end of this job is geodetic", which is a zone-to-zone job:
+    ``geodetic_frame`` is unread there, and the settings keep their default
+    rather than being told something the job never consults.
+    """
+    for data in sides:
+        if is_geodetic(data):
+            return data.frame
+    return None
 
 
 def longitude_is_relevant(direction) -> bool:
@@ -553,7 +855,7 @@ def longitude_relevance(mode, source_data, direction) -> bool:
     ``longitude_is_relevant`` rule over the pair of dropdowns.
     """
     if mode is VerticalMode.VERTICAL:
-        return source_data == GEODETIC
+        return is_geodetic(source_data)
     return longitude_is_relevant(direction)
 
 

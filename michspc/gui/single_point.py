@@ -62,7 +62,6 @@ from michspc.gui.controls import (
     height_kind_combo,
     height_kind_for,
     AMBER,
-    GEODETIC,
     GEOID_MODEL_LABEL,
     INPUT_GEOID_LABEL,
     OUTPUT_GEOID_LABEL,
@@ -74,13 +73,18 @@ from michspc.gui.controls import (
     VERTICAL_SOURCE_LABEL,
     VERTICAL_TARGET_LABEL,
     direction_for,
+    geodetic_frame_for,
     geoid_combo,
     geoid_models_for_datum,
+    is_geodetic,
     longitude_combo,
     longitude_relevance,
     refresh_geoid_combo,
+    refresh_unit_combo,
     show_failure_dialog,
     unit_combo,
+    unit_for,
+    units_for_selection,
     vertical_datum_combo,
     vertical_datum_for,
     vertical_mode_buttons,
@@ -262,6 +266,7 @@ class SinglePointTab(QWidget):
 
         self._build()
         self._update_entry_labels()
+        self._update_unit_offerings()
         self._update_unit_labels()
         self._update_longitude_relevance()
         self._update_angle_format_relevance()
@@ -722,8 +727,8 @@ class SinglePointTab(QWidget):
             direction=direction,
             source_zone=source_zone,
             target_zone=target_zone,
-            input_unit=self.input_unit.currentData(),
-            output_unit=self.output_unit.currentData(),
+            input_unit=unit_for(self.input_unit),
+            output_unit=unit_for(self.output_unit),
             # From the dropdowns (WP-V8, plan section 4.3; per-side since
             # the owner's 2026-08-09 feature), exactly as MainWindow.settings
             # reads its own. A grayed side emits None.
@@ -734,6 +739,15 @@ class SinglePointTab(QWidget):
             source_vertical_datum=source_datum,
             target_vertical_datum=target_datum,
         )
+
+        # The frame the geodetic END is in - ``MainWindow.settings``'s rule
+        # exactly, through the same ``controls`` helper, so the two tabs
+        # cannot state different frames for the same selection (H6, DESIGN.md
+        # #62). Stated only when an end is geodetic; a zone-to-zone job never
+        # reads the field.
+        frame = geodetic_frame_for(source, target)
+        if frame is not None:
+            common["geodetic_frame"] = frame
 
         if direction is Direction.ZONE_TO_ZONE:
             # A pure zone-to-zone job never consults the longitude convention
@@ -767,7 +781,7 @@ class SinglePointTab(QWidget):
         if source_datum is None or target_datum is None:
             return None
 
-        input_unit = self.input_unit.currentData()
+        input_unit = unit_for(self.input_unit)
         common = dict(
             input_path=None,
             output_directory=None,
@@ -783,6 +797,11 @@ class SinglePointTab(QWidget):
             source_vertical_datum=source_datum,
             target_vertical_datum=target_datum,
         )
+
+        # Only one side exists in this mode, so only one side can be geodetic.
+        frame = geodetic_frame_for(source)
+        if frame is not None:
+            common["geodetic_frame"] = frame
 
         if source_zone is not None:
             return JobSettings(**common, longitude_convention=None)
@@ -800,7 +819,7 @@ class SinglePointTab(QWidget):
         longitude. A surveyor who typed a longitude must not be told his
         "easting" is unreadable.
         """
-        if self.from_zone.currentData() == GEODETIC:
+        if is_geodetic(self.from_zone.currentData()):
             return pnezd.TYPED_POINT_SOURCE_GEODETIC
         return pnezd.TYPED_POINT_SOURCE_GRID
 
@@ -843,11 +862,40 @@ class SinglePointTab(QWidget):
 
     def _on_direction_changed(self) -> None:
         self._update_entry_labels()
+        self._update_unit_offerings()
         self._update_unit_labels()
         self._update_longitude_relevance()
         self._update_angle_format_relevance()
         self._update_convert_enabled()
         self._invalidate_result()
+
+    def _update_unit_offerings(self) -> None:
+        """Offer each end only the units its own selection publishes.
+
+        ``MainWindow._update_unit_offerings``'s rule exactly, through the same
+        ``controls`` helpers, so the two tabs cannot offer different units for
+        the same zone - the property amendment #26 exists to hold. The one
+        owner of these two combos' item lists; nothing else rebuilds them.
+
+        Neither combo is ever disabled here; see ``refresh_unit_combo``.
+
+        The invalidation on a forced swap is stated rather than left to the
+        signal: both unit combos are also connected to ``_invalidate_result``,
+        so a rebuild discards a displayed result by that route too, and this
+        line makes the guarantee a property of the rule rather than of the
+        wiring. A US-survey-feet result left on screen after an SPCS2022 zone
+        snapped the selection to international feet would be the amendment #26
+        stale-result class arriving through a control nobody touched - and 2
+        ppm is about 26 feet at a four-million-metre easting.
+        """
+        snapped = refresh_unit_combo(
+            self.input_unit, units_for_selection(self.from_zone.currentData())
+        )
+        snapped |= refresh_unit_combo(
+            self.output_unit, units_for_selection(self.to_zone.currentData())
+        )
+        if snapped:
+            self._invalidate_result()
 
     def _on_angle_format_changed(self) -> None:
         """The typed point is discarded when the format changes, deliberately.
@@ -976,7 +1024,7 @@ class SinglePointTab(QWidget):
         the selector happens to be set.
         """
         return (
-            self.from_zone.currentData() == GEODETIC
+            is_geodetic(self.from_zone.currentData())
             and self.angle_format.currentData() == DMS_PAGE
         )
 
@@ -987,7 +1035,7 @@ class SinglePointTab(QWidget):
 
     def _update_angle_format_relevance(self) -> None:
         """The selector matters only when the typed values are angles."""
-        relevant = self.from_zone.currentData() == GEODETIC
+        relevant = is_geodetic(self.from_zone.currentData())
         self.angle_format_label.setEnabled(relevant)
         self.angle_format.setEnabled(relevant)
         self._update_entry_pages()
@@ -1021,7 +1069,7 @@ class SinglePointTab(QWidget):
     def entry_labels(self) -> tuple[str, str]:
         """The two coordinate labels for the current From selection."""
         source = self.from_zone.currentData()
-        if source == GEODETIC:
+        if is_geodetic(source):
             return FIRST_LABEL_GEODETIC, SECOND_LABEL_GEODETIC
         if isinstance(source, Zone):
             return FIRST_LABEL_ZONE, SECOND_LABEL_ZONE
@@ -1037,9 +1085,8 @@ class SinglePointTab(QWidget):
         # enabled field would be inviting an answer to an unasked question.
         # The elevation field is never disabled - an elevation is an elevation
         # in every direction.
-        known = self.from_zone.currentData() == GEODETIC or isinstance(
-            self.from_zone.currentData(), Zone
-        )
+        source = self.from_zone.currentData()
+        known = is_geodetic(source) or isinstance(source, Zone)
         self.first_label.setEnabled(known)
         self.first_stack.setEnabled(known)
         self.second_label.setEnabled(known)
@@ -1053,8 +1100,8 @@ class SinglePointTab(QWidget):
         other end is still unanswered. Neither selector is ever disabled - see
         ``controls.UNITS_LABEL_ELEVATION_ONLY`` for why.
         """
-        source_is_geodetic = self.from_zone.currentData() == GEODETIC
-        target_is_geodetic = self.to_zone.currentData() == GEODETIC
+        source_is_geodetic = is_geodetic(self.from_zone.currentData())
+        target_is_geodetic = is_geodetic(self.to_zone.currentData())
 
         self.input_unit_label.setText(
             UNITS_LABEL_ELEVATION_ONLY if source_is_geodetic else UNITS_LABEL

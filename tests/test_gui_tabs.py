@@ -36,13 +36,21 @@ from PySide6.QtWidgets import QWidget  # noqa: E402
 from michspc.gui import controls  # noqa: E402
 from michspc.gui.app import build_application  # noqa: E402
 from michspc.gui.window import (  # noqa: E402
-    GEODETIC,
+    GEODETIC_CHOICES,
     MULTI_POINT_TAB,
     SINGLE_POINT_TAB,
     UNCHOSEN,
     MainWindow,
 )
-from michspc.spc.zones import SPCS2022_ZONES, SPCS83_ZONES  # noqa: E402
+from michspc.spc.frames import ALL_FRAMES, NAD83_2011  # noqa: E402
+from michspc.spc.zones import (  # noqa: E402
+    ALL_ZONES,
+    SPCS2022_ZONES,
+    SPCS83_ZONES,
+)
+
+GEODETIC = controls.geodetic_choice(NAD83_2011)
+"""The NAD83(2011) geodetic entry - one of two since H6 (DESIGN.md #62)."""
 
 
 # --------------------------------------------------------------------------
@@ -178,17 +186,28 @@ def test_no_multi_point_control_lives_on_the_single_point_tab(window):
 def test_the_window_asks_controls_for_the_direction_in_every_combination(window):
     """``MainWindow.direction()`` is a delegation, checked over the whole sweep.
 
-    The combinations, hand-enumerated from the two dropdowns' contents
-    (michspc/gui/controls.py zone_combo): each side is UNCHOSEN, GEODETIC, or
-    one of the three Michigan zones, so 5 x 5 = 25 pairs, which is small enough
-    to check exhaustively rather than sample. That sweep includes every case the
-    rule names by hand - both unanswered states, geodetic-to-geodetic (not a
-    conversion), the two geodetic directions, and a zone to ITSELF, which IS a
-    conversion and must not be guarded away.
+    The combinations are read off the dropdown itself rather than listed here,
+    so the sweep cannot fall behind what the control offers: every SELECTABLE
+    entry (the separator between the eras is not one) against every other.
+    Since H6 that is the placeholder, two geodetic entries and twenty-two
+    zones - 25 x 25 = 625 pairs, still small enough to check exhaustively.
+
+    The sweep includes every case the rule names by hand: both unanswered
+    states, geodetic-to-geodetic (not a conversion, in either frame and across
+    the two), the two geodetic directions, a zone to ITSELF - which IS a
+    conversion and must not be guarded away - and, since H6, the cross-frame
+    pairs, which ARE directions here and are refused later by ``job.run``.
     """
-    choices = [UNCHOSEN, GEODETIC, *SPCS83_ZONES]
-    # 3 zones ship today; the sweep below is 25 pairs.
-    assert len(choices) == 5
+    combo = window.from_zone
+    choices = [
+        combo.itemData(index)
+        for index in range(combo.count())
+        if combo.itemData(index) is not None
+    ]
+    # 1 placeholder + one geodetic entry per offered frame + every zone in the
+    # registry. Derived from the registries, so a lost era fails here.
+    assert len(choices) == 1 + len(GEODETIC_CHOICES) + len(ALL_ZONES)
+    assert len(choices) == 25
 
     checked = 0
     for source in choices:
@@ -208,7 +227,7 @@ def test_the_window_asks_controls_for_the_direction_in_every_combination(window)
             )
             checked += 1
 
-    assert checked == 25
+    assert checked == 625
 
     # The two cases the rule singles out, stated outright rather than left
     # implicit in the sweep. A zone to itself is a real job (the units are
@@ -219,24 +238,35 @@ def test_the_window_asks_controls_for_the_direction_in_every_combination(window)
 
 
 # --------------------------------------------------------------------------
-# The H2 gate: the 2022 zones are in the registry and out of the interface.
+# The H2 gate is DISCHARGED: every registered zone is now offered.
+#
+# ``test_no_spcs2022_zone_is_offered_in_any_of_the_four_zone_dropdowns`` and
+# ``test_the_dropdown_gate_has_something_to_exclude`` stood here and are
+# SUPERSEDED BY NAME by the two below, which is what that gate's own flip
+# condition asked for: H5 taught michspc.fileio.report to describe each
+# projection kind, H6 taught this interface to state a zone's frame, and the
+# gate said in writing that the dropdowns open when both have landed.
+#
+# The replacement is not "the pin was deleted". A pin that says "nothing is
+# excluded" is vacuous, so what stands in its place says how MANY entries each
+# dropdown has and where they come from - counts derived from the registries,
+# so an era silently vanishing from the interface still fails, which is the
+# property the old gate was really protecting.
 # --------------------------------------------------------------------------
 
 
-def test_no_spcs2022_zone_is_offered_in_any_of_the_four_zone_dropdowns(window):
-    """Michigan's nineteen SPCS2022 zones convert, and are not selectable yet.
-
-    **This is a gate, not an omission**, and the reason is downstream of the
-    conversion rather than in it: ``michspc.fileio.report``'s zone block writes
-    the two-standard-parallel wording unconditionally and reads
-    ``definition.lat_south``, which no 2022 definition record has. A 2022 job
-    would convert every point correctly and then raise ``AttributeError`` while
-    writing its record — after the work and before the archive. H5 rewrites
-    that block per projection kind; H6 then opens the dropdowns.
+def test_every_registered_zone_is_offered_in_all_four_zone_dropdowns(window):
+    """Both eras reach the interface, in registry order, with a separator.
 
     All four dropdowns are checked — both tabs, both directions — because they
     are four separate ``QComboBox`` instances and a change to one is not a
     change to the others.
+
+    The expected content is derived from the registries and from
+    ``controls.frames_offered``, never listed here: the interface's promise is
+    that a zone added to an era tuple appears with no interface change
+    (docs/DESIGN.md section 6), and a hand-written list would quietly stop
+    checking that.
     """
     combos = (
         window.from_zone,
@@ -248,28 +278,73 @@ def test_no_spcs2022_zone_is_offered_in_any_of_the_four_zone_dropdowns(window):
 
     for combo in combos:
         offered = [combo.itemData(index) for index in range(combo.count())]
-        labels = [combo.itemText(index) for index in range(combo.count())]
-        for zone in SPCS2022_ZONES:
-            assert combo.findData(zone) == -1, f"{zone.name} is selectable"
-            assert zone not in offered
-            assert zone.name not in labels
-            assert zone.code not in "".join(labels)
-        # And every SPCS 83 zone still is.
-        for zone in SPCS83_ZONES:
-            assert combo.findData(zone) >= 0, f"{zone.name} is not selectable"
+
+        # 1 placeholder + one geodetic entry per offered frame + the SPCS 83
+        # block + 1 separator + the SPCS2022 block. Written as the sum so a
+        # missing piece names itself.
+        assert combo.count() == (
+            1 + len(GEODETIC_CHOICES) + len(SPCS83_ZONES) + 1 + len(SPCS2022_ZONES)
+        )
+        assert combo.count() == 26
+
+        assert offered[0] == UNCHOSEN
+        first_zone = 1 + len(GEODETIC_CHOICES)
+        assert offered[1:first_zone] == list(GEODETIC_CHOICES)
+        separator = first_zone + len(SPCS83_ZONES)
+        assert offered[first_zone:separator] == list(SPCS83_ZONES)
+        # The separator carries no data at all, which is what makes it a
+        # separator and not a selection.
+        assert offered[separator] is None
+        assert combo.itemText(separator) == ""
+        assert offered[separator + 1:] == list(SPCS2022_ZONES)
+
+        # And every zone is findable by its own record, in both eras.
+        for zone in (*SPCS83_ZONES, *SPCS2022_ZONES):
+            position = combo.findData(zone)
+            assert position >= 0, f"{zone.name} is not selectable"
+            assert combo.itemText(position) == (
+                f"{zone.name} {zone.code} - {zone.frame.code}"
+            )
 
 
-def test_the_dropdown_gate_has_something_to_exclude():
-    """Anti-vacuousness for the pin above.
+def test_the_separator_between_the_eras_cannot_be_chosen(window):
+    """It is a rule in the list, not an item — and a user cannot land on it.
 
-    If ``SPCS2022_ZONES`` were empty the test above would pass by iterating
-    nothing, and would keep passing on the day the registry lost every 2022
-    record. Nineteen zones, all absent from the interface, all present in the
-    registry.
+    Qt gives a separator no ItemIsEnabled and no ItemIsSelectable flag, so it
+    is unreachable by mouse or keyboard. That matters because its data is None,
+    and None is not a zone: if a selection could land there, the pair would
+    describe no job at all. ``controls.direction_for`` refuses it by name for
+    the case that a later change reaches it programmatically, and that refusal
+    is pinned in tests/test_gui_frames.py.
+    """
+    from PySide6.QtCore import Qt as _Qt
+
+    combo = window.from_zone
+    separator = 1 + len(GEODETIC_CHOICES) + len(SPCS83_ZONES)
+    flags = combo.model().item(separator).flags()
+
+    assert not (flags & _Qt.ItemFlag.ItemIsEnabled)
+    assert not (flags & _Qt.ItemFlag.ItemIsSelectable)
+
+
+def test_the_dropdown_pin_has_something_to_find():
+    """Anti-vacuousness for the pin above, in its new direction.
+
+    The old gate could pass by having nothing to exclude; this one could pass
+    by having nothing to find. Twenty-two zones in two eras, two frames
+    offered, and the geodetic entries derived from the frames that actually
+    carry zones - so a registry that lost an era, or a frame that quietly
+    became unusable, fails here rather than silently shrinking a dropdown.
     """
     assert len(SPCS2022_ZONES) == 19
     assert len(SPCS83_ZONES) == 3
-
-    from michspc.spc.zones import ALL_ZONES
-
     assert len(ALL_ZONES) == 22
+
+    # Two of the three declared frames are offered. WGS 84 is declared and NOT
+    # usable, and its absence from the dropdown is the whole point of #58.
+    assert len(ALL_FRAMES) == 3
+    assert len(GEODETIC_CHOICES) == 2
+    assert [choice.frame.code for choice in GEODETIC_CHOICES] == [
+        "NAD83(2011)",
+        "NATRF2022",
+    ]

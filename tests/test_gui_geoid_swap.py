@@ -51,6 +51,7 @@ from michspc.gui.controls import (  # noqa: E402
 from michspc.gui.results_model import OUTPUT_TITLE  # noqa: E402
 from michspc.gui.window import MainWindow  # noqa: E402
 from michspc.job import VerticalMode, run  # noqa: E402
+from michspc.spc.frames import NAD83_2011  # noqa: E402
 from michspc.spc.units import METERS  # noqa: E402
 from michspc.spc.vertical import NAVD88, NGVD29  # noqa: E402
 from tests.test_geoid_swap import (  # noqa: E402
@@ -116,7 +117,7 @@ def offered(combo) -> list:
 def fill_single_swap(tab) -> None:
     """The Houghton GEOID12B -> GEOID18 swap on the Single point tab:
     geodetic input, vertical-only mode, identity NAVD 88 pair, metres."""
-    choose(tab.from_zone, controls.GEODETIC)
+    choose(tab.from_zone, NAD83_2011_GEODETIC)
     choose(tab.input_unit, METERS)
     choose(
         tab.longitude_combo,
@@ -130,6 +131,15 @@ def fill_single_swap(tab) -> None:
     choose(tab.vertical_source_combo, NAVD88)
     choose(tab.vertical_target_combo, NAVD88)
     choose(tab.input_geoid_combo, geoid.GEOID12B_MODEL)
+
+NAD83_2011_GEODETIC = controls.geodetic_choice(NAD83_2011)
+"""The NAD83(2011) geodetic entry.
+
+Since H6 the zone dropdowns carry one geodetic entry PER FRAME (DESIGN.md
+#62, extending #58), so "geodetic" alone no longer names a selection. Every
+case in this module is an SPCS 83 / NAD83(2011) case, which is the frame
+that keeps them describing the same jobs they always did.
+"""
 
 
 # --------------------------------------------------------------------------
@@ -278,7 +288,7 @@ def test_the_settings_carry_each_side_and_a_grayed_side_states_none(
     else:
         page.first_edit.setText(str(HOUGHTON_LATITUDE))
         page.second_edit.setText(str(HOUGHTON_LONGITUDE))
-    choose(page.from_zone, controls.GEODETIC)
+    choose(page.from_zone, NAD83_2011_GEODETIC)
     from michspc.spc.zones import MI_NORTH
 
     choose(page.to_zone, MI_NORTH)
@@ -318,7 +328,7 @@ def test_gui_navd88_to_ngvd29_matches_the_41_era_shape(tab):
     source_geoid_model=GEOID18) runs to the same outputs bitwise as the
     #41-era shape that carried GEOID18 in geoid_model - the equivalence the
     normalization promises, held through the tab's own settings object."""
-    choose(tab.from_zone, controls.GEODETIC)
+    choose(tab.from_zone, NAD83_2011_GEODETIC)
     choose(tab.input_unit, METERS)
     from michspc.job import LongitudeConvention
 
@@ -396,7 +406,7 @@ def test_the_two_tabs_cannot_disagree_about_a_swap(window, tab, tmp_path):
     )
     window.input_edit.setText(str(job_file))
     window.output_edit.setText(str(tmp_path / "out"))
-    choose(window.from_zone, controls.GEODETIC)
+    choose(window.from_zone, NAD83_2011_GEODETIC)
     choose(window.input_unit, METERS)
     choose(window.longitude_combo, LongitudeConvention.NEGATIVE_WEST)
     window.mode_vertical_only.setChecked(True)
@@ -429,7 +439,7 @@ def test_the_multi_table_mirrors_the_audit_csv_for_a_swap(window, tmp_path):
     )
     window.input_edit.setText(str(job_file))
     window.output_edit.setText(str(tmp_path / "out"))
-    choose(window.from_zone, controls.GEODETIC)
+    choose(window.from_zone, NAD83_2011_GEODETIC)
     choose(window.input_unit, METERS)
     choose(window.longitude_combo, LongitudeConvention.NEGATIVE_WEST)
     window.mode_vertical_only.setChecked(True)

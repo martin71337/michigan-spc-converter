@@ -40,7 +40,7 @@ from michspc.fileio import exports, formatting as fmt, pnezd  # noqa: E402
 from michspc.gui import icon, results_model, window as window_module  # noqa: E402
 from michspc.gui.app import build_application  # noqa: E402
 from michspc.gui.window import (  # noqa: E402
-    GEODETIC,
+    geodetic_choice,
     INPUT_HINT_GEODETIC,
     INPUT_HINT_UNCHOSEN,
     INPUT_HINT_ZONE,
@@ -50,6 +50,7 @@ from michspc.gui.window import (  # noqa: E402
     MainWindow,
 )
 from michspc.job import Direction, LongitudeConvention  # noqa: E402
+from michspc.spc.frames import NAD83_2011  # noqa: E402
 from michspc.spc.units import (  # noqa: E402
     ALL_UNITS,
     INTERNATIONAL_FEET,
@@ -61,6 +62,17 @@ from michspc.spc.zones import (  # noqa: E402
     MI_NORTH,
     MI_SOUTH,
 )
+
+GEODETIC = geodetic_choice(NAD83_2011)
+"""This module's geodetic selection, and it names its frame since H6.
+
+The bare ``GEODETIC`` sentinel these tests were written against is gone: with
+two frames offered, "geodetic" alone no longer identifies a dropdown entry
+(docs/DESIGN.md #62, extending #58). Every existing case here is an SPCS 83
+case, so the frame that keeps them describing the same job is NAD83(2011) - and
+it is the canonical record, not a fresh one, because ``findData`` compares
+stored objects by identity.
+"""
 
 
 # --------------------------------------------------------------------------
@@ -199,23 +211,33 @@ def test_zone_dropdowns_are_built_from_the_registry(window):
     michspc.spc.zones.SPCS83_ZONES must make it selectable with no interface
     change (docs/DESIGN.md section 6).
 
-    ``SPCS83_ZONES`` rather than ``ALL_ZONES`` because that is what
-    ``controls.zone_combo`` reads until H5 and H6 land - see its docstring for
-    the reason and the flip condition, and tests/test_gui_tabs.py for the pin
-    that the 2022 zones are absent on purpose rather than by accident.
+    Both eras are offered since H6; this test still describes the SPCS 83
+    block, which is what the rest of this module converts. The whole list -
+    both eras, the per-frame geodetic entries, the separator and the counts
+    derived from the registries - is pinned in tests/test_gui_frames.py.
     """
     for combo in (window.from_zone, window.to_zone):
         offered = [combo.itemData(i) for i in range(combo.count())]
-        # Two non-zone entries (the unanswered placeholder and the geodetic
-        # option) plus one per offered zone.
-        assert len(offered) == 2 + len(SPCS83_ZONES)
+        # The unanswered placeholder, then one geodetic entry per offered
+        # frame, then the SPCS 83 zones. What follows them is the separator and
+        # the 2022 block, checked in tests/test_gui_frames.py.
         assert offered[0] == UNCHOSEN
-        assert offered[1] == GEODETIC
+        geodetic_count = len(window_module.GEODETIC_CHOICES)
+        assert offered[1 : 1 + geodetic_count] == list(
+            window_module.GEODETIC_CHOICES
+        )
+        assert (
+            offered[1 + geodetic_count : 1 + geodetic_count + len(SPCS83_ZONES)]
+            == list(SPCS83_ZONES)
+        )
         for zone in SPCS83_ZONES:
             position = combo.findData(zone)
             assert position >= 0, f"{zone.name} is not selectable"
-            # The label is assembled from the registry record itself.
-            assert combo.itemText(position) == f"{zone.name} {zone.code}"
+            # The label is assembled from the registry record itself - and it
+            # names the frame since H6, because two eras share this dropdown.
+            assert combo.itemText(position) == (
+                f"{zone.name} {zone.code} - {zone.frame.code}"
+            )
 
 
 def test_unit_dropdowns_offer_every_unit_and_default_to_international_feet(window):

@@ -53,7 +53,16 @@ from michspc.gui.results_model import (  # noqa: E402
     OUTPUT_TITLE,
     single_point_clipboard_text,
 )
-from michspc.gui.window import GEODETIC, UNCHOSEN, MainWindow  # noqa: E402
+from michspc.gui.window import geodetic_choice, UNCHOSEN, MainWindow  # noqa: E402
+from michspc.spc.frames import NAD83_2011  # noqa: E402
+
+GEODETIC = geodetic_choice(NAD83_2011)
+"""This module's geodetic selection, naming its frame since H6.
+
+Every case here is an SPCS 83 case, so NAD83(2011) is the frame that keeps them
+describing the same jobs they always did. The canonical record, not a fresh
+one: ``QComboBox.findData`` compares stored objects by identity.
+"""
 from michspc.job import Direction, LongitudeConvention  # noqa: E402
 from michspc.spc.units import INTERNATIONAL_FEET, METERS  # noqa: E402
 from michspc.spc.zones import (  # noqa: E402

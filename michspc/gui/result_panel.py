@@ -74,18 +74,34 @@ for, and `tests/test_copy_icon.py` still resolves the two sheets at this size.
 NAME_COLUMN = 0
 VALUE_COLUMN = 1
 
-WRAP_WIDTH = 320
-"""How wide a value is allowed to get before it is asked to wrap.
+WRAP_COLUMNS = 48
+"""How wide a value is allowed to get before it is asked to wrap, in EMs.
 
-Every value but one is a coordinate, a factor or a zone name, and none of those
-should ever wrap: "Michigan Central 2112" broken across two lines with the copy
-button stranded beside the first half is worse than a slightly wider column.
-Only the Warnings value is a paragraph, and it is the one this cap is for.
+Every value here is a coordinate, a factor, a unit name or a zone name, and
+none of those should ever wrap: "Michigan Central 2112" broken across two lines
+with the copy button stranded beside the first half is worse than a slightly
+wider column. The cap is a backstop against a value nobody anticipated, not a
+rule about which row is which — this module does not know what its rows are
+called, and should not learn.
 
-Applied as a minimum width taken from the text's own advance and capped here,
-rather than as a rule about which row is which — this module does not know that
-one of its rows is called Warnings, and should not learn.
+**It was a flat 320 pixels until H6, and that number was wrong twice over.**
+It was wrong the moment the zone labels grew a frame — "Michigan Grand Rapids
+261008 - NATRF2022", the longest of the twenty-two, no longer fitted, so the
+value wrapped and the copy button landed beside half of a zone name, which is
+the exact defect the minimum width exists to prevent. And it was wrong in kind:
+a pixel constant measured against a font is the amendment #31 class, where the
+offscreen test platform reports different metrics from the real Windows plugin
+for the same font, so a number tuned under one is not a number under the other.
+
+Measured in EMs of the label's own font instead, it is a statement about text
+rather than about pixels: 48 of the widest character the font has, against a
+longest value of 40 mixed-case characters, which no font can render wider.
 """
+
+
+def wrap_width(metrics) -> int:
+    """The cap in the pixels of a particular font. Derived, never stored."""
+    return metrics.horizontalAdvance("M" * WRAP_COLUMNS)
 
 SEPARATOR_WIDTH = 1
 """A hairline, drawn in the palette's own mid tone. ``QFrame.Sunken`` — Qt's
@@ -272,7 +288,10 @@ class ResultPanel(QScrollArea):
         # so a value given exactly its advance can still wrap by a hair's
         # breadth. "International feet (ift)" did, at 129 px of 129.
         shown.setMinimumWidth(
-            min(shown.fontMetrics().horizontalAdvance(value.text) + 2, WRAP_WIDTH)
+            min(
+                shown.fontMetrics().horizontalAdvance(value.text) + 2,
+                wrap_width(shown.fontMetrics()),
+            )
         )
 
         button = QToolButton(container)

@@ -26,6 +26,7 @@ from michspc.gui.controls import (  # noqa: E402
     HEIGHT_KIND_ELLIPSOID,
     HEIGHT_KIND_LABEL,
     HEIGHT_KIND_ORTHOMETRIC,
+    geodetic_choice,
     height_kind_combo,
     height_kind_for,
 )
@@ -39,9 +40,22 @@ from michspc.job import (  # noqa: E402
     VerticalMode,
     run,
 )
+from michspc.spc.frames import NAD83_2011  # noqa: E402
 from michspc.spc.units import METERS  # noqa: E402
 from michspc.spc.vertical import NAVD88, HeightKind  # noqa: E402
+from michspc.spc.zones import MI_NORTH  # noqa: E402
 from tests.fixtures.geoid_anchors import GEOID_ANCHORS  # noqa: E402
+
+NAD83_2011_GEODETIC = geodetic_choice(NAD83_2011)
+"""The NAD83(2011) geodetic entry - one of two since H6 (DESIGN.md #62)."""
+
+
+def choose(combo, data) -> None:
+    """Select by record, never by index. A dropdown's indices move."""
+    index = combo.findData(data)
+    if index < 0:
+        raise AssertionError(f"{combo!r} has no entry for {data!r}")
+    combo.setCurrentIndex(index)
 
 HOUGHTON_LATITUDE = 47.1211
 HOUGHTON_LONGITUDE = -88.5694
@@ -151,8 +165,13 @@ def test_the_multi_point_tab_emits_the_chosen_kind(window, tmp_path):
     source.write_text("1,500000.0,300000.0,166.204,GNSS\n", encoding="utf-8")
     window.input_edit.setText(str(source))
     window.output_edit.setText(str(tmp_path))
-    window.from_zone.setCurrentIndex(1)
-    window.to_zone.setCurrentIndex(2)
+    # By record, not by index. These two lines read setCurrentIndex(1) and (2)
+    # until H6, which was the geodetic entry and Michigan North while there was
+    # exactly one geodetic entry; the second frame's entry now sits at index 2,
+    # so the pair silently became geodetic-to-geodetic - not a conversion, and
+    # a settings() of None. Naming the records cannot drift with the list.
+    choose(window.from_zone, NAD83_2011_GEODETIC)
+    choose(window.to_zone, MI_NORTH)
 
     window.height_kind_combo.setCurrentIndex(
         window.height_kind_combo.findData(HeightKind.ELLIPSOID)
@@ -168,8 +187,8 @@ def test_the_multi_point_tab_emits_the_chosen_kind(window, tmp_path):
 
 
 def test_the_single_point_tab_emits_the_chosen_kind_and_invalidates(tab):
-    tab.from_zone.setCurrentIndex(1)
-    tab.to_zone.setCurrentIndex(2)
+    choose(tab.from_zone, NAD83_2011_GEODETIC)
+    choose(tab.to_zone, MI_NORTH)
     tab.first_edit.setText("500000.0")
     tab.second_edit.setText("300000.0")
     tab.elevation_edit.setText("166.204")
@@ -432,18 +451,39 @@ def test_every_geodetic_selection_names_the_datum(window, tab):
     handheld's WGS 84 position to be pasted in for a plausible wrong answer.
     Asserted on EVERY zone dropdown - both ends of both tabs - because the
     From selection and the To selection are equally able to be misread.
+
+    **GENERALIZED at H6, not replaced.** #58's promise was that the label is
+    DERIVED, so that "the day a job runs on NATRF2022 the dropdown renames
+    itself rather than needing to be remembered". That day arrived, and the
+    single entry became one per offered frame - so the pin now runs over EVERY
+    offered frame and asserts the derivation for each. A hard-coded string for
+    any one of them fails it, which is what #58 asked for; so does a second
+    frame's entry that quietly reuses the first frame's label.
     """
-    from michspc.gui.controls import GEODETIC, GEODETIC_LABEL
-    from michspc.spc.frames import NAD83_2011
+    from michspc.gui.controls import (
+        GEODETIC_CHOICES,
+        frames_offered,
+        geodetic_label,
+    )
+
+    # The offering is not empty and is not one thing pretending to be many.
+    assert len(GEODETIC_CHOICES) == len(frames_offered()) >= 2
+    labels = {choice.label for choice in GEODETIC_CHOICES}
+    assert len(labels) == len(GEODETIC_CHOICES)
 
     for combo in (window.from_zone, window.to_zone, tab.from_zone, tab.to_zone):
-        at = combo.findData(GEODETIC)
-        assert at != -1
-        assert combo.itemText(at) == GEODETIC_LABEL
-        assert combo.itemText(at).startswith("NAD83")
+        for choice in GEODETIC_CHOICES:
+            at = combo.findData(choice)
+            assert at != -1, f"no entry for {choice.frame.code}"
+            # Derived from the frame record, not typed: the label follows the
+            # mathematics by itself, which is the reason the owner gave.
+            assert combo.itemText(at) == geodetic_label(choice.frame)
+            assert combo.itemText(at) == (
+                f"{choice.frame.code} geodetic (latitude / longitude)"
+            )
+            assert choice.frame.code in combo.itemText(at)
 
-    # Derived from the frame record, not typed: the day this program converts
-    # on another frame the label follows the mathematics by itself, which is
-    # the reason the owner gave for asking.
-    assert NAD83_2011.code in GEODETIC_LABEL
-    assert GEODETIC_LABEL == f"{NAD83_2011.code} geodetic (latitude / longitude)"
+    # And the frame this program has always converted against is still one of
+    # them, spelled with its realization.
+    assert any(choice.frame is NAD83_2011 for choice in GEODETIC_CHOICES)
+    assert geodetic_label(NAD83_2011).startswith("NAD83(2011)")

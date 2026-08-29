@@ -64,6 +64,7 @@ from michspc.job import (  # noqa: E402
     VerticalMode,
     run,
 )
+from michspc.spc.frames import NAD83_2011  # noqa: E402
 from michspc.spc.units import INTERNATIONAL_FEET, METERS  # noqa: E402
 from michspc.spc.vertical import (  # noqa: E402
     ALL_VERTICAL_DATUMS,
@@ -91,6 +92,15 @@ USABLE_DATUMS = tuple(d for d in ALL_VERTICAL_DATUMS if d.is_usable)
 # correspondence below holds BECAUSE the wording is shared.
 VERTICAL_SHIFT_COLUMN_HEADING = vertical_shift_heading(METERS)
 VERTICAL_SIGMA_LABEL = vertical_sigma_heading(METERS)
+
+NAD83_2011_GEODETIC = controls.geodetic_choice(NAD83_2011)
+"""The NAD83(2011) geodetic entry.
+
+Since H6 the zone dropdowns carry one geodetic entry PER FRAME (DESIGN.md
+#62, extending #58), so "geodetic" alone no longer names a selection. Every
+case in this module is an SPCS 83 / NAD83(2011) case, which is the frame
+that keeps them describing the same jobs they always did.
+"""
 
 
 # --------------------------------------------------------------------------
@@ -174,7 +184,7 @@ def make_vertical(page, source_datum=NGVD29, target_datum=NAVD88) -> None:
 
 def fill_single_vertical(tab) -> None:
     """A geodetic NGVD 29 -> NAVD 88 job on the anchor, metres both ends."""
-    choose(tab.from_zone, controls.GEODETIC)
+    choose(tab.from_zone, NAD83_2011_GEODETIC)
     choose(tab.to_zone, MI_SOUTH)
     choose(tab.input_unit, METERS)
     choose(tab.output_unit, METERS)
@@ -189,7 +199,7 @@ def fill_multi_vertical(window, *, input_path, output_directory) -> None:
     """The same job on the Multi point tab, plus the file and the folder."""
     window.input_edit.setText(str(input_path))
     window.output_edit.setText(str(output_directory))
-    choose(window.from_zone, controls.GEODETIC)
+    choose(window.from_zone, NAD83_2011_GEODETIC)
     choose(window.to_zone, MI_SOUTH)
     choose(window.input_unit, METERS)
     choose(window.output_unit, METERS)

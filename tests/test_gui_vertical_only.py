@@ -58,6 +58,7 @@ from michspc.job import (  # noqa: E402
     LongitudeConvention,
     VerticalMode,
 )
+from michspc.spc.frames import NAD83_2011  # noqa: E402
 from michspc.spc.units import METERS  # noqa: E402
 from michspc.spc.vertical import NAVD88, NGVD29  # noqa: E402
 from michspc.spc.zones import MI_SOUTH  # noqa: E402
@@ -149,7 +150,7 @@ def make_vertical_only(page, source_datum=NGVD29, target_datum=NAVD88) -> None:
 
 def fill_single_geodetic(tab) -> None:
     """The anchor as a geodetic vertical-only point, metres."""
-    choose(tab.from_zone, controls.GEODETIC)
+    choose(tab.from_zone, NAD83_2011_GEODETIC)
     choose(tab.input_unit, METERS)
     choose(tab.longitude_combo, LongitudeConvention.NEGATIVE_WEST)
     tab.first_edit.setText(str(ANCHOR_22.latitude))
@@ -184,6 +185,15 @@ def headings(window) -> list[str]:
         window.model.headerData(i, Qt.Orientation.Horizontal)
         for i in range(window.model.columnCount())
     ]
+
+NAD83_2011_GEODETIC = controls.geodetic_choice(NAD83_2011)
+"""The NAD83(2011) geodetic entry.
+
+Since H6 the zone dropdowns carry one geodetic entry PER FRAME (DESIGN.md
+#62, extending #58), so "geodetic" alone no longer names a selection. Every
+case in this module is an SPCS 83 / NAD83(2011) case, which is the frame
+that keeps them describing the same jobs they always did.
+"""
 
 
 # --------------------------------------------------------------------------
@@ -291,7 +301,7 @@ def test_convert_gates_without_a_to_zone_on_the_single_point_tab(tab):
     """In vertical-only mode a complete form needs the input system, both
     coordinates, both datums, and the convention when the input is geodetic
     - and NOT a To zone, which does not exist in this mode."""
-    choose(tab.from_zone, controls.GEODETIC)
+    choose(tab.from_zone, NAD83_2011_GEODETIC)
     choose(tab.input_unit, METERS)
     choose(tab.longitude_combo, LongitudeConvention.NEGATIVE_WEST)
     tab.first_edit.setText(str(ANCHOR_22.latitude))
@@ -369,7 +379,7 @@ def test_the_settings_state_the_vertical_only_job_honestly(
     assert settings.target_vertical_datum is NAVD88
 
     # Geodetic input: the convention IS read.
-    choose(page.from_zone, controls.GEODETIC)
+    choose(page.from_zone, NAD83_2011_GEODETIC)
     if which == "single":
         page.first_edit.setText(str(ANCHOR_22.latitude))
         page.second_edit.setText(str(ANCHOR_22.longitude))
@@ -389,7 +399,7 @@ def test_the_longitude_selector_follows_the_from_selection_in_this_mode(tab):
     choose(tab.from_zone, MI_SOUTH)
     assert tab.longitude_combo.isEnabled() is False
 
-    choose(tab.from_zone, controls.GEODETIC)
+    choose(tab.from_zone, NAD83_2011_GEODETIC)
     assert tab.longitude_combo.isEnabled() is True
 
 
@@ -562,7 +572,7 @@ def test_the_two_tabs_cannot_disagree_about_a_vertical_only_point(
     )
     window.input_edit.setText(str(job_file))
     window.output_edit.setText(str(tmp_path / "out"))
-    choose(window.from_zone, controls.GEODETIC)
+    choose(window.from_zone, NAD83_2011_GEODETIC)
     choose(window.input_unit, METERS)
     choose(window.longitude_combo, LongitudeConvention.NEGATIVE_WEST)
     make_vertical_only(window)
@@ -606,7 +616,7 @@ def vertical_only_multi_job(window, tmp_path):
     )
     window.input_edit.setText(str(job_file))
     window.output_edit.setText(str(tmp_path / "out"))
-    choose(window.from_zone, controls.GEODETIC)
+    choose(window.from_zone, NAD83_2011_GEODETIC)
     choose(window.input_unit, METERS)
     choose(window.longitude_combo, LongitudeConvention.NEGATIVE_WEST)
     make_vertical_only(window)

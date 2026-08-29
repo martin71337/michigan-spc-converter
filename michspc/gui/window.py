@@ -65,7 +65,7 @@ from michspc.gui.controls import (
     height_kind_combo,
     height_kind_for,
     AMBER,
-    GEODETIC,
+    GEODETIC_CHOICES,
     GEOID_MODEL_LABEL,
     INPUT_GEOID_LABEL,
     OUTPUT_GEOID_LABEL,
@@ -77,13 +77,19 @@ from michspc.gui.controls import (
     VERTICAL_SOURCE_LABEL,
     VERTICAL_TARGET_LABEL,
     direction_for,
+    geodetic_choice,
+    geodetic_frame_for,
     geoid_combo,
     geoid_models_for_datum,
+    is_geodetic,
     longitude_combo,
     longitude_relevance,
     refresh_geoid_combo,
+    refresh_unit_combo,
     show_failure_dialog,
     unit_combo,
+    unit_for,
+    units_for_selection,
     vertical_datum_combo,
     vertical_datum_for,
     vertical_mode_buttons,
@@ -124,6 +130,23 @@ factor calculations - as on-screen text, not a tooltip (#34's ruling on
 tooltips stands). In the two vertical modes the whole row is hidden: there
 the elevations are the thing being converted, and the record and the panel
 already say so.
+"""
+
+UNITS_SNAPPED_STATUS = (
+    "The chosen zone does not publish that unit, so the unit was changed and "
+    "the table was cleared. Nothing already written was altered. Press Convert."
+)
+"""Shown when the per-zone unit filter moves a selection the user made.
+
+Three sentences because three separate things happened and a surveyor is
+entitled to all of them: his unit selection was changed by the program (the
+SPCS2022 zones publish metres and international feet only), the table he was
+looking at was emptied because it no longer matched the controls above it, and
+- the one he will worry about - the archive on disk was not touched.
+
+"Press Convert" rather than "Ready.", the STATUS_INPUT_CHANGED reasoning of the
+Single point tab: a surveyor who thought the table was still there is exactly
+the person this message is for.
 """
 
 INPUT_LABEL = "Input file:"
@@ -209,6 +232,7 @@ class MainWindow(QMainWindow):
 
         self._build()
         self._update_input_hint()
+        self._update_unit_offerings()
         self._update_unit_labels()
         self._update_longitude_relevance()
         self._update_vertical_rows()
@@ -615,8 +639,8 @@ class MainWindow(QMainWindow):
             direction=direction,
             source_zone=source_zone,
             target_zone=target_zone,
-            input_unit=self.input_unit.currentData(),
-            output_unit=self.output_unit.currentData(),
+            input_unit=unit_for(self.input_unit),
+            output_unit=unit_for(self.output_unit),
             # From the dropdowns (WP-V8, plan section 4.3; per-side since
             # the owner's 2026-08-09 feature), exactly as the two unit
             # combos are read: the combos offer only registry records, and
@@ -629,6 +653,19 @@ class MainWindow(QMainWindow):
             source_vertical_datum=source_datum,
             target_vertical_datum=target_datum,
         )
+
+        # The frame the geodetic END is in, straight off the selection that
+        # names it (H6, DESIGN.md #62). Stated only when there IS a geodetic
+        # end: a zone-to-zone job never reads this field, and its two zones
+        # carry their own frames, so telling the settings anything here would
+        # be an answer to a question the job does not ask. A pair whose frames
+        # have no published path - this frame against a zone in the other era -
+        # is refused by job.run before the file is read, in the frame
+        # registry's own words; the interface deliberately does not pre-filter
+        # it (#33: this program informs, it does not decide).
+        frame = geodetic_frame_for(source, target)
+        if frame is not None:
+            common["geodetic_frame"] = frame
 
         if direction is Direction.ZONE_TO_ZONE:
             # A pure zone-to-zone job never consults the longitude convention
@@ -664,7 +701,7 @@ class MainWindow(QMainWindow):
         if source_datum is None or target_datum is None:
             return None
 
-        input_unit = self.input_unit.currentData()
+        input_unit = unit_for(self.input_unit)
         common = dict(
             input_path=self.input_path,
             output_directory=self.output_directory,
@@ -680,6 +717,11 @@ class MainWindow(QMainWindow):
             source_vertical_datum=source_datum,
             target_vertical_datum=target_datum,
         )
+
+        # Only one side exists in this mode, so only one side can be geodetic.
+        frame = geodetic_frame_for(source)
+        if frame is not None:
+            common["geodetic_frame"] = frame
 
         if source_zone is not None:
             # The file carries no longitudes and none are written - the
@@ -697,9 +739,67 @@ class MainWindow(QMainWindow):
 
     def _on_direction_changed(self) -> None:
         self._update_input_hint()
+        self._update_unit_offerings()
         self._update_unit_labels()
         self._update_longitude_relevance()
         self._update_convert_enabled()
+
+    def _update_unit_offerings(self) -> None:
+        """Offer each end only the units its own selection publishes.
+
+        The one owner of these two combos' item lists, so nothing else rebuilds
+        them (the #57 defect was two methods driving one property, and this is
+        the same shape one property along). ``controls`` owns the rule -
+        ``units_for_selection`` reads ``Zone.allowed_units``, the authoritative
+        statement - and ``job._require_units_the_zones_publish`` enforces the
+        identical tuple on the settings, so this narrowing is a convenience
+        over the gate and never a second rule.
+
+        Neither combo is ever disabled here; see ``refresh_unit_combo``.
+
+        **A forced swap discards the table.** SPCS2022 publishes metres and
+        international feet only, so a job left on US survey feet has its unit
+        changed for it when a 2022 zone is chosen - by the program, not by the
+        user - and the table above would then be showing an archive's numbers
+        under a unit selector that no longer describes them. That is the
+        amendment #26 / #43 stale-display class reaching this tab through a
+        control nobody touched.
+        """
+        snapped = refresh_unit_combo(
+            self.input_unit, units_for_selection(self.from_zone.currentData())
+        )
+        snapped |= refresh_unit_combo(
+            self.output_unit, units_for_selection(self.to_zone.currentData())
+        )
+        if snapped:
+            self._invalidate_table()
+
+    def _invalidate_table(self) -> None:
+        """Empty the results table, and say why.
+
+        **Narrower than the Single point tab's ``_invalidate_result``, on
+        purpose.** This tab's table describes an archive that was WRITTEN, not
+        the current controls, so it does not clear when a control moves - the
+        files on disk are unchanged and their own record states the units they
+        were written in. It clears for the one case where leaving it would show
+        numbers under a label that contradicts them: a unit the program itself
+        swapped out from under a displayed result.
+
+        The status line says so rather than going quiet, and "Open folder" is
+        disarmed with the table because it points at the run the table
+        described. Nothing on disk is touched - the archive is still there and
+        still correct - and the message says that too.
+
+        Idempotent: costs nothing when there is no result on screen.
+        """
+        if self.result is None and self.model.rowCount() == 0:
+            return
+        self.result = None
+        self.written_files = {}
+        self.model.set_result(None)
+        self.open_folder_button.setEnabled(False)
+        self.status_label.setToolTip("")
+        self._set_status(UNITS_SNAPPED_STATUS)
 
     def _update_unit_labels(self) -> None:
         """Say what each unit selector governs, given From and To.
@@ -710,8 +810,8 @@ class MainWindow(QMainWindow):
         two strings and two tooltips (see ``UNITS_LABEL_ELEVATION_ONLY`` for why
         neither selector is ever disabled).
         """
-        source_is_geodetic = self.from_zone.currentData() == GEODETIC
-        target_is_geodetic = self.to_zone.currentData() == GEODETIC
+        source_is_geodetic = is_geodetic(self.from_zone.currentData())
+        target_is_geodetic = is_geodetic(self.to_zone.currentData())
 
         self.input_unit_label.setText(
             UNITS_LABEL_ELEVATION_ONLY if source_is_geodetic else UNITS_LABEL
@@ -734,7 +834,7 @@ class MainWindow(QMainWindow):
         wrong end of the job.
         """
         source = self.from_zone.currentData()
-        if source == GEODETIC:
+        if is_geodetic(source):
             return INPUT_HINT_GEODETIC
         if isinstance(source, Zone):
             return INPUT_HINT_ZONE

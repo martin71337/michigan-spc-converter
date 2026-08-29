@@ -3242,6 +3242,309 @@ def test_the_unit_gate_does_not_read_a_unit_the_direction_never_applies(tmp_path
     )
 
 
+# --------------------------------------------------------------------------
+# The 0.7.0 closing gate's three job-level findings, each pinned at the
+# reviewer's own input (review/gate-nsrs-closing/output.txt).
+# --------------------------------------------------------------------------
+
+
+def test_an_ellipsoid_height_in_the_2022_frame_is_refused(tmp_path):
+    """The closing gate's HIGH, at the reviewer's exact job.
+
+    ``H = h - N`` needs both heights measured from the SAME ellipsoid. The
+    geoid models this program carries are NGS hybrid models published against
+    NAD 83(2011); an NATRF2022 ellipsoid height is measured from a different
+    realization, and the frozen NGS capture puts the two 1.115 m apart at
+    43.0 N / 84.5 W (review/nsrs-n0/FINDINGS.md).
+
+    The reviewer's input, verbatim: vertical-only, zone 261008 Grand Rapids,
+    N = 251023.811677263118 m, E = 1462701.575467889430 m, h = 198.885 m,
+    output datum NAVD 88 - the NATRF2022 counterpart of the frozen NAD 83
+    anchor at h = 200.000 m. Before this gate the job succeeded and wrote
+    **231.969990331655 m NAVD 88**, where the answer is 233.084999084570 m:
+    an elevation 1.115 m low, wearing the right label, with nothing in the
+    number to show it.
+    """
+    from michspc.fileio import geoid as geoid_module
+    from michspc.spc.vertical import NAVD88, HeightKind
+    from michspc.spc.zones import zone_by_code
+
+    source = tmp_path / "gnss.csv"
+    source.write_text(
+        "1,251023.811677263118,1462701.575467889430,198.885,GNSS\n",
+        encoding="utf-8",
+    )
+    settings = JobSettings(
+        input_path=source,
+        output_directory=tmp_path / "out",
+        direction=Direction.VERTICAL_ONLY,
+        source_zone=zone_by_code("261008"),
+        target_zone=None,
+        input_unit=METERS,
+        output_unit=METERS,
+        longitude_convention=None,
+        vertical_mode=jobmod.VerticalMode.VERTICAL,
+        source_vertical_datum=NAVD88,
+        target_vertical_datum=NAVD88,
+        geoid_model=geoid_module.GEOID18_MODEL,
+        input_height_kind=HeightKind.ELLIPSOID,
+    )
+
+    with pytest.raises(FrameTransformationUnavailableError) as caught:
+        run(settings)
+
+    message = str(caught.value)
+    assert "NATRF2022" in message
+    assert "NAD83(2011)" in message
+    # The measured fact, not an adjective: the two ellipsoid heights of one
+    # point, and the distance between them.
+    assert "1.115" in message
+    assert "198.885" in message
+    assert "200.000" in message
+    assert "ORTHOMETRIC" in message
+    assert "DEFERRED-NATRF2022-BRIDGE.md" in message
+
+    # A settings fact, so it fires before the file is read: delete the file and
+    # the same refusal arrives. A per-row check would raise FileNotFoundError.
+    source.unlink()
+    with pytest.raises(FrameTransformationUnavailableError):
+        run(settings)
+
+
+def test_the_ellipsoid_height_frame_gate_leaves_nad83_jobs_alone(tmp_path):
+    """The half that proves the gate is about the FRAME, not about the feature.
+
+    The same shape of job in NAD83(2011) still converts h -> H: the GEOID18
+    anchor at 44.252 N / -85.4012 W, separation -33.280 m, so an ellipsoid
+    height of 200.000 - 33.280 = 166.720 m must come back as 200.000 m NAVD 88
+    (the frozen figures michspc/selftest.py's own ellipsoid check uses).
+    Without this, refusing every ellipsoid job would pass the test above.
+    """
+    from michspc.fileio import geoid as geoid_module
+    from michspc.spc.vertical import NAVD88, HeightKind
+
+    source = tmp_path / "gnss83.csv"
+    source.write_text("1,44.2520,-85.4012,166.720,GNSS\n", encoding="utf-8")
+    settings = JobSettings(
+        input_path=source,
+        output_directory=tmp_path / "out",
+        direction=Direction.VERTICAL_ONLY,
+        source_zone=None,
+        target_zone=None,
+        input_unit=METERS,
+        output_unit=METERS,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        vertical_mode=jobmod.VerticalMode.VERTICAL,
+        source_vertical_datum=NAVD88,
+        target_vertical_datum=NAVD88,
+        geoid_model=geoid_module.GEOID18_MODEL,
+        input_height_kind=HeightKind.ELLIPSOID,
+        geodetic_frame=NAD83_2011,
+    )
+
+    assert run(settings).points[0].output_elevation == pytest.approx(
+        200.000, abs=0.0015
+    )
+
+
+def test_an_orthometric_job_on_a_2022_zone_still_converts(tmp_path):
+    """The other half, and it is the owner's recorded decision (#61).
+
+    An elevation is a height above the GEOID, not above any frame's ellipsoid,
+    so an ORTHOMETRIC job on a 2022 zone is honest and must keep working - the
+    gate above must not widen into it. The residual it carries is recorded
+    rather than hidden: the factors rebuild h as H + N in the NAD 83
+    realization, ~0.175 ppm in the combined factor, three orders below the
+    5.9 ppm the ellipsoid-height feature was built to correct.
+
+    Zone 261008's captured origin, 42.8 N / -85.15 W, which beta NCAT put at
+    the zone's published false origin N 228,600.000 m / E 1,409,700.000 m.
+    """
+    from michspc.spc.vertical import HeightKind
+    from michspc.spc.zones import zone_by_code
+
+    source = tmp_path / "ortho.csv"
+    source.write_text("101,42.80000000,-85.15000000,300.00,P\n", encoding="utf-8")
+    settings = JobSettings(
+        input_path=source,
+        output_directory=tmp_path / "out",
+        direction=Direction.GEODETIC_TO_ZONE,
+        source_zone=None,
+        target_zone=zone_by_code("261008"),
+        input_unit=METERS,
+        output_unit=METERS,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        geodetic_frame=NATRF2022,
+    )
+    assert settings.input_height_kind is HeightKind.ORTHOMETRIC
+
+    point = run(settings).points[0]
+
+    assert point.output_northing == pytest.approx(228600.0, abs=0.0005)
+    assert point.output_easting == pytest.approx(1409700.0, abs=0.0005)
+    # And the factors are computed, not withheld: an elevation was supplied.
+    assert point.factors.combined_factor is not None
+
+
+def test_a_vertical_only_geodetic_job_refuses_an_unusable_frame(tmp_path):
+    """The closing gate's first MEDIUM, at the reviewer's exact job.
+
+    ``VERTICAL_ONLY`` was skipped by the settings frame gate on the ground that
+    it has no second frame to disagree with the first. True, and it left the
+    other question unasked: whether this program may carry a coordinate in that
+    frame AT ALL. ``geodetic_position`` accepts any ``ReferenceFrame``, so the
+    reviewer's job - VERTICAL_ONLY, no zone, WGS84, 43.0 N / -84.5 W,
+    200.000 m, NGVD 29 -> NAVD 88 - ran to completion, returned
+    199.85980355739594 m and a shift of -0.14019644260406494 m, and produced a
+    record reading "Reference frame WGS84 - World Geodetic System 1984". The
+    registry says nothing in this program accepts or produces a coordinate in
+    that frame; the job record said otherwise.
+    """
+    from michspc.spc.frames import FrameNotUsableError, WGS84
+    from michspc.spc.vertical import NAVD88, NGVD29
+
+    source = tmp_path / "wgs.csv"
+    source.write_text("1,43.0,-84.5,200.000,P\n", encoding="utf-8")
+    settings = JobSettings(
+        input_path=source,
+        output_directory=tmp_path / "out",
+        direction=Direction.VERTICAL_ONLY,
+        source_zone=None,
+        target_zone=None,
+        input_unit=METERS,
+        output_unit=METERS,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        vertical_mode=jobmod.VerticalMode.VERTICAL,
+        source_vertical_datum=NGVD29,
+        target_vertical_datum=NAVD88,
+        geodetic_frame=WGS84,
+    )
+
+    with pytest.raises(FrameNotUsableError) as caught:
+        run(settings)
+    assert "WGS84" in str(caught.value)
+
+    # Before the file is read, like every other settings refusal.
+    source.unlink()
+    with pytest.raises(FrameNotUsableError):
+        run(settings)
+
+
+def test_a_vertical_only_geodetic_job_in_a_usable_frame_still_runs(tmp_path):
+    """And the same job in a usable frame converts, to the reviewer's digit.
+
+    199.85980355739594 m is what the reviewer's WGS 84 job returned; it is the
+    RIGHT answer for this position, and the frame was the only thing wrong
+    with that job. Pinning it here is what stops the fix above from being
+    "refuse vertical-only geodetic jobs".
+    """
+    from michspc.spc.vertical import NAVD88, NGVD29
+
+    source = tmp_path / "nad.csv"
+    source.write_text("1,43.0,-84.5,200.000,P\n", encoding="utf-8")
+    settings = JobSettings(
+        input_path=source,
+        output_directory=tmp_path / "out",
+        direction=Direction.VERTICAL_ONLY,
+        source_zone=None,
+        target_zone=None,
+        input_unit=METERS,
+        output_unit=METERS,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        vertical_mode=jobmod.VerticalMode.VERTICAL,
+        source_vertical_datum=NGVD29,
+        target_vertical_datum=NAVD88,
+        geodetic_frame=NAD83_2011,
+    )
+
+    assert run(settings).points[0].output_elevation == pytest.approx(
+        199.85980355739594, abs=1e-9
+    )
+
+    # NATRF2022 is usable too, and a vertical-only job may run in it: the gate
+    # asks usability, not era.
+    in_2022 = dataclasses.replace(settings, geodetic_frame=NATRF2022)
+    assert run(in_2022).points[0].output_elevation == pytest.approx(
+        199.85980355739594, abs=1e-9
+    )
+
+
+def test_a_zone_field_the_direction_never_reads_is_refused(tmp_path):
+    """The closing gate's second MEDIUM: a false work history in the record.
+
+    The reviewer's input: GEODETIC_TO_ZONE, NATRF2022, 43.0 N / -84.5 W, a
+    stale ``source_zone`` of statewide 260001 and a real ``target_zone`` of
+    Grand Rapids 261008. The conversion ignored 260001 and computed
+    N = 251022.87520860415, E = 1462702.380322114 through 261008 alone - and
+    the record, which derives its zone blocks from the SETTINGS, then printed
+    a FROM block for 260001, a TO block for 261008, and the sentence that this
+    conversion is an exact re-projection between them. No projection from
+    260001 occurred. The archive round-tripped, so that false history escaped
+    as the authoritative document.
+
+    Both directions of the same shape are pinned: ZONE_TO_GEODETIC with a
+    stray ``target_zone`` is the mirror.
+    """
+    from michspc.spc.zones import zone_by_code
+
+    statewide = zone_by_code("260001")
+    grand_rapids = zone_by_code("261008")
+
+    geodetic = tmp_path / "geo.csv"
+    geodetic.write_text("101,43.0,-84.5,300.00,P\n", encoding="utf-8")
+    stray_source = JobSettings(
+        input_path=geodetic,
+        output_directory=tmp_path / "out",
+        direction=Direction.GEODETIC_TO_ZONE,
+        source_zone=statewide,
+        target_zone=grand_rapids,
+        input_unit=METERS,
+        output_unit=METERS,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        geodetic_frame=NATRF2022,
+    )
+
+    with pytest.raises(ValueError) as caught:
+        run(stray_source)
+    message = str(caught.value)
+    assert "source_zone" in message
+    assert "GEODETIC_TO_ZONE" in message
+    assert statewide.name in message and "260001" in message
+    # Why it is refused rather than ignored: the record would print it.
+    assert "job record" in message
+    assert "source_zone=None" in message
+
+    grid = tmp_path / "grid.csv"
+    grid.write_text("101,228600.000,1409700.000,300.00,P\n", encoding="utf-8")
+    stray_target = JobSettings(
+        input_path=grid,
+        output_directory=tmp_path / "out2",
+        direction=Direction.ZONE_TO_GEODETIC,
+        source_zone=grand_rapids,
+        target_zone=statewide,
+        input_unit=METERS,
+        output_unit=METERS,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        geodetic_frame=NATRF2022,
+    )
+
+    with pytest.raises(ValueError) as caught:
+        run(stray_target)
+    message = str(caught.value)
+    assert "target_zone" in message
+    assert "ZONE_TO_GEODETIC" in message
+    assert "target_zone=None" in message
+
+    # The same two jobs stated honestly still convert - the refusal is about
+    # the stray field, not about the direction.
+    assert run(
+        dataclasses.replace(stray_source, source_zone=None)
+    ).points[0].output_northing == pytest.approx(251022.875, abs=0.0005)
+    assert run(
+        dataclasses.replace(stray_target, target_zone=None)
+    ).points[0].output_northing == pytest.approx(42.8, abs=5e-8)
+
+
 def test_a_geodetic_job_record_states_the_frame_it_read_the_file_as(tmp_path):
     """Closing the second half of interim-gate finding 1 (docs/DESIGN.md #11).
 

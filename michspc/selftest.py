@@ -925,24 +925,70 @@ def check_frame_refusal() -> str:
     an entirely ordinary-looking State Plane coordinate computed from a
     position stated in the wrong frame, with nothing on any surface to show it.
 
-    The refusal lives in ``require_frame_path``, which is a pure ``if``/
-    ``raise`` in the core and therefore survives ``-O`` - but the failure this
-    check exists for is not a stripped assert: it is a bundle built from a tree
-    where the registry lost the pair, or where the module did not travel. It is
-    checked from inside the bundle because that is the only place the question
-    can be asked of the artifact that ships.
+    **Asked through the PUBLIC conversion entry point, not through the
+    registry alone.** The closing gate's LOW: the registry function can refuse
+    perfectly while ``convert.project_point`` no longer calls it, and a check
+    that asks only the registry passes throughout - the reviewer replaced
+    ``michspc.spc.convert.require_frame_path`` with a no-op and both frozen
+    checks stayed green while
+    ``project_point(43.0, -84.5, NAD83_2011, zone 261008)`` returned a
+    coordinate 1.235 m from the right one. So the first assertion below is a
+    real conversion a caller could ask for, and the registry call is kept
+    after it as the second, narrower statement.
 
-    Both directions, because a registry that gained one identity by accident
-    would refuse the other and look correct here. That the gate is not simply
-    refusing EVERYTHING is proved by ``check_spcs2022_conversion`` above, which
-    converts through the same gate.
+    The refusal is a pure ``if``/``raise`` in the core and therefore survives
+    ``-O`` - but the failure this check exists for is not a stripped assert: it
+    is a bundle built from a tree where the call site lost the gate, where the
+    registry lost the pair, or where the module did not travel. It is checked
+    from inside the bundle because that is the only place the question can be
+    asked of the artifact that ships.
+
+    Both directions at the registry, because a registry that gained one
+    identity by accident would refuse the other and look correct here. That the
+    gate is not simply refusing EVERYTHING is proved by
+    ``check_spcs2022_conversion`` above, which converts through the same public
+    entry point.
     """
+    from michspc.spc.convert import project_point
     from michspc.spc.frames import (
         NAD83_2011,
         NATRF2022,
         FrameTransformationUnavailableError,
         require_frame_path,
     )
+    from michspc.spc.zones import zone_by_code
+
+    zone = zone_by_code(SPCS2022_ZONE_CODE)
+    try:
+        crossed = project_point(
+            SPCS2022_ANCHOR_LATITUDE,
+            SPCS2022_ANCHOR_LONGITUDE,
+            NAD83_2011,
+            zone,
+        )
+    except FrameTransformationUnavailableError:
+        pass
+    except Exception as error:  # noqa: BLE001 — any other outcome is a failure
+        raise SelfTestError(
+            f"projecting a {NAD83_2011.code} position into "
+            f"{zone.abbrev} ({zone.frame.code}) raised "
+            f"{type(error).__name__} rather than the "
+            f"FrameTransformationUnavailableError this program refuses with: "
+            f"{error}. michspc.job and the GUI both catch that class by name, "
+            f"so a different exception reaches the user as a crash instead of "
+            f"as an explanation."
+        ) from error
+    else:
+        raise SelfTestError(
+            f"this bundle PROJECTED a {NAD83_2011.code} position into "
+            f"{zone.abbrev}, a {zone.frame.code} zone, and returned N "
+            f"{crossed.target_northing:,.3f} m, E "
+            f"{crossed.target_easting:,.3f} m. The two frames are one to two "
+            f"metres apart and NGS has published no transformation between "
+            f"them, so that coordinate is about a metre from the right one "
+            f"and looks entirely ordinary. The gate on the public conversion "
+            f"path did not reach this bundle."
+        )
 
     for source, target in ((NAD83_2011, NATRF2022), (NATRF2022, NAD83_2011)):
         try:
@@ -968,8 +1014,9 @@ def check_frame_refusal() -> str:
         )
 
     return (
-        f"{NAD83_2011.code} <-> {NATRF2022.code} refuses in both directions, "
-        f"by name"
+        f"{NAD83_2011.code} into {zone.abbrev} refused at "
+        f"convert.project_point, and {NAD83_2011.code} <-> {NATRF2022.code} "
+        f"refuses at the registry in both directions, by name"
     )
 
 

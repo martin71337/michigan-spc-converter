@@ -651,16 +651,26 @@ def test_the_spcs2022_check_fails_on_a_wrong_scale_factor(monkeypatch):
     assert "grid scale factor" in str(raised.value)
 
 
-def test_the_frame_refusal_check_fails_when_the_refusal_is_gone(monkeypatch):
+def test_the_frame_refusal_check_fails_when_the_registry_refusal_is_gone(
+    monkeypatch,
+):
     """Seeded with the defect it exists for: a bundle that ACCEPTS the crossing.
 
-    ``require_frame_path`` is replaced with one that hands back an identity for
-    any pair - which is precisely what a lost registry entry, or a future
-    edit that registered the bridge before it was verified, would look like
-    from inside the bundle. The check must refuse, and name both frames.
-    """
-    from michspc.spc import frames
+    ``frames.require_frame_path`` is replaced with one that hands back an
+    identity for any pair - which is precisely what a lost registry entry, or a
+    future edit that registered the bridge before it was verified, would look
+    like from inside the bundle. The check must refuse, and name both frames.
 
+    **``convert`` is imported first, deliberately.** It binds
+    ``require_frame_path`` at ITS import, so whether this patch reaches the
+    public path depends on whether ``michspc.spc.convert`` was already imported
+    when the patch was applied - which depends on which tests ran before. That
+    is a test whose meaning changes with collection order; importing it here
+    fixes the binding, so this test seeds the REGISTRY call and only that.
+    """
+    from michspc.spc import convert, frames
+
+    assert convert.require_frame_path is frames.require_frame_path
     monkeypatch.setattr(
         frames,
         "require_frame_path",
@@ -675,33 +685,96 @@ def test_the_frame_refusal_check_fails_when_the_refusal_is_gone(monkeypatch):
     assert "NATRF2022" in message
 
 
-def test_the_frame_refusal_check_fails_on_the_wrong_exception(monkeypatch):
+def test_the_frame_refusal_check_fails_on_the_wrong_exception_class(monkeypatch):
     """The class is load-bearing, not only the fact that something was raised.
 
     ``michspc.job`` and the GUI both catch ``FrameMismatchError`` by name, so a
     refusal raised as some other exception reaches the surveyor as a crash
     rather than as an explanation - the shape of the WP-V2 dialect finding
     (docs/DESIGN.md #35).
+
+    Both call sites are seeded, one per parametrized half, because check 11 now
+    asks two different objects the same question: ``convert``'s own binding on
+    the public path, and ``frames``' on the registry. Seeding only one leaves
+    the other's ``except`` clause unexercised - and which one gets seeded was,
+    before this split, an accident of import order.
     """
-    from michspc.spc import frames
+    from michspc.spc import convert, frames
 
     def wrong_class(source, target):
         raise RuntimeError("no path")
 
+    # The public path first: convert's own binding, patched in place.
+    monkeypatch.setattr(convert, "require_frame_path", wrong_class)
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_frame_refusal()
+    message = str(raised.value)
+    assert "RuntimeError" in message
+    assert "projecting" in message
+    monkeypatch.undo()
+
+    # Then the registry loop, with the public path left working.
     monkeypatch.setattr(frames, "require_frame_path", wrong_class)
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_frame_refusal()
+    message = str(raised.value)
+    assert "RuntimeError" in message
+    assert "converting NAD83(2011) to NATRF2022" in message
+
+
+def test_the_frame_refusal_check_fails_when_the_public_gate_is_bypassed(
+    monkeypatch,
+):
+    """The closing gate's LOW, seeded with the reviewer's own mutation.
+
+    ``convert.py`` binds ``require_frame_path`` at import, so replacing
+    ``michspc.spc.convert.require_frame_path`` with a no-op leaves the registry
+    refusing perfectly while the public conversion path stops asking it - the
+    accidental-removal case. Under that mutation
+    ``project_point(NAD83_2011 -> zone 261008)`` returns a coordinate about
+    1.235 m from the right one, and BOTH frozen checks used to stay green.
+
+    Check 11 must now fail, naming the frames and the coordinate it accepted.
+    """
+    from michspc.spc import convert
+
+    monkeypatch.setattr(
+        convert, "require_frame_path", lambda source, target: None
+    )
+
+    # The mutation really does open the public path - the premise, stated
+    # rather than assumed.
+    from michspc.spc.frames import NAD83_2011
+    from michspc.spc.zones import zone_by_code
+
+    crossed = convert.project_point(
+        selftest.SPCS2022_ANCHOR_LATITUDE,
+        selftest.SPCS2022_ANCHOR_LONGITUDE,
+        NAD83_2011,
+        zone_by_code(selftest.SPCS2022_ZONE_CODE),
+    )
+    assert crossed.target_northing is not None
 
     with pytest.raises(selftest.SelfTestError) as raised:
         selftest.check_frame_refusal()
-    assert "RuntimeError" in str(raised.value)
+    message = str(raised.value)
+    assert "PROJECTED" in message
+    assert "NAD83(2011)" in message
+    assert "public conversion path" in message
 
 
 def test_the_frame_refusal_check_passes_only_while_conversion_still_works():
     """A gate that refuses everything would satisfy the refusal check alone.
 
     The pairing is the point: ``check_frame_refusal`` says the crossing is
-    refused, and ``check_spcs2022_conversion`` - which goes through the same
-    ``require_frame_path`` gate - says a same-frame conversion is not. Both are
-    in CHECKS, and this states why neither is sufficient by itself.
+    refused **at ``convert.project_point``, the public entry a job uses**, and
+    ``check_spcs2022_conversion`` - which goes through that same function -
+    says a same-frame conversion is not. Both are in CHECKS, and this states
+    why neither is sufficient by itself.
+
+    Until the 0.7.0 closing gate check 11 asked the registry alone, and this
+    docstring claimed the pairing covered the shared gate. It did not: a no-op
+    at the call site passed both. The claim and the check moved together.
     """
     assert "cross-frame refusal" in dict(
         (name, check) for name, check in selftest.CHECKS

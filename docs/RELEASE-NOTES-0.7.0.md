@@ -102,7 +102,7 @@ the difference is **measured and recorded**, not assumed to be zero.
   NGS's own published `zoneDefinitions.json` and `zoneBounds.json`, both held
   in this repository under their SHA-256, with each zone's extent and easting
   range taken from NGS's published bounds rather than invented.
-- **3,726 automated tests**, green in both run modes, including the
+- **3,733 automated tests**, green in both run modes, including the
   cross-version pin that digests what nine ordinary jobs write against what the
   previous release produced — so an SPCS 83 job that quietly moved would fail a
   test. It did not.
@@ -114,5 +114,14 @@ the difference is **measured and recorded**, not assumed to be zero.
 - Every work package passed an independent adversarial review gate; every fix
   is pinned with the reviewer's own counterexample, and every pin was falsified
   by seeding the defect it catches.
+- The **closing gate over the whole build** returned four findings and all four
+  are fixed and pinned. Three are refusals this release now makes that it did
+  not: a **GNSS ellipsoid height entered on a 2022-zone job is refused** rather
+  than converted (the two datums' ellipsoids are 1.115 m apart in Michigan, so
+  the elevation would have been a metre low with the right label on it); a
+  vertical-only job in an unusable reference frame is refused; and a job that
+  names a zone its own direction never uses is refused rather than printing
+  that zone in the record as though it had taken part. **Orthometric
+  elevations on 2022 zones are unaffected and keep converting.**
 
 Verify the download against `SHA256SUMS.txt` on this page.

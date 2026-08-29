@@ -569,7 +569,20 @@ asymmetry — the datum question is undeclared in horizontal mode by the
 owner's standing decision, the model in force is named on every surface, and
 the magnitude of the era gap inside an elevation factor is ~0.5 m of H in
 R/(R+H+N) ≈ **8×10⁻⁸**, three orders below the 5.9 ppm the ellipsoid-height
-feature corrected. Recorded as fact, not mitigated further.
+feature corrected. Recorded as fact, not mitigated further. **[ANNOTATED at
+the closing gate, 2026-08-29: this sentence conflated two distinct
+quantities. The ~0.5 m is the NAVD 88 → NAPGD2022 geopotential offset in H
+(measured at the N0 test points). The frame difference is separate and
+larger: the NATRF2022 ellipsoid height differs from the NAD 83 one by
+1.115 m at the frozen anchor (h 200.000 → 198.885 m), so the
+combined-factor effect on an orthometric 2022-zone job is ≈**1.75×10⁻⁷** —
+about twice this sentence's figure, still owner-accepted and far below
+survey significance, driven by the 1.115 m, not the 0.5 m. The conclusion
+stands; the derivation was wrong. The same 1.115 m makes an ELLIPSOID
+height on a NATRF2022 job unconvertible with a NAD 83-era geoid model —
+the closing gate's HIGH: it escaped a NAVD 88 elevation wrong by 1.115 m,
+and that case now REFUSES until the bridge (the fix round after the
+closing gate, pinned at the reviewer's own job).]**
 
 **Operational hazard, standing rule:** `beta.ngs.noaa.gov/api/*` answers
 `200 OK` with `N/A`/`{}` where `geodesy.noaa.gov` returns numbers — **beta's

@@ -58,7 +58,7 @@ commands too, where the diff usually goes unread.
 modernized-NSRS build is on `main`: the 19 SPCS2022 Michigan zones, three new
 projection engines behind one dispatcher, per-frame geodetic entries, the
 era-correct job record, and the packaging/self-test/release gates. Suite
-**3,726**, green in `pytest` and `-O`, exit codes read unpiped. **NOT
+**3,733**, green in `pytest` and `-O`, exit codes read unpiped. **NOT
 RELEASED — the version literal is `0.7.0-dev` and nothing is tagged.**
 
 **What a surveyor gets:** all 19 SPCS2022 zones (statewide Hotine oblique
@@ -127,11 +127,40 @@ before acceptance):
     checking itself against a superseded number. Five tagged artifacts, not
     four.
   - `docs/RELEASE-NOTES-0.7.0.md` is a marked **DRAFT**.
+- **The closing Codex gate RAN over the whole build: FINDINGS — one HIGH, two
+  MEDIUM, one LOW, no CRITICAL** (`review/gate-nsrs-closing/output.txt`). All
+  four are fixed at the root, each pinned at the reviewer's own input and
+  falsified by seeding (11 seeds, all caught). Three were production defects
+  the 2022 zones made reachable, and all three are now REFUSALS:
+  - **HIGH — an ELLIPSOID (GNSS) height on a NATRF2022-frame job mixed
+    realizations inside `H = h - N`.** The hybrid geoid models publish N
+    against NAD 83; the two ellipsoids are **1.115 m** apart at the frozen
+    anchor, and the reviewer's vertical-only job at zone 261008 escaped
+    231.970 m NAVD 88 where the answer is 233.085 m. New settings gate,
+    `_require_a_convertible_ellipsoid_height_frame`, fires before the file is
+    read. **ORTHOMETRIC jobs on 2022 zones are untouched and still convert** —
+    that path's ~0.175 ppm is the owner-accepted fact of #61, pinned as a
+    control so the gate cannot widen into it.
+  - **MEDIUM — `VERTICAL_ONLY` geodetic jobs skipped the frame gate**, so a
+    WGS 84 job certified 199.85980355739594 m and a record naming WGS 84. The
+    gate now asks the frame against ITSELF for that direction (the identity
+    lookup: usable, and registered — and there is deliberately no WGS 84
+    identity).
+  - **MEDIUM — a zone field the direction never reads created a false record**:
+    `GEODETIC_TO_ZONE` ignored a stale `source_zone` while the record printed
+    it as a FROM block and called the job an exact re-projection. Both
+    directions now refuse the stray field by name. Both GUI tabs already
+    assembled settings cleanly (`isinstance(..., Zone)`), and no test was
+    passing a stray field.
+  - **LOW — self-test checks 10+11 did not jointly cover the PUBLIC gate**: a
+    no-op `convert.require_frame_path` passed both. Check 11 now refuses
+    through `convert.project_point` and keeps the registry call as its second
+    assertion.
 
 ### What remains, in order
 
-1. **The closing Codex gate** over the whole `v0.6.4..HEAD` range (Opus
-   reviewers if Codex is out of quota — the owner's standing fallback).
+1. **A narrowing re-confirmation of the closing gate** (Codex, or an Opus
+   reviewer under the owner's standing quota fallback) over these four fixes.
 2. **The owner's screen review of both tabs.** He has seen none of H6's
    controls on a real screen; layout decisions are flagged in H6's work
    record and nothing there is final until he has.

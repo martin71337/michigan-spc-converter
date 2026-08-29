@@ -56,10 +56,11 @@ a DESIGN.md amendment on owner approval.
 
 Tier sentence: a wrong coordinate lands on a sealed survey and moves a boundary.
 
-**Model assignment (owner's instruction, 2026-08-28): Opus subagents design
-and build the work packages; the session lead verifies — independently
-re-deriving load-bearing math and checking every claim against the code; Codex
-is the adversarial reviewer at every gate.**
+**Model assignment (owner's instruction, 2026-08-28, clarified same day):
+the session lead develops all plans and designs; Opus subagents perform
+recon and build the work packages; the lead reviews every diff and
+independently re-derives load-bearing math and claims before accepting;
+Codex is the adversarial reviewer at every gate.**
 
 ## Settled by the owner during planning (2026-08-28)
 

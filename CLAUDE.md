@@ -74,9 +74,10 @@ publishes no NAVD88↔NAPGD2022 product at all; the reasons and the future
 path are in #61. **Hazard: beta's REST API fails open** (`200 OK` with
 `N/A`/`{}`) — legacy truth from geodesy.noaa.gov only.
 
-**Process (owner's instruction): Opus subagents design and build; the
-session lead verifies and re-derives; Codex gates — two interim, one
-closing, none skipped.** Work packages H1–H6 per the plan: H1 projection
+**Process (owner's instruction, clarified 2026-08-28): the session lead
+develops all plans and designs; Opus subagents do recon and build; the lead
+reviews every diff and re-derives the load-bearing math; Codex gates — two
+interim, one closing, none skipped.** Work packages H1–H6 per the plan: H1 projection
 engines (tm.py, omerc.py, LC1 constructor, dispatcher), H2 zone registry,
 H3 helmert/frames (owns the epoch-labelling contradiction recorded in #61),
 H4 convert/job wiring (exit: the 18-digest cross-version pin untouched),

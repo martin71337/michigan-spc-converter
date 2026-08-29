@@ -574,13 +574,16 @@ is built" was false when written (#21 proved the seams are intended design,
 not code) and is corrected in place. The body text edits land with the work
 packages that make them true.
 
-**Process, the owner's instruction:** Opus subagents design and build the
-work packages; the session lead verifies — independently re-deriving
-load-bearing math and checking claims against the code; **Codex reviews at
-every gate** (two interim, one closing — this tier runs all of them; the
-0.6.x releases' gateless cadence does not apply here). The horizontal work
-packages H1–H6 proceed per the plan; the first code lands only after this
-amendment, which is the H0 exit condition.
+**Process, the owner's instruction** *(corrected in place same day, on his
+clarification: "I still want the session lead to develop any plans that are
+created. opus is just used for recon and build")*: **the session lead
+develops all plans and designs; Opus subagents perform recon and build the
+work packages; the lead reviews every diff and independently re-derives
+load-bearing math before accepting; Codex reviews at every gate** (two
+interim, one closing — this tier runs all of them; the 0.6.x releases'
+gateless cadence does not apply here). The horizontal work packages H1–H6
+proceed per the plan; the first code lands only after this amendment, which
+is the H0 exit condition.
 
 ### #60 — 2026-08-26 — 0.6.4: new application artwork, chosen from three
 

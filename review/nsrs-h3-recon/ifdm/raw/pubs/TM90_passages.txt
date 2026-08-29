@@ -1,0 +1,529 @@
+Verbatim page extraction from NOAA_TM_NOS_NGS_0090.pdf
+pages: 11;  matched pages: 9
+
+##########################################################################
+### PDF page 1 (of 11)   matches: EPP2022
+##########################################################################
+National Oceanic and Atmospheric Administration    National Geodetic Survey 
+Dru Smith 
+Dan Roman 
+Phillip McFarland 
+Silver Spring, MD 
+October 2021
+NOAA Technical Memorandum NOS NGS 90 
+The Mathematical Relation between IFVM2022 as Expressed in ITRF2020 
+with IFVM2022 as Expressed in the Four Terrestrial Reference Frames of 
+the Modernized NSRS with Dependence on EPP2022
+
+##########################################################################
+### PDF page 3 (of 11)   matches: EPP2022, Euler Pole, NATRF2022, epoch, intra-frame, transformation
+##########################################################################
+2 
+ 
+1 Introduction 
+As part of the proposed modernization of the National Spatial Reference System (NSRS), the 
+National Geodetic Survey (NGS) has committed to providing tools by which our users may 
+1. transform coordinates between the four national frames (NATRF2022, PATRF2022, 
+CATRF2022, and MATRF2022) and the International Terrestrial Reference Frame 
+(ITRF) (NGS, 2021), and 
+2. estimate coordinates at epochs different from the epoch of observations, by accounting 
+for motion from perennial sources such as: rigid rotation of tectonic plates and intraplate 
+deformation due to faulting, glacial isostatic adjustment, etc. 
+As described in NGS (2021) each of the national frames listed in item 1 above is an Earth-
+centered Earth-fixed (ECEF) frame from which the corresponding plate motion has been 
+removed (e.g., NATRF2022 is an ECEF frame from which rigid North American plate motion 
+has been removed). Thus, to facilitate transformation between the ITRF and these four frames, 
+NGS will provide Euler Pole Parameters (EPPs) that describe the rigid plate motion of each 
+associated plate with respect to the ITRF (ibid)1.  These EPPs will allow users to mathematically 
+transform coordinates from the ITRF to any of the four national frames and back again. These 
+parameters will be made available in a model called EPP2022. 
+To accomplish item 2 above, NGS is developing an intra-frame velocity model (IFVM)2 which 
+will provide a description of point motion for every mark in the NSRS dating back to at least 
+1994. The model will be called IFVM2022. The goal is for users of the NSRS to be able to move 
+coordinates for mark(s) of interest through time by applying the motion model provided. Mark 
+motion in IFVM2022 will be given with respect to the most recent ITRF and will account for 
+motion due to rigid plate rotation as well as intraplate deformation due to faulting and glacial 
+isostatic adjustment. However, since IFVM2022 will include motion due to rigid plate rotation 
+expressed in the ITRF and the four national frames will be defined such that their associated 
+rigid plate rotation has been removed via EPP2022, users will not be able to apply IFVM2022 
+directly to coordinates expressed in one of the four national frames without first transforming 
+their coordinates to the ITRF (see Figure 1). Thus, it would be convenient if there were four 
+additional versions of IFVM2022, one for each of the national frames, wherein NSRS mark 
+                                                            
+1 The determination of the EPPs requires stations with ITRF2020 velocities.  While NGS relies upon the ITRF as the 
+foundation for the NSRS, there are some deeper, non-mathematical details which surround that decision.  The 
+International Terrestrial Reference System (ITRS) has been agreed upon through several UN Resolutions to provide 
+a consistent system for comparison of geospatial data. In the Americas, additional UN Agreements have adopted 
+the SIRGAS densification of the ITRS. The United States and broader SIRGAS community of Americas Nations will be 
+adopting ITRF2020 as the realization once it is available. In turn, each of the Nations will further densify this 
+SIRGAS framework to meet national needs. In the U.S., the Geospatial Data Act of 2018 codified the need for this 
+modernization by ensuring that U.S. geospatial data assets can conform to the accepted international standards.  
+2 The term IFVM is tentative, as the model intends to capture all motions of all geodetic control marks, not just 
+simple velocities. However, the global geodetic and geophysics communities are split on what term is best suited 
+to be used. Replacement candidates for “velocity” include “deformation” (primarily because the model would 
+likely be derived from crustal deformation) and “motion” (primarily because the model will include all motions of 
+marks). When a final term is decided, NGS will make an announcement and use the final term in future 
+documentation. 
+
+##########################################################################
+### PDF page 4 (of 11)   matches: EPP2022, NATRF2022, epoch
+##########################################################################
+3 
+ 
+motion would be described with respect to each corresponding frame. However, rather than 
+maintain five versions of IFVM2022 (one for each of the four national frames plus the ITRF) it 
+would be even more convenient if there were a mathematical relationship between IFVM2022 
+motions (expressed in ITRF2020) and those same motions relative to an NSRS frame that would 
+allow “on the fly” computation of mark motion expressed in the user’s frame of interest. The 
+purpose of this work is to derive this proposed mathematical relationship. The result (equation 
+20) is a convenient and compact relationship which relies upon EPP2022. 
+2 Functional Application of IFVM2022 and EPP2022 
+From a functional standpoint, Figure 1 below shows how changing either an epoch or a frame 
+must rely either upon IFVM2022 or EPP2022.  In this example, the left third of the diagram is in 
+PATRF2022, the central third in ITRF2020 and the right third in NATRF2022.  The top half of 
+the diagram is epoch 2028.048 and the bottom half of the diagram is epoch 2039.704. 
+ 
+Figure 1:  How IFVM2022 and EPP2022 are used to change epochs and frames 
+ 
+To put it in a rule of thumb: 
+• IFVM2022 changes the epoch, not the frame 
+• EPP2022 changes the frame, not the epoch 
+
+
+##########################################################################
+### PDF page 5 (of 11)   matches: EPP2022, NATRF2022, epoch
+##########################################################################
+4 
+ 
+A few things might be noticed in Figure 1.  First, NGS regularly transforms ECEF XYZ 
+coordinates to geodetic latitude, longitude and ellipsoid height (φλh), and back, using program 
+“XYZ2PLH”.  In the modernized NSRS this will continue, with continued reliance upon the 
+GRS-80 ellipsoid.  This program has little bearing on the following discussion, but is mentioned 
+because it appears in Figure 1 quite a few times.   
+Second, the connection between frames using EPP2022 is made between XYZ coordinates, but 
+the connection between epochs using IFVM2022 is made between φλh coordinates. This 
+difference is important, because it complicates the math necessary to relate EPP2022 and 
+IFVM2022.  To avoid this complication NGS might have chosen to define the connection 
+between NATRF2022 (et al.) frames and ITRF2020 using φλh coordinates, rather than XYZ.  
+Or, NGS might have chosen to define IFVM2022 as changes in XYZ, rather than changes to 
+φλh.  However, neither of these choices is worth the difficulties they raise3.   
+The third thing to note in Figure 1 is subtler, but is the key issue of this paper.  Consider a 
+surveyor interested in comparing coordinates in PATRF2022 at epoch 2028.048 to those in 
+PATRF2022 in epoch 2039.704.  To convert and transform those coordinates across that epoch 
+change requires seven steps: 
+𝑋𝑋𝑋𝑋𝑋𝑋2𝑃𝑃𝑃𝑃𝑃𝑃 → 𝐸𝐸𝑃𝑃𝑃𝑃2022 → 𝑋𝑋𝑋𝑋𝑋𝑋2𝑃𝑃𝑃𝑃𝑃𝑃 → 𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022 → 𝑋𝑋𝑋𝑋𝑋𝑋2𝑃𝑃𝑃𝑃𝑃𝑃 → 𝐸𝐸𝑃𝑃𝑃𝑃2022 → 𝑋𝑋𝑋𝑋𝑋𝑋2𝑃𝑃𝑃𝑃𝑃𝑃 
+This is because IFVM2022 will be stored as a model of absolute motions within ITRF2020.  The 
+reason for this is uniqueness.  NGS will not develop five independent IFVM2022 models, one 
+for each frame, since this has the potential for providing non-uniqueness to our customer base. 
+However, it is inefficient to have to always transform every coordinate into ITRF2020 for the 
+application of IFVM2022.  Therefore, it is attractive to consider virtual versions of IFVM2022, 
+as shown in Figure 2.  In Figure 2, two virtual models, labeled IFVM2022(P) and IFVM2022(N) 
+operate within PATRF2022 and NATRF2022 (rather than ITRF2020), but they are not 
+independent models and will not actually exist (thus “virtual”)4.  Rather they should be 
+considered as identical to IFVM2022 except expressed in PATRF2022 or NATRF2022.  Taking 
+the one-step path “through” IFVM2022(P) to compare coordinates in PATRF2022 at epoch 
+2028.048 to those in PATRF2022 in epoch 2039.704 will be proven mathematically identical to 
+taking the seven-step “long way round” in Figure 1. 
+The final thing of note, but which does not appear in Figure 1, is that the actual motions saved in 
+IFVM2022 are likely to be stored in length units (e.g. millimeters) in the East, North and Up 
+directions.  This is identical to how NGS’s Horizontal Time-Dependent Positioning (HTDP) tool 
+                                                            
+3 For EPP2022 to relate sets of φλh across different frames would require significant complexity to the simple 
+relationship between ITRF2022 and NATRF2022 et al. (see equation 10).  On the other hand, IFVM2022 is likely to 
+reflect the deformation of the Earth’s surface, and this deformation has radically different space and time 
+signatures in the horizontal (latitude/longitude) direction than in the vertical (ellipsoid height).  If transformed into 
+XYZ, IFVM2022 would have significant bleeding of very different signals into all three Cartesian coordinates and 
+would frankly make the model incredibly difficult to interpret. 
+4 Two additional virtual IFVM2022 models can also be hypothesized:  IFVM2022(C) for CATRF2022 and 
+IFVM2022(M) for MATRF2022. 
+
+##########################################################################
+### PDF page 6 (of 11)   matches: NATRF2022, epoch
+##########################################################################
+5 
+ 
+operates today.  Thus, while IFVM2022 is shown connecting two different epochs of φ, λ and h, 
+there is a hidden conversion from δE, δN, δU to δφ, δλ, δh.  This paper will account for that 
+conversion in its derivations. 
+In summary, this paper concerns itself with deriving the equations which relate IFVM2022 to its 
+virtual versions, which we have called IFVM2022(N), IFVM2022(P), IFVM2022(C) and 
+IFVM2022(M). 
+ 
+ 
+Figure 2:  Inserting virtual IFVM2022 models (labeled IFVM2022(P) and IFVM2022(N)) into 
+PATRF2022 and NATRF2022 
+ 
+3 Conventions and common equations 
+Before addressing the derivation proper, we adopt certain conventions and well-known 
+equations.   
+3.1 Rotation matrices 
+We designate three rotation matrices R1, R2 and R3 to represent a rotation of a Cartesian 
+coordinate frame about the X, Y or Z axes of that frame, respectively.  These rotation matrices 
+are consistent with a positive rotation in the counterclockwise direction of a right-handed 
+
+
+##########################################################################
+### PDF page 8 (of 11)   matches: EPP2022, NATRF2022
+##########################################################################
+7 
+ 
+Which we will shorten to: 
+�
+𝛿𝛿𝜆𝜆
+𝛿𝛿𝜙𝜙
+𝛿𝛿ℎ
+� = 𝑆𝑆𝜙𝜙,ℎ
+−1 �
+𝛿𝛿𝐸𝐸
+𝛿𝛿𝛿𝛿
+𝛿𝛿𝛿𝛿
+� (9) 
+ 
+4 Derivation 
+We begin with a target equation, inspired by the definition of IFVM2022 and IFVM2022(N) as 
+presented in NGS (2021).  Although we use IFVM2022(N) in this derivation, an identical 
+derivation exists for IFVM2022(P), IFVM2022(C) and IFVM2022(M).  From (ibid): 
+This singular nature of IFVM2022 is best exemplified by considering that the movement of any 
+geodetic control point anywhere on Earth can, with perfect equality, be described as any of these 
+five things: 
+1) Movement in ITRF2020 
+2) (a) Movement in NATRF2022 plus (b) the rotation of NATRF2022 relative to ITRF2020 
+3) (a) Movement in PATRF2022 plus (b) the rotation of PATRF2022 relative to ITRF2020 
+4) (a) Movement in CATRF2022 plus (b) the rotation of CATRF2022 relative to ITRF2020 
+5) (a) Movement in MATRF2022 plus (b) the rotation of MATRF2022 relative to ITRF2020 
+ 
+In the following derivation “IFVM2022” represents all motions of a point in ITRF2020. 
+However, the movement of that same point in NATRF2022 is represented by “IFVM2022(N)”.  
+To put it into equation form, the following definition must hold, not only for NATRF2022, but 
+for each of the four plate-fixed frames of the modernized NSRS.  In these equations 𝛿𝛿 means 
+NATRF2022 while 𝐼𝐼 means ITRF2020: 
+�
+𝛿𝛿𝑋𝑋(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝑋𝑋(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝑋𝑋(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝐼𝐼
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022
+≡ �
+𝛿𝛿𝑋𝑋(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝑋𝑋(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝑋𝑋(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝑁𝑁
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022(𝑁𝑁)
++ �
+𝛿𝛿𝑋𝑋(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝑋𝑋(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝑋𝑋(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝑁𝑁,𝐼𝐼
+𝐸𝐸𝐸𝐸𝐸𝐸2022
+ (10) 
+ 
+Equation 10 is correct, but not entirely useful as-is, since only EPP2022 is easily expressed in X, 
+Y, Z coordinates.  The IFVM2022 model will be stored in a way that expresses changes in E, N 
+and U coordinates.  So, without loss of generality, we can also write: 
+�
+𝛿𝛿𝐸𝐸(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝐼𝐼
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022
+≡ �
+𝛿𝛿𝐸𝐸(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝑁𝑁
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022(𝑁𝑁)
++ �
+𝛿𝛿𝐸𝐸(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝑁𝑁,𝐼𝐼
+𝐸𝐸𝐸𝐸𝐸𝐸2022
+ (11) 
+ 
+Equations 10 and 11 are both true, but what we have easily available are the 3rd term in (10), 
+from EPP2022, and the first term of (11), from IFVM2022.  What we need is a simple expression 
+for the 2nd term of (11). 
+
+##########################################################################
+### PDF page 9 (of 11)   matches: EPP2022
+##########################################################################
+8 
+ 
+We therefore modify (11), using (7): 
+�
+𝛿𝛿𝐸𝐸(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝐼𝐼
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022
+≡ �
+𝛿𝛿𝐸𝐸(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝑁𝑁
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022(𝑁𝑁)
++ 𝑄𝑄𝜙𝜙,𝜆𝜆 �
+𝛿𝛿𝑋𝑋(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝑋𝑋(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝑋𝑋(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝑁𝑁,𝐼𝐼
+𝐸𝐸𝐸𝐸𝐸𝐸2022
+ (12) 
+ 
+It then falls upon us to find an expression for 𝛿𝛿𝑋𝑋, 𝛿𝛿𝑋𝑋 and 𝛿𝛿𝑋𝑋, from time 𝑡𝑡1 to time 𝑡𝑡2 in terms of 
+the EPPs.  Thankfully these are simple values based upon the angular rotation of the plate alone, 
+and so represent nothing more than a simple distance = velocity × time equation. 
+That is5: 
+�
+𝛿𝛿𝑋𝑋(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝑋𝑋(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝑋𝑋(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝑁𝑁,𝐼𝐼
+𝐸𝐸𝐸𝐸𝐸𝐸2022
+= (𝑡𝑡2 − 𝑡𝑡1) �
+𝑋𝑋̇ (𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝑋𝑋̇ (𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝑋𝑋̇(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝑁𝑁,𝐼𝐼
+𝐸𝐸𝐸𝐸𝐸𝐸2022
+ (13) 
+ 
+The velocities represent the rotation of the North American (𝛿𝛿) plate (or frame) relative to the 
+ITRF. 
+�
+𝑋𝑋̇ (𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝑋𝑋̇ (𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝑋𝑋̇(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝑁𝑁,𝐼𝐼
+𝐸𝐸𝐸𝐸𝐸𝐸2022
+= �
+0 𝜔𝜔̇ 𝑍𝑍 −𝜔𝜔̇ 𝑌𝑌
+−𝜔𝜔̇ 𝑍𝑍 0 𝜔𝜔̇ 𝑋𝑋
+𝜔𝜔̇ 𝑌𝑌 −𝜔𝜔̇ 𝑋𝑋 0
+�
+𝑁𝑁,𝐼𝐼
+�
+𝑋𝑋
+𝑋𝑋
+𝑋𝑋
+�
+𝐼𝐼
+ (14) 
+So that 
+ 
+�
+𝛿𝛿𝐸𝐸(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝐼𝐼
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022
+≡ �
+𝛿𝛿𝐸𝐸(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝑁𝑁
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022(𝑁𝑁)
++ (𝑡𝑡2 − 𝑡𝑡1)𝑄𝑄𝜙𝜙,𝜆𝜆 �
+0 𝜔𝜔̇ 𝑍𝑍 −𝜔𝜔̇ 𝑌𝑌
+−𝜔𝜔̇ 𝑍𝑍 0 𝜔𝜔̇ 𝑋𝑋
+𝜔𝜔̇ 𝑌𝑌 −𝜔𝜔̇ 𝑋𝑋 0
+�
+𝑁𝑁,𝐼𝐼
+�
+𝑋𝑋
+𝑋𝑋
+𝑋𝑋
+�
+𝐼𝐼
+ (15) 
+ 
+Or: 
+�
+𝛿𝛿𝐸𝐸(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝐼𝐼
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022
+≡ �
+𝛿𝛿𝐸𝐸(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝑁𝑁
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022(𝑁𝑁)
+ 
++(𝑡𝑡2 − 𝑡𝑡1) �
+− sin 𝜆𝜆 cos 𝜆𝜆 0
+− cos 𝜆𝜆 sin 𝜙𝜙 − sin 𝜆𝜆 sin 𝜙𝜙 cos 𝜙𝜙
+cos 𝜆𝜆 cos 𝜙𝜙 sin 𝜆𝜆 cos 𝜙𝜙 sin 𝜙𝜙
+� �
+0 𝜔𝜔̇ 𝑍𝑍 −𝜔𝜔̇ 𝑌𝑌
+−𝜔𝜔̇ 𝑍𝑍 0 𝜔𝜔̇ 𝑋𝑋
+𝜔𝜔̇ 𝑌𝑌 −𝜔𝜔̇ 𝑋𝑋 0
+�
+𝑁𝑁,𝐼𝐼
+�
+𝑋𝑋
+𝑋𝑋
+𝑋𝑋
+�
+𝐼𝐼
+ 
+(16) 
+                                                            
+5 EPP2022 is a model of rotations, and a point which rotates is technically accelerating, not moving with a linear 
+velocity.  However, considering the incredibly slow nature of the rotation, one may assume that a point is moving 
+linearly (in a tangent direction to the rotation) and not actually rotating, over centuries before the assumption of a 
+linear velocity breaks down.  Thus, we show the position changes induced by rotation in (13) using the simple 
+distance = velocity × time equation. 
+
+##########################################################################
+### PDF page 10 (of 11)   matches: EPP2022, NATRF2022, epoch, intra-frame
+##########################################################################
+9 
+ 
+Finally, if we assume that points are rotating on a sphere, we may replace X, Y and Z with their 
+spherical equivalences: 
+�
+𝑋𝑋
+𝑋𝑋
+𝑋𝑋
+�
+𝐼𝐼
+≡ �
+𝑟𝑟𝑒𝑒 cos 𝜙𝜙 cos 𝜆𝜆
+𝑟𝑟𝑒𝑒 cos 𝜙𝜙 sin 𝜆𝜆
+𝑟𝑟𝑒𝑒 sin 𝜙𝜙
+�
+𝐼𝐼
+ (17) 
+ 
+This leads to: 
+�
+𝛿𝛿𝐸𝐸(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝐼𝐼
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022
+≡ �
+𝛿𝛿𝐸𝐸(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝑁𝑁
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022(𝑁𝑁)
+ 
++(𝑡𝑡2 − 𝑡𝑡1) �
+− sin 𝜆𝜆 cos 𝜆𝜆 0
+− cos 𝜆𝜆 sin 𝜙𝜙 − sin 𝜆𝜆 sin 𝜙𝜙 cos 𝜙𝜙
+cos 𝜆𝜆 cos 𝜙𝜙 sin 𝜆𝜆 cos 𝜙𝜙 sin 𝜙𝜙
+� �
+0 𝜔𝜔̇ 𝑍𝑍 −𝜔𝜔̇ 𝑌𝑌
+−𝜔𝜔̇ 𝑍𝑍 0 𝜔𝜔̇ 𝑋𝑋
+𝜔𝜔̇ 𝑌𝑌 −𝜔𝜔̇ 𝑋𝑋 0
+�
+𝑁𝑁,𝐼𝐼
+�
+𝑟𝑟𝑒𝑒 cos 𝜙𝜙 cos 𝜆𝜆
+𝑟𝑟𝑒𝑒 cos 𝜙𝜙 sin 𝜆𝜆
+𝑟𝑟𝑒𝑒 sin 𝜙𝜙
+�
+𝐼𝐼
+ 
+(18) 
+ 
+And finally: 
+�
+𝛿𝛿𝐸𝐸(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝐼𝐼
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022
+≡ �
+𝛿𝛿𝐸𝐸(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝑁𝑁
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022(𝑁𝑁)
++ (𝑡𝑡2 − 𝑡𝑡1)𝑟𝑟𝑒𝑒 �
+𝜔𝜔̇ 𝑋𝑋 cos 𝜆𝜆 sin 𝜙𝜙 + 𝜔𝜔̇ 𝑦𝑦 sin 𝜆𝜆 sin 𝜙𝜙 − 𝜔𝜔̇ 𝑧𝑧 cos 𝜙𝜙
+−𝜔𝜔̇ 𝑋𝑋 sin 𝜆𝜆 − 𝜔𝜔̇ 𝑦𝑦 cos 𝜆𝜆
+0
+�
+𝑁𝑁,𝐼𝐼
+ (19) 
+ 
+Or, re-arranging, under the assumption that we have IFVM2022 (in ITRF2020) and the EPP2022 
+parameters (𝜔𝜔̇ 𝑋𝑋, 𝜔𝜔̇ 𝑌𝑌 nd 𝜔𝜔̇ 𝑍𝑍) as well as 𝜙𝜙, 𝜆𝜆, 𝑡𝑡1 and 𝑡𝑡2, we can find the changes in coordinates in 
+IFVM2022* in NATRF2022 as a function of IFVM2022 and EPP2022 as: 
+ 
+�
+𝛿𝛿𝐸𝐸(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝑁𝑁
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022(𝑁𝑁)
+= �
+𝛿𝛿𝐸𝐸(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+𝛿𝛿𝛿𝛿(𝜙𝜙, 𝜆𝜆, 𝑡𝑡1, 𝑡𝑡2)
+�
+𝐼𝐼
+𝐼𝐼𝐼𝐼𝐼𝐼𝐼𝐼2022
+− (𝑡𝑡2 − 𝑡𝑡1)𝑟𝑟𝑒𝑒 �
+𝜔𝜔̇ 𝑋𝑋 cos 𝜆𝜆 sin 𝜙𝜙 + 𝜔𝜔̇ 𝑦𝑦 sin 𝜆𝜆 sin 𝜙𝜙 − 𝜔𝜔̇ 𝑧𝑧 cos 𝜙𝜙
+−𝜔𝜔̇ 𝑋𝑋 sin 𝜆𝜆 − 𝜔𝜔̇ 𝑦𝑦 cos 𝜆𝜆
+0
+�
+𝑁𝑁,𝐼𝐼
+ (20) 
+ 
+Identical equations to (20) exist for PATRF2022, CATRF2022 and MATRF2022 by simply 
+substituting out 𝛿𝛿 for 𝑃𝑃, 𝐶𝐶 or 𝐼𝐼 respectively. 
+5 Conclusions 
+The four national frames of the modernized NSRS will be defined, relative to the ITRF2020, 
+according to three EPPs per frame.  Application of these EPPs will change the frame, but not the 
+epoch.  Within the ITRF2020, NGS will define an intra-frame velocity model (IFVM2022), 
+which will describe coordinates at different epochs, within the one frame.  However, because 
+users of the national frames might wish to have similar relationships between epochs in those 
+frames, the concept of a virtual IFVM2022 model, functioning in each of the four frames was 
+created. 
+
+##########################################################################
+### PDF page 11 (of 11)   matches: Transformation
+##########################################################################
+10 
+ 
+This paper provides a mathematical relationship between the IFVM2022 model (built for 
+ITRF2020) and virtual models, each of which function in one of the four national frames.  
+Although the relationship was already anecdotally assumed to be “removing the rotation of the 
+frame”, this paper formalizes the equations which perform that step. 
+ 
+6 Bibliography 
+ 
+Leick, A. and B.H.W. van Gelder, 1975. On Similarity Transformations and Geodetic Network 
+Distortions Based on Doppler Satellite Observations, Reports of the Department of Geodetic 
+Science, No. 235, The Ohio State University, Columbus, Ohio. 
+ 
+National Geodetic Survey, 2021. Blueprint for the modernized NSRS, Part 1: Geometric 
+Coordinates and Terrestrial Reference Frames, NOAA Technical Report NOS NGS 62, available 
+at: https://www.ngs.noaa.gov/PUBS_LIB/NOAA_TR_NOS_NGS_0062.pdf. 

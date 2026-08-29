@@ -1,5 +1,27 @@
 # H3 lead experiment — the frame composition, discriminated against the frozen anchors (2026-08-29)
 
+**[CORRECTED same day by the IFDM2022 recon (`ifdm/`), per METHOD.md §2 —
+the original conclusion below OVERREACHED and is amended here.]** NGS's own
+definitional documents (TR NOS NGS 62 App. A eqs. 58–59; TM NOS NGS 90 p. 3:
+"EPP2022 changes the frame, not the epoch; IFVM/IFDM2022 changes the epoch,
+not the frame"; NGS's OPUS briefing: "since Δt = 0, coordinates in ITRF2020 =
+NATRF2022 at epoch 2020.00") establish that at the frozen anchors' epochs
+(input AND output 2020.00) **the EPP rotation term is definitionally the
+identity — so these anchors discriminate only the Helmert leg, and the
+"position-vector sign settled" headline below is withdrawn.** What stands,
+measured: (1) a ten-year coordinate-frame rotation is EXCLUDED (341 mm);
+(2) the structurally correct candidate at the standard epochs is the Helmert
+leg alone evaluated at 2020.0 (P5, 28 mm mean), with the residual being
+candidate-parameter error — NCAT's exact Helmert set is unpublished
+(established by parsing the offline jar's class constant pool: the beans
+deserialize server-side data; no parameter resource ships); (3) IFDM2022 does
+NOT explain the p05 outlier — the recon measured exactly zero IFDM-vs-EPP
+deviation at that point, and six of twelve anchors sit at the published
+identity `IFVM(ITRF2020) = EPP + IFVM(NATRF2022)` to 1e-15; (4) the p05
+170 mm residual is unexplained by any published model and is being re-probed
+before the owner decides the bridge's fate. TR 62's eq. 58 matrix layout, for
+the record, matches this experiment's `sign=+1` shape — moot at Δt = 0.
+
 Run by the session lead (`frame_experiment.py`, output committed beside it)
 against the 12 forward frame anchors frozen from beta NCAT
 (`review/nsrs-h1-anchors/anchors.json`). Five candidate compositions of

@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-MB2R4WL6');</script>
+<!-- End Google Tag Manager -->
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-LJ4WTELRG6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-LJ4WTELRG6');
+</script>
+<!-- End Google tag (gtag.js) -->
+<meta charset="utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="/assets/uswds/dist/css/uswds.min.css" />
+<link rel="stylesheet" href="/assets/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="/ngsstandard/css/ngs-beta.css" />
+
+<title>Developer Guide | NAPGD2022 | Beta | National Geodetic Survey</title>
+<meta name="DC.creator" content="US Department of Commerce, National Oceanic and Atmospheric Administration, National Ocean Service, National Geodetic Survey">
+<meta name="DC.language" scheme="DCTERMS.RFC1766" content="EN-US">
+<!-- Google tag (gtag.js) --> 
+<script type="text/javascript" async="" src="https://www.google-analytics.com/analytics.js"></script>
+<script type="text/javascript" async="" src="https://ssl.google-analytics.com/ga.js"></script> 
+<script src="/assets/uswds/dist/js/uswds-init.min.js"></script> 
+<script src="/assets/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<link rel="apple-touch-icon-precomposed" href="/ngsstandard/images/apple-touch-icon-precomposed.png">
+<script type="text/javascript" src="https://search.usa.gov/javascripts/remote.loader.js"></script>
+<link type="text/css" href="https://search.usa.gov/assets/sayt.css" rel="stylesheet" media="screen">
+<script type="text/javascript" src="https://search.usa.gov/assets/sayt_loader_libs.js"></script>
+<script src="https://dap.digitalgov.gov/Universal-Federated-Analytics-Min.js?agency=DOC&amp;subagency=NOAA" id="_fed_an_ua_tag"></script>
+</head>
+<body>
+<a class="usa-skipnav" href="#main-content">Skip to main content</a>
+<section class="usa-banner" aria-label="Official government website">
+  <div class="usa-accordion">
+    <header class="usa-banner__header">
+      <div class="usa-banner__inner">
+        <div class="grid-col-auto"> <img class="usa-banner__header-flag" src="/assets/img/us_flag_small.png" alt="U.S. flag"> </div>
+        <div class="grid-col-fill tablet:grid-col-auto">
+          <p class="usa-banner__header-text"><span aria-hidden="true">An </span>official website of the United States government</p>
+          <p class="usa-banner__header-action" aria-hidden="true">Here’s how you know</p>
+        </div>
+        <button class="usa-accordion__button usa-banner__button" aria-expanded="false" aria-controls="gov-banner"> <span class="usa-banner__button-text">Here’s how you know</span> </button>
+      </div>
+    </header>
+    <div class="usa-banner__content usa-accordion__content" id="gov-banner" hidden="">
+      <div class="grid-row grid-gap-lg">
+        <div class="usa-banner__guidance tablet:grid-col-6"> <img class="usa-banner__icon usa-media-block__img" src="/assets/img/icon-dot-gov.svg" alt="Dot gov">
+          <div class="usa-media-block__body">
+            <p> <strong>Official websites use .gov</strong> <br>
+              A <strong>.gov</strong> website belongs to an official government organization in the United States. </p>
+          </div>
+        </div>
+        <div class="usa-banner__guidance tablet:grid-col-6"> <img class="usa-banner__icon usa-media-block__img" src="/assets/img/icon-https.svg" alt="HTTPS">
+          <div class="usa-media-block__body">
+            <p> <strong>Secure .gov websites use HTTPS</strong> <br>
+              A <strong>lock</strong> (<span class="icon-lock">
+              <svg xmlns="http://www.w3.org/2000/svg" width="52" height="64" viewBox="0 0 52 64" class="usa-banner__lock-image" role="img" aria-labelledby="banner-lock-title banner-lock-description">
+                <title id="banner-lock-title">Lock</title>
+                <desc id="banner-lock-description">A locked padlock</desc>
+                <path fill="#000000" fill-rule="evenodd" d="M26 0c10.493 0 19 8.507 19 19v9h3a4 4 0 0 1 4 4v28a4 4 0 0 1-4 4H4a4 4 0 0 1-4-4V32a4 4 0 0 1 4-4h3v-9C7 8.507 15.507 0 26 0zm0 8c-5.979 0-10.843 4.77-10.996 10.712L15 19v9h22v-9c0-6.075-4.925-11-11-11z"></path>
+              </svg>
+              </span>) or <strong>https://</strong> means you’ve safely connected to the .gov website. Share sensitive information only on official, secure websites. </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="usa-overlay"></div>
+ 
+<header class="usa-header usa-header--extended">
+  <div class="usa-navbar">
+    <div class="usa-logo" id="-logo"> <a href="/" title="home" id="logo"><img class="usa-header__logo-img" src="/ngsstandard/images/ngs-logo2-beta.png" alt="NOAA's National Geodetic Survey"></a> <a href="/" title="home" id="logo2"><img class="usa-header__logo-img" src="/ngsstandard/images/ngs-logo3-beta.png" alt="NOAA's National Geodetic Survey"></a></div>
+    <button type="button" class="usa-menu-btn">MENU</button>
+  </div>
+  <nav aria-label="Primary navigation" class="usa-nav">
+  <div class="usa-nav__inner">
+    <button type="button" class="usa-nav__close"> <img src="/assets/img/usa-icons/close.svg" role="img" alt="Close" /> </button>
+    <ul class="usa-nav__primary usa-accordion">
+      <li class="usa-nav__primary-item">
+        <button
+            type="button"
+            class="usa-accordion__button usa-nav__link"
+            aria-expanded="false"
+            aria-controls="extended-mega-nav-section-one"
+          > <span>BETA PRODUCTS</span> </button>
+        <div
+            id="extended-mega-nav-section-one" class="usa-nav__submenu usa-megamenu">
+                    <div class="grid-row grid-gap-4">
+            <div class="usa-col">
+              <ul class="usa-nav__submenu-list">
+                <li class="usa-nav__submenu-item"> <a href="/NAPGD2022/index.html">North American-Pacific Geopotential Datum of 2022 (NAPGD2022)</a> </li>
+                <li class="usa-nav__submenu-item"> <a href="/NATRF2022/index.html">NATRF2022, PATRF2022, CATRF2022, and MATRF2022</a> </li>
+                <li class="usa-nav__submenu-item"> <a href="/SPCS/index.html">State Plane Coordinate System of 2022 (SPCS2022)</a> </li>
+                <li class="usa-nav__submenu-item"> <a href="/NCAT/">NGS Coordinate Conversion and Transformation Tool (NCAT)</a> </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </li>
+    </ul>
+   <div class="usa-nav__secondary">
+      <section aria-label="Small search component">
+        <form action="https://search.usa.gov/search" method="get" accept-charset="UTF-8" class="usa-search usa-search--small" role="search">
+          <label class="usa-sr-only" for="search-field-en-small">Search</label>
+          <input
+      class="usa-input"
+      id="search-field-en-small"
+      type="hidden"
+      name="affiliate"
+				 value="beta-ngs">
+          <input name="query" type="text" placeholder="Search...">
+          <button class="usa-button" type="submit" value="Search"> <img
+        src="/assets/img/usa-icons-bg/search--white.svg"
+        class="usa-search__submit-icon"
+        alt="Search"
+      /> </button>
+        </form>
+      </section>
+    </div>
+  </div>
+</nav> 
+</header>
+
+<main id="main-content">
+  <div class="usa-section">
+    <div class="grid-container usa-prose">
+      <nav class="usa-breadcrumb" aria-label="Breadcrumbs,,">
+        <ol class="usa-breadcrumb__list">
+          <li class="usa-breadcrumb__list-item"> <a href="/" class="usa-breadcrumb__link"><span>Home</span></a> </li>
+          <li class="usa-breadcrumb__list-item"> <a href="/NAPGD2022/index.html" class="usa-breadcrumb__link"
+        ><span>NAPGD2022</span></a
+      > </li>
+          <li class="usa-breadcrumb__list-item usa-current" aria-current="page"> <span
+        >Developer Guide</span
+      > </li>
+        </ol>
+      </nav>
+      <div class="grid-row grid-gap"> 
+        <div class="usa-layout-docs__sidenav desktop:grid-col-3">
+  <nav aria-label="Secondary navigation">
+    <ul class="usa-sidenav site-sidenav shadow-2">
+      <li class="usa-sidenav__item"> <a href="/NAPGD2022/index.html">NAPGD2022 Home</a> </li>
+      <li class="usa-sidenav__item"> <a href="/NAPGD2022/map-gallery.html">Map Gallery</a> </li>
+      <li class="usa-sidenav__item"> <a href="/NAPGD2022/download.html">Data Download</a> </li>
+      <!--<li class="usa-sidenav__item"><a href="https://alpha.ngs.noaa.gov/NAPGD2022Computation/">Interactive Computation</a></li>-->
+      <li class="usa-sidenav__item"><a href="https://experience.arcgis.com/experience/474f5934f5ff468bb77a1a16f10aa578/">Interactive Online Map</a></li>
+		      <li class="usa-sidenav__item"><a href="/NAPGD2022/developer-guide.html">Developer Guide</a></li>
+				      <li class="usa-sidenav__item"><a href="/NAPGD2022/change-log.html">Change Log</a></li>
+    </ul>
+  </nav>
+</div>
+
+        
+        <div class="usa-layout-docs__main desktop:grid-col-9 usa-layout-docs">
+          <h1>Developer Guide</h1>
+          <p>This page serves to aid developers in correctly reading and implementing the component models of NAPGD2022. </p>
+          <h2 id="ggxf">Reading GGXF</h2>
+          <p>NGS uses <a href="https://www.ogc.org/standards/ggfx/">Geodetic data Grid eXchange Format (GGXF)</a> as the file format for distribution of NAPGD2022 grids. GGXF uses NetCDF for its carrier encoding and thus may be read with appropriate NetCDF4 tools.</p>
+          <p>The following Python example illustrates how to explore and extract grid data from a GGXF file using the NetCDF4 library.</p>
+          <pre class="highlight"><code>
+			   <div class="demo-highlight"><pre><span></span>
+	<span class="c1">#Import Python NetCDF4</span>
+	<span class="kn">from</span><span class="w"> </span><span class="nn">netCDF4</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+	<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+	<span class="c1">#Load the GGXF as a NetCDF object</span>
+	<span class="n">ggxf_file</span> <span class="o">=</span> <span class="s2">"path/to/ggxfs/GEOID2022.v1.ggxf"</span>
+	<span class="n">rootgrp</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">ggxf_file</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">"r"</span><span class="p">)</span>
+
+	<span class="c1">#Subgroups by be explored by calling the group attribute, which gives a dicitonary of nested groups</span>
+
+	<span class="sd">'''</span>
+	<span class="sd">&gt; rootgrp.groups</span>
+	<span class="sd">{'SGEOID2022': &lt;class 'netCDF4._netCDF4.Group'&gt;</span>
+	<span class="sd"> group /SGEOID2022:</span>
+	<span class="sd">     interpolationMethod: biquadratic</span>
+	<span class="sd">     gridParameters: ['geoidHeight', 'geoidHeightUncertainty']</span>
+	<span class="sd">     dimensions(sizes): </span>
+	<span class="sd">     variables(dimensions): </span>
+	<span class="sd">     groups: NA, GC, AS,</span>
+	<span class="sd"> 'DGEOID2022': &lt;class 'netCDF4._netCDF4.Group'&gt;</span>
+	<span class="sd"> group /DGEOID2022:</span>
+	<span class="sd">     interpolationMethod: biquadratic</span>
+	<span class="sd">     gridParameters: ['geoidVelocity', 'geoidVelocityUncertainty']</span>
+	<span class="sd">     dimensions(sizes): </span>
+	<span class="sd">     variables(dimensions): </span>
+	<span class="sd">     groups: GL}</span>
+	<span class="sd">'''</span>
+
+	<span class="c1">#The static geoid is under SGEOID2022 while the dynamic geoid is under DGEOID2022. </span>
+	<span class="c1">#DGEOID2022 is a single global grid, while SGEOID2022 is broken into three regions (NA, AS, and GC).</span>
+
+	<span class="c1">#In this example, we'll focus on the North America (NA) grid </span>
+	<span class="n">region_path</span> <span class="o">=</span> <span class="s1">'SGEOID2022/NA"</span>
+	<span class="c1">#The affine coefficients and grid parameters may be extracted for a particular region</span>
+	<span class="n">affineCoeffs</span> <span class="o">=</span> <span class="n">rootgrp</span><span class="p">[</span><span class="n">region_path</span><span class="p">]</span><span class="o">.</span><span class="n">getncattr</span><span class="p">(</span><span class="s2">"affineCoeffs"</span><span class="p">)</span>
+	<span class="n">nlat</span> <span class="o">=</span> <span class="n">rootgrp</span><span class="p">[</span><span class="n">region_path</span> <span class="p">]</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[</span><span class="s1">'iNodeCount'</span><span class="p">]</span><span class="o">.</span><span class="n">size</span>
+	<span class="n">nlon</span> <span class="o">=</span> <span class="n">rootgrp</span><span class="p">[</span><span class="n">region_path</span> <span class="p">]</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[</span><span class="s1">'jNodeCount'</span><span class="p">]</span><span class="o">.</span><span class="n">size</span>
+
+	<span class="c1">#The latitudes and longitudes of the grid corners may be constructed from the affine coefficients</span>
+	<span class="n">lat</span> <span class="o">=</span> <span class="n">affineCoeffs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nlat</span><span class="p">)</span><span class="o">*</span><span class="n">affineCoeffs</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+	<span class="n">lon</span> <span class="o">=</span> <span class="n">affineCoeffs</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">nlon</span><span class="p">)</span><span class="o">*</span><span class="n">affineCoeffs</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+	<span class="c1">#Finally, the grid data may be extracted using slicing</span>
+	<span class="n">geoidHeight</span> <span class="o">=</span> <span class="n">rootgrp</span><span class="p">[</span><span class="n">region_path</span> <span class="o">+</span><span class="s2">"geoidHeight"</span><span class="p">][:]</span>
+	<span class="c1">#This returns a 2D NumPy array that may be plotted or interpolated with lat and lon as independent variables</span>
+
+	<span class="c1">#This extraction can be condensed into a single path </span>
+	<span class="n">geoidHeight</span> <span class="o">=</span> <span class="n">rootgrp</span><span class="p">[</span><span class="s2">"SGEOID2022/NA/geoidHeight"</span><span class="p">][:]</span>
+</pre></div>
+<style id="css-style">pre { line-height: 115%; }
+td.linenos .normal { color: inherit; background-color: ; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: ; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: ; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: ; padding-left: 5px; padding-right: 5px; }
+.demo-highlight .hll { background-color: ; }
+.demo-highlight { background: ; }
+.demo-highlight .c { color: #080; font-style: italic } /* Comment */
+.demo-highlight .err { color: #A61717; background-color:  } /* Error */
+.demo-highlight .g { color: #2C2CFF } /* Generic */
+.demo-highlight .k { color: #2C2CFF } /* Keyword */
+.demo-highlight .x { background-color: #FFFFE0 } /* Other */
+.demo-highlight .ch { color: #080; font-style: italic } /* Comment.Hashbang */
+.demo-highlight .cm { color: #080; font-style: italic } /* Comment.Multiline */
+.demo-highlight .cp { color: #080; font-style: italic } /* Comment.Preproc */
+.demo-highlight .cpf { color: #080; font-style: italic } /* Comment.PreprocFile */
+.demo-highlight .c1 { color: #080; font-style: italic } /* Comment.Single */
+.demo-highlight .cs { color: #080; font-style: italic } /* Comment.Special */
+.demo-highlight .gd { color: #2C2CFF } /* Generic.Deleted */
+.demo-highlight .ge { color: #080 } /* Generic.Emph */
+.demo-highlight .ges { color: #2C2CFF } /* Generic.EmphStrong */
+.demo-highlight .gr { color: #D30202 } /* Generic.Error */
+.demo-highlight .gh { color: #2C2CFF } /* Generic.Heading */
+.demo-highlight .gi { color: #2C2CFF } /* Generic.Inserted */
+.demo-highlight .go { color: #2C2CFF } /* Generic.Output */
+.demo-highlight .gp { color: #2C2CFF } /* Generic.Prompt */
+.demo-highlight .gs { color: #2C2CFF } /* Generic.Strong */
+.demo-highlight .gu { color: #2C2CFF } /* Generic.Subheading */
+.demo-highlight .gt { color: #2C2CFF } /* Generic.Traceback */
+.demo-highlight .kc { color: #2C2CFF; font-weight: bold } /* Keyword.Constant */
+.demo-highlight .kd { color: #2C2CFF } /* Keyword.Declaration */
+.demo-highlight .kn { color: #2C2CFF } /* Keyword.Namespace */
+.demo-highlight .kp { color: #2C2CFF } /* Keyword.Pseudo */
+.demo-highlight .kr { color: #353580; font-weight: bold } /* Keyword.Reserved */
+.demo-highlight .kt { color: #2C2CFF } /* Keyword.Type */
+.demo-highlight .m { color: #2C8553; font-weight: bold } /* Literal.Number */
+.demo-highlight .s { color: #800080 } /* Literal.String */
+.demo-highlight .nb { color: #2C2CFF } /* Name.Builtin */
+.demo-highlight .nf { font-weight: bold; font-style: italic } /* Name.Function */
+.demo-highlight .nv { color: #2C2CFF; font-weight: bold } /* Name.Variable */
+.demo-highlight .w { color: #BBB } /* Text.Whitespace */
+.demo-highlight .mb { color: #2C8553; font-weight: bold } /* Literal.Number.Bin */
+.demo-highlight .mf { color: #2C8553; font-weight: bold } /* Literal.Number.Float */
+.demo-highlight .mh { color: #2C8553; font-weight: bold } /* Literal.Number.Hex */
+.demo-highlight .mi { color: #2C8553; font-weight: bold } /* Literal.Number.Integer */
+.demo-highlight .mo { color: #2C8553; font-weight: bold } /* Literal.Number.Oct */
+.demo-highlight .sa { color: #800080 } /* Literal.String.Affix */
+.demo-highlight .sb { color: #800080 } /* Literal.String.Backtick */
+.demo-highlight .sc { color: #800080 } /* Literal.String.Char */
+.demo-highlight .dl { color: #800080 } /* Literal.String.Delimiter */
+.demo-highlight .sd { color: #800080 } /* Literal.String.Doc */
+.demo-highlight .s2 { color: #800080 } /* Literal.String.Double */
+.demo-highlight .se { color: #800080 } /* Literal.String.Escape */
+.demo-highlight .sh { color: #800080 } /* Literal.String.Heredoc */
+.demo-highlight .si { color: #800080 } /* Literal.String.Interpol */
+.demo-highlight .sx { color: #800080 } /* Literal.String.Other */
+.demo-highlight .sr { color: #800080 } /* Literal.String.Regex */
+.demo-highlight .s1 { color: #800080 } /* Literal.String.Single */
+.demo-highlight .ss { color: #800080 } /* Literal.String.Symbol */
+.demo-highlight .bp { color: #2C2CFF } /* Name.Builtin.Pseudo */
+.demo-highlight .fm { font-weight: bold; font-style: italic } /* Name.Function.Magic */
+.demo-highlight .vc { color: #2C2CFF; font-weight: bold } /* Name.Variable.Class */
+.demo-highlight .vg { color: #2C2CFF; font-weight: bold } /* Name.Variable.Global */
+.demo-highlight .vi { color: #2C2CFF; font-weight: bold } /* Name.Variable.Instance */
+.demo-highlight .vm { color: #2C2CFF; font-weight: bold } /* Name.Variable.Magic */
+.demo-highlight .il { color: #2C8553; font-weight: bold } /* Literal.Number.Integer.Long */</style>
+          </code></pre>
+          <p>A complete map of the NAPGD2022 attributes in the GGXF file structure is given below:</p>
+          <div class="usa-accordion usa-accordion--bordered" data-allow-multiple>
+            <h4 class="usa-accordion__heading">
+              <button
+      type="button"
+      class="usa-accordion__button"
+      aria-expanded="false"
+      aria-controls="b-a1"
+    > NAPGD2022 GGXF Contents </button>
+            </h4>
+            <div id="b-a1" class="usa-accordion__content usa-prose"> <strong>GEOID 2022</strong>
+              <pre><code>
+ Time-dependent geoid undulation
+ GEOID2022.v1.ggxf
+ 	SGEOID2022
+		Unit: meter
+		Regions: NA, AS, GC
+		Resolution: 1’
+		Attributes: geoidHeight (geoid undulation at 2020.0)
+			    geoidHeightUncertainty (1-sigma geoid uncertainty)
+			    geoidQuasigeoidSeparation (geoid undulation minus quasigeoid)
+	DGEOID2022
+		Unit: meter per year
+		Regions: GL
+		Resolution: 15’
+		Attributes: geoidVelocity (geoid rate of change)
+			    geoidVelocityUncertainty (1-sigma geoid rate uncertainty)
+</code></pre>
+              <strong>DEFLEC2022</strong>
+              <pre><code>
+ Time-dependent deflection of the vertical
+ DEFLEC2022.v1.ggxf
+ 	SDEFLEC2022
+		Unit: arcsecond
+		Regions: NA, AS, GC
+		Resolution: 1’
+		Attributes: deviationEast (prime vertical deflection, eta)
+			    deviationNorth (meridional deflection, xi) 
+			    deviationEastUncertainty (1-sigma eta uncertainty)
+			    deviationNorthUncertainty (1-sigma xi uncertainty)
+	DDEFLEC2022
+		Unit: arcsecond per year
+		Regions: GL
+		Resolution: 15’
+		Attributes: deviationEastVelocity (rate of change in eta)
+			    deviationNorthVelocity (rate of change in xi)
+</code></pre>
+              <strong>DEM2022</strong>
+              <pre><code>
+ Topographic surface orthometric height
+ DEM2022.v1.ggxf
+ 	DEM2022
+		Unit: meter
+		Regions: NA, AS, GC
+		Resolution: 1’
+		Attributes: elevation (orthometric height of topographic surface)
+</code></pre>
+              <strong>GRAV2022</strong>
+              <pre><code>
+ Refined Bouguer anomaly and terrain correction grids to predict gravity
+ GRAV2022.v1.ggxf
+ 	RBA
+		Unit: milligal
+		Regions: NA, AS, GC
+		Resolution: 1’
+		Attributes: gravityAnomaly (refined Bouguer anomaly)
+			    gravityAnomalyUncertainty (1-sigma refined Bouguer anomaly uncertainty)
+	TC
+		Unit: milligal
+		Regions: NA, AS, GC
+		Resolution: 0.25’
+		Attributes: terrainCorrection (terrain correction)
+</code></pre>
+            </div>
+            <!--<h4 class="usa-accordion__heading">
+    <button
+      type="button"
+      class="usa-accordion__button"
+      aria-expanded="false"
+      aria-controls="b-a2"
+    >
+      DEFLEC2022
+    </button>
+  </h4>--> 
+            <!--<div id="b-a2" class="usa-accordion__content usa-prose">
+ <pre><code>
+ Time-dependent deflection of the vertical
+ DEFLEC2022.v1.ggxf
+ 	SDEFLEC2022
+		Unit: arcsecond
+		Regions: NA, AS, GC
+		Resolution: 1’
+		Attributes: deviationEast (prime vertical deflection, eta)
+			    deviationNorth (meridional deflection, xi) 
+			    deviationEastUncertainty (1-sigma eta uncertainty)
+			    deviationNorthUncertainty (1-sigma xi uncertainty)
+	DDEFLEC2022
+		Unit: arcsecond per year
+		Regions: GL
+		Resolution: 15’
+		Attributes: deviationEastVelocity (rate of change in eta)
+			    deviationNorthVelocity (rate of change in xi)
+</code></pre>    
+  </div>--> 
+            <!--<h4 class="usa-accordion__heading">
+    <button
+      type="button"
+      class="usa-accordion__button"
+      aria-expanded="false"
+      aria-controls="b-a3"
+    >
+      DEM2022
+    </button>
+  </h4>--> 
+            <!--<div id="b-a3" class="usa-accordion__content usa-prose">
+ <pre><code>
+ Topographic surface orthometric height
+ DEM2022.v1.ggxf
+ 	DEM2022
+		Unit: meter
+		Regions: NA, AS, GC
+		Resolution: 1’
+		Attributes: elevation (orthometric height of topographic surface)
+</code></pre>
+  </div>--> 
+            <!--<h4 class="usa-accordion__heading">
+    <button
+      type="button"
+      class="usa-accordion__button"
+      aria-expanded="false"
+      aria-controls="b-a4"
+    >
+      GRAV2022
+    </button>
+  </h4>--> 
+            <!--<div id="b-a4" class="usa-accordion__content usa-prose">
+     <pre><code>
+ Refined Bouguer anomaly and terrain correction grids to predict gravity
+ GRAV2022.v1.ggxf
+ 	RBA
+		Unit: milligal
+		Regions: NA, AS, GC
+		Resolution: 1’
+		Attributes: gravityAnomaly (refined Bouguer anomaly)
+			    gravityAnomalyUncertainty (1-sigma refined Bouguer anomaly uncertainty)
+	TC
+		Unit: milligal
+		Regions: NA, AS, GC
+		Resolution: 0.25’
+		Attributes: terrainCorrection (terrain correction)
+
+
+</code></pre>
+  </div>--> 
+          </div>
+          <p>For convenience, here is a complete list of paths to variables in the GGXF files</p>
+          <div class="usa-accordion usa-accordion--bordered" data-allow-multiple>
+            <h4 class="usa-accordion__heading">
+              <button
+      type="button"
+      class="usa-accordion__button"
+      aria-expanded="false"
+      aria-controls="b-a1a"
+    > NAPGD2022 GGXF Variable Paths </button>
+            </h4>
+            <div id="b-a1a" class="usa-accordion__content"> <strong>GEOID2022.v1.ggxf</strong>
+              <pre><code>
+  SGEOID2022/NA/geoidHeight
+  SGEOID2022/NA/geoidHeightUncertainty
+  SGEOID2022/NA/geoidQuasigeoidSeparation
+  SGEOID2022/AS/geoidHeight
+  SGEOID2022/AS/geoidHeightUncertainty
+  SGEOID2022/AS/geoidQuasigeoidSeparation
+  SGEOID2022/GC/geoidHeight
+  SGEOID2022/GC/geoidHeightUncertainty
+  SGEOID2022/GC/geoidQuasigeoidSeparation
+  DGEOID2022/GL/geoidVelocity
+  DGEOID2022/GL/geoidVelocityUncertainty
+</code></pre>
+              <strong>DEFLEC2022.v1.ggxf</strong>
+              <pre><code>
+  SDEFLEC2022/NA/deviationEast
+  SDEFLEC2022/NA/deviationNorth
+  SDEFLEC2022/NA/deviationEastUncertainty
+  SDEFLEC2022/NA/deviationNorthUncertainty
+  SDEFLEC2022/AS/deviationEast
+  SDEFLEC2022/AS/deviationNorth
+  SDEFLEC2022/AS/deviationEastUncertainty
+  SDEFLEC2022/AS/deviationNorthUncertainty
+  SDEFLEC2022/GC/deviationEast
+  SDEFLEC2022/GC/deviationNorth
+  SDEFLEC2022/GC/deviationEastUncertainty
+  SDEFLEC2022/GC/deviationNorthUncertainty
+  DDEFLEC2022/GL/deviationEastVelocity
+  DDEFLEC2022/GL/deviationNorthVelocity
+  </code></pre>
+              <strong>DEM2022.v1.ggxf</strong>
+              <pre><code>
+  DEM2022/NA/elevation
+  DEM2022/AS/elevation
+  DEM2022/GC/elevation
+</code></pre>
+              <strong>GRAV2022.v1.ggxf</strong>
+              <pre><code>
+  RBA/NA/gravityAnomaly
+  RBA/NA/gravityAnomalyUncertainty
+  TC/NA/terrainCorrection
+  RBA/AS/gravityAnomaly
+  RBA/AS/gravityAnomalyUncertainty
+  TC/AS/terrainCorrection
+  RBA/GC/gravityAnomaly
+  RBA/GC/gravityAnomalyUncertainty
+  TC/GC/terrainCorrection
+</code></pre>
+            </div>
+            <!--<h4 class="usa-accordion__heading">
+    <button
+      type="button"
+      class="usa-accordion__button"
+      aria-expanded="false"
+      aria-controls="b-a2a"
+    >
+      DEFLEC2022.v1.ggxf
+    </button>
+  </h4>
+  <div id="b-a2a" class="usa-accordion__content usa-prose">
+  <pre><code>
+  SDEFLEC2022/NA/deviationEast
+  SDEFLEC2022/NA/deviationNorth
+  SDEFLEC2022/NA/deviationEastUncertainty
+  SDEFLEC2022/NA/deviationNorthUncertainty
+  SDEFLEC2022/AS/deviationEast
+  SDEFLEC2022/AS/deviationNorth
+  SDEFLEC2022/AS/deviationEastUncertainty
+  SDEFLEC2022/AS/deviationNorthUncertainty
+  SDEFLEC2022/GC/deviationEast
+  SDEFLEC2022/GC/deviationNorth
+  SDEFLEC2022/GC/deviationEastUncertainty
+  SDEFLEC2022/GC/deviationNorthUncertainty
+  DDEFLEC2022/GL/deviationEastVelocity
+  DDEFLEC2022/GL/deviationNorthVelocity
+  </code></pre>
+  </div>
+  <h4 class="usa-accordion__heading">
+    <button
+      type="button"
+      class="usa-accordion__button"
+      aria-expanded="false"
+      aria-controls="b-a3a"
+    >
+      DEM2022.v1.ggxf
+    </button>
+  </h4>
+  <div id="b-a3a" class="usa-accordion__content usa-prose">
+  <pre><code>
+  DEM2022/NA/elevation
+  DEM2022/AS/elevation
+  DEM2022/GC/elevation
+</code></pre>
+  </div>
+  <h4 class="usa-accordion__heading">
+    <button
+      type="button"
+      class="usa-accordion__button"
+      aria-expanded="false"
+      aria-controls="b-a4a"
+    >
+      GRAV2022.v1.ggxf
+    </button>
+  </h4>
+  <div id="b-a4a" class="usa-accordion__content usa-prose">
+  <pre><code>
+  RBA/NA/gravityAnomaly
+  RBA/NA/gravityAnomalyUncertainty
+  TC/NA/terrainCorrection
+  RBA/AS/gravityAnomaly
+  RBA/AS/gravityAnomalyUncertainty
+  TC/AS/terrainCorrection
+  RBA/GC/gravityAnomaly
+  RBA/GC/gravityAnomalyUncertainty
+  TC/GC/terrainCorrection
+</code></pre>
+  </div>--> 
+          </div>
+          <h2 id="instructions">Reading .b files </h2>
+          <p>NGS has a long history of using a binary gridded data format with ‘.b’ extension.  More information about this format for non-Fortran users can be found here: <a href="https://www.ngs.noaa.gov/PUBS_LIB/NOAA_TR_NOS_NGS_63.pdf">NOAA Technical Report NOS NGS 63</a>.  Fortran code to read these grids is as follows:</p>
+          <div class="language-bash highlighter-rouge">
+            <div class="highlight">
+              <pre class="highlight"><code>
+            real*8 xlatmin,xlonmin,dphi,dlam
+            real*4 undu(5401,10801)
+            read (*) xlatmin,xlonmin,dphi,dlam,ilat,ilon
+            Do I=1,ilat
+            xlat=xlatmin+(i-1)*dphi
+            read(*) (undu(i,j),j=1,ilon)
+            do j=1,ilon
+            xlon=xlonmin+(j-1)*dlam
+            ENDDO
+          </code></pre>
+            </div>
+          </div>
+          <h2>Interpolation</h2>
+          <p>NAPGD2022 grids are to be interpolated in latitude and longitude using local 4x4 <strong>bicubic interpolation</strong> as described in Numerical Recipes (Press, et al., 2007). Interpolation within 1 pixel of the edge should also use bicubic interpolation with linear extrapolation for padding the missing parts of the 4x4 window. Users should not reproject coordinates prior to interpolation.</p>
+			<p>Exceptions: Uncertainty grids and DEMs should be interpolated with <strong>bilinear interpolation</strong> to avoid ringing artifacts.</p>
+          <h2>Time-dependency - Combining the static and dynamic fields</h2>
+          <p>The static grids in NAPGD2022 (e.g., SGEOID2022) represent the geopotential field at the 2020.0 (January 1st, 2020) epoch. The dynamic components of GEOID2022 and DEFLEC2022 were computed using rates derived from grids timestamped in Julian years, which are exactly 365.25 days. Thus, evaluating NAPGD2022 at a particular epoch requires the user to compute the exact number of Julian years elapsed since the 2020.0 epoch. This may be computed using modified Julian dates to obtain the exact number of days since the epoch and dividing the result by 365.25 days per year.</p>
+          <p>To compute the time-dependent geoid undulation, both the SGEOID and DGEOID grids must be interpolated to a user-specified latitude and longitude and then combined according to the integer modified Julian day (mjdn) of the computation time:</p>
+          <div class="language-bash highlighter-rouge">
+            <div class="highlight">
+              <pre class="highlight"><code>
+            GEOID = SGEOID + DGEOID*(mjdn-58849)/365.25
+          </code></pre>
+            </div>
+          </div>
+          <p>The modified Julian day is determined from the year, month, and day of the date of interest according to the following algorithm:</p>
+          <div class="language-bash highlighter-rouge">
+            <div class="highlight">
+              <pre class="highlight"><code>
+	    a = (14 - month)//12	  
+	    y = year +  4800 - a
+            m = month + 12*a - 3
+            jdn = day + (153*m+2)//5 + 365*y + y//4 - y//100 + y//400 - 32045
+            mjdn = jdn - 2400001
+          </code></pre>
+            </div>
+          </div>
+          <p>The // symbol denotes integer division, e.g. 4//3 = 1 and 2//3 = 0. MJD 58849 corresponds to midnight, January 1st, 2020 or the 2020.0 epoch of the static geoid</p>
+          <p>Uncertainty propagation with time-dependent components of NAPGD2022 is performed by adding the static and time-dependent uncertainty contributions in quadrature. </p>
+          <div class="language-bash highlighter-rouge">
+            <div class="highlight">
+              <pre class="highlight"><code>
+	delta_t = (mjdn-58849)/365.25
+	sigmaN = sqrt(geoidHeightUncertainty**2 +
+		     (delta_t*geoidVelocityUncertainty)**2) 
+          </code></pre>
+            </div>
+          </div>
+          <h2 id="test-cases">Test cases</h2>
+          <p>A spreadsheet of test evaluations of the component models at selected points has been included so users can verify their correct implementation of these models or answer common questions about the datum.  These test points include grid boundaries, major cities, and points of geographic and scientific interest.<br>
+            <a href="files/NAPGD2022TestCases.beta_v0a.csv">
+            <button type="button" class="btn btn-primary">Data Download</button>
+            </a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+<footer class="usa-footer usa-footer--slim">
+  <div class="grid-container usa-footer__return-to-top"> <a href="#">Return to top</a> </div>
+  <div class="usa-footer__primary-section">
+    <div class="usa-footer__primary-container grid-row">
+      <div class="mobile-lg:grid-col-12">
+        <nav class="usa-footer__nav" aria-label="Footer navigation">
+          <ul class="grid-row grid-gap">
+            <li class="mobile-lg:grid-col-6 desktop:grid-col-auto usa-footer__primary-content"> <a class="usa-footer__primary-link" href="https://oceanservice.noaa.gov/">NOS Home</a> </li>
+            <li class="mobile-lg:grid-col-6 desktop:grid-col-auto usa-footer__primary-content"> <a class="usa-footer__primary-link" href="/privacy.html">Privacy</a> </li>
+            <li class="mobile-lg:grid-col-6 desktop:grid-col-auto usa-footer__primary-content"> <a class="usa-footer__primary-link" href="https://geodesy.noaa.gov/survey.shtml">Feedback</a> </li>
+            <li class="mobile-lg:grid-col-6 desktop:grid-col-auto usa-footer__primary-content"> <a class="usa-footer__primary-link" href="/disclaimer.html">Disclaimer</a> </li>
+            <li class="mobile-lg:grid-col-6 desktop:grid-col-auto usa-footer__primary-content"> <a class="usa-footer__primary-link" href="https://www.usa.gov/">USA.gov</a> </li>
+            <li class="mobile-lg:grid-col-6 desktop:grid-col-auto usa-footer__primary-content"> <a class="usa-footer__primary-link" href="https://www.ready.gov/">Ready.gov</a> </li>
+            <li class="mobile-lg:grid-col-6 desktop:grid-col-auto usa-footer__primary-content"> <a class="usa-footer__primary-link" href="/sitemap.html">Site Map</a> </li>
+            <li class="mobile-lg:grid-col-6 desktop:grid-col-auto usa-footer__primary-content"> <a class="usa-footer__primary-link" href="https://geodesy.noaa.gov/cgi-bin/redirectNOAA.prl?u=ngs.infocenter">Contact Infocenter</a> </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </div>
+</footer>
+<script src="/assets/uswds/dist/js/uswds.min.js"></script> 
+<script>
+//<![CDATA[
+      var usasearch_config = { siteHandle:"beta-ngs" };
+
+      var script = document.createElement("script");
+      script.type = "text/javascript";
+      script.src = "//search.usa.gov/javascripts/remote.loader.js";
+      document.getElementsByTagName("head")[0].appendChild(script);
+
+//]]>
+</script>
+<div class="usa-identifier">
+  <section class="usa-identifier__section usa-identifier__section--masthead" aria-label="Agency identifier">
+    <div class="usa-identifier__container">
+      <div class="usa-identifier__logos"> <a href="javascript:void(0)" class="usa-identifier__logo"><img class="usa-identifier__logo-img" src="/assets/img/noaa-logo.png" alt="&lt;Parent agency&gt; logo" role="img"/></a></div>
+      <section class="usa-identifier__identity" aria-label="Agency description">
+        <p class="usa-identifier__identity-domain">beta.ngs.noaa.gov</p>
+        <p class="usa-identifier__identity-disclaimer"> An official website of the <a href="https://geodesy.noaa.gov/">National Geodetic Survey</a> and the <a href="https://www.noaa.gov/">National Oceanic and Atmospheric Administration</a></p>
+      </section>
+    </div>
+  </section>
+  <section class="usa-identifier__section usa-identifier__section--usagov" aria-label="U.S. government information and services">
+    <div class="usa-identifier__container">
+      <div class="usa-identifier__usagov-description"> Looking for U.S. government information and services? </div>
+      <a href="https://www.usa.gov/" class="usa-link">Visit USA.gov</a> </div>
+  </section>
+</div>
+
+</body>
+</html>

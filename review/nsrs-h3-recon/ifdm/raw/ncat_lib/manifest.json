@@ -1,0 +1,102 @@
+[
+  {
+    "member": "readme.txt",
+    "bytes": 14011,
+    "sha256": "074db6682ca10fc42ac1b1dae7088ccd5bae49143ece988d436e47f375fd7924"
+  },
+  {
+    "member": "CLDriver.java",
+    "bytes": 37806,
+    "sha256": "2cfe6b3e7d7b22395d8d3cd3fd1ddc03fee5e50137ce94f50839cd94282ec18d"
+  },
+  {
+    "member": "LICENSE",
+    "bytes": 11366,
+    "sha256": "e118ad8e5f2d3c71f0e7d6202d5829e7580ccd9e3609a546c692788e657afbe2"
+  },
+  {
+    "member": "jtransform_thin.jar.MD5",
+    "bytes": 34,
+    "sha256": "09337f549512bcccf6f082efc9e802dac67b12dc20efb31252a61119f8749368"
+  },
+  {
+    "member": "jtransform_thin.jar!META-INF/MANIFEST.MF",
+    "bytes": 211,
+    "sha256": "8427d6a7e7e44d82eab8bab09c8f9d7b1377c42f1b1b7479110dbb1a5ca41ef3"
+  },
+  {
+    "member": "jtransform_thin.jar!gov/noaa/ngs/grid/resources/exportColumnHeaders.properties",
+    "bytes": 1083,
+    "sha256": "d0faf3d6f2bf0df14be4ab490ff548dcafda748429eaa75e436275c8680c7972"
+  },
+  {
+    "member": "jtransform_thin.jar!gov/noaa/ngs/grid/resources/meta.properties",
+    "bytes": 3488,
+    "sha256": "29189c46fcd1b0f7371b5891a249ac8e54fda2d8e99478eef2ecb4b739c87b89"
+  },
+  {
+    "member": "jtransform_thin.jar!gov/noaa/ngs/nadcon5/resources/nadconDef.properties",
+    "bytes": 1937,
+    "sha256": "f3453ad47c440845b4c9d8ad260a764bb043aa8e5f4db57e792cd845d0e45ef0"
+  },
+  {
+    "member": "jtransform_thin.jar!gov/noaa/ngs/nadcon5/test/nadcon_expected.txt",
+    "bytes": 7098,
+    "sha256": "0462f484dfe02d419bbeb053c2a4ec36d0151e7cdfddb008d1da449279abfa87"
+  },
+  {
+    "member": "jtransform_thin.jar!gov/noaa/ngs/nadcon5/test/nadcon_in.txt",
+    "bytes": 3249,
+    "sha256": "ae07572965eec5f1a8615f6506e57ab34a240c43c69ee0f77a9a927df0a13e84"
+  },
+  {
+    "member": "jtransform_thin.jar!gov/noaa/ngs/transform/resources/ellipsoids.properties",
+    "bytes": 1757,
+    "sha256": "ddc68577ee7fd74b3c600ca3b0965bd13bb1d99bad6fa2f9102f6cab22f88f73"
+  },
+  {
+    "member": "jtransform_thin.jar!gov/noaa/ngs/transform/resources/nad27ZoneConstants.properties",
+    "bytes": 9568,
+    "sha256": "62be8beed780dc886f417c16d31f05d822b19291cc8cf5100f4314f232ca76d9"
+  },
+  {
+    "member": "jtransform_thin.jar!gov/noaa/ngs/transform/resources/spc27ZoneConstants.properties",
+    "bytes": 12783,
+    "sha256": "ec0ab4818ef27676ccc22dd65317f843d1ef76b8c089d7bb879c50f69cbf9ae4"
+  },
+  {
+    "member": "jtransform_thin.jar!gov/noaa/ngs/transform/resources/spc27ZoneDefinitions.properties",
+    "bytes": 20919,
+    "sha256": "e387bb6293108cfdbe4f2dbb03d0b883804a8ec8b2decfd4661f3fea0045a58c"
+  },
+  {
+    "member": "jtransform_thin.jar!gov/noaa/ngs/transform/resources/spcs2022ZoneConstants.properties",
+    "bytes": 98007,
+    "sha256": "fc19cf93a27003464d1e72a13d275b1534ab0deb92fc5918021f683c3a108d7f"
+  },
+  {
+    "member": "jtransform_thin.jar!gov/noaa/ngs/transform/resources/spcs2022ZoneDefinitions.properties",
+    "bytes": 239393,
+    "sha256": "5b5e1beae646496f6fc690989e0752d85012d39909f11b213ae429185c882608"
+  },
+  {
+    "member": "jtransform_thin.jar!gov/noaa/ngs/transform/test/expected_trans.txt",
+    "bytes": 7030,
+    "sha256": "fbdd2283aa963b642b7d7140e678199282ca65ae928d2d67956bbacd58041d2b"
+  },
+  {
+    "member": "jtransform_thin.jar!gov/noaa/ngs/transform/test/testdata.properties",
+    "bytes": 502,
+    "sha256": "930399a2c16aae9f774020408727e75d6be5e700af07cb5f6413abee5238eeca"
+  },
+  {
+    "member": "jtransform_thin.jar!gov/noaa/ngs/vertcon/resources/vertconDef.properties",
+    "bytes": 844,
+    "sha256": "8723aab3c994db77e200c49c3daf1039fb4dd2284e2291a17d03c38c44f8240a"
+  },
+  {
+    "member": "jtransform_thin.jar!log4j2.properties",
+    "bytes": 1008,
+    "sha256": "1675f8a528139148bcba6fe372b2889a2f0172d4dd137abe0579f44b76c1a09b"
+  }
+]

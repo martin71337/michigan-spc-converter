@@ -1,0 +1,31 @@
+EPP2022 rigid rotation vs IFDM2022 measured velocity, at the 12 frozen Michigan frame anchors
+EPP2022 NA plate rotation: wx=+0.046 wy=-0.704 wz=-0.047 mas/yr
+IFDM values bilinear from IFDM2022_vel_svel.nc (0.1 deg global grid, mm/yr, crs epsg:9990)
+
+anchor           IFDM  (vE,vN) mm/yr EPP   (vE,vN) mm/yr IFDM-EPP     mm/yr
+frame_p01.html     -15.405   +1.379    -15.533   +1.050     +0.128   +0.330
+frame_p02.html     -15.726   +1.729    -15.660   +1.201     -0.066   +0.527
+frame_p03.html     -15.683   +0.023    -15.683   +0.023     +0.000   -0.000
+frame_p04.html     -15.859   +0.670    -15.859   +0.670     -0.000   -0.000
+frame_p05.html     -16.073   -0.053    -16.073   -0.053     +0.000   +0.000
+frame_p06.html     -16.195   +0.594    -16.195   +0.594     -0.000   +0.000
+frame_p07.html     -16.400   +0.946    -16.385   +1.049     -0.015   -0.103
+frame_p08.html     -16.719   +0.402    -16.571   +0.593     -0.148   -0.191
+frame_p09.html     -16.691   +0.087    -16.698   +0.289     +0.008   -0.203
+frame_p10.html     -16.770   -0.433    -16.770   -0.433     -0.000   +0.000
+frame_p11.html     -16.905   -0.851    -16.905   -0.851     -0.000   -0.000
+frame_p12.html     -17.167   -1.945    -17.118   -0.888     -0.049   -1.056
+
+residual over a 10-year span (mm):
+  frame_p01.html   dE=   +1.28  dN=   +3.30
+  frame_p02.html   dE=   -0.66  dN=   +5.27
+  frame_p03.html   dE=   +0.00  dN=   -0.00
+  frame_p04.html   dE=   -0.00  dN=   -0.00
+  frame_p05.html   dE=   +0.00  dN=   +0.00
+  frame_p06.html   dE=   -0.00  dN=   +0.00
+  frame_p07.html   dE=   -0.15  dN=   -1.03
+  frame_p08.html   dE=   -1.48  dN=   -1.91
+  frame_p09.html   dE=   +0.08  dN=   -2.03
+  frame_p10.html   dE=   -0.00  dN=   +0.00
+  frame_p11.html   dE=   -0.00  dN=   -0.00
+  frame_p12.html   dE=   -0.49  dN=  -10.56

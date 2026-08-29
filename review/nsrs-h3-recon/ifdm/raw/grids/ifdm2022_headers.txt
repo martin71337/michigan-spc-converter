@@ -1,0 +1,3373 @@
+IFDM2022 grid archive: ifdm2022_grids__IFDM2022.zip
+archive sha256: d85f8bc44c6e44fe0d83212be46a0ec29530b64de1e59000ee6c2663f70ba333
+
+==============================================================================
+IFDM2022/IFDM2022_Eq01.nc   92610 bytes   sha256=0d9e98a6b8f84e8218d670b9158601b55058a8e160df2fdcd8eb50aeda4f1b12
+-- file attributes --
+   title                        IFDM2022 Eq01 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq01 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[40, 41] dtype=float64
+      min            -0.72502023
+      max            0.932483613
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[40, 41] dtype=float64
+      min            -1.054812789
+      max            0.571810424
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[40, 41] dtype=float64
+      min            -0.275461733
+      max            0.131568938
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[40] dtype=float64
+      n              40
+      first          30.935425951986
+      last           34.452141412218
+      step           0.0901721912879978
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[41] dtype=float64
+      n              41
+      first          242.572211890151
+      last           246.837521106031
+      step           0.10663273039699561
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[40, 41] dtype=float64
+      min            0.000409285
+      max            0.327475756
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[40, 41] dtype=float64
+      min            0.000405562
+      max            0.541658878
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[40, 41] dtype=float64
+      min            0.00021048
+      max            0.068311177
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq02.nc   90690 bytes   sha256=d0eedeb2ca2786e13d6f6790ed2c9f1233d01ec0922df4dd43813f07513f8bcd
+-- file attributes --
+   title                        IFDM2022 Eq02 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq02 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[40, 40] dtype=float64
+      min            -0.173765659
+      max            0.106041282
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[40, 40] dtype=float64
+      min            -0.166997015
+      max            0.100807652
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[40, 40] dtype=float64
+      min            -0.064698897
+      max            0.06782423
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[40] dtype=float64
+      n              40
+      first          31.326669127469
+      last           34.843164333368
+      step           0.09016654374099886
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[40] dtype=float64
+      n              40
+      first          241.787126474094
+      last           245.964111310326
+      step           0.10710217528799149
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[40, 40] dtype=float64
+      min            4.5187e-05
+      max            0.138718992
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[40, 40] dtype=float64
+      min            4.5349e-05
+      max            0.125799313
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[40, 40] dtype=float64
+      min            2.2631e-05
+      max            0.063980862
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq03.nc   92610 bytes   sha256=9d201968fdbac80c6388aeaf65b17ba8c7d4767f18a21f94bd7f64f2c0f72e24
+-- file attributes --
+   title                        IFDM2022 Eq03 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq03 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[40, 41] dtype=float64
+      min            -0.115922228
+      max            0.036585066
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[40, 41] dtype=float64
+      min            -0.208995163
+      max            0.017738165
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[40, 41] dtype=float64
+      min            -0.196206629
+      max            0.060171962
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[40] dtype=float64
+      n              40
+      first          31.571740223225
+      last           35.088096784904
+      step           0.09016298876100137
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[41] dtype=float64
+      n              41
+      first          241.676151958075
+      last           245.972188083515
+      step           0.10740090313601058
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[40, 41] dtype=float64
+      min            2.7507e-05
+      max            0.097221904
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[40, 41] dtype=float64
+      min            2.4615e-05
+      max            0.088921428
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[40, 41] dtype=float64
+      min            1.553e-05
+      max            0.151951164
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq04.nc   90690 bytes   sha256=d9cebbd2915c81b8d1039ec2edbca2fba6d2a6a8f50f51006a5c1b683b3e03ce
+-- file attributes --
+   title                        IFDM2022 Eq04 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq04 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[40, 40] dtype=float64
+      min            -0.169646516
+      max            0.098633684
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[40, 40] dtype=float64
+      min            -0.216069594
+      max            0.091435485
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[40, 40] dtype=float64
+      min            -0.134175941
+      max            0.066432126
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[40] dtype=float64
+      n              40
+      first          31.382515304925
+      last           34.898978962398
+      step           0.09016573480699819
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[40] dtype=float64
+      n              40
+      first          241.820771426676
+      last           246.000398690475
+      step           0.1071699298410067
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[40, 40] dtype=float64
+      min            6.1757e-05
+      max            0.07707791
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[40, 40] dtype=float64
+      min            6.0587e-05
+      max            0.076386154
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[40, 40] dtype=float64
+      min            3.0108e-05
+      max            0.07097555
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq05.nc   92610 bytes   sha256=9aa35ba8a3ffaf77156f93c0e0646f7cee4a5f729878a0b92a6a9ee1a878a475
+-- file attributes --
+   title                        IFDM2022 Eq05 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq05 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[40, 41] dtype=float64
+      min            -0.290236861
+      max            0.107581019
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[40, 41] dtype=float64
+      min            -0.30290544
+      max            0.15562135
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[40, 41] dtype=float64
+      min            -0.170760751
+      max            0.174408346
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[40] dtype=float64
+      n              40
+      first          31.026862508174
+      last           34.543526614337
+      step           0.09017087451700334
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[41] dtype=float64
+      n              41
+      first          242.491837428544
+      last           246.761502584704
+      step           0.10674162890401817
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[40, 41] dtype=float64
+      min            7.407e-05
+      max            0.041926529
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[40, 41] dtype=float64
+      min            6.3676e-05
+      max            0.034370296
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[40, 41] dtype=float64
+      min            3.4298e-05
+      max            0.021562772
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq07.nc   92610 bytes   sha256=7b5793be2b93b28f898c1ae3ff2fbf0a0f65150f6a7b9a19fc807ea95ffb01de
+-- file attributes --
+   title                        IFDM2022 Eq07 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq07 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[40, 41] dtype=float64
+      min            -0.261576682
+      max            0.325863689
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[40, 41] dtype=float64
+      min            -0.533820271
+      max            0.319737315
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[40, 41] dtype=float64
+      min            -0.050749771
+      max            0.925091386
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[40] dtype=float64
+      n              40
+      first          32.580878869131
+      last           36.096659259318
+      step           0.09014821513299864
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[41] dtype=float64
+      n              41
+      first          239.496850644235
+      last           243.843646408435
+      step           0.10866989410499173
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[40, 41] dtype=float64
+      min            4.3327e-05
+      max            0.079607576
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[40, 41] dtype=float64
+      min            7.3797e-05
+      max            0.184727222
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[40, 41] dtype=float64
+      min            4.1949e-05
+      max            0.114785455
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq08.nc   92610 bytes   sha256=a6dba45a9f4d1319241bdc8d54e42a2bdb895c02a2b518c5984a49f29b75a68a
+-- file attributes --
+   title                        IFDM2022 Eq08 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq08 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[40, 41] dtype=float64
+      min            -0.262781888
+      max            0.381975144
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[40, 41] dtype=float64
+      min            -0.530576468
+      max            0.302374065
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[40, 41] dtype=float64
+      min            -0.429578632
+      max            1.006352305
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[40] dtype=float64
+      n              40
+      first          33.309361107862
+      last           36.824720588833
+      step           0.09013742258899526
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[41] dtype=float64
+      n              41
+      first          238.934762222158
+      last           243.319807005358
+      step           0.10962611957998547
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[40, 41] dtype=float64
+      min            0.000129305
+      max            0.083181061
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[40, 41] dtype=float64
+      min            0.000222495
+      max            0.088003524
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[40, 41] dtype=float64
+      min            7.8113e-05
+      max            0.231323197
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq09.nc   90690 bytes   sha256=849348d2a8d6f24285d047b3d792a58e09c8b805ecccddda1d1bdac1ab65dd69
+-- file attributes --
+   title                        IFDM2022 Eq09 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq09 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[40, 40] dtype=float64
+      min            -0.112514094
+      max            0.127693027
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[40, 40] dtype=float64
+      min            -0.100419007
+      max            0.099622875
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[40, 40] dtype=float64
+      min            -0.013777484
+      max            0.011303637
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[40] dtype=float64
+      n              40
+      first          34.139096875234
+      last           37.653972247333
+      step           0.09012500954099778
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[40] dtype=float64
+      n              40
+      first          237.404983924559
+      last           241.724546418104
+      step           0.11075801265499763
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[40, 40] dtype=float64
+      min            3.801e-05
+      max            0.020218519
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[40, 40] dtype=float64
+      min            3.7762e-05
+      max            0.025295114
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[40, 40] dtype=float64
+      min            1.8913e-05
+      max            0.01000111
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq10.nc   92610 bytes   sha256=e41ff31490da722e60840700f9cb17a1ac9128e348c8b5fad3f1ecc18bb68555
+-- file attributes --
+   title                        IFDM2022 Eq10 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq10 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[41, 40] dtype=float64
+      min            -0.076293729
+      max            0.064327575
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[41, 40] dtype=float64
+      min            -0.096368134
+      max            0.079396412
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[41, 40] dtype=float64
+      min            -0.010458084
+      max            0.014278564
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[41] dtype=float64
+      n              41
+      first          34.091380821134
+      last           37.696409888734
+      step           0.09012572668999752
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[40] dtype=float64
+      n              40
+      first          237.452020474763
+      last           241.768995026822
+      step           0.11069165518100021
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[41, 40] dtype=float64
+      min            3.842e-05
+      max            0.013120489
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[41, 40] dtype=float64
+      min            3.9054e-05
+      max            0.01632406
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[41, 40] dtype=float64
+      min            1.8941e-05
+      max            0.009237268
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq11.nc   90690 bytes   sha256=a13e98a4c3f96f2dde67f076660f296222836d0cbd3937872e6a2bde18927907
+-- file attributes --
+   title                        IFDM2022 Eq11 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq11 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[40, 40] dtype=float64
+      min            -0.038111571
+      max            0.069679923
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[40, 40] dtype=float64
+      min            -0.044182673
+      max            0.055444416
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[40, 40] dtype=float64
+      min            -0.028209615
+      max            0.039441165
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[40] dtype=float64
+      n              40
+      first          35.450957065461
+      last           38.965057785903
+      step           0.09010514667800607
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[40] dtype=float64
+      n              40
+      first          236.189038525309
+      last           240.582196396762
+      step           0.11264507362699305
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[40, 40] dtype=float64
+      min            4.5106e-05
+      max            0.008407013
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[40, 40] dtype=float64
+      min            4.3993e-05
+      max            0.012251663
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[40, 40] dtype=float64
+      min            2.235e-05
+      max            0.012806823
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq12.nc   92610 bytes   sha256=df094e31aa8a7bf81b52480d83d94f255cbb93c2db454b12a8a08e2fc10fb4cd
+-- file attributes --
+   title                        IFDM2022 Eq12 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq12 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[41, 40] dtype=float64
+      min            -0.00905265
+      max            0.022984963
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[41, 40] dtype=float64
+      min            -0.010847743
+      max            0.023512851
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[41, 40] dtype=float64
+      min            -0.016559215
+      max            0.020459348
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[41] dtype=float64
+      n              41
+      first          35.286456959023
+      last           38.890763045303
+      step           0.0901076521570019
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[40] dtype=float64
+      n              40
+      first          236.301406480122
+      last           240.68507184576
+      step           0.11240167604199769
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[41, 40] dtype=float64
+      min            8.313e-06
+      max            0.003928994
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[41, 40] dtype=float64
+      min            8.78e-06
+      max            0.00685203
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[41, 40] dtype=float64
+      min            4.525e-06
+      max            0.00599378
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq13.nc   90690 bytes   sha256=68af7db5641ebd96ffbeacc04e21d5592a9682266f3b800d8f701b27e8753834
+-- file attributes --
+   title                        IFDM2022 Eq13 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq13 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[40, 40] dtype=float64
+      min            -0.373974621
+      max            0.050508905
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[40, 40] dtype=float64
+      min            -0.22705622
+      max            0.133475035
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[40, 40] dtype=float64
+      min            -0.15318504
+      max            0.352951407
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[40] dtype=float64
+      n              40
+      first          35.328139648688
+      last           38.842313338052
+      step           0.09010701767599727
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[40] dtype=float64
+      n              40
+      first          235.919346760171
+      last           240.305410123333
+      step           0.11246316315799731
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[40, 40] dtype=float64
+      min            0.000198332
+      max            0.069199957
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[40, 40] dtype=float64
+      min            0.000245225
+      max            0.069704801
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[40, 40] dtype=float64
+      min            0.000113925
+      max            0.095711522
+      finite_count   1600
+      total_count    1600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq14.nc   92610 bytes   sha256=e4325d75f8d5031d897d78062389f6842c255453d655920fc91ad15bb2b28b79
+-- file attributes --
+   title                        IFDM2022 Eq14 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq14 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[40, 41] dtype=float64
+      min            -0.419283569
+      max            0.006094578
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[40, 41] dtype=float64
+      min            -0.259229928
+      max            0.12824297
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[40, 41] dtype=float64
+      min            -0.309009373
+      max            0.668077171
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[40] dtype=float64
+      n              40
+      first          38.620546188449
+      last           42.132737617754
+      step           0.09005619049500524
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[41] dtype=float64
+      n              41
+      first          233.294533940145
+      last           238.004346097065
+      step           0.11774530392301585
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[40, 41] dtype=float64
+      min            5.0846e-05
+      max            0.158769831
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[40, 41] dtype=float64
+      min            1.5168e-05
+      max            0.072769448
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[40, 41] dtype=float64
+      min            3.1341e-05
+      max            0.153788999
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq15.nc   186690 bytes   sha256=ae47cc299764f34dbb379e611bcb6a26f5ccde48631180dca5b88a405e23bf3e
+-- file attributes --
+   title                        IFDM2022 Eq15 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq15 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[60, 60] dtype=float64
+      min            -1.276183367
+      max            1.411943078
+      finite_count   3600
+      total_count    3600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[60, 60] dtype=float64
+      min            -1.789881587
+      max            2.445159912
+      finite_count   3600
+      total_count    3600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[60, 60] dtype=float64
+      min            -0.242630765
+      max            0.382037073
+      finite_count   3600
+      total_count    3600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[60] dtype=float64
+      n              60
+      first          31.775541381488
+      last           37.094202397408
+      step           0.09014679687999916
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[60] dtype=float64
+      n              60
+      first          240.284941711533
+      last           246.703794481783
+      step           0.10879411474999756
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[60, 60] dtype=float64
+      min            0.000318016
+      max            0.295621902
+      finite_count   3600
+      total_count    3600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[60, 60] dtype=float64
+      min            0.000313075
+      max            0.395067185
+      finite_count   3600
+      total_count    3600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[60, 60] dtype=float64
+      min            0.000190863
+      max            0.150344804
+      finite_count   3600
+      total_count    3600
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq16.nc   92610 bytes   sha256=5042d6d853d92cb2759b63383824ad52406e7c37f67a17b1d8df452415ff907d
+-- file attributes --
+   title                        IFDM2022 Eq16 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq16 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[40, 41] dtype=float64
+      min            -0.298756599
+      max            0.410455227
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[40, 41] dtype=float64
+      min            -0.276889086
+      max            0.282820255
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[40, 41] dtype=float64
+      min            -0.041443843
+      max            0.021291101
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[40] dtype=float64
+      n              40
+      first          31.231864192446
+      last           34.748412893241
+      step           0.0901679154050008
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[41] dtype=float64
+      n              41
+      first          242.165782102066
+      last           246.445285429546
+      step           0.1069875831869922
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[40, 41] dtype=float64
+      min            8.7879e-05
+      max            0.055472784
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[40, 41] dtype=float64
+      min            8.3922e-05
+      max            0.047768004
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[40, 41] dtype=float64
+      min            4.2074e-05
+      max            0.011170989
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq17.nc   58530 bytes   sha256=8d357c35ebc1c737f6735dd81497fc1d7df4719b19b52c119838389b787b6707
+-- file attributes --
+   title                        IFDM2022 Eq17 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq17 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[30, 31] dtype=float64
+      min            -0.015922679
+      max            0.130669385
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[30, 31] dtype=float64
+      min            -0.021004291
+      max            0.091320716
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[30, 31] dtype=float64
+      min            -0.085062645
+      max            0.282075554
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[30] dtype=float64
+      n              30
+      first          34.919309322518
+      last           37.532790629316
+      step           0.090120045062001
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[31] dtype=float64
+      n              31
+      first          238.089749557329
+      last           241.426370398119
+      step           0.111220694693003
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[30, 31] dtype=float64
+      min            9.954e-06
+      max            0.028430708
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[30, 31] dtype=float64
+      min            4.992e-06
+      max            0.02094298
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[30, 31] dtype=float64
+      min            1.8002e-05
+      max            0.05012865
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq18.nc   34050 bytes   sha256=6e49f11be77ee0d1f25e3261aabffa9608cb97064c969f82188d35bff7f43779
+-- file attributes --
+   title                        IFDM2022 Eq18 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq18 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[20, 21] dtype=float64
+      min            -0.000741756
+      max            0.031297028
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[20, 21] dtype=float64
+      min            -0.002396567
+      max            0.01812974
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[20, 21] dtype=float64
+      min            -0.024883471
+      max            0.051244251
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[20] dtype=float64
+      n              20
+      first          35.192662824879
+      last           36.9049944547
+      step           0.09012271735900157
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[21] dtype=float64
+      n              21
+      first          238.90112082717
+      last           241.12053915691
+      step           0.11097091648701962
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[20, 21] dtype=float64
+      min            3.399e-06
+      max            0.004007277
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[20, 21] dtype=float64
+      min            1.701e-06
+      max            0.004521568
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[20, 21] dtype=float64
+      min            5.336e-06
+      max            0.0090051
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq19.nc   34050 bytes   sha256=0ec0f21352115f0a74e44b7ea07888944c4c7c199398039be755dea75c8469ea
+-- file attributes --
+   title                        IFDM2022 Eq19 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq19 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[20, 21] dtype=float64
+      min            -0.008300307
+      max            0.007651066
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[20, 21] dtype=float64
+      min            -0.010330828
+      max            0.002975019
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[20, 21] dtype=float64
+      min            -0.003913872
+      max            0.021766284
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[20] dtype=float64
+      n              20
+      first          33.178473133262
+      last           34.891374185103
+      step           0.0901526869389997
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[21] dtype=float64
+      n              21
+      first          240.917189888334
+      last           243.082810109294
+      step           0.10828101104797838
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[20, 21] dtype=float64
+      min            9.459e-06
+      max            0.002718351
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[20, 21] dtype=float64
+      min            1.4011e-05
+      max            0.003978349
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[20, 21] dtype=float64
+      min            5.163e-06
+      max            0.003938475
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq20.nc   34050 bytes   sha256=87a4c65b1a412d60d738d3069461aa5de211b514c9ba125c87dc87980c071050
+-- file attributes --
+   title                        IFDM2022 Eq20 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq20 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[21, 20] dtype=float64
+      min            -0.102174155
+      max            0.048393771
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[21, 20] dtype=float64
+      min            -0.047210772
+      max            0.082904793
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[21, 20] dtype=float64
+      min            -0.019264042
+      max            0.055391565
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[21] dtype=float64
+      n              21
+      first          36.729447760264
+      last           38.531435402544
+      step           0.0900993821139977
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[20] dtype=float64
+      n              20
+      first          240.492324274553
+      last           242.643336714066
+      step           0.11321118102699756
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[21, 20] dtype=float64
+      min            0.000111442
+      max            0.028365526
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[21, 20] dtype=float64
+      min            0.000106219
+      max            0.035763394
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[21, 20] dtype=float64
+      min            4.5446e-05
+      max            0.012900098
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq21.nc   58530 bytes   sha256=45c8cd11006376177c5dee4bf9d32bea9530565eecec23aa8b1285d14a3d1faa
+-- file attributes --
+   title                        IFDM2022 Eq21 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq21 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[31, 30] dtype=float64
+      min            -0.109262332
+      max            0.195666984
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[31, 30] dtype=float64
+      min            -0.064135984
+      max            0.089445896
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[31, 30] dtype=float64
+      min            -0.018240124
+      max            0.393915802
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[31] dtype=float64
+      n              31
+      first          33.066954591249
+      last           35.771385411309
+      step           0.09014769400199896
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[30] dtype=float64
+      n              30
+      first          239.897047657729
+      last           243.049796827622
+      step           0.1087154886170083
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[31, 30] dtype=float64
+      min            1.9424e-05
+      max            0.0327654
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[31, 30] dtype=float64
+      min            6.6063e-05
+      max            0.037594687
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[31, 30] dtype=float64
+      min            2.8844e-05
+      max            0.043612093
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq22.nc   17986 bytes   sha256=d705975b3cd97c33551bb3e9e94f33ff11dc155f6a98c6eda72d75e8507a1368
+-- file attributes --
+   title                        IFDM2022 Eq22 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq22 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[11, 10] dtype=float64
+      min            -0.033966038
+      max            0.026185699
+      finite_count   110
+      total_count    110
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[11, 10] dtype=float64
+      min            -0.033391271
+      max            0.029805193
+      finite_count   110
+      total_count    110
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[11, 10] dtype=float64
+      min            -0.007377292
+      max            0.00802075
+      finite_count   110
+      total_count    110
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[11] dtype=float64
+      n              11
+      first          33.929258640389
+      last           34.830741358499
+      step           0.09014827181099605
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[10] dtype=float64
+      n              10
+      first          243.067505294318
+      last           244.045489742825
+      step           0.10866493872299543
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[11, 10] dtype=float64
+      min            3.6343e-05
+      max            0.005559762
+      finite_count   110
+      total_count    110
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[11, 10] dtype=float64
+      min            5.4097e-05
+      max            0.003917589
+      finite_count   110
+      total_count    110
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[11, 10] dtype=float64
+      min            1.9446e-05
+      max            0.001624145
+      finite_count   110
+      total_count    110
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq23.nc   17986 bytes   sha256=d7a31bde26e9a4dd1a23dea4db48eaf5a178e30a66d1febbbfc043cb141c2bcb
+-- file attributes --
+   title                        IFDM2022 Eq23 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq23 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[10, 10] dtype=float64
+      min            -0.00224464
+      max            0.014137733
+      finite_count   100
+      total_count    100
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[10, 10] dtype=float64
+      min            -0.009039632
+      max            0.008232566
+      finite_count   100
+      total_count    100
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[10, 10] dtype=float64
+      min            -0.003872197
+      max            0.026950447
+      finite_count   100
+      total_count    100
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[10] dtype=float64
+      n              10
+      first          33.589233631527
+      last           34.400613099633
+      step           0.0901532742339981
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[10] dtype=float64
+      n              10
+      first          242.887178732302
+      last           243.861250980565
+      step           0.1082302498070078
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[10, 10] dtype=float64
+      min            5.5505e-05
+      max            0.001980324
+      finite_count   100
+      total_count    100
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[10, 10] dtype=float64
+      min            8.5031e-05
+      max            0.004228143
+      finite_count   100
+      total_count    100
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[10, 10] dtype=float64
+      min            1.8081e-05
+      max            0.00559565
+      finite_count   100
+      total_count    100
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq24.nc   58530 bytes   sha256=85eb8f2e663d744bf3ba4759fc7d196e5cab540c9b0c97da05344cc3d805e2d7
+-- file attributes --
+   title                        IFDM2022 Eq24 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq24 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[30, 31] dtype=float64
+      min            -0.026205175
+      max            0.026794076
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[30, 31] dtype=float64
+      min            -0.034664899
+      max            0.03134178
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[30, 31] dtype=float64
+      min            -0.015513102
+      max            0.017205514
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[30] dtype=float64
+      n              30
+      first          32.671913015025
+      last           35.286364686009
+      step           0.09015350589600502
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[31] dtype=float64
+      n              31
+      first          242.103884032523
+      last           245.350191428723
+      step           0.10821024653998279
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[30, 31] dtype=float64
+      min            2.3146e-05
+      max            0.005349474
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[30, 31] dtype=float64
+      min            2.0706e-05
+      max            0.00564953
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[30, 31] dtype=float64
+      min            9.639e-06
+      max            0.00444951
+      finite_count   930
+      total_count    930
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq25.nc   192498 bytes   sha256=f450281924c40eec7ea54222fe0526d06d28cd20f2df5de91cc72c8276bcef87
+-- file attributes --
+   title                        IFDM2022 Eq25 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq25 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[61, 61] dtype=float64
+      min            -0.538150489
+      max            9.792593956
+      finite_count   3721
+      total_count    3721
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[61, 61] dtype=float64
+      min            -11.704914093
+      max            0.450690717
+      finite_count   3721
+      total_count    3721
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[61, 61] dtype=float64
+      min            -2.44803977
+      max            6.869550228
+      finite_count   3721
+      total_count    3721
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[61] dtype=float64
+      n              61
+      first          45.647901947442
+      last           72.578796999522
+      step           0.4488482508679965
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[61] dtype=float64
+      n              61
+      first          185.991462114358
+      last           238.283882424118
+      step           0.8715403384960041
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[61, 61] dtype=float64
+      min            0.000201929
+      max            2.20527935
+      finite_count   3721
+      total_count    3721
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[61, 61] dtype=float64
+      min            0.000232185
+      max            2.274579287
+      finite_count   3721
+      total_count    3721
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[61, 61] dtype=float64
+      min            0.000965092
+      max            1.191191435
+      finite_count   3721
+      total_count    3721
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq26.nc   324930 bytes   sha256=6237a45b08c2d87887d3695e9df35395aea8f0fc56e1ff0599d33fa5d83c6420
+-- file attributes --
+   title                        IFDM2022 Eq26 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq26 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[80, 81] dtype=float64
+      min            -1.06053257
+      max            0.757064342
+      finite_count   6480
+      total_count    6480
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[80, 81] dtype=float64
+      min            -1.424930573
+      max            1.557359934
+      finite_count   6480
+      total_count    6480
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[80, 81] dtype=float64
+      min            -0.213898554
+      max            0.210340932
+      finite_count   6480
+      total_count    6480
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[80] dtype=float64
+      n              80
+      first          31.013227434014
+      last           38.134661992527
+      step           0.090144741247002
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[81] dtype=float64
+      n              81
+      first          239.411671098928
+      last           248.129665172928
+      step           0.10897492592499702
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[80, 81] dtype=float64
+      min            0.000138091
+      max            0.237502187
+      finite_count   6480
+      total_count    6480
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[80, 81] dtype=float64
+      min            0.000135768
+      max            0.300321668
+      finite_count   6480
+      total_count    6480
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[80, 81] dtype=float64
+      min            7.0865e-05
+      max            0.085442424
+      finite_count   6480
+      total_count    6480
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq27.nc   34050 bytes   sha256=4c2a112c298e0d81f8189b71dc6331b340178512422a77ebfd5ebf6065a36864
+-- file attributes --
+   title                        IFDM2022 Eq27 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq27 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[21, 20] dtype=float64
+      min            -0.238978982
+      max            0.181366295
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[21, 20] dtype=float64
+      min            -0.090916976
+      max            0.292735249
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[21, 20] dtype=float64
+      min            -0.125640169
+      max            0.483201981
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[21] dtype=float64
+      n              21
+      first          34.770450479533
+      last           36.573031706513
+      step           0.09012906134900334
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[20] dtype=float64
+      n              20
+      first          237.993414477278
+      last           240.090723225005
+      step           0.11038467093300142
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[21, 20] dtype=float64
+      min            5.548e-05
+      max            0.039893843
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[21, 20] dtype=float64
+      min            0.000195046
+      max            0.054738596
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[21, 20] dtype=float64
+      min            8.6141e-05
+      max            0.08095888
+      finite_count   420
+      total_count    420
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq28.nc   92610 bytes   sha256=bac984e8f28460593f0e5ba90f1ac4d2f470b80fa09ac3c1389b29d4b0e1c9fd
+-- file attributes --
+   title                        IFDM2022 Eq28 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq28 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[40, 41] dtype=float64
+      min            -0.054321952
+      max            0.072617844
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[40, 41] dtype=float64
+      min            -0.057170492
+      max            0.059224755
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[40, 41] dtype=float64
+      min            -0.010935659
+      max            0.008143735
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[40] dtype=float64
+      n              40
+      first          34.137327343197
+      last           37.652203752813
+      step           0.09012503614400202
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[41] dtype=float64
+      n              41
+      first          237.398911618248
+      last           241.829133579008
+      step           0.11075554901898954
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[40, 41] dtype=float64
+      min            2.6903e-05
+      max            0.012653967
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[40, 41] dtype=float64
+      min            2.7026e-05
+      max            0.012138159
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[40, 41] dtype=float64
+      min            1.4663e-05
+      max            0.007107142
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq29.nc   328818 bytes   sha256=07701d72bb5db78ecda72d657c5995bd37c363e4ad8b4b98581349b47517e611
+-- file attributes --
+   title                        IFDM2022 Eq29 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq29 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[81, 81] dtype=float64
+      min            -3.346186399
+      max            1.917297721
+      finite_count   6561
+      total_count    6561
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[81, 81] dtype=float64
+      min            -2.595170259
+      max            0.919001162
+      finite_count   6561
+      total_count    6561
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[81, 81] dtype=float64
+      min            -0.868724227
+      max            0.931239426
+      finite_count   6561
+      total_count    6561
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[81] dtype=float64
+      n              81
+      first          56.060573118575
+      last           70.414901825615
+      step           0.17942910883800067
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[81] dtype=float64
+      n              81
+      first          199.068881522851
+      last           230.848246456851
+      step           0.3972420616750014
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[81, 81] dtype=float64
+      min            0.000250779
+      max            1.454321265
+      finite_count   6561
+      total_count    6561
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[81, 81] dtype=float64
+      min            0.000251248
+      max            1.346273661
+      finite_count   6561
+      total_count    6561
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[81, 81] dtype=float64
+      min            0.000142311
+      max            0.590888023
+      finite_count   6561
+      total_count    6561
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq30.nc   493890 bytes   sha256=2f4fd50f95e8583355451353a1288a23acd6ac4f67f16d5bb5a9fd53104873c0
+-- file attributes --
+   title                        IFDM2022 Eq30 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq30 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[100, 100] dtype=float64
+      min            -0.796034634
+      max            0.853548467
+      finite_count   10000
+      total_count    10000
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[100, 100] dtype=float64
+      min            -1.146440148
+      max            0.517641664
+      finite_count   10000
+      total_count    10000
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[100, 100] dtype=float64
+      min            -0.618860722
+      max            0.248222008
+      finite_count   10000
+      total_count    10000
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[100] dtype=float64
+      n              100
+      first          27.862154310564
+      last           36.789723895608
+      step           0.09017747055600012
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[100] dtype=float64
+      n              100
+      first          239.351053171828
+      last           249.864801506203
+      step           0.10619947812500641
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[100, 100] dtype=float64
+      min            7.101e-05
+      max            0.174316674
+      finite_count   10000
+      total_count    10000
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[100, 100] dtype=float64
+      min            7.3744e-05
+      max            0.143417597
+      finite_count   10000
+      total_count    10000
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[100, 100] dtype=float64
+      min            3.8745e-05
+      max            0.208473876
+      finite_count   10000
+      total_count    10000
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq31.nc   189570 bytes   sha256=4ee5f0829a4ac0cc2a687882d354f4d003557fda4875fa76b6f7afa35bf7d9b0
+-- file attributes --
+   title                        IFDM2022 Eq31 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq31 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[61, 60] dtype=float64
+      min            -0.882837415
+      max            0.617708862
+      finite_count   3660
+      total_count    3660
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[61, 60] dtype=float64
+      min            -0.716972888
+      max            1.858242154
+      finite_count   3660
+      total_count    3660
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[61, 60] dtype=float64
+      min            -0.196481943
+      max            0.074196257
+      finite_count   3660
+      total_count    3660
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[61] dtype=float64
+      n              61
+      first          33.074066072427
+      last           38.481714216567
+      step           0.09012746906899594
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[60] dtype=float64
+      n              60
+      first          239.174637563145
+      last           245.695962591501
+      step           0.11053093268398584
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[61, 60] dtype=float64
+      min            0.000196844
+      max            0.128139973
+      finite_count   3660
+      total_count    3660
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[61, 60] dtype=float64
+      min            0.000196491
+      max            0.290246308
+      finite_count   3660
+      total_count    3660
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[61, 60] dtype=float64
+      min            0.000103059
+      max            0.094327956
+      finite_count   3660
+      total_count    3660
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq32.nc   35058 bytes   sha256=7e86babc7a9e56f6a6186e7bd9594dcbc65f7f8113545a86376285b5344b0d26
+-- file attributes --
+   title                        IFDM2022 Eq32 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq32 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[21, 21] dtype=float64
+      min            -0.006678622
+      max            0.025573364
+      finite_count   441
+      total_count    441
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[21, 21] dtype=float64
+      min            -0.022648631
+      max            0.019949477
+      finite_count   441
+      total_count    441
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[21, 21] dtype=float64
+      min            -0.070305638
+      max            0.013500107
+      finite_count   441
+      total_count    441
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[21] dtype=float64
+      n              21
+      first          60.552621849035
+      last           62.347378182515
+      step           0.0897378166740026
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[21] dtype=float64
+      n              21
+      first          208.698243783021
+      last           212.441756203341
+      step           0.18717562101599583
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[21, 21] dtype=float64
+      min            9.5186e-05
+      max            0.004114103
+      finite_count   441
+      total_count    441
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[21, 21] dtype=float64
+      min            0.000150807
+      max            0.004998535
+      finite_count   441
+      total_count    441
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[21, 21] dtype=float64
+      min            0.000256098
+      max            0.014902749
+      finite_count   441
+      total_count    441
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_Eq33.nc   92610 bytes   sha256=5083463e5734cc862675db35e3940d63816ccc1daddcb6edcc0446f7cbc6dc70
+-- file attributes --
+   title                        IFDM2022 Eq33 displacement (de, se, dn, sn, du, su)
+   units                        lat, lon = decimal degrees | de, se, dn, sn, du, su = meters
+   history                      Separate NetCDF grids (de, se, dn, sn, du, su) for Eq33 consolidated into 1 NetCDF grid using xarray (v2024.7.0).
+   description                  Consolidated IFDM2022 earthquake data for IFDM2022.
+   timestamp                    Consolidated NetCDF created on 2025-02-19 01:21 PM.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   de  shape=[40, 41] dtype=float64
+      min            -1.941337943
+      max            2.101995945
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "de" displacement East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   dn  shape=[40, 41] dtype=float64
+      min            -1.668514967
+      max            1.493801475
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "dn" displacement North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   du  shape=[40, 41] dtype=float64
+      min            -0.273317486
+      max            0.245445549
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "du" displacement Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   lat  shape=[40] dtype=float64
+      n              40
+      first          52.664273344919
+      last           59.669490796931
+      step           0.17962096030800012
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[41] dtype=float64
+      n              41
+      first          204.348459455249
+      last           217.239341466209
+      step           0.32227205027399464
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[40, 41] dtype=float64
+      min            0.000481548
+      max            1.000986576
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "se" displacement standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[40, 41] dtype=float64
+      min            0.000492189
+      max            0.328231961
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "sn" displacement standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[40, 41] dtype=float64
+      min            0.000253551
+      max            0.145705923
+      finite_count   1640
+      total_count    1640
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        meters
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-02-19 01:17 PM.
+      attr description  IFDM2022 "su" displacement standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+
+==============================================================================
+IFDM2022/IFDM2022_vel_svel.nc   311356183 bytes   sha256=f2310609ad9522817a014ae1ac7178187516326b71493a3749d192b7912b43ce
+-- file attributes --
+   title                        Global IFDM2022 velocity (ve, se, vn, sn, vu, su)
+   units                        lat, lon = decimal degrees | ve, se, vn, sn, vu, su = millimeters/year
+   history                      Separate NetCDF grids (ve, se, vn, sn, vu, su) created from ASCII data and consolidated into this 1 global NetCDF grid using xarray (v2024.7.0).
+   description                  Global IFDM2022 velocity data (ve, se, vn, sn, vu, su).
+   timestamp                    NetCDF created on 2025-12-15 12:03 PM.
+   version                      1.0.0
+   creator_name                 Melissa Zagorski
+   creator_email                melissa.zagorski@noaa.gov
+   institution                  National Geodetic Survey (NGS)
+   data_source                  Original IFDM ASCII data provided by the NGS IFDM team.
+   crs                          epsg:9990
+   _NCProperties                version=2,netcdf=4.9.2,hdf5=1.14.3
+-- datasets --
+   lat  shape=[1801] dtype=float64
+      n              1801
+      first          -90.0
+      last           90.0
+      step           0.09999999999999432
+      attr _Netcdf4Coordinates [1]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lat
+      attr _Netcdf4Dimid 1
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0], ['<HDF5 object reference>', 0]]
+   lon  shape=[3601] dtype=float64
+      n              3601
+      first          0.0
+      last           360.0
+      step           0.1
+      attr _Netcdf4Coordinates [0]
+      attr CLASS        DIMENSION_SCALE
+      attr NAME         lon
+      attr _Netcdf4Dimid 0
+      attr _FillValue   [nan]
+      attr units        decimal degrees
+      attr REFERENCE_LIST [['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1], ['<HDF5 object reference>', 1]]
+   se  shape=[1801, 3601] dtype=float64
+      min            0.036873
+      max            93.7031
+      finite_count   6485401
+      total_count    6485401
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        millimeters/year
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-12-10 05:24 AM.
+      attr description  IFDM2022 "se" velocity standard deviation East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   sn  shape=[1801, 3601] dtype=float64
+      min            0.062854
+      max            84.9664
+      finite_count   6485401
+      total_count    6485401
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        millimeters/year
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-12-10 05:24 AM.
+      attr description  IFDM2022 "sn" velocity standard deviation North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   su  shape=[1801, 3601] dtype=float64
+      min            0.008753
+      max            5.0
+      finite_count   6485401
+      total_count    6485401
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        millimeters/year
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-12-10 05:24 AM.
+      attr description  IFDM2022 "su" velocity standard deviation Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   ve  shape=[1801, 3601] dtype=float64
+      min            -305.832696
+      max            358.031453
+      finite_count   6485401
+      total_count    6485401
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        millimeters/year
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-12-10 05:24 AM.
+      attr description  IFDM2022 "ve" velocity East data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   vn  shape=[1801, 3601] dtype=float64
+      min            -467.127766
+      max            177.900744
+      finite_count   6485401
+      total_count    6485401
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        millimeters/year
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-12-10 05:24 AM.
+      attr description  IFDM2022 "vn" velocity North data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]
+   vu  shape=[1801, 3601] dtype=float64
+      min            -11.86533
+      max            39.797788
+      finite_count   6485401
+      total_count    6485401
+      attr _Netcdf4Coordinates [1, 0]
+      attr _FillValue   [nan]
+      attr units        millimeters/year
+      attr history      Converted from ASCII to NetCDF using pandas (v2.2.2) and xarray (v2024.7.0) on 2025-12-10 05:24 AM.
+      attr description  IFDM2022 "vu" velocity Up data.
+      attr DIMENSION_LIST [['<HDF5 object reference>'], ['<HDF5 object reference>']]

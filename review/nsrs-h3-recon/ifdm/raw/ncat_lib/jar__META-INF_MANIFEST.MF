@@ -1,0 +1,6 @@
+Manifest-Version: 1.0
+Ant-Version: Apache Ant 1.9.6
+Created-By: 11.0.26+7-LTS-187 (Oracle Corporation)
+Main-Class: gov.noaa.ngs.transform.test.CLDriver
+Class-Path: log4j-api-2.18.0.jar log4j-core-2.18.0 
+

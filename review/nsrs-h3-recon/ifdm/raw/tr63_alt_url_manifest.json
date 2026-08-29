@@ -1,0 +1,52 @@
+[
+  {
+    "bytes": null,
+    "captured": "2026-08-29T05:29:51.837262+00:00",
+    "error": null,
+    "final_url": "https://www.ngs.noaa.gov/PUBS_LIB/NOAA_TR_NOS_NGS_63.pdf",
+    "headers": {
+      "Accept-Ranges": "bytes",
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Length": "17338722",
+      "Content-Type": "application/pdf",
+      "Date": "Sat, 29 Aug 2026 05:29:52 GMT",
+      "ETag": "\"1089162-550f992f28780\"",
+      "Last-Modified": "Fri, 02 Jun 2017 12:48:46 GMT",
+      "Set-Cookie": "SERVERID=; Expires=Thu, 01-Jan-1970 00:00:01 GMT; path=/",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; ",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "HEAD",
+    "reason": "OK",
+    "saved": null,
+    "sha256": null,
+    "status": 200,
+    "url": "https://www.ngs.noaa.gov/PUBS_LIB/NOAA_TR_NOS_NGS_63.pdf"
+  },
+  {
+    "bytes": null,
+    "captured": "2026-08-29T05:29:52.361637+00:00",
+    "error": null,
+    "final_url": "https://geodesy.noaa.gov/PUBS_LIB/NOAA_TR_NOS_NGS_63.pdf",
+    "headers": {
+      "Accept-Ranges": "bytes",
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Length": "17338722",
+      "Content-Type": "application/pdf",
+      "Date": "Sat, 29 Aug 2026 05:29:52 GMT",
+      "ETag": "\"1089162-550f992f28780\"",
+      "Last-Modified": "Fri, 02 Jun 2017 12:48:46 GMT",
+      "Set-Cookie": "SERVERID=; Expires=Thu, 01-Jan-1970 00:00:01 GMT; path=/",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; ",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "HEAD",
+    "reason": "OK",
+    "saved": null,
+    "sha256": null,
+    "status": 200,
+    "url": "https://geodesy.noaa.gov/PUBS_LIB/NOAA_TR_NOS_NGS_63.pdf"
+  }
+]

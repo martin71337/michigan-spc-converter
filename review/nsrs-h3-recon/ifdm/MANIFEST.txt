@@ -1,0 +1,492 @@
+IFDM2022 recon capture manifest -- 2026-08-29
+fetches=151 (200=120, 404=31, other/error=0); files on disk=121, 260734326 bytes
+
+-- every fetch, in capture order per family --
+GET    200  37546     https://beta.ngs.noaa.gov/NAPGD2022/developer-guide.html
+        sha256=6ab8aceac75b109c89d2cb27c4f4fbac05793979878c3005c76c2b485d3358d4
+        saved=raw/sweep2/napgd_devguide.html
+GET    404  15843     https://beta.ngs.noaa.gov/NATRF2022/developer-guide.html
+        sha256=227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049
+        error=HTTPError 404 Not Found
+        saved=raw/sweep2/natrf_devguide.html
+GET    404  15843     https://beta.ngs.noaa.gov/SPCS/developer-guide.html
+        sha256=227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049
+        error=HTTPError 404 Not Found
+        saved=raw/sweep2/spcs_devguide.html
+GET    404  15843     https://beta.ngs.noaa.gov/IFDM2022/developer-guide.html
+        sha256=227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049
+        error=HTTPError 404 Not Found
+        saved=raw/sweep2/ifdm_devguide.html
+GET    200  181       https://beta.ngs.noaa.gov/NATRF2022/epp2022-beta-values.csv
+        sha256=63d80d642caf2bce1512587e444e3837b2451e7052222f68dfe8a7736c143d52
+        saved=raw/sweep2/natrf_epp_csv.csv
+GET    200  405949    https://beta.ngs.noaa.gov/NCAT/
+        sha256=a4da3333260de44ca95b8a55eab321402b2415fbac41633cb4d1cd68d15d53d3
+        saved=raw/ncat/ncat_session_page.html
+POST   200  2299011   https://beta.ngs.noaa.gov/NCAT/index.xhtml;jsessionid=B727D5B11D1CB3EB1973051B42FC2A69
+        button=tv1:j_idt564:j_idt574  attachment;filename="ncat.zip"; filename*=UTF-8''ncat.zip
+        sha256=ecca242d34392140f63bc3bf290fb0107322005b80325b5a0349839387cfb866
+        saved=raw/ncat/ncat_jar__ncat.zip
+POST   200  369574557 https://beta.ngs.noaa.gov/NCAT/index.xhtml;jsessionid=B727D5B11D1CB3EB1973051B42FC2A69
+        button=tv1:j_idt564:j_idt584  attachment;filename="Nadcon5.zip"; filename*=UTF-8''Nadcon5.zip
+        sha256=261f7923f211dd671034d91e567ecd1ea147daf91d17bc9b1785abc52e4f79d7
+        saved=raw/ncat/nadcon5_grids__Nadcon5.zip
+POST   200  74496559  https://beta.ngs.noaa.gov/NCAT/index.xhtml;jsessionid=B727D5B11D1CB3EB1973051B42FC2A69
+        button=tv1:j_idt564:j_idt592  attachment;filename="Vertcon3.zip"; filename*=UTF-8''Vertcon3.zip
+        sha256=af54f857cb6a9e80cdc4ddb25f7939896ecece21c4e03d14a3403aaf031cd4b4
+        saved=raw/ncat/vertcon3_grids__Vertcon3.zip
+POST   200  125693781 https://beta.ngs.noaa.gov/NCAT/index.xhtml;jsessionid=B727D5B11D1CB3EB1973051B42FC2A69
+        button=tv1:j_idt564:j_idt597  attachment;filename="IFDM2022.zip"; filename*=UTF-8''IFDM2022.zip
+        sha256=d85f8bc44c6e44fe0d83212be46a0ec29530b64de1e59000ee6c2663f70ba333
+        saved=raw/ncat/ifdm2022_grids__IFDM2022.zip
+GET    200  7926395   https://geodesy.noaa.gov/web/science_edu/presentations_library/files/2026-03-18-geometric-nsrs-opus.pdf
+        sha256=895a2701081b4fc62c839d9fce6becfaa8b0d5acd1dc51133b43444dec1e4a69
+        saved=raw/pubs/pres_2026_geometric_nsrs_opus.pdf
+GET    200  5932744   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0061.pdf
+        sha256=144f652b9cf57a9e8cece421fde4cdb060e76e2675cdeb7dfd4f5efd38c66085
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0061.pdf
+GET    200  4505404   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0062.pdf
+        sha256=b0d25a26d827daf6ff01c8ba8d96ee66b12ca200be335f72732f10794d2ae72a
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0062.pdf
+GET    200  3723997   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0064.pdf
+        sha256=20cd56e75057bf2e0bbfd168a9cc99312b90cf4a25a2a4e75ca63e52e5c2faf1
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0064.pdf
+GET    200  1282889   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0066.pdf
+        sha256=df0d67288b79cfeafcfac1cc4278f503844b167f2bb271448d4f34202e4aedcd
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0066.pdf
+GET    200  10516817  https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0069.pdf
+        sha256=e3e3d63a67132dbcb7d978d7f64e05a06eb24d2dfe8a587a2c6caea71e5f3415
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0069.pdf
+GET    200  1187737   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0070.pdf
+        sha256=04339e7c24dd374e95d31dcd4afbe9051c6cda915caa98f52c2e86d989efde47
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0070.pdf
+GET    200  1544165   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0071.pdf
+        sha256=610d8aab757bd8d7ac083043133f393be2a348192b5c6c1eadf12b8567f8cd00
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0071.pdf
+GET    200  7628705   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0072.pdf
+        sha256=e528c9a1b7e5512f6237e3f2fb1be85c8c201d082b6413f0ba7c99dae8d51213
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0072.pdf
+GET    200  3538509   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0073.pdf
+        sha256=8cdc7cd0684864bf63506b515015beed68a99af1559643e0f47616e5375f4ed5
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0073.pdf
+GET    200  6788232   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0074.pdf
+        sha256=e241fd50331297bff8e7c3e81f1d4faa9488c6c5f304552b3bce477954e5af6c
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0074.pdf
+GET    200  1214653   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0075.pdf
+        sha256=9f440403de91a2ffa326ad7e06771822b250bc8d2a3212625f54d79d331f2b3c
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0075.pdf
+GET    200  2392838   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0076.pdf
+        sha256=1e53ed0a54fc0b723cde460a5ba4bba069de26082bfecbcdf9369d0fc11a416e
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0076.pdf
+GET    200  12721636  https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0077.pdf
+        sha256=84ca33f1f1ee84743ff823b53ab3e13ed2e91010d7dafb076c44179cc387a8a3
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0077.pdf
+GET    200  1677892   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0078.pdf
+        sha256=6f1dcd74e3c7080f1a56a6e55d2b169f59b0cba3aa0b34724cf895a37bfb4c4e
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0078.pdf
+GET    200  1281644   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0079.pdf
+        sha256=48c4182b481ab2dda8fad5da58bb0e84379504890a9eb9366c09d525823806da
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0079.pdf
+GET    200  1062820   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0080.pdf
+        sha256=db696b75767e51d2ecd20596957aa21444288056999f62a602996e1d32cf60a8
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0080.pdf
+GET    200  1273150   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0082.pdf
+        sha256=b19b2c994c98f5c32a258bbbe3135cc967242ec0098b84ca425beb6bf568c035
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0082.pdf
+GET    200  422627    https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0083.pdf
+        sha256=9ef4488322112f8d5639d5fc39da60da9062eca741c53853a34300bdae4db31f
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0083.pdf
+GET    200  582339    https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0084.pdf
+        sha256=192364605ec801aedd9a1a29c5dec9d45d0f1a23e0978befdfcc4fad0160b848
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0084.pdf
+HEAD   200  1794681   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0060.pdf
+HEAD   200  1404664   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0061.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0062.pdf
+HEAD   200  222190    https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0063.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0064.pdf
+HEAD   404  0         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0065.pdf
+        sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        error=HTTPError 404 Not Found
+HEAD   404  0         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0066.pdf
+        sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        error=HTTPError 404 Not Found
+HEAD   200  192214    https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0067.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0068.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0069.pdf
+HEAD   200  200098    https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0070.pdf
+HEAD   200  364336    https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0071.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0072.pdf
+HEAD   200  1561778   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0073.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0074.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0075.pdf
+HEAD   200  768283    https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0076.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0077.pdf
+HEAD   200  426591    https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0078.pdf
+HEAD   200  12320045  https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0079.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0080.pdf
+HEAD   200  2038070   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0081.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0082.pdf
+HEAD   200  3936333   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0083.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0084.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0085.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0086.pdf
+HEAD   404  0         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0087.pdf
+        sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        error=HTTPError 404 Not Found
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0088.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0089.pdf
+HEAD   200  1032983   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0090.pdf
+HEAD   200  2265163   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0091.pdf
+HEAD   200  2250724   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0092.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0093.pdf
+HEAD   200  1266808   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0094.pdf
+HEAD   200  1068769   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0095.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0096.pdf
+HEAD   200  794124    https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0097.pdf
+HEAD   200  516620    https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0098.pdf
+HEAD   404  0         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0099.pdf
+        sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        error=HTTPError 404 Not Found
+HEAD   404  0         https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0100.pdf
+        sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        error=HTTPError 404 Not Found
+GET    200  14470403  https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0063.pdf
+        sha256=3023c369ef17025e62001bf2351e534729d074dc391cee77e3040a435279cd5b
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0063.pdf
+GET    200  7999616   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0068.pdf
+        sha256=4d296e4ee43f974c02ac5a73ee3861d4486b1d9da17fb276c5985b43950389fc
+        saved=raw/pubs/NOAA_TR_NOS_NGS_0068.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0069.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0070.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0071.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0072.pdf
+HEAD   200  3538509   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0073.pdf
+HEAD   200  6788232   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0074.pdf
+HEAD   200  1214653   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0075.pdf
+HEAD   200  2392838   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0076.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0077.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0078.pdf
+HEAD   200  1281644   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0079.pdf
+HEAD   200  1062820   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0080.pdf
+HEAD   404  0         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0081.pdf
+        sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        error=HTTPError 404 Not Found
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0082.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0083.pdf
+HEAD   200  582339    https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0084.pdf
+HEAD   404  0         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0085.pdf
+        sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        error=HTTPError 404 Not Found
+HEAD   404  0         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0086.pdf
+        sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        error=HTTPError 404 Not Found
+HEAD   404  0         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0087.pdf
+        sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        error=HTTPError 404 Not Found
+HEAD   404  0         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0088.pdf
+        sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        error=HTTPError 404 Not Found
+HEAD   404  0         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0089.pdf
+        sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        error=HTTPError 404 Not Found
+HEAD   200  6231285   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0067.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0066.pdf
+HEAD   200  26099223  https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0065.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0064.pdf
+HEAD   200  4505404   https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0062.pdf
+HEAD   200  -         https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0061.pdf
+GET    200  426591    https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0078.pdf
+        sha256=35797c251733f3365ba2ced9fe2f5a242fd6acd1b3271e403b31e6647f293147
+        saved=raw/pubs/NOAA_TM_NOS_NGS_0078.pdf
+GET    200  12320045  https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0079.pdf
+        sha256=262d9995dcdb5e5d1e9eee29a7828370907668b0562e652bf71360512020b1c8
+        saved=raw/pubs/NOAA_TM_NOS_NGS_0079.pdf
+GET    200  2038070   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0081.pdf
+        sha256=73d0c9ae06a6db31f2421d2d66d608d69fd2f4311ecec411373c9ff79cff0564
+        saved=raw/pubs/NOAA_TM_NOS_NGS_0081.pdf
+GET    200  3936333   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0083.pdf
+        sha256=82359cd28b3793908409c61b010fd323a9db05080039aceea5efe0dd8fc29ee5
+        saved=raw/pubs/NOAA_TM_NOS_NGS_0083.pdf
+GET    200  1032983   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0090.pdf
+        sha256=3d8cfb21d9e3485fa0a0402e76b58206e041c457c0027b414c3148b3a87009ab
+        saved=raw/pubs/NOAA_TM_NOS_NGS_0090.pdf
+GET    200  2265163   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0091.pdf
+        sha256=0788e3071c583fee23d1c62e5ceab9f018d4746820d80cf159d886bc27e0c469
+        saved=raw/pubs/NOAA_TM_NOS_NGS_0091.pdf
+GET    200  2250724   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0092.pdf
+        sha256=20c84557102ec79bb75a1d5d9bed179085fbc147a0ef7d60db7af7351fd43ab6
+        saved=raw/pubs/NOAA_TM_NOS_NGS_0092.pdf
+GET    200  1266808   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0094.pdf
+        sha256=5a8a7dd021364317342fb8c229a01cbe2777db0a005ead67a7aa76ebfea1a1e6
+        saved=raw/pubs/NOAA_TM_NOS_NGS_0094.pdf
+GET    200  1068769   https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0095.pdf
+        sha256=c7110ef105160e6ba6cf89913b4652e1ce313a2052f5cbd498664a0186030da4
+        saved=raw/pubs/NOAA_TM_NOS_NGS_0095.pdf
+GET    200  794124    https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0097.pdf
+        sha256=9d34741776a1a78d9d1e9665e2eabbbef5f20ea5b201b3e64fc5d77c08647e6a
+        saved=raw/pubs/NOAA_TM_NOS_NGS_0097.pdf
+GET    200  516620    https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0098.pdf
+        sha256=7b335a33fd431e27bab88a77d7befb7e4f6d2219569e823a27d40a6e6faf4b1a
+        saved=raw/pubs/NOAA_TM_NOS_NGS_0098.pdf
+GET    200  25156     https://geodesy.noaa.gov/datums/newdatums/index.shtml
+        sha256=28c1d70b294179a7a989459c1260995f280fbe12d14fb92e91b3940f1d3c1e01
+        saved=raw/sweep2/ngs_newdatums_index.html
+GET    200  19516     https://www.ngs.noaa.gov/datums/newdatums/naming-convention.shtml
+        sha256=73069b4a4cd3f1c44113271d4f103ba1fdfdb3ad8398f6213eaad46a49212a00
+        saved=raw/sweep2/ngs_newdatums_naming.html
+GET    404  15905     https://geodesy.noaa.gov/datums/newdatums/reference-frames.shtml
+        sha256=3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895
+        error=HTTPError 404 Not Found
+        saved=raw/sweep2/ngs_newdatums_reference_frames.html
+GET    404  15905     https://geodesy.noaa.gov/datums/newdatums/QandA.shtml
+        sha256=3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895
+        error=HTTPError 404 Not Found
+        saved=raw/sweep2/ngs_newdatums_qa.html
+GET    200  1351465   https://geodesy.noaa.gov/web/science_edu/presentations_library/
+        sha256=ee2836f7c71e0ecb6f952e453337aed52d05842a8804d16a16fe3fd61939598d
+        saved=raw/sweep2/ngs_presentations_library.html
+GET    200  14056     https://geodesy.noaa.gov/TOOLS/
+        sha256=f051cb167e5ff6fbdd1b15351b06cfd61b5124c8bd0ecbc0391a2b151a62a54d
+        saved=raw/sweep2/ngs_tools_index.html
+GET    200  14230     https://geodesy.noaa.gov/TOOLS/Htdp/Htdp.shtml
+        sha256=71f2ffcae7903565dd994b04351cf46958ce83c62bf3c7431c2299b288dbd4b7
+        saved=raw/sweep2/ngs_htdp.html
+GET    200  17259     https://beta.ngs.noaa.gov/
+        sha256=54ce22a2c8b59df8c7facc3b851c46fa4cfca3df3c2d8c1fdbd6bcbe9ff33691
+        saved=raw/sweep2/beta_index.html
+GET    200  18723     https://beta.ngs.noaa.gov/NAPGD2022/index.html
+        sha256=425f8df20062acb2533612a00cb97403ba8cb0b677067c53c987b41f99876802
+        saved=raw/sweep2/beta_napgd2022.html
+GET    200  17847     https://beta.ngs.noaa.gov/SPCS/index.html
+        sha256=97e22d3cf9c63ce25b61b27580d7d0d72fb707ac233eccf462633b4299c5c5ba
+        saved=raw/sweep2/beta_spcs.html
+GET    200  93575     https://beta.ngs.noaa.gov/NCAT/dot-b_format.pdf
+        sha256=af0fa93c42143c9a501fd8c43b3d095c3692b1a6c8da6930348eca0bfe41cb54
+        saved=raw/sweep2/beta_ncat_dotb_format.pdf
+GET    404  6667      https://beta.ngs.noaa.gov/NCAT/Nadcon-Vertcon_Coverage.pdf
+        sha256=fdc5b0282f32a8c8c5131a1b7c4742862a39d41ffcd7665b51bb67a6baeb0352
+        error=HTTPError 404 404
+        saved=raw/sweep2/beta_ncat_coverage.pdf
+GET    200  125847    https://search.usa.gov/search?affiliate=noaa.gov&query=IFDM2022
+        sha256=ffa98284ce82558c053995d5a27e08e4ac4e00bb187f1e9c95330e2847479476
+        saved=raw/sweep2/search_gov_ifdm.html
+GET    200  405949    https://beta.ngs.noaa.gov/NCAT/
+        sha256=7c63c74924a81af9664a4ecd4234ce16cbe92d007219b043be4760ee0341825d
+        saved=raw/sweep/beta_ncat_index.html
+GET    404  15843     https://beta.ngs.noaa.gov/IFDM2022/
+        sha256=227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049
+        error=HTTPError 404 Not Found
+        saved=raw/sweep/beta_ifdm2022_dir.html
+GET    404  15843     https://beta.ngs.noaa.gov/IFDM2022/index.html
+        sha256=227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049
+        error=HTTPError 404 Not Found
+        saved=raw/sweep/beta_ifdm2022_index.html
+GET    404  15843     https://beta.ngs.noaa.gov/IFDM/
+        sha256=227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049
+        error=HTTPError 404 Not Found
+        saved=raw/sweep/beta_ifdm_dir.html
+GET    200  19893     https://beta.ngs.noaa.gov/NATRF2022/index.html
+        sha256=1904cdda9bf7520f7b57d5bc887caca3ebee256e034aeafcbbc712c7529764b4
+        saved=raw/sweep/beta_natrf2022_index.html
+GET    200  19893     https://beta.ngs.noaa.gov/NATRF2022/
+        sha256=1904cdda9bf7520f7b57d5bc887caca3ebee256e034aeafcbbc712c7529764b4
+        saved=raw/sweep/beta_natrf2022_dir.html
+GET    200  5114      https://beta.ngs.noaa.gov/sitemap.xml
+        sha256=93387008fc6f8ce234be858626f3b8ee1ab3ecea4a497ee0eac3fa60a4f58547
+        saved=raw/sweep/beta_sitemap_xml.xml
+GET    200  20379     https://beta.ngs.noaa.gov/sitemap.html
+        sha256=678f476fee6fe38e3c2df6fac8901b0ba9e43b7084140ab86b049baec5a1de00
+        saved=raw/sweep/beta_sitemap_html.html
+GET    200  213       https://beta.ngs.noaa.gov/robots.txt
+        sha256=bd7ca0626f42d0e335aa675e5698625207e8badbdd14338399504e701e29530c
+        saved=raw/sweep/beta_robots.txt
+GET    404  15843     https://beta.ngs.noaa.gov/PC_PROD/
+        sha256=227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049
+        error=HTTPError 404 Not Found
+        saved=raw/sweep/beta_datasheet_products.html
+GET    404  15905     https://geodesy.noaa.gov/IFDM2022/
+        sha256=3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895
+        error=HTTPError 404 Not Found
+        saved=raw/sweep/geo_ifdm2022_dir.html
+GET    404  15905     https://geodesy.noaa.gov/IFDM2022/index.shtml
+        sha256=3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895
+        error=HTTPError 404 Not Found
+        saved=raw/sweep/geo_ifdm2022_index.html
+GET    404  15905     https://geodesy.noaa.gov/IFDM/
+        sha256=3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895
+        error=HTTPError 404 Not Found
+        saved=raw/sweep/geo_ifdm_dir.html
+GET    404  15905     https://geodesy.noaa.gov/NATRF2022/index.shtml
+        sha256=3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895
+        error=HTTPError 404 Not Found
+        saved=raw/sweep/geo_natrf2022.html
+GET    404  15905     https://geodesy.noaa.gov/NATRF2022/index.html
+        sha256=3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895
+        error=HTTPError 404 Not Found
+        saved=raw/sweep/geo_natrf2022_html.html
+GET    200  417100    https://geodesy.noaa.gov/sitemap.xml
+        sha256=cc7791fab0d722865ee50c6145408daefb6f858c7d50dfa6c9cde4f0d029f3b6
+        saved=raw/sweep/geo_sitemap.html
+GET    200  845       https://geodesy.noaa.gov/robots.txt
+        sha256=a11ff0fcf3165f7920156d529288422cda342b350ee12a332b03a219a8fb31f0
+        saved=raw/sweep/geo_robots.html
+GET    200  25156     https://geodesy.noaa.gov/datums/newdatums/index.shtml
+        sha256=28c1d70b294179a7a989459c1260995f280fbe12d14fb92e91b3940f1d3c1e01
+        saved=raw/sweep/geo_datums_new.html
+GET    404  15905     https://www.ngs.noaa.gov/IFDM2022/
+        sha256=3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895
+        error=HTTPError 404 Not Found
+        saved=raw/sweep/www_ifdm2022_dir.html
+GET    404  15905     https://www.ngs.noaa.gov/NATRF2022/index.shtml
+        sha256=3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895
+        error=HTTPError 404 Not Found
+        saved=raw/sweep/www_natrf2022.html
+GET    404  15905     https://geodesy.noaa.gov/PC_PROD/IFDM2022/
+        sha256=3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895
+        error=HTTPError 404 Not Found
+        saved=raw/sweep/geo_pc_prod_ifdm.html
+GET    404  15905     https://geodesy.noaa.gov/pub/IFDM2022/
+        sha256=3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895
+        error=HTTPError 404 Not Found
+        saved=raw/sweep/geo_pub_ifdm.html
+GET    404  15843     https://beta.ngs.noaa.gov/web/tools/NCAT/
+        sha256=227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049
+        error=HTTPError 404 Not Found
+        saved=raw/sweep/beta_web_tools_ncat.html
+GET    200  17843     https://geodesy.noaa.gov/library/
+        sha256=07494d169faebd53c42747c6826c6611ba57d6e3ce87ade07aa053c5c841179b
+        saved=raw/sweep/geo_library_index.html
+GET    200  205549    https://geodesy.noaa.gov/library/pdfs/
+        sha256=b61d5ae637f77f7d93dbaef511f51922037f92262f7041c850bbd0e93e343601
+        saved=raw/sweep/geo_library_pdfs.html
+HEAD   200  17338722  https://www.ngs.noaa.gov/PUBS_LIB/NOAA_TR_NOS_NGS_63.pdf
+HEAD   200  17338722  https://geodesy.noaa.gov/PUBS_LIB/NOAA_TR_NOS_NGS_63.pdf
+
+-- fetched, digest recorded, then deleted from the tree --
+  nadcon5_grids__Nadcon5.zip  369574557 bytes  sha256=261f7923f211dd671034d91e567ecd1ea147daf91d17bc9b1785abc52e4f79d7
+      control download, proves the JSF POST mechanism; not IFDM material
+  vertcon3_grids__Vertcon3.zip  74496559 bytes  sha256=af54f857cb6a9e80cdc4ddb25f7939896ecece21c4e03d14a3403aaf031cd4b4
+      control download, proves the JSF POST mechanism; not IFDM material
+
+-- files on disk --
+          4734  b963053111a48759a4b1461da684f234dfe96b4c1a3459b1d65645c458cd4a91  raw/devguide_manifest.json
+          5310  82e7ae87f68fc27396633e6dcc8771e83008e7a9f51e550d748246aaf5cd8818  raw/ncat_download_manifest.json
+          1103  b1071ad0a4da565a3e2f16fafb2d70fbed9424c7e58e7eecc82111a6114f1eb7  raw/presentation_manifest.json
+         56213  b242431032ac8700ece2e948300911d6240df6daa1a684f8cb1299d7679557c3  raw/pubs2_manifest.json
+         26268  9e37b748ea2e240bd00fc44a9443495b389799533fc57bdbc5a66063c67788c7  raw/pubs_manifest.json
+         23911  0f8a7fb88b45de337dc477b86650bcf9e462d768e48aedbe12a4c45fa559cb8d  raw/sweep2_manifest.json
+         22410  f136c74775667f033255c130810d9cc231e3c8c020727da4cec1a64e8c3bc8ff  raw/sweep_manifest.json
+          1814  19c346964414a5301fa4dc6a612cfefcacd2048a028649041c82025978d23604  raw/tr63_alt_url_manifest.json
+          4917  dea52f629a43eb39cb5e343ab6ed3c8945109e9c4d152496f812b9694a9bb76d  raw/grids/epp_vs_ifdm_michigan.json
+          1802  79668ef4c35ea738900d96041909a4242fd8373cfa5e228087bc58f7dec965b9  raw/grids/epp_vs_ifdm_michigan.txt
+        250712  60ee7638554394d7f43476e1a4ebf7e2d3aa90dfb7fc5f3564cfbc53d3fb45bf  raw/grids/ifdm2022_headers.json
+        172410  d77f8e3bc9321392d197d89bf5561b1458c8c01d6490fcc1cd00292c77f365ab  raw/grids/ifdm2022_headers.txt
+         14776  12a09e12ca2a13867e3cfb453c150dfa2633a3b5a89e1e19647527fea60712ca  raw/grids/michigan_velocity_samples.json
+          1871  c0d2976f7a36ae394b2a3b9530d5fc55320383e80ae4fe6ad5af0a4eeb3453f5  raw/grids/michigan_velocity_samples.txt
+     125693781  d85f8bc44c6e44fe0d83212be46a0ec29530b64de1e59000ee6c2663f70ba333  raw/ncat/ifdm2022_grids__IFDM2022.zip
+       2299011  ecca242d34392140f63bc3bf290fb0107322005b80325b5a0349839387cfb866  raw/ncat/ncat_jar__ncat.zip
+        405949  a4da3333260de44ca95b8a55eab321402b2415fbac41633cb4d1cd68d15d53d3  raw/ncat/ncat_session_page.html
+         37806  2cfe6b3e7d7b22395d8d3cd3fd1ddc03fee5e50137ce94f50839cd94282ec18d  raw/ncat_lib/CLDriver.java
+         11366  e118ad8e5f2d3c71f0e7d6202d5829e7580ccd9e3609a546c692788e657afbe2  raw/ncat_lib/LICENSE
+           211  8427d6a7e7e44d82eab8bab09c8f9d7b1377c42f1b1b7479110dbb1a5ca41ef3  raw/ncat_lib/jar__META-INF_MANIFEST.MF
+          1083  d0faf3d6f2bf0df14be4ab490ff548dcafda748429eaa75e436275c8680c7972  raw/ncat_lib/jar__gov_noaa_ngs_grid_resources_exportColumnHeaders.properties
+          3488  29189c46fcd1b0f7371b5891a249ac8e54fda2d8e99478eef2ecb4b739c87b89  raw/ncat_lib/jar__gov_noaa_ngs_grid_resources_meta.properties
+          1937  f3453ad47c440845b4c9d8ad260a764bb043aa8e5f4db57e792cd845d0e45ef0  raw/ncat_lib/jar__gov_noaa_ngs_nadcon5_resources_nadconDef.properties
+          7098  0462f484dfe02d419bbeb053c2a4ec36d0151e7cdfddb008d1da449279abfa87  raw/ncat_lib/jar__gov_noaa_ngs_nadcon5_test_nadcon_expected.txt
+          3249  ae07572965eec5f1a8615f6506e57ab34a240c43c69ee0f77a9a927df0a13e84  raw/ncat_lib/jar__gov_noaa_ngs_nadcon5_test_nadcon_in.txt
+          1757  ddc68577ee7fd74b3c600ca3b0965bd13bb1d99bad6fa2f9102f6cab22f88f73  raw/ncat_lib/jar__gov_noaa_ngs_transform_resources_ellipsoids.properties
+          9568  62be8beed780dc886f417c16d31f05d822b19291cc8cf5100f4314f232ca76d9  raw/ncat_lib/jar__gov_noaa_ngs_transform_resources_nad27ZoneConstants.properties
+         12783  ec0ab4818ef27676ccc22dd65317f843d1ef76b8c089d7bb879c50f69cbf9ae4  raw/ncat_lib/jar__gov_noaa_ngs_transform_resources_spc27ZoneConstants.properties
+         20919  e387bb6293108cfdbe4f2dbb03d0b883804a8ec8b2decfd4661f3fea0045a58c  raw/ncat_lib/jar__gov_noaa_ngs_transform_resources_spc27ZoneDefinitions.properties
+         98007  fc19cf93a27003464d1e72a13d275b1534ab0deb92fc5918021f683c3a108d7f  raw/ncat_lib/jar__gov_noaa_ngs_transform_resources_spcs2022ZoneConstants.properties
+        239393  5b5e1beae646496f6fc690989e0752d85012d39909f11b213ae429185c882608  raw/ncat_lib/jar__gov_noaa_ngs_transform_resources_spcs2022ZoneDefinitions.properties
+          7030  fbdd2283aa963b642b7d7140e678199282ca65ae928d2d67956bbacd58041d2b  raw/ncat_lib/jar__gov_noaa_ngs_transform_test_expected_trans.txt
+           502  930399a2c16aae9f774020408727e75d6be5e700af07cb5f6413abee5238eeca  raw/ncat_lib/jar__gov_noaa_ngs_transform_test_testdata.properties
+           844  8723aab3c994db77e200c49c3daf1039fb4dd2284e2291a17d03c38c44f8240a  raw/ncat_lib/jar__gov_noaa_ngs_vertcon_resources_vertconDef.properties
+          1008  1675f8a528139148bcba6fe372b2889a2f0172d4dd137abe0579f44b76c1a09b  raw/ncat_lib/jar__log4j2.properties
+            34  09337f549512bcccf6f082efc9e802dac67b12dc20efb31252a61119f8749368  raw/ncat_lib/jtransform_thin.jar.MD5
+          3811  0ea3a2aae73badda5ffbe767f76caecd8941110be24d36f03e3943bb1784bc0d  raw/ncat_lib/manifest.json
+         14011  074db6682ca10fc42ac1b1dae7088ccd5bae49143ece988d436e47f375fd7924  raw/ncat_lib/readme.txt
+        426591  35797c251733f3365ba2ced9fe2f5a242fd6acd1b3271e403b31e6647f293147  raw/pubs/NOAA_TM_NOS_NGS_0078.pdf
+      12320045  262d9995dcdb5e5d1e9eee29a7828370907668b0562e652bf71360512020b1c8  raw/pubs/NOAA_TM_NOS_NGS_0079.pdf
+       2038070  73d0c9ae06a6db31f2421d2d66d608d69fd2f4311ecec411373c9ff79cff0564  raw/pubs/NOAA_TM_NOS_NGS_0081.pdf
+       3936333  82359cd28b3793908409c61b010fd323a9db05080039aceea5efe0dd8fc29ee5  raw/pubs/NOAA_TM_NOS_NGS_0083.pdf
+       1032983  3d8cfb21d9e3485fa0a0402e76b58206e041c457c0027b414c3148b3a87009ab  raw/pubs/NOAA_TM_NOS_NGS_0090.pdf
+       2265163  0788e3071c583fee23d1c62e5ceab9f018d4746820d80cf159d886bc27e0c469  raw/pubs/NOAA_TM_NOS_NGS_0091.pdf
+       2250724  20c84557102ec79bb75a1d5d9bed179085fbc147a0ef7d60db7af7351fd43ab6  raw/pubs/NOAA_TM_NOS_NGS_0092.pdf
+       1266808  5a8a7dd021364317342fb8c229a01cbe2777db0a005ead67a7aa76ebfea1a1e6  raw/pubs/NOAA_TM_NOS_NGS_0094.pdf
+       1068769  c7110ef105160e6ba6cf89913b4652e1ce313a2052f5cbd498664a0186030da4  raw/pubs/NOAA_TM_NOS_NGS_0095.pdf
+        794124  9d34741776a1a78d9d1e9665e2eabbbef5f20ea5b201b3e64fc5d77c08647e6a  raw/pubs/NOAA_TM_NOS_NGS_0097.pdf
+        516620  7b335a33fd431e27bab88a77d7befb7e4f6d2219569e823a27d40a6e6faf4b1a  raw/pubs/NOAA_TM_NOS_NGS_0098.pdf
+       5932744  144f652b9cf57a9e8cece421fde4cdb060e76e2675cdeb7dfd4f5efd38c66085  raw/pubs/NOAA_TR_NOS_NGS_0061.pdf
+       4505404  b0d25a26d827daf6ff01c8ba8d96ee66b12ca200be335f72732f10794d2ae72a  raw/pubs/NOAA_TR_NOS_NGS_0062.pdf
+      14470403  3023c369ef17025e62001bf2351e534729d074dc391cee77e3040a435279cd5b  raw/pubs/NOAA_TR_NOS_NGS_0063.pdf
+       3723997  20cd56e75057bf2e0bbfd168a9cc99312b90cf4a25a2a4e75ca63e52e5c2faf1  raw/pubs/NOAA_TR_NOS_NGS_0064.pdf
+       1282889  df0d67288b79cfeafcfac1cc4278f503844b167f2bb271448d4f34202e4aedcd  raw/pubs/NOAA_TR_NOS_NGS_0066.pdf
+       7999616  4d296e4ee43f974c02ac5a73ee3861d4486b1d9da17fb276c5985b43950389fc  raw/pubs/NOAA_TR_NOS_NGS_0068.pdf
+      10516817  e3e3d63a67132dbcb7d978d7f64e05a06eb24d2dfe8a587a2c6caea71e5f3415  raw/pubs/NOAA_TR_NOS_NGS_0069.pdf
+       1187737  04339e7c24dd374e95d31dcd4afbe9051c6cda915caa98f52c2e86d989efde47  raw/pubs/NOAA_TR_NOS_NGS_0070.pdf
+       1544165  610d8aab757bd8d7ac083043133f393be2a348192b5c6c1eadf12b8567f8cd00  raw/pubs/NOAA_TR_NOS_NGS_0071.pdf
+       7628705  e528c9a1b7e5512f6237e3f2fb1be85c8c201d082b6413f0ba7c99dae8d51213  raw/pubs/NOAA_TR_NOS_NGS_0072.pdf
+       3538509  8cdc7cd0684864bf63506b515015beed68a99af1559643e0f47616e5375f4ed5  raw/pubs/NOAA_TR_NOS_NGS_0073.pdf
+       6788232  e241fd50331297bff8e7c3e81f1d4faa9488c6c5f304552b3bce477954e5af6c  raw/pubs/NOAA_TR_NOS_NGS_0074.pdf
+       1214653  9f440403de91a2ffa326ad7e06771822b250bc8d2a3212625f54d79d331f2b3c  raw/pubs/NOAA_TR_NOS_NGS_0075.pdf
+       2392838  1e53ed0a54fc0b723cde460a5ba4bba069de26082bfecbcdf9369d0fc11a416e  raw/pubs/NOAA_TR_NOS_NGS_0076.pdf
+      12721636  84ca33f1f1ee84743ff823b53ab3e13ed2e91010d7dafb076c44179cc387a8a3  raw/pubs/NOAA_TR_NOS_NGS_0077.pdf
+       1677892  6f1dcd74e3c7080f1a56a6e55d2b169f59b0cba3aa0b34724cf895a37bfb4c4e  raw/pubs/NOAA_TR_NOS_NGS_0078.pdf
+       1281644  48c4182b481ab2dda8fad5da58bb0e84379504890a9eb9366c09d525823806da  raw/pubs/NOAA_TR_NOS_NGS_0079.pdf
+       1062820  db696b75767e51d2ecd20596957aa21444288056999f62a602996e1d32cf60a8  raw/pubs/NOAA_TR_NOS_NGS_0080.pdf
+       1273150  b19b2c994c98f5c32a258bbbe3135cc967242ec0098b84ca425beb6bf568c035  raw/pubs/NOAA_TR_NOS_NGS_0082.pdf
+        422627  9ef4488322112f8d5639d5fc39da60da9062eca741c53853a34300bdae4db31f  raw/pubs/NOAA_TR_NOS_NGS_0083.pdf
+        582339  192364605ec801aedd9a1a29c5dec9d45d0f1a23e0978befdfcc4fad0160b848  raw/pubs/NOAA_TR_NOS_NGS_0084.pdf
+          7992  1923aa65769471670168bb012f4b2a8b2db93b38a8f7974c522a68e0f6a5c694  raw/pubs/PRES2026_passages.txt
+         25054  109cd7f14cbd5e80521575822a18cf9bf04431b44be95655e03e1655e65a0f64  raw/pubs/TM90_passages.txt
+        135553  a74193122cb3d31fd304187b21c4ca6a2a72d16ef4db34ab23665df9feaa1024  raw/pubs/TM95_passages.txt
+        116449  8c7d829bf8504736620deb13504773db34f7eef84982270bff904f08e7e34122  raw/pubs/TR62_passages.txt
+        157492  0cb9bd00177db3b473aa1edbdd4edba68442b2a59c04b41aae80a02d4323f42e  raw/pubs/TR79_passages.txt
+       7926395  895a2701081b4fc62c839d9fce6becfaa8b0d5acd1dc51133b43444dec1e4a69  raw/pubs/pres_2026_geometric_nsrs_opus.pdf
+         34755  64c5adc1d54e89d7e6d8485a34f0b0c0ca13fb581dcd63dcc44eb1ce1e65e002  raw/pubs/pub_titles_and_terms.json
+         20991  4543786ffac6c663a762f8803553747463d5ab44a1d0b686511f5d2f78c8dffe  raw/pubs/pub_titles_and_terms.txt
+         15843  227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049  raw/sweep/beta_datasheet_products.html
+         15843  227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049  raw/sweep/beta_ifdm2022_dir.html
+         15843  227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049  raw/sweep/beta_ifdm2022_index.html
+         15843  227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049  raw/sweep/beta_ifdm_dir.html
+         19893  1904cdda9bf7520f7b57d5bc887caca3ebee256e034aeafcbbc712c7529764b4  raw/sweep/beta_natrf2022_dir.html
+         19893  1904cdda9bf7520f7b57d5bc887caca3ebee256e034aeafcbbc712c7529764b4  raw/sweep/beta_natrf2022_index.html
+        405949  7c63c74924a81af9664a4ecd4234ce16cbe92d007219b043be4760ee0341825d  raw/sweep/beta_ncat_index.html
+           213  bd7ca0626f42d0e335aa675e5698625207e8badbdd14338399504e701e29530c  raw/sweep/beta_robots.txt
+         20379  678f476fee6fe38e3c2df6fac8901b0ba9e43b7084140ab86b049baec5a1de00  raw/sweep/beta_sitemap_html.html
+          5114  93387008fc6f8ce234be858626f3b8ee1ab3ecea4a497ee0eac3fa60a4f58547  raw/sweep/beta_sitemap_xml.xml
+         15843  227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049  raw/sweep/beta_web_tools_ncat.html
+         25156  28c1d70b294179a7a989459c1260995f280fbe12d14fb92e91b3940f1d3c1e01  raw/sweep/geo_datums_new.html
+         15905  3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895  raw/sweep/geo_ifdm2022_dir.html
+         15905  3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895  raw/sweep/geo_ifdm2022_index.html
+         15905  3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895  raw/sweep/geo_ifdm_dir.html
+         17843  07494d169faebd53c42747c6826c6611ba57d6e3ce87ade07aa053c5c841179b  raw/sweep/geo_library_index.html
+        205549  b61d5ae637f77f7d93dbaef511f51922037f92262f7041c850bbd0e93e343601  raw/sweep/geo_library_pdfs.html
+         15905  3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895  raw/sweep/geo_natrf2022.html
+         15905  3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895  raw/sweep/geo_natrf2022_html.html
+         15905  3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895  raw/sweep/geo_pc_prod_ifdm.html
+         15905  3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895  raw/sweep/geo_pub_ifdm.html
+           845  a11ff0fcf3165f7920156d529288422cda342b350ee12a332b03a219a8fb31f0  raw/sweep/geo_robots.html
+        417100  cc7791fab0d722865ee50c6145408daefb6f858c7d50dfa6c9cde4f0d029f3b6  raw/sweep/geo_sitemap.html
+         15905  3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895  raw/sweep/www_ifdm2022_dir.html
+         15905  3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895  raw/sweep/www_natrf2022.html
+         17259  54ce22a2c8b59df8c7facc3b851c46fa4cfca3df3c2d8c1fdbd6bcbe9ff33691  raw/sweep2/beta_index.html
+         18723  425f8df20062acb2533612a00cb97403ba8cb0b677067c53c987b41f99876802  raw/sweep2/beta_napgd2022.html
+          6667  fdc5b0282f32a8c8c5131a1b7c4742862a39d41ffcd7665b51bb67a6baeb0352  raw/sweep2/beta_ncat_coverage.pdf
+         93575  af0fa93c42143c9a501fd8c43b3d095c3692b1a6c8da6930348eca0bfe41cb54  raw/sweep2/beta_ncat_dotb_format.pdf
+         17847  97e22d3cf9c63ce25b61b27580d7d0d72fb707ac233eccf462633b4299c5c5ba  raw/sweep2/beta_spcs.html
+         15843  227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049  raw/sweep2/ifdm_devguide.html
+         37546  6ab8aceac75b109c89d2cb27c4f4fbac05793979878c3005c76c2b485d3358d4  raw/sweep2/napgd_devguide.html
+         15843  227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049  raw/sweep2/natrf_devguide.html
+           181  63d80d642caf2bce1512587e444e3837b2451e7052222f68dfe8a7736c143d52  raw/sweep2/natrf_epp_csv.csv
+         14230  71f2ffcae7903565dd994b04351cf46958ce83c62bf3c7431c2299b288dbd4b7  raw/sweep2/ngs_htdp.html
+         25156  28c1d70b294179a7a989459c1260995f280fbe12d14fb92e91b3940f1d3c1e01  raw/sweep2/ngs_newdatums_index.html
+         19516  73069b4a4cd3f1c44113271d4f103ba1fdfdb3ad8398f6213eaad46a49212a00  raw/sweep2/ngs_newdatums_naming.html
+         15905  3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895  raw/sweep2/ngs_newdatums_qa.html
+         15905  3f857c368b53cb2641bf2cdca7883bd283d96ddf5cc0e2f0c35613060ca1c895  raw/sweep2/ngs_newdatums_reference_frames.html
+       1351465  ee2836f7c71e0ecb6f952e453337aed52d05842a8804d16a16fe3fd61939598d  raw/sweep2/ngs_presentations_library.html
+         14056  f051cb167e5ff6fbdd1b15351b06cfd61b5124c8bd0ecbc0391a2b151a62a54d  raw/sweep2/ngs_tools_index.html
+        125847  ffa98284ce82558c053995d5a27e08e4ac4e00bb187f1e9c95330e2847479476  raw/sweep2/search_gov_ifdm.html
+         15843  227ae5b4b45ae5a819f7a2841f44e4b3f7137b97b2a0bff1b4d44c2c50a50049  raw/sweep2/spcs_devguide.html

@@ -1,0 +1,27 @@
+[
+  {
+    "bytes": 7926395,
+    "captured": "2026-08-29T05:34:33.360235+00:00",
+    "error": null,
+    "final_url": "https://geodesy.noaa.gov/web/science_edu/presentations_library/files/2026-03-18-geometric-nsrs-opus.pdf",
+    "headers": {
+      "accept-ranges": "bytes",
+      "cache-control": "private",
+      "connection": "close",
+      "content-length": "7926395",
+      "content-type": "application/pdf",
+      "date": "Sat, 29 Aug 2026 05:34:33 GMT",
+      "etag": "\"78f27b-6518b2b63aab8\"",
+      "last-modified": "Mon, 11 May 2026 14:00:30 GMT",
+      "set-cookie": "SERVERID=; Expires=Thu, 01-Jan-1970 00:00:01 GMT; path=/",
+      "strict-transport-security": "max-age=31536000; includeSubDomains;",
+      "x-frame-options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "OK",
+    "saved": "raw/pubs/pres_2026_geometric_nsrs_opus.pdf",
+    "sha256": "895a2701081b4fc62c839d9fce6becfaa8b0d5acd1dc51133b43444dec1e4a69",
+    "status": 200,
+    "url": "https://geodesy.noaa.gov/web/science_edu/presentations_library/files/2026-03-18-geometric-nsrs-opus.pdf"
+  }
+]

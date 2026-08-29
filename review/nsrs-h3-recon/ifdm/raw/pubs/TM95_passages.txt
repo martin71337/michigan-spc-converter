@@ -1,0 +1,3256 @@
+Verbatim page extraction from NOAA_TM_NOS_NGS_0095.pdf
+pages: 52;  matched pages: 40
+
+##########################################################################
+### PDF page 1 (of 52)   matches: epoch
+##########################################################################
+ 
+ 
+ 
+ 
+NOAA Technical Memorandum NOS 
+NGS 95 
+ 
+Covariances within the multi-epoch least-
+squares adjustment problem and their 
+impact on estimating reference epoch 
+coordinates in the modernized National 
+Spatial Reference System 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Dru Smith 
+Silver Spring, MD 
+March 2026 
+ 
+ 
+National Oceanic and Atmospheric Administration                                       National Geodetic Survey  
+
+
+##########################################################################
+### PDF page 2 (of 52)   matches: IFDM
+##########################################################################
+ii 
+Versions 
+Date Changes 
+October 2023 Original Release 
+December 2023 Corrected to introduce 𝑠𝑠𝑠𝑠𝑠𝑠(Δ𝑡𝑡) starting in equation 13 
+March 2026 • Changed GNSS vectors to GNSS measured baselines
+• Removed footnote regarding lack of standard deviations of 
+displacements in IFDM2022
+• Corrected typographical error in equation 27d
+
+##########################################################################
+### PDF page 3 (of 52)   matches: epoch
+##########################################################################
+iii 
+ 
+Contents 
+Executive Summary ...................................................................................................................................... iv 
+1 Introduction .......................................................................................................................................... 1 
+1.1 Terminology and notation ............................................................................................................ 2 
+2 Special case of the multi-epoch least-squares adjustment problem as applied to reference epoch 
+coordinates ................................................................................................................................................... 3 
+2.1 Two types of adjustments ............................................................................................................. 4 
+3 The relationship between a model of changes to parameter values (MCPV) and a geodetic value 
+change model (GVCM) .................................................................................................................................. 4 
+3.1 An historic example:  The National Adjustment of 2011 .............................................................. 5 
+3.2 Changes that will come with the modernized NSRS ..................................................................... 6 
+3.3 Covariances and their effect on sparsity....................................................................................... 6 
+4 Interpolating the geodetic value change model (GVCM) from grid nodes to observation points ....... 7 
+5 Geometric Adjustments ........................................................................................................................ 8 
+5.1 Converting the GVCM to the MCPV at a single point ................................................................... 8 
+5.2 Geometric Example:  One observation ....................................................................................... 11 
+5.3 Geometric example: Two GNSS measured baselines, no shared points .................................... 16 
+5.4 Geometric example: Two GNSS measured baselines, one shared point .................................... 22 
+5.4.1 Special case: observations at the same epoch ................................................................... 25 
+5.5 Geometric example: Two GNSS measured baselines, two shared points .................................. 25 
+6 Orthometric Adjustments ................................................................................................................... 27 
+6.1 Converting the GVCM to the MCPV at a single point ................................................................. 27 
+6.2 Orthometric Example:  One orthometric height difference ....................................................... 29 
+6.3 Orthometric example: Two height differences, no shared points .............................................. 31 
+6.4 Orthometric example: Two height differences, one shared point ............................................. 35 
+6.5 Orthometric example: Two height differences, two shared points ............................................ 36 
+7 Practical considerations ...................................................................................................................... 37 
+7.1 Dealing with a dispersion matrix of projected observations that is less sparse than the 
+dispersion matrix of observations .......................................................................................................... 39 
+8 Summary ............................................................................................................................................. 43 
+9 Bibliography ........................................................................................................................................ 44 
+10 Appendix A:  Dealing with the singularity arising from one baseline with two common points........ 45 
+ 
+ 
+
+##########################################################################
+### PDF page 4 (of 52)   matches: Epoch, IFDM, epoch, intra-frame
+##########################################################################
+iv 
+ 
+Executive Summary 
+ 
+The National Geodetic Survey (NGS) plans to modernized the National Spatial Reference 
+System (NSRS) in 2025.  One part of that modernization is the estimation of both geometric and 
+orthometric reference epoch coordinates (RECs) from decades of existing GNSS, classical and 
+leveling observations. 
+To support the estimation of RECs, NGS published a report outlining the mathematics necessary 
+to not only project observations through time to the reference epoch but also to properly account 
+for the uncertainties in the models used to do the projecting (The Multi-Epoch Least-Squares 
+Adjustment Problem: Models Relating Estimable Parameters at a Single Epoch to Geodetic 
+Observations, Stochastic Constraints and Fixed Constraints at Multiple Epochs, Volume I: The 
+Projection Method, Smith, Gillins, Heck and Roman, July 2023, NOAA Technical Report NOS 
+NGS 79).  That report outlined how observations (and constraints) across various epochs could 
+be projected through time using a model of changes to parameter values (MCPV).  However, the 
+report only provided generalized equations and left unsolved certain practical aspects of the 
+application of the equations.   
+One of those practical aspects centered on questions of covariances:  Will they exist in the 
+models and even if they do not, will they arise out of the method used to create projected 
+observations?  That is the focus of this report. 
+Herein the author explored these questions, and more.  The first subject addressed was the 
+relationship between the abstract mathematical construct of the MCPV and the available geodetic 
+value change models (GVCMs), such as the intra-frame deformation model (IFDM2022) and the 
+dynamic geoid model (DGEOID2022).  Next, equations are derived which would properly use 
+covariances which might exist in the GVCMs.  However, the conclusion reached is that if such 
+covariances exist, then the cofactor matrix of the projected observations becomes full and for 
+large least-squares adjustment problems, this becomes a practical impossibility to invert.   
+The author then assumes such covariances will be unknown (or ignored) and shows how 
+additional covariances arise simply through the process of projecting, when observations share a 
+common point.  The author then addresses the practical impacts of these additional covariances, 
+and finally concludes that the only practical approach is to ignore certain covariances entirely 
+and forcibly construct the cofactor matrix of the projected observations to exactly match the 
+structure (diagonal and/or block-diagonal) of the cofactor matrix of the original observations. 
+The author closes the paper with a summary, and an appendix which discusses certain special 
+circumstances when the cofactor matrix of the projected observations might be singular. 
+ 
+  
+
+##########################################################################
+### PDF page 5 (of 52)   matches: EPP2022, Euler Pole, IFDM, epoch, intra-frame
+##########################################################################
+1 
+ 
+1 Introduction 
+In one method of modeling of the multi-epoch least-squares adjustment (ME-LSA) problem 
+(Smith et al., 2023), observations (𝒀𝒀) taken across a variety of observation epochs are projected 
+through time into projected observations (𝒀𝒀�) at the adjustment epoch.  The differences between 
+observations and projected observations are a function changes to the parameter values from the 
+observation epoch to the adjustment epoch, which come from a model of changes to parameter 
+values (MCPV).  Similar statements can be made about constraints and projected constraints.  
+However, in the modernized national spatial reference system (NSRS; NGS 2021a, NGS 2021b, 
+NGS 2021c), the estimation of reference epoch coordinates (RECs) by the National Geodetic 
+Survey (NGS) will be performed under a strict set of rules, one of which will be that fixed and 
+stochastic constraints will only be imposed at the adjustment epoch.  As such, in REC adjustment 
+projects the MCPV will only impact the observation equations, not the constraint equations, and 
+so there will be no difference between constraints and projected constraints.  Therefore, we will 
+focus solely on the impact of the MCPV upon projected observations. 
+Complicating this situation, NGS does not have any models which fulfill the definition of the 
+MCPV as per (ibid)1.  Rather, NGS has related models, such as the intra-frame deformation 
+model of 2022 (IFDM2022), and DGEOID2022.  Such models fall into a class called geodetic 
+value change models (GVCM)2.  Thankfully, the MCPV can be derived from one or more 
+GVCMs.  This was discussed in (ibid) and will be expanded in this report. 
+If the MCPV is known without variance (i.e., fixed), then the dispersion matrix of the projected 
+observations, Σ𝑦𝑦�, will be identical to the dispersion matrix of the observations, Σ𝑦𝑦.  This is 
+essentially what was done in the 2011 National Adjustment (Dennis, 2020).  See section 3.1.    
+However, if the MCPV is known with variance (i.e., stochastic), then the dispersion matrix of the 
+projected observations, Σ𝑦𝑦�, will be the sum of the dispersion matrix of the observations, Σ𝑦𝑦,  plus 
+the dispersion matrix of the MCPV contribution to the projected observations, Σ𝑦𝑦�,𝑚𝑚.   
+If all of the GVCMs are fixed, so too is the MCPV.  If at least one GVCM is stochastic, the 
+MCPV is stochastic. 
+The primary issue examined in this report is how to compute matrix Σ𝑦𝑦�,𝑚𝑚 when given one or more 
+GVCMs, with special attention placed on which, if any, covariances are provided in the GVCM.  
+A related issue is that the matrix Σ𝑦𝑦�,𝑚𝑚 might be significantly less sparse than Σ𝑦𝑦, making Σ𝑦𝑦� less 
+sparse by extension.  This report discusses what causes the loss of sparsity in Σ𝑦𝑦�,𝑚𝑚, the practical 
+ 
+1 That is, no model at NGS is constructed as changes over time to Earth-centered Earth-fixed Cartesian coordinates 
+𝑋𝑋, 𝑌𝑌, 𝑍𝑍, as required for geometric adjustments.    Nor does a model exist at NGS constructed as changes over time to 
+orthometric heights 𝐻𝐻, as required for orthometric adjustments. 
+2 This term was carefully chosen.  First, its acronym does not begin with “M”, helping the reader to distinguish 
+between MCPV and GVCM at a glance.  Second, it is generic, where geodetic value can refer to just about anything.  
+In IFDM2022 it refers to local East-North-Up changes (velocities and displacements).  In DGEOID2022 it refers to 
+local changes (velocities only) to the geoid undulation.  In theory, the Euler Pole Parameter model of 2022 
+(EPP2022), will be a GVCM since it will contain rotation rates about the ITRF2020 axes which represent changes to 
+geodetic values, from which changes to 𝑋𝑋, 𝑌𝑌 and 𝑍𝑍 may be derived. 
+
+##########################################################################
+### PDF page 6 (of 52)   matches: IFDM, epoch
+##########################################################################
+2 
+ 
+difficulties arising from that loss of sparsity and makes recommendations as to how to alleviate 
+those difficulties.   
+The bulk of this report is in sections 5 and 6, covering geometric adjustments and orthometric 
+adjustments.  As these two different types of adjustments have their own GVCMs and their own 
+particular issues, they must be discussed separately.  In each of those two sections, we will begin 
+with a general discussion of projected observations, and show how to compute the diagonal or 
+block-diagonal elements of Σ𝑦𝑦�,𝑚𝑚 for each observation type.  We will then turn to the off-diagonal 
+elements of Σ𝑦𝑦�,𝑚𝑚 by examining certain special cases.  We will show in section 7 how knowledge 
+of covariances within the GVCM (and the MCPV, by extension) is one of the two main causes of 
+loss of sparsity in Σ𝑦𝑦�,𝑚𝑚, and that the other primary cause is shared points between two 
+observations.  The shared points issue can cause loss of sparsity if the GVCMs contain grids of 
+linear velocities or grids of discontinuities that are used in common between two projected 
+observations (even if no covariances are available in the GVCM), which happens to be exactly the 
+situation with IFDM2022 and DGEOID2022. 
+We will close the paper with a discussion of practical issues, specifically seeking a compromise 
+between knowledge of off-diagonal elements in Σ𝑦𝑦�,𝑚𝑚 and the practical implications of those 
+elements being non-zero. 
+ 
+1.1 Terminology and notation 
+A few words about dispersion, cofactor and weight matrices are warranted.  As pointed out in 
+Appendix A of Smith et al. (2023): 
+“…dispersion  matrices (represented by Σ) are not generally available for either 
+observations, stochastic constraints or a GVCM.  Rather, one or more cofactor matrices 
+(represented by 𝑄𝑄) are available, with the relationship between dispersion matrices and 
+cofactor matrices being through one or more variance components… ”.  
+If a single variance component exists, relating each dispersion matrix to one cofactor matrix, this 
+is the Gauss-Markov Model, or GMM (Snow, 2021).  If each dispersion matrix is related to 
+multiple cofactor matrices through multiple variance components, this is the Variance Component 
+Model, or VCM (ibid). 
+Within the GMM, the inverse of a cofactor matrix is called a weight matrix, represented by a 𝑃𝑃.  
+Weight matrices, in general, do not exist in the VCM, as cofactor matrices in that model tend to 
+be singular.   
+Because the equations for the VCM are different from the GMM, this report will restrict its 
+discussion to dispersion matrices in general, despite their lack of availability, and will only 
+introduce cofactor matrices when necessary. 
+Additionally, we adopt similar notation as was used in Smith et al. (2023).  Specifically, when 
+discussing a particular observation epoch, we will use the variable 𝑖𝑖.  The adjustment epoch will 
+not have an index variable.  Related to this are the actual times of the epochs themselves.  The 
+
+##########################################################################
+### PDF page 7 (of 52)   matches: epoch
+##########################################################################
+3 
+ 
+time of observation epoch 𝑖𝑖 will be designated by variable 𝑡𝑡𝑖𝑖, and the time of the adjustment 
+epoch will be designated by variable 𝑡𝑡𝑎𝑎. 
+Finally, because some of the vectors and matrices will get a bit large for the printed page, it will 
+sometimes be difficult to show every element of them.  Therefore, we will often look at block-
+rows, and block-columns.  To do so, we adopt the notation that a bold variable means vector.  
+Thus, variable 𝑋𝑋 (not bold) means the 𝑋𝑋 coordinate (of a Cartesian triad) but 𝑿𝑿 (bold), means a 
+vector containing all three Cartesian coordinates as follows: 
+𝑿𝑿 = [𝑋𝑋 𝑌𝑌 𝑍𝑍]𝑇𝑇, (1) 
+𝚫𝚫𝑿𝑿 = [Δ𝑋𝑋 Δ𝑌𝑌 Δ𝑍𝑍]𝑇𝑇, (2) 
+𝑬𝑬 = [𝐸𝐸 𝑁𝑁 ℎ]𝑇𝑇, (3) 
+𝚫𝚫𝑬𝑬 = [Δ𝐸𝐸 Δ𝑁𝑁 Δℎ]𝑇𝑇, (4) 
+𝑬𝑬̇ = [𝐸𝐸̇ 𝑁𝑁̇ ℎ̇ ]𝑇𝑇. (5) 
+ 
+2 Special case of the multi-epoch least-squares adjustment problem as 
+applied to reference epoch coordinates  
+In the projection method of the ME-LSA problem (Smith et al., 2023), the incremental projected 
+observation equations and incremental projected constraint equations, using a stochastic MCPV, 
+take this form: 
+𝒚𝒚� = 𝐴𝐴̅𝝃𝝃 + 𝒆𝒆𝒚𝒚�, 
+𝒘𝒘� = 𝑆𝑆̅𝝃𝝃 + 𝒆𝒆𝒘𝒘� , 
+𝒈𝒈� = 𝐹𝐹�𝑔𝑔𝝃𝝃 + 𝒆𝒆𝒈𝒈�, 
+𝜸𝜸�𝒂𝒂 = 𝐹𝐹�𝜸𝜸𝝃𝝃. 
+(6) 
+ 
+The random errors in (6) are distributed as: 
+�
+𝒆𝒆𝒚𝒚�
+𝒆𝒆𝒘𝒘�
+𝒆𝒆𝒈𝒈�
+� ~ ��
+0
+0
+0
+� , �
+Σ𝑦𝑦� 0 0
+0 Σ𝑤𝑤� 0
+0 0 Σ𝑔𝑔�
+� = �
+Σ𝑦𝑦 + Σ𝑦𝑦�,𝑚𝑚 0 0
+0 Σ𝑤𝑤 + Σ𝑤𝑤� ,𝑚𝑚 0
+0 0 Σ𝑔𝑔�,𝑚𝑚
+��. (7) 
+ 
+Equations 6 and 7 are the general form of the projection method of modeling the ME-LSA 
+problem.  However, as mentioned in the introduction, this paper will focus on one specific 
+scenario of the ME-LSA problem, with the following criteria: 
+a) The MCPV is stochastic, and 
+b) All constraints (fixed or stochastic) will only be provided at the adjustment epoch. 
+This is done for a few reasons.  First, using a stochastic MCPV provides a rigorous, consistent 
+way for older observations to be down-weighted relative to more recent observations.   
+Second, having all constraints at the adjustment epoch allows NGS to restrict them solely to those 
+values that are well-known, without the need to project them through time.  For instance, in a 
+
+##########################################################################
+### PDF page 8 (of 52)   matches: epoch
+##########################################################################
+4 
+ 
+geometric adjustment (ibid), defining constraints solely at the adjustment epoch means NGS can 
+constrain the coordinates at CORSs which were actually operational and had a well-defined 
+coordinate function on the date of the adjustment epoch3.  This restriction on constraints will 
+simplify (6) and (7).  With all constraints at the adjustment epoch, the MCPV has no impact on 
+the constraint equations, and the equations reduce down to 
+𝒚𝒚� = 𝐴𝐴̅𝝃𝝃 + 𝒆𝒆𝒚𝒚�, 
+𝒘𝒘� = 𝑆𝑆̅𝝃𝝃 + 𝒆𝒆𝒘𝒘� , 
+𝜸𝜸�𝒂𝒂 = 𝐹𝐹�𝜸𝜸𝝃𝝃, 
+(8) 
+and 
+�𝒆𝒆𝒚𝒚�
+𝒆𝒆𝒘𝒘�
+� ~ ��0
+0� , �Σ𝑦𝑦� 0
+0 Σ𝑤𝑤�
+� = �Σ𝑦𝑦 + Σ𝑦𝑦�,𝑚𝑚 0
+0 Σ𝑤𝑤
+��. (9) 
+ 
+Note in (9) that Σ𝑤𝑤� ,𝑚𝑚 has been eliminated, as have all matrices and vectors associated with 
+projected fixed constraints (not at the adjustment epoch), 𝒈𝒈�. 
+This scenario will be expected NGS policy with regard to upcoming reference epoch coordinate 
+(REC) and survey epoch coordinate (SEC) adjustments (NGS, 2021c).  Therefore, under these 
+two criteria, most of the remaining discussion will focus on observations, and not constraints. 
+2.1 Two types of adjustments 
+In the modernized NSRS, NGS will compute RECs in two types of adjustments (NGS, 2021c):  
+geometric and orthometric.  Each type of adjustment has a finite list of allowable observation, 
+constraint and unknown parameter types.  In geometric adjustments, the unknown parameters will 
+be Earth-centered Earth-fixed (ECEF) Cartesian coordinates, 𝑋𝑋𝑌𝑌𝑍𝑍.  In orthometric adjustments, 
+they will be orthometric heights, 𝐻𝐻.   
+These two types of adjustments will be examined in detail, in particular in sections 5 and 6. 
+3 The relationship between a model of changes to parameter values 
+(MCPV) and a geodetic value change model (GVCM) 
+ 
+Smith et al. (2023) required that the model of changes to parameter values (MCPV) must always 
+refer to the same types of parameters being estimated (𝑋𝑋𝑌𝑌𝑍𝑍 for geometric, 𝐻𝐻 for orthometric).  
+Also, all values coming from the MCPV must be at observation points4 and each value must be a 
+single value of change between some observation epoch 𝑖𝑖 and the adjustment epoch.  For 
+ 
+3 Meaning that older GNSS vectors, for example, which may have a CORS as an endpoint at the observation epoch, 
+but where that CORS no longer exists at the adjustment epoch, will treat neither endpoint as constrained once the 
+observation becomes a projected observation. 
+4 The physical points where observations were collected.  The MCPV must also, according to Smith et al. (2023) 
+provide values at constraint points, but as mentioned earlier, no constraints will be projected through time, so this 
+point is moot. 
+
+##########################################################################
+### PDF page 9 (of 52)   matches: IFDM, NAD 83(2011), epoch, intra-frame
+##########################################################################
+5 
+ 
+example, in a geometric adjustment the MCPV must, for any given observation provide the 
+change to 𝑋𝑋, 𝑌𝑌 and 𝑍𝑍 between 𝑡𝑡𝑖𝑖 and 𝑡𝑡𝑎𝑎, at the point where observation 𝑖𝑖 took place.  Similar 
+changes to 𝐻𝐻 must come from the MCPV for an orthometric adjustment.   
+As pointed out in (ibid) NGS does not have any models which directly provide such values of 
+change.  That is, NGS has no MCPVs.  What is available are various gridded models of change to 
+certain geodetic coordinate values.  In particular the intra-frame deformation model of 2022 
+(IFDM2022) and the dynamic portion of GEOID2022 (i.e., DGEOID2022).  The first is made up 
+of linear velocities (as well as their standard deviations) and episodic displacements (with no 
+standard deviations) in a local East-North-Up (𝐸𝐸𝑁𝑁ℎ, where h represents ellipsoid height as the up 
+direction) frame.  The second is made up entirely of linear velocities (as well as their standard 
+deviations) in geoid undulations, 𝐿𝐿5.  IFDM2022, and its predecessor, the horizontal time-
+dependent positioning program, or HTDP (Snay, 1999), belong to a class of models sometimes 
+called crustal deformation models.  However, DGEOID2022 does not.  For this reason, Smith et 
+al. (2023) adopted the more general term geodetic value change model, or GVCM to group both 
+IFDM2022, DGEOID2022 and any other such models in the future.   
+A quick summary of the differences between the MCPV (needed) and the GVCMs (available) is 
+found in Table 1. 
+Table 1:  A comparison between the MCPV and the various GVCMs from which it may be 
+derived. 
+Model of Changes to Parameters 
+(MCPV) 
+Geodetic Value Change Model  
+(GVCM) 
+Has no name IFDM2022 or DGEOID2022 
+Exists only as a mathematical construct for 
+one least-squares adjustment 
+Exist as stand-alone models outside of an 
+adjustment 
+Needed at observation points Tend to be provided in grid form 
+Must reflect changes to parameters of the 
+adjustment:  either 𝑋𝑋𝑌𝑌𝑍𝑍 for geometric or 𝐻𝐻 
+for orthometric 
+Tend to be changes to 𝐸𝐸𝑁𝑁ℎ (IFDM2022) or 
+𝐿𝐿 (DGEOID2022) 
+Provides a single value, in the units of the 
+appropriate parameter, for any given 
+parameter, point and epoch. 
+May contain multiple types of values 
+including velocities (length/time) and 
+episodic displacements (lengths). 
+ 
+3.1 An historic example:  The National Adjustment of 2011 
+The 2011 national adjustment of GPS measured baselines6 estimated coordinates at passive 
+control in the NAD 83(2011) frame at epoch 2010.00 (Dennis, 2020).  It was a geometric 
+adjustment, whose unknown parameters were Earth-centered, Earth-fixed Cartesian coordinates 
+𝑋𝑋𝑌𝑌𝑍𝑍.  The MCPV (though this term was not yet used) was derived from HTDP, a type of GVCM.   
+ 
+5 Although 𝑁𝑁 is the traditional variable for geoid undulation, it is already being used to mean “North” in this report.  
+6 More often called GPS vectors, the term measured baseline will be used in this paper to avoid confusion with the 
+term vector, which will be used exclusively in its linear algebra context, meaning a one-dimensional column array. 
+
+##########################################################################
+### PDF page 10 (of 52)   matches: IFDM, epoch
+##########################################################################
+6 
+ 
+HTDP contains grids of linear velocities in the north and east direction, very few linear velocities 
+in the up direction, and models of displacing events7 (which can be converted into instantaneous 
+displacement vectors), but no variances on any of these quantities.  The HTDP software, which 
+reads and uses the HTDP grids and models, is capable of applying 𝐸𝐸𝑁𝑁ℎ velocities over time and 
+displacement vectors at specific epochs to form total 𝐸𝐸𝑁𝑁ℎ change vectors between two epochs, 
+then rotating the total change vectors into an 𝑋𝑋𝑌𝑌𝑍𝑍 frame to serve as the MCPV.  However, with 
+no variances, this meant that the MCPV was treated as fixed, and thus older GPS measured 
+baselines were not rigorously and consistently down-weighted relative to more recent ones.8   
+3.2 Changes that will come with the modernized NSRS 
+For the modernized NSRS, a few things will be different than in the past. 
+First, the effectively 2-D (East and North) HTDP will be replaced with a 3-D IFDM2022.   
+Second, the GVCM will not be treated as fixed, but rather will have some statistical information.  
+The most obvious and available information will be in the form of grids of standard deviations of 
+velocities, which can be squared to yield variances.  What is less clear is the availability of 
+covariances in the GVCM.  Therefore, in this report we will address both the situation when 
+covariances are known and when they are unknown in the GVCM and what that will mean for the 
+sparsity of the dispersion matrix of the projected observations Σ𝑦𝑦�. 
+3.3 Covariances and their effect on sparsity 
+This question of sparsity is very important.  As mentioned earlier, the dispersion matrix of the 
+projected observations Σ𝑦𝑦� is a combination of the dispersion matrix of the observations Σ𝑦𝑦 and the 
+dispersion matrix of the MCPV contribution to projected observations Σ𝑦𝑦�,𝑚𝑚.  Since nearly every 
+observation in the geometric and orthometric adjustments will be a function of the coordinates 
+(parameters) at two or three points, that means the dispersion matrix Σ𝑦𝑦�,𝑚𝑚 should, if possible, 
+account for the covariances between those two or three points to compute the correct dispersion 
+for a single projected observation. 
+In fact, it gets much more complicated than that.  In the discussion of random errors in Smith et 
+al. (2023, Appendix A), some choices were made to ignore certain covariances.  The justification 
+given in (ibid) was to keep the dispersion (or cofactor) matrices sparse, rather than full.  Herein 
+we will go into greater detail on that exact topic. 
+One of the choices made in (ibid) was to ignore covariances between epochs in the MCPV.  This 
+choice is not made lightly, because, as stated in (ibid): 
+“When the GVCM is mostly grids of linear velocities, error covariances between 
+epochs…at the same point will always exist.” 
+ 
+7 Although the only displacing events in HTDP are earthquakes, it is conceivable that other events, such as landslides 
+or volcanic eruptions could be added to future GVCMs, and so we adopt the generic term “event” for this paper. 
+8 Actually, some modifications were made to the projected observation weight matrix to account for some 
+observations in subsidence areas, but no systematic attempt was made to propagate MCPV errors through time. 
+
+##########################################################################
+### PDF page 11 (of 52)   matches: IFDM, epoch
+##########################################################################
+7 
+ 
+However, in (ibid) this choice was nonetheless made, so as to simplify the dispersion matrices in 
+the ME-LSA problem.  This paper revisits that choice, and provides more details on how to treat 
+the available covariances between epochs in a practical way.  We will discuss this in section 7, 
+but as a brief glimpse of what is coming, we will conclude, in sections 5.4 and 6.4, that two 
+uncorrelated observations will become two correlated projected observations if we rely upon a 
+common grid of velocities from the GVCM and either have (a) at least one common point 
+between the two observations or (b) have covariances between two velocities at a distance from 
+one another.   
+Both of these situations have substantial implications on the sparsity of Σ𝑦𝑦�,𝑚𝑚, and thus Σ𝑦𝑦�, which 
+is why the choice to ignore the GVCM covariances was proposed in (ibid).  Some of the missing 
+details from (ibid) have been provided herein, and a practical solution to the lack of sparsity will 
+be discussed in section 7. 
+Before going any further, we briefly address the complication that GVCMs are currently available 
+on grids, while the MCPVs are needed at observation points. 
+4 Interpolating the geodetic value change model (GVCM) from grid 
+nodes to observation points 
+In Table 1, we pointed out the main differences between the GVCMs and the MCPV.  One of 
+those differences was requiring values from the MCPV at observation points while having values 
+from the GVCMs on grids.  This is a small complication, and one that can be easily addressed. 
+The two GVCMs from NGS (IFDM2022 and GEOID2022) will, for the immediate future, consist 
+of gridded data that always come in pairs:  one grid for data values and one grid for standard 
+deviations of those data values.  Most NGS products and services which use these grids will use 
+interpolation to derive a data value at some point of interest, based on grid nodes that surround 
+that point.  As pointed out in Smith (2023), the question of properly computing the standard 
+deviation of a value interpolated from grid nodes is complicated by the need for, and general lack 
+of, knowledge about covariances between grid nodes.  However, as Smith (ibid) concluded, a 
+realistic, though always slightly pessimistic, estimation of the standard deviation of an 
+interpolated value can be computed by applying the same interpolation scheme to the grid of 
+standard deviations as was applied to the data grid.  This can be done without any knowledge of 
+covariances between grid nodes. 
+As such, though the GVCM is given on grid nodes, and the MCPV is needed at observation 
+points, the use of interpolation from the gridded GVCM (data and standard deviation grids both) 
+will be assumed to yield correct data values and acceptable (if not entirely correct) standard 
+deviations of those data values at the points where the MCPV is needed. 
+To put it more simply, further discussion of the GVCMs will assume that their values (and the 
+standard deviations of those values) are available at any given point, and not just at grid nodes. 
+The next two sections contain similar discussions about the relation between GVCMs and the 
+MCPV, and the role of covariances.  Three types of covariances will be discussed:  those that are 
+
+##########################################################################
+### PDF page 12 (of 52)   matches: IFDM, epoch
+##########################################################################
+8 
+ 
+known in the GVCM, those that arise from frame rotations between the GVCM and MCPV 
+(geometric adjustments only), and those that arise when two observations share common points.  
+Each section is laid out the same, first discussing a single point, then a single observation, and 
+finally discussing the relation between any two observations with zero, one or two points in 
+common.  Section 5 covers these topics for geometric adjustments, while section 6 covers them 
+for orthometric adjustments. 
+5 Geometric Adjustments 
+Parameters estimated in geometric REC adjustments will be global Cartesian coordinates at a 
+reference epoch, with some nuisance parameters estimated as well.  Observations will include 
+GNSS measured baselines (GMBs) and classical (angle/distance) observations, though the 
+possibility of PPP coordinates as an observation type are being considered.  Constraints will be 
+global Cartesian coordinates at active control stations at the reference epoch. 
+5.1 Converting the GVCM to the MCPV at a single point 
+In the case of geometric adjustments, the equations which will convert IFDM2022 (as the 
+GVCM) into the MCPV, for any given point (𝐴𝐴), at epoch 𝑖𝑖, are derived in this section.   
+We begin by stating that IFDM2022 consists of: 
+• One set of six grids being three grids of linear velocities, in 𝐸𝐸𝑁𝑁ℎ, and three grids of their 
+standard deviations 
+• Multiple sets of six grids of displacements, in 𝐸𝐸𝑁𝑁ℎ, (one set per event) each set being 
+three grids of displacements and three grids of their standard deviations. 
+While the grids of velocities can be easily visualized as having some non-zero value everywhere, 
+that situation is less clear with displacements, since displacing events tend to have a finite radius 
+within which they move the crust.  Therefore, we will explicitly make what we will call, our 
+displacement assumption:   
+For every event, 𝑘𝑘, within the GVCM, there will be a [Δ𝐸𝐸, Δ𝑁𝑁, Δℎ]𝑇𝑇 vector, and its 
+related vector of standard deviations9, at every grid point. 
+Next, we define rotation matrix 𝑅𝑅𝐴𝐴. 
+𝑅𝑅𝐴𝐴 = �
+− sin λ𝐴𝐴 − cos λ𝐴𝐴 sin ϕ𝐴𝐴 cos λ𝐴𝐴 cos ϕ𝐴𝐴
+cos λ𝐴𝐴 − sin λ𝐴𝐴 sin ϕ𝐴𝐴 sin λ𝐴𝐴 cos ϕ𝐴𝐴
+0 cos ϕ𝐴𝐴 sin ϕ𝐴𝐴
+� (10) 
+ 
+In (10), ϕ𝐴𝐴 and λ𝐴𝐴 are the geodetic latitude and longitude of point 𝐴𝐴, respectively.  Matrix 𝑅𝑅𝐴𝐴 is 
+the rotation matrix used to convert changes in a local 𝐸𝐸𝑁𝑁ℎ horizon system into changes in a 
+ 
+9 Such vectors of displacement and their standard deviations might have magnitudes of zero (especially if a point is 
+a far distance from the epicenter of a displacement event), but in general should still exist. 
+
+##########################################################################
+### PDF page 13 (of 52)   matches: IFDM, epoch
+##########################################################################
+9 
+ 
+global ECEF Cartesian 𝑋𝑋𝑌𝑌𝑍𝑍 system.  It will be critical for converting any geometric GVCMs that 
+have their various values stored in 𝐸𝐸𝑁𝑁ℎ into the MCPV.  
+Let the set of all events, 𝑘𝑘, which falls between epoch 𝑖𝑖 and the adjustment epoch be called 𝐾𝐾(𝑖𝑖).  
+Then, for each 𝑘𝑘 ∈ 𝐾𝐾(𝑖𝑖) we can convert the 𝐸𝐸𝑁𝑁ℎ displacements provided by the GVCM into 𝑋𝑋𝑌𝑌𝑍𝑍 
+displacements, required to populate the MCPV in a geometric adjustment as follows: 
+�
+𝛥𝛥𝑋𝑋𝐴𝐴,𝑖𝑖
+𝛥𝛥𝑌𝑌𝐴𝐴,𝑖𝑖
+𝛥𝛥𝑍𝑍𝐴𝐴,𝑖𝑖
+�
+𝑘𝑘
+= 𝑅𝑅𝐴𝐴 �
+Δ𝐸𝐸𝐴𝐴,𝑘𝑘
+Δ𝑁𝑁𝐴𝐴,𝑘𝑘
+Δℎ𝐴𝐴,𝑘𝑘
+�   ∀  𝑘𝑘 ∈ 𝐾𝐾(𝑖𝑖). (11) 
+ 
+Subscript 𝑘𝑘 on the left side means “contribution to the MCPV from the 𝑘𝑘𝑡𝑡ℎ event.”   
+Unlike displacements from events, linear velocities must first be converted to displacements, by 
+multiplying by the time span from epoch 𝑖𝑖 to the adjustment epoch, and then rotated from 𝐸𝐸𝑁𝑁ℎ to 
+𝑋𝑋𝑌𝑌𝑍𝑍, as follows:  
+�
+Δ𝑋𝑋𝐴𝐴,𝑖𝑖
+Δ𝑌𝑌𝐴𝐴,𝑖𝑖
+Δ𝑍𝑍𝐴𝐴,𝑖𝑖
+�
+𝑣𝑣
+= 𝑅𝑅𝐴𝐴(𝑡𝑡𝑖𝑖 − 𝑡𝑡𝑎𝑎) �
+𝐸𝐸̇𝐴𝐴
+𝑁𝑁̇𝐴𝐴
+ℎ̇𝐴𝐴
+� = Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐴𝐴 �
+𝐸𝐸̇𝐴𝐴
+𝑁𝑁̇𝐴𝐴
+ℎ̇𝐴𝐴
+� (12) 
+ 
+Subscript 𝑣𝑣 means “contribution to the MCPV from velocities”. 
+Note the replacement of (𝑡𝑡𝑖𝑖 − 𝑡𝑡𝑎𝑎) with Δ𝑡𝑡𝑖𝑖, a shorthand for this scalar quantity which will be used 
+throughout the rest of the paper.  Note also the lack of subscript 𝑖𝑖 on 𝐸𝐸̇𝐴𝐴, 𝑁𝑁̇𝐴𝐴 and ℎ̇𝐴𝐴.  This is 
+because these velocities are constant.  We will see later that this is an important point, causing 
+covariances between projected observations that share points.  This will be discussed in sections 
+5.4 and 6.4. 
+The total change to the parameter values (the MCPV), for geometric adjustments, as derived from 
+an 𝐸𝐸𝑁𝑁ℎ-based GVCM (IFDM2022) at grid node 𝐴𝐴, between observation epoch 𝑖𝑖 and the 
+adjustment epoch is found by combining (12) with the sum of all displacements in (11), to yield: 
+�
+Δ𝑋𝑋𝐴𝐴,𝑖𝑖
+Δ𝑌𝑌𝐴𝐴,𝑖𝑖
+Δ𝑍𝑍𝐴𝐴,𝑖𝑖
+� = �
+Δ𝑋𝑋𝐴𝐴,𝑖𝑖
+Δ𝑌𝑌𝐴𝐴,𝑖𝑖
+Δ𝑍𝑍𝐴𝐴,𝑖𝑖
+�
+𝑣𝑣
++ 𝑠𝑠𝑠𝑠𝑠𝑠(Δ𝑡𝑡𝑖𝑖) � �
+𝛥𝛥𝑋𝑋𝐴𝐴,𝑖𝑖
+𝛥𝛥𝑌𝑌𝐴𝐴,𝑖𝑖
+𝛥𝛥𝑍𝑍𝐴𝐴,𝑖𝑖
+�
+𝑘𝑘𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+= 𝑅𝑅𝐴𝐴
+⎝
+⎛Δ𝑡𝑡𝑖𝑖 �
+𝐸𝐸̇𝐴𝐴
+𝑁𝑁̇𝐴𝐴
+ℎ̇𝐴𝐴
+� + 𝑠𝑠𝑠𝑠𝑠𝑠(Δ𝑡𝑡𝑖𝑖) � �
+Δ𝐸𝐸𝐴𝐴,𝑘𝑘
+Δ𝑁𝑁𝐴𝐴,𝑘𝑘
+Δℎ𝐴𝐴,𝑘𝑘
+�
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖) ⎠
+⎞
+= 𝑅𝑅𝐴𝐴
+⎝
+⎛Δ𝑡𝑡𝑖𝑖 �
+𝐸𝐸̇𝐴𝐴
+𝑁𝑁̇𝐴𝐴
+ℎ̇𝐴𝐴
+� + 𝑞𝑞𝑖𝑖 � �
+Δ𝐸𝐸𝐴𝐴,𝑘𝑘
+Δ𝑁𝑁𝐴𝐴,𝑘𝑘
+Δℎ𝐴𝐴,𝑘𝑘
+�
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖) ⎠
+⎞, 
+(13a) 
+ 
+where 
+
+##########################################################################
+### PDF page 14 (of 52)   matches: epoch
+##########################################################################
+10 
+ 
+𝑞𝑞𝑖𝑖 = 𝑠𝑠𝑠𝑠𝑠𝑠(Δ𝑡𝑡𝑖𝑖) = �
++1  if (Δ𝑡𝑡𝑖𝑖) > 0
+−1  if (Δ𝑡𝑡𝑖𝑖) < 0
+0  if (Δ𝑡𝑡𝑖𝑖) = 0.
+ (13b) 
+Because velocities and displacements are both modeled in the temporal direction of earlier-to-
+later10, they must be applied negatively when the observation epoch precedes the adjustment 
+epoch (Δ𝑡𝑡𝑖𝑖 < 0) and positively when the adjustment epoch precedes the observation epoch (Δ𝑡𝑡𝑖𝑖 >
+0).  This need to change the sign is applied automatically to the velocities, since they are 
+multiplied by Δ𝑡𝑡𝑖𝑖 and thus adopt the sign of Δ𝑡𝑡𝑖𝑖.  However, no such situation happens with the 
+displacements, which is why the 𝑠𝑠𝑠𝑠𝑠𝑠(Δ𝑡𝑡𝑖𝑖) operator was inserted in (13).  However, since 
+inserting that operator into every equation will grow cumbersome, we set it equal to 𝑞𝑞 for the rest 
+of the paper.   
+The changes to parameter values seen in (13) are only half of what we need.  Since the MCPV is 
+stochastic, we also need the dispersions of these changes.  We therefore apply the law of error 
+propagation to (13), to arrive at the dispersion matrix Σ𝑀𝑀𝑖𝑖 of the MCPV applied to all parameters 
+for epoch 𝑖𝑖 (see Smith et al., 2023), as follows: 
+Σ𝑀𝑀𝑖𝑖 = 𝐷𝐷 ��
+Δ𝑋𝑋𝐴𝐴,𝑖𝑖
+Δ𝑌𝑌𝐴𝐴,𝑖𝑖
+Δ𝑍𝑍𝐴𝐴,𝑖𝑖
+�� = 𝐷𝐷
+⎩
+⎨
+⎧
+𝑅𝑅𝐴𝐴
+⎝
+⎛Δ𝑡𝑡𝑖𝑖 �
+𝐸𝐸̇𝐴𝐴
+𝑁𝑁̇𝐴𝐴
+ℎ̇𝐴𝐴
+� + 𝑞𝑞𝑖𝑖 � �
+Δ𝐸𝐸𝐴𝐴,𝑘𝑘
+Δ𝑁𝑁𝐴𝐴,𝑘𝑘
+Δℎ𝐴𝐴,𝑘𝑘
+�
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖) ⎠
+⎞
+⎭
+⎬
+⎫
+= 𝑅𝑅𝐴𝐴𝐷𝐷
+⎩
+⎨
+⎧
+Δ𝑡𝑡𝑖𝑖 �
+𝐸𝐸̇𝐴𝐴
+𝑁𝑁̇𝐴𝐴
+ℎ̇𝐴𝐴
+� + 𝑞𝑞𝑖𝑖 � �
+Δ𝐸𝐸𝐴𝐴,𝑘𝑘
+Δ𝑁𝑁𝐴𝐴,𝑘𝑘
+Δℎ𝐴𝐴,𝑘𝑘
+�
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖) ⎭
+⎬
+⎫
+𝑅𝑅𝐴𝐴
+𝑇𝑇
+= 𝑅𝑅𝐴𝐴
+⎝
+⎛Δ𝑡𝑡𝑖𝑖
+2𝐷𝐷 ��
+𝐸𝐸̇𝐴𝐴
+𝑁𝑁̇𝐴𝐴
+ℎ̇𝐴𝐴
+�� + 𝑞𝑞𝑖𝑖
+2 � 𝐷𝐷 ��
+Δ𝐸𝐸𝐴𝐴,𝑘𝑘
+Δ𝑁𝑁𝐴𝐴,𝑘𝑘
+Δℎ𝐴𝐴,𝑘𝑘
+��
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖) ⎠
+⎞ 𝑅𝑅𝐴𝐴
+𝑇𝑇
+= 𝑅𝑅𝐴𝐴
+⎝
+⎛Δ𝑡𝑡𝑖𝑖
+2𝐷𝐷 ��
+𝐸𝐸̇𝐴𝐴
+𝑁𝑁̇𝐴𝐴
+ℎ̇𝐴𝐴
+�� + � 𝐷𝐷 ��
+Δ𝐸𝐸𝐴𝐴,𝑘𝑘
+Δ𝑁𝑁𝐴𝐴,𝑘𝑘
+Δℎ𝐴𝐴,𝑘𝑘
+��
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖) ⎠
+⎞ 𝑅𝑅𝐴𝐴
+𝑇𝑇. 
+(14) 
+ 
+Note that the 𝑠𝑠𝑠𝑠𝑠𝑠 function, when squared, is always +1 unless applied to zero.  In (14) we have 
+assumed that covariances between velocities and displacements, and covariances between any two 
+displacements, will be unknown, and therefore set to zero.  Since, in this example, there are only 
+ 
+10 That is, a positive velocity means that a parameter will grow larger as time goes in the forward direction.  
+Similarly, a positive displacement will mean a parameter grows larger as time goes in the forward direction. 
+
+##########################################################################
+### PDF page 15 (of 52)   matches: epoch
+##########################################################################
+11 
+ 
+three unknown parameters (𝑋𝑋𝐴𝐴, 𝑌𝑌𝐴𝐴, 𝑍𝑍𝐴𝐴), “all parameters”11 encompasses only those three, and 
+means that Σ𝑀𝑀𝑖𝑖 will be a 3 × 3 matrix. 
+Equation 14 is useful because it translates the dispersions of our stochastic GVCM into 
+dispersions of the MCPV itself, though only at a single point, 𝐴𝐴.  That doesn’t get us yet to the 
+dispersion of the contribution of the MCPV to the projected observations, Σ𝑦𝑦�,𝑚𝑚.  To derive that, 
+we must look at actual observations, discussed next. 
+ 
+5.2 Geometric Example:  One observation 
+Unlike orthometric adjustments where only one type of observation is allowed (differential 
+orthometric heights; see section 6), geometric adjustments have a variety of allowable 
+observations.  Some observations relate to a single point only (e.g., PPP coordinates), some relate 
+two points (e.g., GNSS measured baselines, slant distances, zenith angles, geodetic azimuths, 
+unoriented directions), and some relate three points (e.g., horizontal angles).  Some come as triads 
+of values (e.g., PPP coordinates, GNSS measured baselines), while the rest are single values.  
+Some may be related to an unknown nuisance parameter (e.g., slant distances, zenith angles), 
+while some must be related to an unknown nuisance parameter (e.g., unoriented directions).   
+For simplicity, we group these observations into four types:   
+• 1 = Related to one point, no nuisance parameters (PPP) 
+• 2 = Related to two points, no nuisance parameters (slant distances, zenith angles, 
+azimuths, GNSS measured baselines) 
+• 2n = Related to two points and one nuisance parameter (slant distances, zenith 
+angles, unoriented directions) 
+• 3 = Related to three points (horizontal angles) 
+Each of these combinations yields a slightly different situation, with slightly different equations.  
+As many of the details are similar between observation types, we will derive the contribution of 
+the MCPV to the projected observations, Σ𝑦𝑦�,𝑚𝑚 for a single type of observation, specifically 2n, 
+(slant distances, zenith angles, unoriented directions) and extrapolate conclusions to the other 
+observation types afterwards.   
+Consider, in general, one observation (of any type) made at epoch 𝑖𝑖: 
+𝒀𝒀𝒊𝒊 = 𝑎𝑎𝑖𝑖(𝚵𝚵𝒊𝒊) + 𝒆𝒆𝒚𝒚𝒊𝒊   ,   𝒆𝒆𝒚𝒚𝒊𝒊~ �𝟎𝟎, 𝚺𝚺𝒚𝒚𝒊𝒊
+�. (15) 
+As per the previous paragraphs, note that observation vector 𝒀𝒀𝒊𝒊 can be 1 × 1 or 3 × 1, though we 
+may remain general about its size through most of the following derivation. 
+ 
+11 In Smith et al. (2023), matrix Σ𝑀𝑀𝑖𝑖 is defined as the dispersion of the changes to values of all parameters between 
+epoch 𝑖𝑖 and the adjustment epoch, not just the parameters at our point of interest.  However, in this case, they are 
+one and the same. 
+
+##########################################################################
+### PDF page 18 (of 52)   matches: IFDM
+##########################################################################
+14 
+ 
+= [𝐴𝐴�𝑖𝑖,𝐴𝐴 𝐴𝐴�𝑖𝑖,𝐵𝐵 𝐴𝐴�𝑖𝑖,𝑠𝑠] �
+𝑅𝑅𝐴𝐴 0 0
+0 𝑅𝑅𝐵𝐵 0
+0 0 0
+�
+⎝
+⎛Δ𝑡𝑡𝑖𝑖
+2 �
+𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 � 𝐶𝐶�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 , 𝒆𝒆𝑬𝑬̇ 𝑩𝑩 � 0
+𝐶𝐶�𝒆𝒆𝑬𝑬̇ 𝑩𝑩 , 𝒆𝒆𝑬𝑬̇ 𝑨𝑨 � 𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑩𝑩 � 0
+0 0 0
+�
++ � �
+𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 � 𝐶𝐶�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 , 𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 � 0
+𝐶𝐶�𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 , 𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 � 𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 � 0
+0 0 0
+�
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖) ⎠
+⎞ �
+𝑅𝑅𝐴𝐴
+𝑇𝑇 0 0
+0 𝑅𝑅𝐵𝐵
+𝑇𝑇 0
+0 0 0
+�
+𝑇𝑇
+�
+𝐴𝐴�𝑖𝑖,𝐴𝐴
+ 𝑇𝑇
+𝐴𝐴�𝑖𝑖,𝐵𝐵
+ 𝑇𝑇
+𝐴𝐴�𝑖𝑖,𝑠𝑠
+ 𝑇𝑇
+� 
+ 
+= [𝐴𝐴�𝑖𝑖,𝐴𝐴𝑅𝑅𝐴𝐴 𝐴𝐴�𝑖𝑖,𝐵𝐵𝑅𝑅𝐵𝐵 0]
+⎝
+⎛Δ𝑡𝑡𝑖𝑖
+2 �
+𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 � 𝐶𝐶�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 , 𝒆𝒆𝑬𝑬̇ 𝑩𝑩 � 0
+𝐶𝐶�𝒆𝒆𝑬𝑬̇ 𝑩𝑩 , 𝒆𝒆𝑬𝑬̇ 𝑨𝑨 � 𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑩𝑩 � 0
+0 0 0
+�
++ � �
+𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 � 𝐶𝐶�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 , 𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 � 0
+𝐶𝐶�𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 , 𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 � 𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 � 0
+0 0 0
+�
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖) ⎠
+⎞ �
+𝑅𝑅𝐴𝐴
+𝑇𝑇𝐴𝐴�𝑖𝑖,𝐴𝐴
+ 𝑇𝑇
+𝑅𝑅𝐵𝐵
+𝑇𝑇𝐴𝐴�𝑖𝑖,𝐵𝐵
+ 𝑇𝑇
+0
+� 
+ 
+  
+ 
+=
+⎝
+⎛Δ𝑡𝑡𝑖𝑖
+2�𝐴𝐴̅𝑖𝑖,𝐴𝐴𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 � + 𝐴𝐴̅𝑖𝑖,𝐵𝐵𝑅𝑅𝐵𝐵𝐶𝐶�𝒆𝒆𝑬𝑬̇ 𝑩𝑩 , 𝒆𝒆𝑬𝑬̇ 𝑨𝑨 � 𝐴𝐴̅𝑖𝑖,𝐴𝐴𝑅𝑅𝐴𝐴𝐶𝐶�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 , 𝒆𝒆𝑬𝑬̇ 𝑩𝑩 � + 𝐴𝐴̅𝑖𝑖,𝐵𝐵𝑅𝑅𝐵𝐵𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑩𝑩 � 0�
++ � �𝐴𝐴̅𝑖𝑖,𝐴𝐴𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 � + 𝐴𝐴̅𝑖𝑖,𝐵𝐵𝑅𝑅𝐵𝐵𝐶𝐶�𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 , 𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 � 𝐴𝐴̅𝑖𝑖,𝐴𝐴𝑅𝑅𝐴𝐴𝐶𝐶�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 , 𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 � + 𝐴𝐴̅𝑖𝑖,𝐵𝐵𝑅𝑅𝐵𝐵𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 � 0�
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖) ⎠
+⎞ �
+𝑅𝑅𝐴𝐴
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐴𝐴
+ 𝑇𝑇
+𝑅𝑅𝐵𝐵
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐵𝐵
+ 𝑇𝑇
+0
+� 
+ 
+= Δ𝑡𝑡𝑖𝑖
+2�𝐴𝐴̅𝑖𝑖,𝐴𝐴𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 �𝑅𝑅𝐴𝐴
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐴𝐴
+ 𝑇𝑇 + 𝐴𝐴̅𝑖𝑖,𝐵𝐵𝑅𝑅𝐵𝐵𝐶𝐶�𝒆𝒆𝑬𝑬̇ 𝑩𝑩 , 𝒆𝒆𝑬𝑬̇ 𝑨𝑨 �𝑅𝑅𝐴𝐴
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐴𝐴
+ 𝑇𝑇 + 𝐴𝐴̅𝑖𝑖,𝐴𝐴𝑅𝑅𝐴𝐴𝐶𝐶�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 , 𝒆𝒆𝑬𝑬̇ 𝑩𝑩 �𝑅𝑅𝐵𝐵
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐵𝐵
+ 𝑇𝑇 + 𝐴𝐴̅𝑖𝑖,𝐵𝐵𝑅𝑅𝐵𝐵𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑩𝑩 �𝑅𝑅𝐵𝐵
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐵𝐵
+ 𝑇𝑇 �
++ � 𝐴𝐴̅𝑖𝑖,𝐴𝐴𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 �𝑅𝑅𝐴𝐴
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐴𝐴
+ 𝑇𝑇 + 𝐴𝐴̅𝑖𝑖,𝐵𝐵𝑅𝑅𝐵𝐵𝐶𝐶�𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 , 𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 �𝑅𝑅𝐴𝐴
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐴𝐴
+ 𝑇𝑇 + 𝐴𝐴̅𝑖𝑖,𝐴𝐴𝑅𝑅𝐴𝐴𝐶𝐶�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 , 𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 �𝑅𝑅𝐵𝐵
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐵𝐵
+ 𝑇𝑇 + 𝐴𝐴̅𝑖𝑖,𝐵𝐵𝑅𝑅𝐵𝐵𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 �𝑅𝑅𝐵𝐵
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐵𝐵
+ 𝑇𝑇
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+  
+ 
+Note in (18) that covariances between velocities and displacements, and between displacements 
+and other displacements, have been set to zero as mentioned earlier.  However, covariances 
+between velocities at different points and displacements at different points remain, such as 
+𝐶𝐶�𝒆𝒆𝑬𝑬̇ 𝑩𝑩 , 𝒆𝒆𝑬𝑬̇ 𝑨𝑨 � or 𝐶𝐶�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 , 𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 �.  In the future, NGS may have knowledge of such covariances, 
+but for now they will also be set equal to zero since IFDM2022 (called “IFVM2022” in NGS 
+2021a) currently does not contain them.  This reduces (18) to: 
+ 
+Σ𝑦𝑦�,𝑚𝑚 = Δ𝑡𝑡𝑖𝑖
+2�𝐴𝐴̅𝑖𝑖,𝐴𝐴𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 �𝑅𝑅𝐴𝐴
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐴𝐴
+ 𝑇𝑇 + 𝐴𝐴̅𝑖𝑖,𝐵𝐵𝑅𝑅𝐵𝐵𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑩𝑩 �𝑅𝑅𝐵𝐵
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐵𝐵
+ 𝑇𝑇 � + 
+� 𝐴𝐴̅𝑖𝑖,𝐴𝐴𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 �𝑅𝑅𝐴𝐴
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐴𝐴
+ 𝑇𝑇 + 𝐴𝐴̅𝑖𝑖,𝐵𝐵𝑅𝑅𝐵𝐵𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 �𝑅𝑅𝐵𝐵
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐵𝐵
+ 𝑇𝑇
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+. (19) 
+ 
+A few things can be noted about (19).  First, the fact that there is a nuisance parameter associated 
+with this observation had no impact upon matrix Σ𝑦𝑦�,𝑚𝑚.  As such, (19) is valid for both observation 
+
+##########################################################################
+### PDF page 19 (of 52)   matches: IFDM
+##########################################################################
+15 
+ 
+types 2 and 2n.  Second, (19) holds, whether the size of the a 𝒀𝒀𝒊𝒊 vector is 3 × 1 or 1 × 1, though 
+(19) yields a 3 × 3  or 1 × 1  matrix, respectively, for those two cases.  Third, the dispersion 
+matrices 𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 � and 𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑩𝑩 � will be 3 × 3 diagonal matrices, since NGS does not have 
+covariance information between velocities in the East and velocities in the North, etc.   
+Similar derivations can be performed for observation types 1 and 3, but rather than provide full 
+details, we simply provide the final equations, using similar assumptions and approaches. 
+For observation type 1: 
+Σ𝑦𝑦�,𝑚𝑚 = Δ𝑡𝑡𝑖𝑖
+2�𝐴𝐴̅𝑖𝑖,𝐴𝐴𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 �𝑅𝑅𝐴𝐴
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐴𝐴
+ 𝑇𝑇 � + 
+� 𝐴𝐴̅𝑖𝑖,𝐴𝐴𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 �𝑅𝑅𝐴𝐴
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐴𝐴
+ 𝑇𝑇
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+ (20) 
+ 
+For observation type 3: 
+Σ𝑦𝑦�,𝑚𝑚 = Δ𝑡𝑡𝑖𝑖
+2�𝐴𝐴̅𝑖𝑖,𝐴𝐴𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 �𝑅𝑅𝐴𝐴
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐴𝐴
+ 𝑇𝑇 + 𝐴𝐴̅𝑖𝑖,𝐵𝐵𝑅𝑅𝐵𝐵𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑩𝑩 �𝑅𝑅𝐵𝐵
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐵𝐵
+ 𝑇𝑇 + 𝐴𝐴̅𝑖𝑖,𝐶𝐶 𝑅𝑅𝐶𝐶𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑪𝑪 �𝑅𝑅𝐶𝐶
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐶𝐶
+ 𝑇𝑇 � + 
+� 𝐴𝐴̅𝑖𝑖,𝐴𝐴𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 �𝑅𝑅𝐴𝐴
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐴𝐴
+ 𝑇𝑇 + 𝐴𝐴̅𝑖𝑖,𝐵𝐵𝑅𝑅𝐵𝐵𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 �𝑅𝑅𝐵𝐵
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐵𝐵
+ 𝑇𝑇
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
++ 𝐴𝐴̅𝑖𝑖,𝐶𝐶𝑅𝑅𝐶𝐶 𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 �𝑅𝑅𝐶𝐶
+𝑇𝑇𝐴𝐴̅𝑖𝑖,𝐶𝐶
+ 𝑇𝑇  (21) 
+ 
+Equations 19-21 are critical.  They show the relationship between the variance-covariance matrix 
+of the GVCMs (such as IFDM2022) and the contribution of the MCPV to the variance-covariance 
+matrix of projected observations14.  
+One thing which might not be obvious in the above equations is that those geometric observations 
+that are triplicates (PPP coordinates and GNSS measured baselines) that (20), for PPP, and (19), 
+for GNSS measured baselines, will always yield a full 3 × 3  matrix Σ𝑦𝑦�,𝑚𝑚.  This happens because 
+of the presence of the rotation matrices, even if the dispersion matrices of the GVCM, such as 
+𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 �, are diagonal. 
+Therefore, even if by some strange chance the 3 × 3 dispersion matrix Σ𝑦𝑦 of the observations 
+were diagonal15, the addition of a full 3 × 3 matrix Σ𝑦𝑦�,𝑚𝑚 from (19) or (20) to it will guarantee that 
+the 3 × 3 dispersion matrix Σ𝑦𝑦� of the projected observations will be full.  (Recall: we are so far 
+only talking about a single observation and haven’t begun discussing larger Σ𝑦𝑦�,𝑚𝑚 matrices 
+associated with multiple observations.  The full 3 × 3 matrix Σ𝑦𝑦�,𝑚𝑚 for this one observation would 
+ 
+14 This is a good time to remember that we don’t actually have variance-covariance matrices, but rather have 
+cofactor matrices, but the conclusion is the same if one simply replaces variance-covariance with cofactor. 
+15 A very unlikely situation, since most modern GNSS processing software provides, at a minimum, a 3 × 3 block-
+diagonal dispersion matrix for GNSS vector observations.  However, some older software did yield such diagonal 
+matrices. 
+
+##########################################################################
+### PDF page 20 (of 52)   matches: epoch
+##########################################################################
+16 
+ 
+only be a single on-diagonal block of a much larger Σ𝑦𝑦�,𝑚𝑚 in an adjustment with multiple 
+observations.)   
+We may therefore conclude that, for a vector of multiple observations (𝒀𝒀) which contains only 
+GNSS measured baselines or PPP coordinates, and a GVCM parameterized in an 𝐸𝐸𝑁𝑁ℎ system, it 
+is guaranteed that the dispersion matrix Σ𝑦𝑦� of the projected observations will be at least block-
+diagonal, with each block being 3 × 3.   
+What is more interesting, and has greater implications to the ME-LSA problem, are the off-
+diagonal blocks of Σ𝑦𝑦� coming from the off-diagonal blocks of Σ𝑦𝑦�,𝑚𝑚.  To explore those, we will 
+examine a variety of cases between two observations.   
+For now, we will restrict ourselves solely to the case when the two observations are GNSS 
+measured baselines.  The reason for this will not be immediately clear, but in order to stave off 
+any nagging questions arising at this time, we summarize why:  when two otherwise uncorrelated 
+observations share a point, they always map into correlated projected observations.  This has the 
+effect of putting a non-zero value into Σ𝑦𝑦�,𝑚𝑚, and thus Σ𝑦𝑦�, that otherwise was a zero value in Σ𝑦𝑦.  
+Since matrix Σ𝑦𝑦 is generally always diagonal16 or block-diagonal with block sizes being multiples 
+of 3 × 3 (for simultaneously processed GNSS measured baselines), the addition of new non-zero 
+off-diagonal elements in Σ𝑦𝑦�,𝑚𝑚 and thus Σ𝑦𝑦� changes the structure from one that is sparse (and also 
+easy to invert) to one that is more complex (and possibly more difficult to invert).  It is not at all 
+clear that the additional information is worth the cost of significantly changing the mechanics of 
+how the LSA is executed.  Thus, we will conclude, in section 7, that the only time we need 
+consider two observations in computing Σ𝑦𝑦�,𝑚𝑚, is when dealing with two GNSS measured 
+baselines that were processed simultaneously in the same session. 
+Having gotten ahead of ourselves, we now return to the original discussion of the covariances 
+between two observations, but restrict it only to the case of two GNSS measured baselines.  We 
+will look at the situations that two GNSS measured baselines share zero, one or two points.   
+5.3 Geometric example: Two GNSS measured baselines, no shared points 
+Consider one observation vector, containing two observations:  one being a measured baseline 
+from point 𝐴𝐴 to point 𝐵𝐵 at epoch 𝑖𝑖 and the other from point 𝐶𝐶 to point 𝐷𝐷 at epoch 𝑗𝑗.  The 
+observation equation takes this form: 
+𝒀𝒀 = �𝒀𝒀𝒊𝒊
+𝒀𝒀𝒋𝒋
+� + 𝒆𝒆𝒚𝒚  ,   𝒆𝒆𝒚𝒚~�𝟎𝟎, 𝚺𝚺𝒚𝒚�. (22) 
+ 
+Each observation, 𝒀𝒀𝒊𝒊 and 𝒀𝒀𝒋𝒋, is a 3 × 1  vector.  Because the observation equation for GNSS 
+measured baselines is linear, we may expand (22) as such: 
+ 
+16 A case might be made that any two observations, without regard for observation type, made by common 
+observers, at common points, with common instruments on common days are correlated, and thus should have a 
+non-zero off-diagonal element (covariance) in Σ𝑦𝑦.  However, the only software packages which regularly provide 
+covariances between two observations are simultaneous GNSS vector processors. 
+
+##########################################################################
+### PDF page 21 (of 52)   matches: epoch
+##########################################################################
+17 
+ 
+𝒀𝒀 = �𝚫𝚫𝑿𝑿𝑨𝑨𝑩𝑩,𝒊𝒊
+𝚫𝚫𝑿𝑿𝑪𝑪𝑪𝑪,𝒋𝒋
+� + 𝒆𝒆𝒚𝒚 = 𝐴𝐴̅ �𝚵𝚵𝒊𝒊
+𝚵𝚵𝒋𝒋
+� + 𝒆𝒆𝒚𝒚 = � 𝐴𝐴̅𝑖𝑖 03,12
+03,12 𝐴𝐴̅𝑗𝑗
+� �𝚵𝚵𝒊𝒊
+𝚵𝚵𝒋𝒋
+� + 𝒆𝒆𝒚𝒚 
+= �𝐴𝐴̅𝑖𝑖,𝐴𝐴 𝐴𝐴̅𝑖𝑖,𝐵𝐵 0 0 0 0 0 0
+0 0 0 0 0 0 𝐴𝐴̅𝑗𝑗,𝐴𝐴 𝐴𝐴̅𝑗𝑗,𝐵𝐵
+�
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡𝑿𝑿𝑨𝑨,𝒊𝒊
+𝑿𝑿𝑩𝑩,𝒊𝒊
+𝑿𝑿𝑪𝑪,𝒊𝒊
+𝑿𝑿𝑪𝑪,𝒊𝒊
+𝑿𝑿𝑨𝑨,𝒋𝒋
+𝑿𝑿𝑩𝑩,𝒋𝒋
+𝑿𝑿𝑪𝑪,𝒋𝒋
+𝑿𝑿𝑪𝑪,𝒋𝒋⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++ 𝒆𝒆𝒚𝒚 
+= �−𝐼𝐼3 +𝐼𝐼3 0 0 0 0 0 0
+0 0 0 0 0 0 −𝐼𝐼3 +𝐼𝐼3
+�
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡𝑿𝑿𝑨𝑨,𝒊𝒊
+𝑿𝑿𝑩𝑩,𝒊𝒊
+𝑿𝑿𝑪𝑪,𝒊𝒊
+𝑿𝑿𝑪𝑪,𝒊𝒊
+𝑿𝑿𝑨𝑨,𝒋𝒋
+𝑿𝑿𝑩𝑩,𝒋𝒋
+𝑿𝑿𝑪𝑪,𝒋𝒋
+𝑿𝑿𝑪𝑪,𝒋𝒋⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++ 𝒆𝒆𝒚𝒚. 
+(23) 
+ 
+Notice that the observations between two points at one epoch are shown as functions of the 
+coordinates of every point (𝐴𝐴, 𝐵𝐵, 𝐶𝐶, 𝐷𝐷) at every epoch (𝑖𝑖, 𝑗𝑗), which is how Smith et al. (2023) 
+developed the multi-epoch least-squares adjustment (ME-LSA) problem. 
+Now, according to (ibid, equation 23) the observations in (23) need to be mapped into projected 
+observations, using the stochastic MCPV (based on the GVCM).  This mapping yields the 
+projected-observation equation: 
+𝒀𝒀� = 𝒀𝒀 − � 𝐴𝐴̅𝑖𝑖 03,12
+03,12 𝐴𝐴̅𝑗𝑗
+� �𝚫𝚫𝑷𝑷𝒊𝒊,𝑴𝑴
+𝚫𝚫𝑷𝑷𝒋𝒋,𝑴𝑴
+� = 𝒀𝒀 − � 𝐴𝐴̅𝑖𝑖 03,12
+03,12 𝐴𝐴̅𝑗𝑗
+� �
+𝚫𝚫𝚵𝚵𝒊𝒊 + 𝒆𝒆𝑴𝑴𝒊𝒊
+𝚫𝚫𝚵𝚵𝒋𝒋 + 𝒆𝒆𝑴𝑴𝒋𝒋
+� = 𝒀𝒀 − � 𝐴𝐴̅𝑖𝑖 03,12
+03,12 𝐴𝐴̅𝑗𝑗
+�
+⎩
+⎪⎪⎪
+⎨
+⎪⎪⎪
+⎧
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡𝚫𝚫𝑿𝑿𝑨𝑨,𝒊𝒊
+𝚫𝚫𝑿𝑿𝑩𝑩,𝒊𝒊
+𝚫𝚫𝑿𝑿𝑪𝑪,𝒊𝒊
+𝚫𝚫𝑿𝑿𝑪𝑪,𝒊𝒊
+𝚫𝚫𝑿𝑿𝑨𝑨,𝒋𝒋
+𝚫𝚫𝑿𝑿𝑩𝑩,𝒋𝒋
+𝚫𝚫𝑿𝑿𝑪𝑪,𝒋𝒋
+𝚫𝚫𝑿𝑿𝑪𝑪,𝒋𝒋⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡
+𝒆𝒆𝚫𝚫𝑿𝑿𝑨𝑨,𝒊𝒊
+𝒆𝒆𝚫𝚫𝑿𝑿𝑩𝑩,𝒊𝒊
+𝒆𝒆𝚫𝚫𝑿𝑿𝑪𝑪,𝒊𝒊
+𝒆𝒆𝚫𝚫𝑿𝑿𝑪𝑪,𝒊𝒊
+𝒆𝒆𝚫𝚫𝑿𝑿𝑨𝑨,𝒋𝒋
+𝒆𝒆𝚫𝚫𝑿𝑿𝑩𝑩,𝒋𝒋
+𝒆𝒆𝚫𝚫𝑿𝑿𝑪𝑪,𝒋𝒋
+𝒆𝒆𝚫𝚫𝑿𝑿𝑪𝑪,𝒋𝒋 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+⎭
+⎪⎪⎪
+⎬
+⎪⎪⎪
+⎫
+ 
+ 
+= 𝒀𝒀 − � 𝐴𝐴̅𝑖𝑖 03,12
+03,12 𝐴𝐴̅𝑗𝑗
+�
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡𝑅𝑅𝐴𝐴 zeroes
+𝑅𝑅𝐵𝐵
+𝑅𝑅𝐶𝐶
+𝑅𝑅𝐷𝐷
+𝑅𝑅𝐴𝐴
+𝑅𝑅𝐵𝐵
+zeroes 𝑅𝑅𝐶𝐶
+𝑅𝑅𝐷𝐷⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+⎩
+⎪⎪⎪
+⎨
+⎪⎪⎪
+⎧
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡𝚫𝚫𝑬𝑬𝑨𝑨,𝒊𝒊
+𝚫𝚫𝑬𝑬𝑩𝑩,𝒊𝒊
+𝚫𝚫𝑬𝑬𝑪𝑪,𝒊𝒊
+𝚫𝚫𝑬𝑬𝑪𝑪,𝒊𝒊
+𝚫𝚫𝑬𝑬𝑨𝑨,𝒋𝒋
+𝚫𝚫𝑬𝑬𝑩𝑩,𝒋𝒋
+𝚫𝚫𝑬𝑬𝑪𝑪,𝒋𝒋
+𝚫𝚫𝑬𝑬𝑪𝑪,𝒋𝒋⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡
+𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒊𝒊
+𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒊𝒊
+𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒊𝒊
+𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒊𝒊
+𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒋𝒋
+𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒋𝒋
+𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒋𝒋
+𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒋𝒋 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+⎭
+⎪⎪⎪
+⎬
+⎪⎪⎪
+⎫
+ 
+ 
+
+##########################################################################
+### PDF page 22 (of 52)   matches: epoch
+##########################################################################
+18 
+ 
+= 𝒀𝒀 − � 𝐴𝐴̅𝑖𝑖 03,12
+03,12 𝐴𝐴̅𝑗𝑗
+�
+⎩
+⎪
+⎪
+⎪
+⎨
+⎪
+⎪
+⎪
+⎧
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡𝑅𝑅𝐴𝐴𝚫𝚫𝑬𝑬𝑨𝑨,𝒊𝒊
+𝑅𝑅𝐵𝐵𝚫𝚫𝑬𝑬𝑩𝑩,𝒊𝒊
+𝑅𝑅𝐶𝐶 𝚫𝚫𝑬𝑬𝑪𝑪,𝒊𝒊
+𝑅𝑅𝐷𝐷𝚫𝚫𝑬𝑬𝑪𝑪,𝒊𝒊
+𝑅𝑅𝐴𝐴𝚫𝚫𝑬𝑬𝑨𝑨,𝒋𝒋
+𝑅𝑅𝐵𝐵𝚫𝚫𝑬𝑬𝑩𝑩,𝒋𝒋
+𝑅𝑅𝐶𝐶 𝚫𝚫𝑬𝑬𝑪𝑪,𝒋𝒋
+𝑅𝑅𝐷𝐷𝚫𝚫𝑬𝑬𝑪𝑪,𝒋𝒋⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡𝑅𝑅𝐴𝐴𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒊𝒊
+𝑅𝑅𝐵𝐵𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒊𝒊
+𝑅𝑅𝐶𝐶 𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒊𝒊
+𝑅𝑅𝐷𝐷𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒊𝒊
+𝑅𝑅𝐴𝐴𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒋𝒋
+𝑅𝑅𝐵𝐵𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒋𝒋
+𝑅𝑅𝐶𝐶 𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒋𝒋
+𝑅𝑅𝐷𝐷𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒋𝒋 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+⎭
+⎪
+⎪
+⎪
+⎬
+⎪
+⎪
+⎪
+⎫
+ 
+(24) 
+= 𝒀𝒀 − � 𝐴𝐴̅𝑖𝑖 03,12
+03,12 𝐴𝐴̅𝑗𝑗
+�
+⎩
+⎪
+⎪
+⎪
+⎨
+⎪
+⎪
+⎪
+⎧
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐴𝐴𝑬𝑬̇ 𝑨𝑨
+Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐵𝐵𝑬𝑬̇ 𝑩𝑩
+Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐶𝐶 𝑬𝑬̇ 𝑪𝑪
+Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐷𝐷𝑬𝑬̇ 𝑪𝑪
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐴𝐴𝑬𝑬̇ 𝑨𝑨
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐵𝐵𝑬𝑬̇ 𝑩𝑩
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐶𝐶 𝑬𝑬̇ 𝑪𝑪
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐷𝐷𝑬𝑬̇ 𝑪𝑪⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++ 𝑞𝑞𝑖𝑖 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡𝑅𝑅𝐴𝐴𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶 𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐷𝐷𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐴𝐴𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶 𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐷𝐷𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
++ 𝑞𝑞𝑖𝑖 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡𝑅𝑅𝐴𝐴𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶 𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐷𝐷𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∉𝐾𝐾(𝑗𝑗)
++ 𝑞𝑞𝑗𝑗 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡ 𝟎𝟎
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎
+𝑅𝑅𝐴𝐴𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶 𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐷𝐷𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∉𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
+⎭
+⎪
+⎪
+⎪
+⎬
+⎪
+⎪
+⎪
+⎫
+− � 𝐴𝐴̅𝑖𝑖 03,12
+03,12 𝐴𝐴̅𝑗𝑗
+�
+⎩
+⎪
+⎪
+⎪
+⎨
+⎪
+⎪
+⎪
+⎧
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐴𝐴𝒆𝒆𝑬𝑬̇ 𝑨𝑨
+Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐵𝐵𝒆𝒆𝑬𝑬̇ 𝑩𝑩
+Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐶𝐶 𝒆𝒆𝑬𝑬̇ 𝑪𝑪
+Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐷𝐷𝒆𝒆𝑬𝑬̇ 𝑪𝑪
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐴𝐴𝒆𝒆𝑬𝑬̇ 𝑨𝑨
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐵𝐵𝒆𝒆𝑬𝑬̇ 𝑩𝑩
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐶𝐶 𝒆𝒆𝑬𝑬̇ 𝑪𝑪
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐷𝐷𝒆𝒆𝑬𝑬̇ 𝑪𝑪 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++ 𝑞𝑞𝑖𝑖 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡𝑅𝑅𝐴𝐴𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶 𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐷𝐷𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐴𝐴𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶 𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐷𝐷𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
++ 𝑞𝑞𝑖𝑖 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡𝑅𝑅𝐴𝐴𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶 𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐷𝐷𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∉𝐾𝐾(𝑗𝑗)
++ 𝑞𝑞𝑗𝑗 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡ 𝟎𝟎
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎
+𝑅𝑅𝐴𝐴𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶 𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐷𝐷𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∉𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
+⎭
+⎪
+⎪
+⎪
+⎬
+⎪
+⎪
+⎪
+⎫
+. 
+ 
+ 
+Note in (24) that 𝑞𝑞𝑗𝑗 = 𝑠𝑠𝑠𝑠𝑠𝑠(Δ𝑡𝑡𝑗𝑗) and also that for the first of the three displacing event 
+summations, that 𝑞𝑞𝑖𝑖 = 𝑞𝑞𝑗𝑗, since events which impact both observations must both be on the same 
+side of the adjustment epoch, and so we choose 𝑞𝑞𝑖𝑖, though could just as easily have used 𝑞𝑞𝑗𝑗.  This 
+holds only for the first of the three displacing event summations. 
+Note in (24) that it was necessary to distinguish between events that affect both projected 
+observations (𝑘𝑘 ∈ 𝐾𝐾(𝑖𝑖) and 𝑘𝑘 ∈ 𝐾𝐾(𝑗𝑗)), those that affect only the projected observations from 
+epoch 𝑖𝑖 (𝑘𝑘 ∈ 𝐾𝐾(𝑖𝑖) and 𝑘𝑘 ∉ 𝐾𝐾(𝑗𝑗)), and those that affect only the projected observations from epoch 
+𝑗𝑗 (𝑘𝑘 ∉ 𝐾𝐾(𝑖𝑖)and 𝑘𝑘 ∈ 𝐾𝐾(𝑗𝑗)).   
+Also note in (24) there are two places where random errors contribute to the projected 
+observations.  The first, subtler place, is that the observation vector 𝒀𝒀 has random errors, 𝒆𝒆𝒚𝒚, 
+embedded in it.  That random error vector is not particularly relevant to the following derivations, 
+which is why it was not separated from 𝒀𝒀.  The other place is the last half of the last line of (24), 
+where we see the error vector of the stochastic MCPV, as it impacts the observation vector.  We 
+have called that error vector 𝒆𝒆𝒚𝒚�,𝒎𝒎, and show its relationship to the error vector of the MCPV 
+directly, 𝒆𝒆𝑴𝑴, as follows: 
+
+##########################################################################
+### PDF page 23 (of 52)   matches: IFDM
+##########################################################################
+19 
+ 
+𝒆𝒆𝒚𝒚�,𝒎𝒎 = − �
+𝐴𝐴�𝑖𝑖 03,12
+03,12 𝐴𝐴�𝑗𝑗
+�
+⎩
+⎪⎪⎪
+⎨
+⎪⎪⎪
+⎧
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡
+Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐴𝐴𝒆𝒆𝑬𝑬̇ 𝑨𝑨
+Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐵𝐵𝒆𝒆𝑬𝑬̇ 𝑩𝑩
+Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐶𝐶𝒆𝒆𝑬𝑬̇ 𝑪𝑪
+Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐷𝐷𝒆𝒆𝑬𝑬̇ 𝑪𝑪
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐴𝐴𝒆𝒆𝑬𝑬̇ 𝑨𝑨
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐵𝐵𝒆𝒆𝑬𝑬̇ 𝑩𝑩
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐶𝐶𝒆𝒆𝑬𝑬̇ 𝑪𝑪
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐷𝐷𝒆𝒆𝑬𝑬̇ 𝑪𝑪 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++ 𝑞𝑞𝑖𝑖 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡
+𝑅𝑅𝐴𝐴𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐷𝐷𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐴𝐴𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐷𝐷𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
++ 𝑞𝑞𝑖𝑖 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡
+𝑅𝑅𝐴𝐴𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐷𝐷𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∉𝐾𝐾(𝑗𝑗)
++ 𝑞𝑞𝑗𝑗 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎
+𝑅𝑅𝐴𝐴𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐷𝐷𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∉𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
+⎭
+⎪⎪⎪
+⎬
+⎪⎪⎪
+⎫
+= −𝐴𝐴�𝒆𝒆𝑴𝑴. 
+(25) 
+ 
+The relationship between the dispersion matrices of 𝒆𝒆𝒚𝒚�,𝒎𝒎 and 𝒆𝒆𝑴𝑴 is seen as follows: 
+Σ𝑦𝑦�,𝑚𝑚 = 𝐷𝐷�𝒆𝒆𝒚𝒚�,𝒎𝒎� = 𝐴𝐴�𝐷𝐷{𝒆𝒆𝑴𝑴}𝐴𝐴�𝑇𝑇
+= 𝐴𝐴�Σ𝑀𝑀𝐴𝐴�𝑇𝑇
+. (26) 
+ 
+This is a good place to provide a reminder and clarification about the difference between the 
+geodetic value change model (GVCM) and model of changes to parameter values (MCPV).  We 
+will do so by examining the last line of (24), replacing the displacements which affect only one 
+projected observation with ellipses, for brevity.  See Figure 1.  Note we have dropped the 𝑞𝑞𝑖𝑖 for 
+space consideration. 
+ 
+Figure 1:  The relationship between the MCPV and GVCM (IFDM2022) in projected 
+observations within a geometric adjustment 
+
+
+##########################################################################
+### PDF page 25 (of 52)   matches: IFDM
+##########################################################################
+21 
+ 
+ 
+And third, for any 𝑘𝑘 ∉ 𝐾𝐾(𝑖𝑖) and 𝑘𝑘 ∈ 𝐾𝐾(𝑗𝑗) we have: 
+Σ𝑦𝑦�,𝑚𝑚𝑘𝑘,11 = 0,  (27m) 
+  
+Σ𝑦𝑦�,𝑚𝑚𝑘𝑘,21 = 0,  (27n) 
+ 
+Σ𝑦𝑦�,𝑚𝑚𝑘𝑘,12 = 0,  (27o) 
+ 
+Σ𝑦𝑦�,𝑚𝑚𝑘𝑘,22 = 𝑅𝑅𝐶𝐶 𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 �𝑅𝑅𝐶𝐶
+𝑇𝑇 − 𝑅𝑅𝐷𝐷𝐶𝐶�𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 , 𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 �𝑅𝑅𝐶𝐶
+𝑇𝑇 − 𝑅𝑅𝐶𝐶 𝐶𝐶�𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 , 𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 �𝑅𝑅𝐷𝐷
+𝑇𝑇 + 𝑅𝑅𝐷𝐷𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 �𝑅𝑅𝐷𝐷
+𝑇𝑇 .  (27p) 
+ 
+Equation 27a (and 27d by replacing points C and D with A and B) is identical to the velocity 
+contribution at the end of (18).  This is expected, as (18) deals with one observation, as does the 
+block matrices found in (27a) and (27d).  Similarly do equation 27e or 27i (and 27h or 27p), equal 
+the displacement portion of (18).   
+However, something new is seen in (27) that hasn’t been encountered before (aside from 
+separating out displacements into three categories, depending on what points they effect):  the 
+non-zero off-diagonal blocks Σ𝑦𝑦�,𝑚𝑚𝑣𝑣,21 and Σ𝑦𝑦�,𝑚𝑚𝑣𝑣,12 seen in (27b) and (27c) and Σ𝑦𝑦�,𝑚𝑚𝑘𝑘,21 and 
+Σ𝑦𝑦�,𝑚𝑚𝑘𝑘,12 seen in (27f) and (27g).  Blocks Σ𝑦𝑦�,𝑚𝑚𝑣𝑣,21 and Σ𝑦𝑦�,𝑚𝑚𝑣𝑣,12 are transposes of one another, as 
+are Σ𝑦𝑦�,𝑚𝑚𝑘𝑘,21 and Σ𝑦𝑦�,𝑚𝑚𝑘𝑘,12, an expected result since the matrix Σ𝑦𝑦�,𝑚𝑚 should be symmetric.  But 
+more importantly they are non-zero because it has been assumed that covariances within the 
+GVCM (between velocities at different points or between displacements at different points) are 
+known.  This brings us to our first conclusion about covariances and observations: 
+Conclusion 1:  If covariances inside the GVCM are known, and even if two observations 
+have no common points, then 𝛴𝛴𝑦𝑦�,𝑚𝑚 will have non-zero off-diagonal components. 
+This is a critical point, and one with devastating computational impacts.  Recall that if two 
+observations have no common points, and are themselves otherwise uncorrelated, there will be no 
+off-diagonal components in matrix Σ𝑦𝑦 for these two observations.  But if we have covariances 
+inside the GVCM, this adds off-diagonal elements to Σ𝑦𝑦�,𝑚𝑚 and thus off-diagonal elements in Σ𝑦𝑦�, 
+where such off-diagonal blocks were zero in Σ𝑦𝑦.  This is not just a loss of a loss of sparsity, it 
+means the Σ𝑦𝑦�,𝑚𝑚, and by extension Σ𝑦𝑦�, will be full.  The implications of that are hopefully obvious, 
+but will be discussed in section 7. 
+At this time, however, IFDM2022 has no known covariances.  As such, if we set them to zero, 
+then the dispersion matrix Σ𝑦𝑦�,𝑚𝑚 simplifies substantially to: 
+
+##########################################################################
+### PDF page 26 (of 52)   matches: epoch
+##########################################################################
+22 
+ 
+Σ𝑦𝑦�,𝑚𝑚 =
+⎝
+⎜⎜
+⎛
+�
+Δ𝑡𝑡𝑖𝑖
+2𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 �𝑅𝑅𝐴𝐴
+𝑇𝑇 + Δ𝑡𝑡𝑖𝑖
+2𝑅𝑅𝐵𝐵𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑩𝑩 �𝑅𝑅𝐵𝐵
+𝑇𝑇 0
+0 Δ𝑡𝑡𝑗𝑗
+2𝑅𝑅𝐶𝐶𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑪𝑪 �𝑅𝑅𝐶𝐶
+𝑇𝑇 + Δ𝑡𝑡𝑗𝑗
+2𝑅𝑅𝐷𝐷𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑪𝑪 �𝑅𝑅𝐷𝐷
+𝑇𝑇 �
++ � �
+𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 �𝑅𝑅𝐴𝐴
+𝑇𝑇 + 𝑅𝑅𝐵𝐵𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 �𝑅𝑅𝐵𝐵
+𝑇𝑇 0
+0 𝑅𝑅𝐶𝐶 𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 �𝑅𝑅𝐶𝐶
+𝑇𝑇 + 𝑅𝑅𝐷𝐷𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 �𝑅𝑅𝐷𝐷
+𝑇𝑇 �
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
++ � �𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 �𝑅𝑅𝐴𝐴
+𝑇𝑇 + 𝑅𝑅𝐵𝐵𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 �𝑅𝑅𝐵𝐵
+𝑇𝑇 0
+0 0
+�
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∉𝐾𝐾(𝑗𝑗)
++ � �0 0
+0 𝑅𝑅𝐶𝐶𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 �𝑅𝑅𝐶𝐶
+𝑇𝑇 + 𝑅𝑅𝐷𝐷𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 �𝑅𝑅𝐷𝐷
+𝑇𝑇 �
+𝑘𝑘
+𝑘𝑘∉𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗) ⎠
+⎟⎟
+⎞
+. 
+ 
+(28) 
+ 
+Examination of (28) leads to another very important conclusion: 
+Conclusion 2:  If covariances inside the GVCM are unknown, and set to zero, and two 
+observations have no common points, then 𝛴𝛴𝑦𝑦�,𝑚𝑚 will have no off-diagonal components. 
+This conclusion actually holds for all geometric observations, not just GNSS measured baselines.  
+It also holds whether the two GNSS measured baselines were processed in different sessions (𝑖𝑖 ≠
+𝑗𝑗, and thus have no known correlation/covariance) or simultaneously processed in the same 
+session (𝑖𝑖 = 𝑗𝑗, and thus do have a known correlation/covariance). 
+Consider what this means to the sparsity of Σ𝑦𝑦�:  if we assume that two GNSS measured baselines 
+at two different epochs, 𝑖𝑖 and 𝑗𝑗, are themselves uncorrelated then the 6 × 6 dispersion matrix Σ𝑦𝑦 
+of the original two observations is block-diagonal.  With a stochastic GVCM, but in the absence 
+of covariances in that GVCM, and with no common points between the observations, (28) shows 
+that the 6 × 6 dispersion matrix Σ𝑦𝑦�,𝑚𝑚 will also be block-diagonal.  This means their sum, Σ𝑦𝑦�, the 
+6 × 6 dispersion matrix of the two projected observations at the adjustment epoch, will also be 
+block-diagonal.  That is, the sparsity of Σ𝑦𝑦� matches that of Σ𝑦𝑦.  The next section will examine the 
+case when the two GNSS measured baselines have one point in common. 
+5.4 Geometric example: Two GNSS measured baselines, one shared point 
+Consider now two GNSS measured baselines are from point 𝐴𝐴 to point 𝐵𝐵 at epoch 𝑖𝑖 and another 
+from point 𝐴𝐴 to point 𝐶𝐶 at epoch 𝑗𝑗, removing point 𝐷𝐷 from consideration entirely.  As this 
+situation closely resembles the previous section, the derivations will be much briefer. 
+The observation equation is: 
+
+##########################################################################
+### PDF page 27 (of 52)   matches: IFDM
+##########################################################################
+23 
+ 
+𝒀𝒀 = �𝚫𝚫𝑿𝑿𝑨𝑨𝑩𝑩,𝒊𝒊
+𝚫𝚫𝑿𝑿𝑨𝑨𝑪𝑪,𝒋𝒋
+� + 𝒆𝒆𝒚𝒚    ,     𝒆𝒆𝒚𝒚~�𝟎𝟎, 𝚺𝚺𝒚𝒚�. (29) 
+ 
+This expands to:  
+𝒀𝒀 = �−𝐼𝐼3 +𝐼𝐼3 0 0 0 0
+0 0 0 −𝐼𝐼3 0 +𝐼𝐼3
+�
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡𝑿𝑿𝑨𝑨,𝒊𝒊
+𝑿𝑿𝑩𝑩,𝒊𝒊
+𝑿𝑿𝑪𝑪,𝒊𝒊
+𝑿𝑿𝑨𝑨,𝒋𝒋
+𝑿𝑿𝑩𝑩,𝒋𝒋
+𝑿𝑿𝑪𝑪,𝒋𝒋⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++ 𝒆𝒆𝒚𝒚. (30) 
+This is then mapped into a projected observation vector, yielding: 
+𝒀𝒀� = 𝒀𝒀 − �
+𝐴𝐴�𝑖𝑖 03,9
+03,9 𝐴𝐴�𝑗𝑗
+�
+⎩
+⎪⎪
+⎨
+⎪⎪
+⎧
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐴𝐴𝑬𝑬̇ 𝑨𝑨
+Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐵𝐵𝑬𝑬̇ 𝑩𝑩
+Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐶𝐶𝑬𝑬̇ 𝑪𝑪
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐴𝐴𝑬𝑬̇ 𝑨𝑨
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐵𝐵𝑬𝑬̇ 𝑩𝑩
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐶𝐶𝑬𝑬̇ 𝑪𝑪 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++ 𝑞𝑞𝑖𝑖 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡
+𝑅𝑅𝐴𝐴𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐴𝐴𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 ⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
++ 𝑞𝑞𝑖𝑖 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡
+𝑅𝑅𝐴𝐴𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎 ⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∉𝐾𝐾(𝑗𝑗)
++ 𝑞𝑞𝑗𝑗 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎
+𝑅𝑅𝐴𝐴𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 ⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∉𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
+⎭
+⎪⎪
+⎬
+⎪⎪
+⎫
+− �
+𝐴𝐴�𝑖𝑖 03,9
+03,9 𝐴𝐴�𝑗𝑗
+�
+⎩
+⎪⎪
+⎨
+⎪⎪
+⎧
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡
+Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐴𝐴𝒆𝒆𝑬𝑬̇ 𝑨𝑨
+Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐵𝐵𝒆𝒆𝑬𝑬̇ 𝑩𝑩
+Δ𝑡𝑡𝑖𝑖𝑅𝑅𝐶𝐶𝒆𝒆𝑬𝑬̇ 𝑪𝑪
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐴𝐴𝒆𝒆𝑬𝑬̇ 𝑨𝑨
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐵𝐵𝒆𝒆𝑬𝑬̇ 𝑩𝑩
+Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐶𝐶𝒆𝒆𝑬𝑬̇ 𝑪𝑪 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++ 𝑞𝑞𝑖𝑖 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡
+𝑅𝑅𝐴𝐴𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝑅𝑅𝐴𝐴𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
++ 𝑞𝑞𝑖𝑖 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡
+𝑅𝑅𝐴𝐴𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎 ⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∉𝐾𝐾(𝑗𝑗)
++ 𝑞𝑞𝑗𝑗 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎
+𝑅𝑅𝐴𝐴𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌
+𝑅𝑅𝐵𝐵𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌
+𝑅𝑅𝐶𝐶𝒆𝒆𝚫𝚫𝑬𝑬𝑪𝑪,𝒌𝒌 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∉𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗) ⎭
+⎪⎪
+⎬
+⎪⎪
+⎫
+. 
+(31) 
+    
+The error vector 𝒆𝒆𝒚𝒚�,𝒎𝒎 of the MCPV contribution to projected observations is the last line in (31).  
+As before, the dispersion matrix, Σ𝑦𝑦�,𝑚𝑚, is a bit complicated if the covariances in the GVCM are 
+known.  As this is not the case for IFDM2022, and such complications will only form a 
+distraction going forward, we will assume that the covariances in the GVCM are not known, and 
+will be set to zero.  In that case, the dispersion matrix Σ𝑦𝑦�,𝑚𝑚 simplifies to: 
+
+##########################################################################
+### PDF page 28 (of 52)   matches: epoch
+##########################################################################
+24 
+ 
+Σ𝑦𝑦�,𝑚𝑚 =
+⎝
+⎜⎜
+⎛
+�
+Δ𝑡𝑡𝑖𝑖
+2𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 �𝑅𝑅𝐴𝐴
+𝑇𝑇 + Δ𝑡𝑡𝑖𝑖
+2𝑅𝑅𝐵𝐵𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑩𝑩 �𝑅𝑅𝐵𝐵
+𝑇𝑇 Δ𝑡𝑡𝑖𝑖Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 �𝑅𝑅𝐴𝐴
+𝑇𝑇
+Δ𝑡𝑡𝑖𝑖Δ𝑡𝑡𝑗𝑗𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 �𝑅𝑅𝐴𝐴
+𝑇𝑇 Δ𝑡𝑡𝑗𝑗
+2𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑨𝑨 �𝑅𝑅𝐴𝐴
+𝑇𝑇 + Δ𝑡𝑡𝑗𝑗
+2𝑅𝑅𝐶𝐶𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑪𝑪 �𝑅𝑅𝐶𝐶
+𝑇𝑇�
++ � �
+𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 �𝑅𝑅𝐴𝐴
+𝑇𝑇 + 𝑅𝑅𝐵𝐵𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 �𝑅𝑅𝐵𝐵
+𝑇𝑇 𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 �𝑅𝑅𝐴𝐴
+𝑇𝑇
+𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 �𝑅𝑅𝐴𝐴
+𝑇𝑇 𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 �𝑅𝑅𝐴𝐴
+𝑇𝑇 + Δ𝑡𝑡𝑗𝑗
+2𝑅𝑅𝐶𝐶𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑪𝑪 �𝑅𝑅𝐶𝐶
+𝑇𝑇�
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
++ � �𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 �𝑅𝑅𝐴𝐴
+𝑇𝑇 + 𝑅𝑅𝐵𝐵𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑩𝑩,𝒌𝒌 �𝑅𝑅𝐵𝐵
+𝑇𝑇 0
+0 0
+�
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∉𝐾𝐾(𝑗𝑗)
++ � �0 0
+0 𝑅𝑅𝐴𝐴𝐷𝐷�𝒆𝒆𝚫𝚫𝑬𝑬𝑨𝑨,𝒌𝒌 �𝑅𝑅𝐴𝐴
+𝑇𝑇 + Δ𝑡𝑡𝑗𝑗
+2𝑅𝑅𝐶𝐶𝐷𝐷�𝒆𝒆𝑬𝑬̇ 𝑪𝑪 �𝑅𝑅𝐶𝐶
+𝑇𝑇�
+𝑘𝑘
+𝑘𝑘∉𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗) ⎠
+⎟⎟
+⎞
+. 
+ 
+(32) 
+ 
+Of special interest are the non-zero off-diagonal blocks in the first two lines of (32).  From (32) 
+we draw a new, and critical conclusion. 
+Conclusion 3:  If covariances inside the GVCM are unknown, and set to zero, and two 
+observations have one common point, then 𝛴𝛴𝑦𝑦�,𝑚𝑚 will have non-zero off-diagonal 
+components. 
+The change in dispersion matrix Σ𝑦𝑦�,𝑚𝑚 from block-diagonal (28) to full (32) is due entirely to the 
+common point, 𝐴𝐴, between the two observations, and thus the reliance of both observations upon 
+the same velocities and/or at least one common displacement at point 𝐴𝐴. 
+The implications of this are important.  When two GNSS measured baselines (AB and AC) occur 
+at different epochs (𝑖𝑖 and 𝑗𝑗), most standard GNSS processing software will treat them as two 
+independent observations.  But the projected observations will not be independent, as evidenced 
+by the non-zero off-diagonal blocks in (32).  To put it simply, if the observations are independent, 
+their dispersion matrix Σ𝑦𝑦 is expected to be block diagonal, but the dispersion matrix Σ𝑦𝑦�,𝑚𝑚 of the 
+contribution of the MCPV to the projected observations is full, and therefore their sum, being the 
+dispersion of projected observations Σ𝑦𝑦� must also be full.   
+The non-zero off-diagonal blocks of Σ𝑦𝑦� (the covariances between projected observations) will 
+therefore be identical to those same blocks in Σ𝑦𝑦�,𝑚𝑚.  These non-zero blocks are potentially 
+problematic, and will be discussed in detail in section 7. 
+
+##########################################################################
+### PDF page 29 (of 52)   matches: epoch
+##########################################################################
+25 
+ 
+Before doing so, however, we ask this question:  What if the two vectors had been at the same 
+epoch?  Would that still present a problem?  The answer is “probably not”, and is discussed in the 
+next sub-section. 
+5.4.1 Special case: observations at the same epoch 
+Consider the above derivation of Σ𝑦𝑦�,𝑚𝑚, but with both vectors at observation epoch 𝑖𝑖.  First, we 
+must consider whether the dispersion matrix of the observations Σ𝑦𝑦 is full or block-diagonal.  The 
+answer depends on the processing strategy.  If the GNSS data are processed simultaneously, then 
+Σ𝑦𝑦 will be a full 6 × 6 matrix, not block-diagonal.  However, even if the vectors are processed 
+sequentially, standard operating procedure in many GNSS software suites is to process all 
+measured baselines between all points that have a GNSS occupation (in this case 𝐴𝐴𝐵𝐵, 𝐴𝐴𝐶𝐶 and 
+𝐵𝐵𝐶𝐶), getting one 3 × 3 dispersion matrix for each measured baseline (which would form a 9 × 9  
+block-diagonal Σ𝑦𝑦).  However, since one of the measured baselines is redundant, the three 
+separately computed measured baselines and their respective 3 × 3 dispersion matrices can be 
+mathematically combined into two correlated vectors with a full 6 × 6 dispersion matrix for the 
+pair.  Therefore, in general, it can be assumed that the dispersion matrix for the two observations 
+Σ𝑦𝑦, assuming they both occur at epoch 𝑖𝑖, will be full.   
+Since the Σ𝑦𝑦 matrix is full, adding a full Σ𝑦𝑦�,𝑚𝑚 matrix does not add any new non-zero blocks to Σ𝑦𝑦�.  
+Put another way, if your least squares adjustment software is capable of handling some off-
+diagonal blocks of Σ𝑦𝑦 within one session, it can certainly handle them from Σ𝑦𝑦�.  
+So, generally speaking, two measured baselines with a common point only presents new non-zero 
+off-diagonal blocks to the LSA if the baselines were measured at different epochs.  This will be 
+discussed in section 7.  We turn now to one final case:  when the two measured baselines have 
+both points in common. 
+ 
+5.5 Geometric example: Two GNSS measured baselines, two shared points 
+Consider one observation vector, containing two GNSS observations, one with a measured 
+baseline from point 𝐴𝐴 to point 𝐵𝐵 at epoch 𝑖𝑖 and another from point 𝐴𝐴 to point 𝐵𝐵 at epoch 𝑗𝑗, 
+removing point 𝐶𝐶 from consideration.  The observation equation is: 
+𝒀𝒀 = �𝚫𝚫𝑿𝑿𝑨𝑨𝑩𝑩,𝒊𝒊
+𝚫𝚫𝑿𝑿𝑨𝑨𝑩𝑩,𝒋𝒋
+� + 𝒆𝒆𝒚𝒚    ,     𝒆𝒆𝒚𝒚~�𝟎𝟎, 𝚺𝚺𝒚𝒚�. (33) 
+ 
+This expands to: 
+𝒀𝒀 = �−𝐼𝐼3 +𝐼𝐼3 0 0
+0 0 −𝐼𝐼3 +𝐼𝐼3
+�
+⎣
+⎢
+⎢
+⎡𝑿𝑿𝑨𝑨,𝒊𝒊
+𝑿𝑿𝑩𝑩,𝒊𝒊
+𝑿𝑿𝑨𝑨,𝒋𝒋
+𝑿𝑿𝑩𝑩,𝒋𝒋⎦
+⎥
+⎥
+⎤
++ 𝒆𝒆𝒚𝒚. (34) 
+This is then mapped into a projected observation vector, yielding: 
+
+##########################################################################
+### PDF page 31 (of 52)   matches: IFDM, epoch
+##########################################################################
+27 
+ 
+Conclusion 4:  If covariances inside the GVCM are unknown, and set to zero, and two 
+observations have two common points, then 𝛴𝛴𝑦𝑦�,𝑚𝑚 will have non-zero off-diagonal 
+components, and under certain conditions, may be singular. 
+As pointed out in the appendix, the singularity of Σ𝑦𝑦�,𝑚𝑚 is not guaranteed.  But the fullness of Σ𝑦𝑦�,𝑚𝑚 
+is guaranteed by (36), and thus will have the same impact on the sparseness of Σ𝑦𝑦� as in the 
+previous section.  The potential difficulties from this loss of sparsity will be discussed in section 
+7. 
+ 
+6 Orthometric Adjustments 
+Parameters estimated in orthometric REC adjustments will be orthometric heights at a reference 
+epoch.  Observations will include differential orthometric heights reduced from leveling and 
+classical surveys.  Constraints will be orthometric heights at passive geodetic control marks, 
+derived from ellipsoid height RECs (from a geometric REC adjustment) and GEOID2022. 
+Much of this section parallels that of the geometric adjustments section, so when possible certain 
+details will be skipped. 
+6.1 Converting the GVCM to the MCPV at a single point 
+In the case of orthometric adjustments, the equations which will convert IFDM2022 and 
+DGEOID2022 (as the two GVCMs) into the MCPV, for any given point (𝐴𝐴), at epoch 𝑖𝑖, are 
+derived below.   
+We use the same IFDM2022 as in geometric adjustments, but restrict ourselves solely to the 
+ellipsoid height information therein, that is: 
+• One set of two grids containing one grid of linear velocities, in ℎ, and one grid of their 
+standard deviations 
+• Multiple sets of two grids of displacements, in ℎ, (one set per event) each set containing 
+one grid of displacements and one grid of their standard deviations.    
+The DGEOID2022 model will contain: 
+• One set of two grids containing one grid of linear velocities, in 𝐿𝐿, and one grid of their 
+standard deviations 
+There are currently no displacing events as part of the DGEOID2022 model, nor plans to 
+introduce them. 
+Orthometric adjustments will have a few noteworthy differences relative to geometric 
+adjustments.  First, two GVCMs (IFDM2022 and DGEOID2022) must be considered rather than 
+just one.  Second, the adjustment is one-dimensional, not three-dimensional.  And finally, 
+orthometric heights can be assumed parallel with ellipsoid heights and geoid undulations, which 
+means no rotation matrix is needed to relate our MCPV to our GVCMs.   
+
+##########################################################################
+### PDF page 32 (of 52)   matches: IFDM, epoch
+##########################################################################
+28 
+ 
+We begin with the equation for an orthometric height at some grid node, 𝐴𝐴: 
+𝐻𝐻𝐴𝐴 = ℎ𝐴𝐴 − 𝐿𝐿𝐴𝐴. (38) 
+ 
+As before, we let the set of all events, 𝑘𝑘, which falls between epoch 𝑖𝑖 and the adjustment epoch be 
+called 𝐾𝐾(𝑖𝑖).  Then, for each 𝑘𝑘 ∈ 𝐾𝐾(𝑖𝑖), the orthometric height change is identical to the ellipsoid 
+height change, since DGEOID2022 will contain no events.  Thus, we have: 
+�Δ𝐻𝐻𝐴𝐴,𝑖𝑖�𝑘𝑘 = �Δℎ𝐴𝐴,𝑘𝑘� − �Δ𝐿𝐿𝐴𝐴,𝑘𝑘� = �Δℎ𝐴𝐴,𝑘𝑘�   ∀  𝑘𝑘 ∈ 𝐾𝐾(𝑖𝑖). (39) 
+ 
+As before, subscript 𝑘𝑘 means “contribution from the 𝑘𝑘𝑡𝑡ℎ displacement.”  Note the purposeful use 
+of brackets.  Though the values in (39) are 1 × 1 vectors, they will be related to larger vectors and 
+matrices soon, and so it is worth remembering that these are vectors. 
+Again, velocities must first be converted to displacements, by multiplying by the time span from 
+epoch 𝑖𝑖 to the adjustment epoch.  In this case, both IFDM2022 and DGEOID2022 will contain 
+velocities.  The conversion is: 
+�Δ𝐻𝐻𝐴𝐴,𝑖𝑖�𝑣𝑣 = Δ𝑡𝑡𝑖𝑖�ℎ̇𝐴𝐴 − 𝐿𝐿̇𝐴𝐴�. (40) 
+ 
+Subscript 𝑣𝑣 means “contribution from velocities”, and we note the lack of subscript 𝑖𝑖 on both  ℎ̇𝐴𝐴 
+and 𝐿𝐿̇𝐴𝐴.  Again, this means there is a common field of velocities that are treated as constant 
+through time. 
+The total change to the parameter values (the MCPV), for orthometric adjustments, as derived 
+from two GVCMs at grid node 𝐴𝐴, between observation epoch 𝑖𝑖 and the adjustment epoch is found 
+by combining (40) with the sum of all displacements in (39), to yield: 
+�Δ𝐻𝐻𝐴𝐴,𝑖𝑖� = Δ𝑡𝑡𝑖𝑖�ℎ̇𝐴𝐴 − 𝐿𝐿̇𝐴𝐴� + 𝑞𝑞𝑖𝑖 � �Δℎ𝐴𝐴,𝑘𝑘�
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+. (41) 
+ 
+As in the geometric adjustment, we are also interested in the dispersions of the changes to 
+parameter values.  To get them, we apply the law of error propagation to (41) to arrive at the 
+dispersion matrix Σ𝑀𝑀𝑖𝑖 of the MCPV applied to all parameters for epoch 𝑖𝑖 as follows: 
+ 
+ 
+
+##########################################################################
+### PDF page 33 (of 52)   matches: epoch
+##########################################################################
+29 
+ 
+Σ𝑀𝑀𝑖𝑖 = 𝐷𝐷��Δ𝐻𝐻𝐴𝐴,𝑖𝑖�� = 𝐷𝐷
+⎩
+⎨
+⎧
+Δ𝑡𝑡𝑖𝑖�ℎ̇𝐴𝐴 − 𝐿𝐿̇𝐴𝐴� + 𝑞𝑞𝑖𝑖 � �Δℎ𝐴𝐴,𝑘𝑘�
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖) ⎭
+⎬
+⎫
+=
+⎝
+⎛Δ𝑡𝑡𝑖𝑖
+2�𝐷𝐷��ℎ̇𝐴𝐴�� + 𝐷𝐷��𝐿𝐿̇𝐴𝐴��� � 𝐷𝐷��Δℎ𝐴𝐴,𝑘𝑘��
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖) ⎠
+⎞. 
+(42) 
+ 
+As in geometric adjustments we assume no covariances between velocities and displacements nor 
+between two different displacements.  However, we also assume no covariances between 
+ellipsoid height velocities and geoid undulation velocities17.  In (42), there is only one unknown 
+parameter 𝐻𝐻𝐴𝐴, so “all parameters” encompasses only that one, and means Σ𝑀𝑀𝑖𝑖 will be a 1 × 1 
+matrix.  That doesn’t get us yet to the dispersion of the contribution of the MCPV to the projected 
+observations, Σ𝑦𝑦�,𝑚𝑚.  To derive that, as before, we now examine the cases of one observation, and 
+then two observations that share zero, one and two points respectively.   
+ 
+6.2 Orthometric Example:  One orthometric height difference  
+This and the three following sections have close parallels with sections 5.2 through 5.5, which 
+covered GNSS observations.  As such, some common details may be skipped. 
+Consider an observation vector 𝒀𝒀 consisting of a single orthometric height difference, between 
+two points 𝐴𝐴 and 𝐵𝐵, at observation epoch 𝑖𝑖.  The observation equation is: 
+𝒀𝒀 = [Δ𝐻𝐻𝐴𝐴𝐵𝐵,𝑖𝑖] + 𝒆𝒆𝒚𝒚    ,   𝒆𝒆𝒚𝒚~�𝟎𝟎, 𝚺𝚺𝒚𝒚�. (43) 
+ 
+Now we must map observations to projected observations, as: 
+ 
+17 There can be a correlation, such as in the Hudson Bay where a substantial amount of mass is actually entering the 
+region via the mantle, causing both a land uplift (ℎ̇𝐴𝐴) and geoid change (𝐿𝐿̇𝐴𝐴).  However, this is more the exception 
+than the rule.  Often, local uplift or subsidence is due to small mass changes or no mass change (such as 
+compaction), which would yield no discernable 𝐿𝐿̇𝐴𝐴 value at all.  Regardless, the ability to compute such a correlation 
+is difficult, and for the purposes of this paper, the assumption of non-correlation will be used.  Any researchers 
+expanding this work may wish to consider the correlation between ℎ̇𝐴𝐴 and 𝐿𝐿̇𝐴𝐴. 
+
+##########################################################################
+### PDF page 35 (of 52)   matches: IFDM, epoch
+##########################################################################
+31 
+ 
+Note in (46) that covariances between velocities and displacements, and between displacements 
+and other displacements, and between geoid velocities and ellipsoid height velocities have all 
+been set to zero as mentioned earlier.  However, covariances between velocities at different points 
+and events at different points remain.  In the future, NGS may have knowledge of such 
+covariances, but for now they will also be set equal to zero since neither IFDM2022 nor 
+DGEOID2022 contain them.  This reduces (46) to: 
+Σ𝑦𝑦�,𝑚𝑚 = Δ𝑡𝑡𝑖𝑖
+2�𝐷𝐷�𝑒𝑒ℎ̇ 𝐴𝐴 � + 𝐷𝐷�𝑒𝑒ℎ̇ 𝐵𝐵 �� + Δ𝑡𝑡𝑖𝑖
+2�𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐴𝐴 � + 𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐵𝐵 �� + � �𝐷𝐷�𝑒𝑒Δℎ𝐴𝐴,𝑘𝑘 � + 𝐷𝐷�𝑒𝑒Δℎ𝐵𝐵,𝑘𝑘 ��
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+. (47) 
+In (47) we have kept the three contributions (ellipsoid height velocities, geoid height velocities 
+and ellipsoid height displacements) separate for ease of understanding. 
+We now turn to the same three situations which arose for geometric adjustments, but using 
+orthometric height differences:  no points in common, one point in common, and two points in 
+common.  However, we will go through it much more quickly, skipping many details common to 
+the geometric examples. 
+6.3 Orthometric example: Two height differences, no shared points 
+Consider one observation vector, containing two orthometric height differences, one from point 𝐴𝐴 
+to point 𝐵𝐵 at epoch 𝑖𝑖 and the other from point 𝐶𝐶 to point 𝐷𝐷 at epoch 𝑗𝑗.  The observation equation 
+takes this form: 
+𝒀𝒀 = �Δ𝐻𝐻𝐴𝐴𝐵𝐵,𝑖𝑖
+Δ𝐻𝐻𝐶𝐶𝐷𝐷,𝑗𝑗
+� + 𝒆𝒆𝒚𝒚  ,   𝒆𝒆𝒚𝒚~�𝟎𝟎, 𝚺𝚺𝒚𝒚�. (48) 
+ 
+Expanding (48) yields: 
+𝒀𝒀 = �Δ𝐻𝐻𝐴𝐴𝐵𝐵,𝑖𝑖
+Δ𝐻𝐻𝐶𝐶𝐷𝐷,𝑗𝑗
+� + 𝒆𝒆𝒚𝒚 = 𝐴𝐴̅ �𝚵𝚵𝒊𝒊
+𝚵𝚵𝒋𝒋
+� + 𝒆𝒆𝒚𝒚 = � 𝐴𝐴̅𝑖𝑖 01,4
+01,4 𝐴𝐴̅𝑗𝑗
+� �𝚵𝚵𝒊𝒊
+𝚵𝚵𝒋𝒋
+� + 𝒆𝒆𝒚𝒚 = �−1 +1 0 0 0 0 0 0
+0 0 0 0 0 0 −1 +1�
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡𝐻𝐻𝐴𝐴,𝑖𝑖
+𝐻𝐻𝐵𝐵,𝑖𝑖
+𝐻𝐻𝐶𝐶,𝑖𝑖
+𝐻𝐻𝐷𝐷,𝑖𝑖
+𝐻𝐻𝐴𝐴,𝑗𝑗
+𝐻𝐻𝐵𝐵,𝑗𝑗
+𝐻𝐻𝐶𝐶,𝑗𝑗
+𝐻𝐻𝐷𝐷,𝑗𝑗⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++ 𝒆𝒆𝒚𝒚. (49) 
+Mapping observations into projected observations yields: 
+𝒀𝒀� = 𝒀𝒀 − � 𝐴𝐴̅𝑖𝑖 01,4
+01,4 𝐴𝐴̅𝑗𝑗
+� �𝚫𝚫𝑿𝑿𝒊𝒊,𝑴𝑴
+𝚫𝚫𝑿𝑿𝒋𝒋,𝑴𝑴
+� = 𝒀𝒀 − � 𝐴𝐴̅𝑖𝑖 01,4
+01,4 𝐴𝐴̅𝑗𝑗
+�
+⎩
+⎪⎪⎪
+⎨
+⎪⎪⎪
+⎧
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡Δ𝐻𝐻𝐴𝐴,𝑖𝑖
+Δ𝐻𝐻𝐵𝐵,𝑖𝑖
+Δ𝐻𝐻𝐶𝐶,𝑖𝑖
+Δ𝐻𝐻𝐷𝐷,𝑖𝑖
+Δ𝐻𝐻𝐴𝐴,𝑗𝑗
+Δ𝐻𝐻𝐵𝐵,𝑗𝑗
+Δ𝐻𝐻𝐶𝐶,𝑗𝑗
+Δ𝐻𝐻𝐷𝐷,𝑗𝑗⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡
+𝑒𝑒Δ𝐻𝐻𝐴𝐴,𝑖𝑖
+𝑒𝑒Δ𝐻𝐻𝐵𝐵,𝑖𝑖
+𝑒𝑒Δ𝐻𝐻𝐶𝐶,𝑖𝑖
+𝑒𝑒Δ𝐻𝐻𝐷𝐷,𝑖𝑖
+𝑒𝑒Δ𝐻𝐻𝐴𝐴,𝑗𝑗
+𝑒𝑒Δ𝐻𝐻𝐵𝐵,𝑗𝑗
+𝑒𝑒Δ𝐻𝐻𝐶𝐶,𝑗𝑗
+𝑒𝑒Δ𝐻𝐻𝐷𝐷,𝑗𝑗 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+⎭
+⎪⎪⎪
+⎬
+⎪⎪⎪
+⎫
+ 
+ 
+
+##########################################################################
+### PDF page 37 (of 52)   matches: IFDM, epoch
+##########################################################################
+33 
+ 
+only one projected observation, for brevity.  See Figure 2, and note that each sub-matrix 𝐴𝐴̅ is of 
+size 1 × 4, and we have again dropped 𝑞𝑞𝑖𝑖 for space considerations. 
+ 
+Figure 2:  The relationship between the MCPV and GVCM (IFDM2022) in projected 
+observations within an orthometric adjustment. 
+We again examine matrix Σ𝑦𝑦�,𝑚𝑚 in parts, but in this case element-by-element, rather than in 3 × 3 
+blocks (as was done for the geometric case), due to the one-dimensional nature of the adjustment.  
+The velocity components are: 
+Σ𝑦𝑦�,𝑚𝑚𝑣𝑣,11 = Δ𝑡𝑡𝑖𝑖
+2��𝐷𝐷�𝑒𝑒ℎ̇ 𝐴𝐴 � − 2𝐶𝐶�𝑒𝑒ℎ̇ 𝐴𝐴 , 𝑒𝑒ℎ̇ 𝐵𝐵 � + 𝐷𝐷�𝑒𝑒ℎ̇ 𝐵𝐵 �� + �𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐴𝐴 � − 2𝐶𝐶�𝑒𝑒𝐿𝐿̇ 𝐴𝐴 , 𝑒𝑒𝐿𝐿̇ 𝐵𝐵 � + 𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐵𝐵 ���, 
+ 
+(52a) 
+Σ𝑦𝑦�,𝑚𝑚𝑣𝑣,21
+= Σ𝑦𝑦�,𝑚𝑚𝑣𝑣,12
+= Δ𝑡𝑡𝑖𝑖Δ𝑡𝑡𝑗𝑗��𝐶𝐶�𝑒𝑒ℎ̇ 𝐴𝐴 , 𝑒𝑒ℎ̇ 𝐶𝐶 � − 𝐶𝐶�𝑒𝑒ℎ̇ 𝐴𝐴 , 𝑒𝑒ℎ̇ 𝐷𝐷 � − 𝐶𝐶�𝑒𝑒ℎ̇ 𝐵𝐵 , 𝑒𝑒ℎ̇ 𝐶𝐶 � + 𝐶𝐶�𝑒𝑒ℎ̇ 𝐵𝐵 , 𝑒𝑒ℎ̇ 𝐷𝐷 ��
++ �𝐶𝐶�𝑒𝑒𝐿𝐿̇ 𝐴𝐴 , 𝑒𝑒𝐿𝐿̇ 𝐶𝐶 � − 𝐶𝐶�𝑒𝑒𝐿𝐿̇ 𝐴𝐴 , 𝑒𝑒𝐿𝐿̇ 𝐷𝐷 � − 𝐶𝐶�𝑒𝑒𝐿𝐿̇ 𝐵𝐵 , 𝑒𝑒𝐿𝐿̇ 𝐶𝐶 � + 𝐶𝐶�𝑒𝑒𝐿𝐿̇ 𝐵𝐵 , 𝑒𝑒𝐿𝐿̇ 𝐷𝐷 ���, 
+ 
+(52b) 
+Σ𝑦𝑦�,𝑚𝑚𝑣𝑣,22 = Δ𝑡𝑡𝑖𝑖
+2��𝐷𝐷�𝑒𝑒ℎ̇ 𝐶𝐶 � − 2𝐶𝐶�𝑒𝑒ℎ̇ 𝐶𝐶 , 𝑒𝑒ℎ̇ 𝐷𝐷 � + 𝐷𝐷�𝑒𝑒ℎ̇ 𝐶𝐶 �� + �𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐶𝐶 � − 2𝐶𝐶�𝑒𝑒𝐿𝐿̇ 𝐶𝐶 , 𝑒𝑒𝐿𝐿̇ 𝐷𝐷 � + 𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐶𝐶 ���. (52c) 
+ 
+As before, we examine the displacing event components in three sections:  those that effect both 
+observations, those that affect only the observation at epoch 𝑖𝑖 and those that affect only the 
+observation at epoch 𝑗𝑗. 
+  First, for any 𝑘𝑘 ∈ 𝐾𝐾(𝑖𝑖) and 𝑘𝑘 ∈ 𝐾𝐾(𝑗𝑗) we have: 
+Σ𝑦𝑦�,𝑚𝑚𝑘𝑘,11 = 𝐷𝐷�𝑒𝑒Δℎ𝐴𝐴,𝑘𝑘 � − 2𝐶𝐶�𝑒𝑒Δℎ𝐴𝐴,𝑘𝑘 , 𝑒𝑒Δℎ𝐵𝐵,𝑘𝑘 � + 𝐷𝐷�𝑒𝑒Δℎ𝐵𝐵,𝑘𝑘 �, (52d) 
+  
+
+
+##########################################################################
+### PDF page 39 (of 52)   matches: epoch
+##########################################################################
+35 
+ 
+Σ𝑦𝑦�,𝑚𝑚 =
+⎝
+⎜⎜
+⎛
+�
+Δ𝑡𝑡𝑖𝑖
+2�𝐷𝐷�𝑒𝑒ℎ̇ 𝐴𝐴 � + 𝐷𝐷�𝑒𝑒ℎ̇ 𝐵𝐵 � + 𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐴𝐴 � + 𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐵𝐵 �� 0
+0 Δ𝑡𝑡𝑗𝑗
+2�𝐷𝐷�𝑒𝑒ℎ̇ 𝐶𝐶 � + 𝐷𝐷�𝑒𝑒ℎ̇ 𝐷𝐷 � + 𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐶𝐶 � + 𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐷𝐷 ���
++ � �
+𝐷𝐷�𝑒𝑒Δℎ𝐴𝐴,𝑘𝑘 � + 𝐷𝐷�𝑒𝑒Δℎ𝐵𝐵,𝑘𝑘 � 0
+0 𝐷𝐷�𝑒𝑒Δℎ𝐶𝐶,𝑘𝑘 � + 𝐷𝐷�𝑒𝑒Δℎ𝐷𝐷,𝑘𝑘 ��
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
++ � �𝐷𝐷�𝑒𝑒Δℎ𝐴𝐴,𝑘𝑘 � + 𝐷𝐷�𝑒𝑒Δℎ𝐵𝐵,𝑘𝑘 � 0
+0 0
+�
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∉𝐾𝐾(𝑗𝑗)
++ � �0 0
+0 𝐷𝐷�𝑒𝑒Δℎ𝐶𝐶,𝑘𝑘 � + 𝐷𝐷�𝑒𝑒Δℎ𝐷𝐷,𝑘𝑘 ��
+𝑘𝑘
+𝑘𝑘∉𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗) ⎠
+⎟⎟
+⎞
+ 
+ 
+(53) 
+ 
+The conclusions drawn from (52) and (53) are the same as in the geometric case:  Conclusion #1 
+for (52) and Conclusion #2 for (53). 
+6.4 Orthometric example: Two height differences, one shared point 
+Next, consider one observation vector, containing two observations, one with an orthometric 
+height difference from point 𝐴𝐴 to point 𝐵𝐵 at epoch 𝑖𝑖 and another from point 𝐴𝐴 to point 𝐶𝐶 at epoch 
+𝑗𝑗.  The observation equation is: 
+𝒀𝒀 = �Δ𝐻𝐻𝐴𝐴𝐵𝐵,𝑖𝑖
+Δ𝐻𝐻𝐴𝐴𝐶𝐶,𝑗𝑗
+� + 𝒆𝒆𝒚𝒚    ,     𝒆𝒆𝒚𝒚~�𝟎𝟎, 𝚺𝚺𝒚𝒚�. (54) 
+This expands to: 
+𝒀𝒀 = �Δ𝐻𝐻𝐴𝐴𝐵𝐵,𝑖𝑖
+Δ𝐻𝐻𝐴𝐴𝐶𝐶,𝑗𝑗
+� + 𝒆𝒆𝒚𝒚 = �−1 +1 0 0 0 0
+0 0 0 −1 0 +1�
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡𝐻𝐻𝐴𝐴,𝑖𝑖
+𝐻𝐻𝐵𝐵,𝑖𝑖
+𝐻𝐻𝐶𝐶,𝑖𝑖
+𝐻𝐻𝐴𝐴,𝑗𝑗
+𝐻𝐻𝐵𝐵,𝑗𝑗
+𝐻𝐻𝐶𝐶,𝑗𝑗 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++ 𝒆𝒆𝒚𝒚. (55) 
+ 
+Observations are again mapped into projected observations, yielding: 
+𝒀𝒀� = 𝒀𝒀 − � 𝐴𝐴̅𝑖𝑖 01,3
+01,3 𝐴𝐴̅𝑗𝑗
+�
+⎩
+⎪⎪
+⎨
+⎪⎪
+⎧
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡Δ𝑡𝑡𝑖𝑖ℎ̇𝐴𝐴
+Δ𝑡𝑡𝑖𝑖ℎ̇ 𝐵𝐵
+Δ𝑡𝑡𝑖𝑖ℎ̇ 𝐶𝐶
+Δ𝑡𝑡𝑗𝑗ℎ̇𝐴𝐴
+Δ𝑡𝑡𝑗𝑗ℎ̇ 𝐵𝐵
+Δ𝑡𝑡𝑗𝑗ℎ̇ 𝐶𝐶 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+−
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡Δ𝑡𝑡𝑖𝑖𝐿𝐿̇𝐴𝐴
+Δ𝑡𝑡𝑖𝑖𝐿𝐿̇ 𝐵𝐵
+Δ𝑡𝑡𝑖𝑖𝐿𝐿̇ 𝐶𝐶
+Δ𝑡𝑡𝑗𝑗𝐿𝐿̇𝐴𝐴
+Δ𝑡𝑡𝑗𝑗𝐿𝐿̇ 𝐵𝐵
+Δ𝑡𝑡𝑗𝑗𝐿𝐿̇ 𝐶𝐶 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++ 𝑞𝑞𝑖𝑖 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡Δℎ𝐴𝐴,𝑘𝑘
+Δℎ𝐵𝐵,𝑘𝑘
+Δℎ𝐶𝐶,𝑘𝑘
+Δℎ𝐴𝐴,𝑘𝑘
+Δℎ𝐵𝐵,𝑘𝑘
+Δℎ𝐶𝐶,𝑘𝑘 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
++ 𝑞𝑞𝑖𝑖 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡Δℎ𝐴𝐴,𝑘𝑘
+Δℎ𝐵𝐵,𝑘𝑘
+Δℎ𝐶𝐶,𝑘𝑘
+0
+0
+0 ⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∉𝐾𝐾(𝑗𝑗)
++ 𝑞𝑞𝑗𝑗 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡ 0
+0
+0
+Δℎ𝐴𝐴,𝑘𝑘
+Δℎ𝐵𝐵,𝑘𝑘
+Δℎ𝐶𝐶,𝑘𝑘 ⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∉𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
+⎭
+⎪⎪
+⎬
+⎪⎪
+⎫
+ 
+(56) 
+− � 𝐴𝐴̅𝑖𝑖 01,3
+01,3 𝐴𝐴̅𝑗𝑗
+�
+⎩
+⎪⎪
+⎨
+⎪⎪
+⎧
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡Δ𝑡𝑡𝑖𝑖𝑒𝑒Δℎ̇ 𝐴𝐴
+Δ𝑡𝑡𝑖𝑖𝑒𝑒Δℎ̇ 𝐵𝐵
+Δ𝑡𝑡𝑗𝑗𝑒𝑒Δℎ̇ 𝐶𝐶
+Δ𝑡𝑡𝑗𝑗𝑒𝑒Δℎ̇ 𝐴𝐴
+Δ𝑡𝑡𝑗𝑗𝑒𝑒Δℎ̇ 𝐵𝐵
+Δ𝑡𝑡𝑗𝑗𝑒𝑒Δℎ̇ 𝐶𝐶 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+−
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡Δ𝑡𝑡𝑖𝑖𝑒𝑒Δ𝐿𝐿̇ 𝐴𝐴
+Δ𝑡𝑡𝑖𝑖𝑒𝑒Δ𝐿𝐿̇ 𝐵𝐵
+Δ𝑡𝑡𝑗𝑗𝑒𝑒Δ𝐿𝐿̇ 𝐶𝐶
+Δ𝑡𝑡𝑗𝑗𝑒𝑒Δ𝐿𝐿̇ 𝐴𝐴
+Δ𝑡𝑡𝑗𝑗𝑒𝑒Δ𝐿𝐿̇ 𝐵𝐵
+Δ𝑡𝑡𝑗𝑗𝑒𝑒Δ𝐿𝐿̇ 𝐶𝐶 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
++ 𝑞𝑞𝑖𝑖 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡
+𝑒𝑒Δℎ𝐴𝐴,𝑘𝑘
+𝑒𝑒Δℎ𝐵𝐵,𝑘𝑘
+𝑒𝑒Δℎ𝐶𝐶,𝑘𝑘
+𝑒𝑒Δℎ𝐴𝐴,𝑘𝑘
+𝑒𝑒Δℎ𝐵𝐵,𝑘𝑘
+𝑒𝑒Δℎ𝐶𝐶,𝑘𝑘 ⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
++ 𝑞𝑞𝑖𝑖 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡
+𝑒𝑒Δℎ𝐴𝐴,𝑘𝑘
+𝑒𝑒Δℎ𝐵𝐵,𝑘𝑘
+𝑒𝑒Δℎ𝐶𝐶,𝑘𝑘
+0
+0
+0 ⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∉𝐾𝐾(𝑗𝑗)
++ 𝑞𝑞𝑗𝑗 �
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡ 0
+0
+0
+𝑒𝑒Δℎ𝐴𝐴,𝑘𝑘
+𝑒𝑒Δℎ𝐵𝐵,𝑘𝑘
+𝑒𝑒Δℎ𝐶𝐶,𝑘𝑘 ⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+𝑘𝑘
+𝑘𝑘∉𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
+⎭
+⎪⎪
+⎬
+⎪⎪
+⎫
+. 
+ 
+
+##########################################################################
+### PDF page 40 (of 52)   matches: epoch
+##########################################################################
+36 
+ 
+ 
+The error vector 𝒆𝒆𝒚𝒚�,𝒎𝒎 of the MCPV contribution to projected observations is the last line in (56).  
+As before, we ignore covariances in the GVCMs going forward, since they aren’t expected to be 
+available.  In that case, the dispersion matrix Σ𝑦𝑦�,𝑚𝑚 simplifies to: 
+Σ𝑦𝑦�,𝑚𝑚 =
+⎝
+⎜⎜
+⎛
+�
+Δ𝑡𝑡𝑖𝑖
+2�𝐷𝐷�𝑒𝑒ℎ̇ 𝐴𝐴 � + 𝐷𝐷�𝑒𝑒ℎ̇ 𝐵𝐵 � + 𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐴𝐴 � + 𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐵𝐵 �� Δ𝑡𝑡𝑖𝑖Δ𝑡𝑡𝑗𝑗�𝐷𝐷�𝑒𝑒ℎ̇ 𝐴𝐴 � + 𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐴𝐴 ��
+Δ𝑡𝑡𝑖𝑖Δ𝑡𝑡𝑗𝑗�𝐷𝐷�𝑒𝑒ℎ̇ 𝐴𝐴 � + 𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐴𝐴 �� Δ𝑡𝑡𝑗𝑗
+2�𝐷𝐷�𝑒𝑒ℎ̇ 𝐴𝐴 � + 𝐷𝐷�𝑒𝑒ℎ̇ 𝐵𝐵 � + 𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐴𝐴 � + 𝐷𝐷�𝑒𝑒𝐿𝐿̇ 𝐵𝐵 ���
++ � �
+𝐷𝐷�𝑒𝑒Δℎ𝐴𝐴,𝑘𝑘 � + 𝐷𝐷�𝑒𝑒Δℎ𝐵𝐵,𝑘𝑘 � 𝐷𝐷�𝑒𝑒Δℎ𝐴𝐴,𝑘𝑘 �
+𝐷𝐷�𝑒𝑒Δℎ𝐴𝐴,𝑘𝑘 � 𝐷𝐷�𝑒𝑒Δℎ𝐴𝐴,𝑘𝑘 � + 𝐷𝐷�𝑒𝑒Δℎ𝐵𝐵,𝑘𝑘 ��
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
++ � �𝐷𝐷�𝑒𝑒Δℎ𝐴𝐴,𝑘𝑘 � + 𝐷𝐷�𝑒𝑒Δℎ𝐵𝐵,𝑘𝑘 � 0
+0 0
+�
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∉𝐾𝐾(𝑗𝑗)
++ � �0 0
+0 𝐷𝐷�𝑒𝑒Δℎ𝐴𝐴,𝑘𝑘 � + 𝐷𝐷�𝑒𝑒Δℎ𝐵𝐵,𝑘𝑘 ��
+𝑘𝑘
+𝑘𝑘∉𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗) ⎠
+⎟⎟
+⎞
+ 
+ 
+(57) 
+ 
+Comparing (57) to (32) shows a wide array of similarities, including Conclusion #3, and the 
+potential problem of non-sparsity it raises.  This potential problem will be discussed in section 7.  
+As in the geometric case, we consider whether the potential problem still exists when the two 
+observations are at the same epoch.  In this (orthometric) case, the answer is now “yes.”  (Recall 
+that the answer was “probably not” for geometric adjustments.)  The reason for this is that in most 
+leveling adjustments, the dispersion matrix of the observations tends to be diagonal.  Despite the 
+obvious factors which would correlate two differential orthometric height observations in a single 
+epoch (whether that be a single day or similar small period of time), the data are not processed 
+simultaneously in a session the way that GNSS data are.  Thus, we don’t tend to have any 
+covariance information between leveling observations, even if collected at a common epoch.  
+With that being the case, even if the two leveling observations both occur at epoch 𝑖𝑖, we still 
+expect a diagonal matrix Σ𝑦𝑦.  Thus, the addition of the non-zero off-diagonal elements seen in 
+(57) above, will remain a problem by creating non-zero off diagonal elements in Σ𝑦𝑦�, even if the 
+observations occur at the same epoch.  More details are found in section 7. 
+6.5 Orthometric example: Two height differences, two shared points 
+Finally, consider one observation vector, containing two orthometric observations, one with a 
+height difference from point 𝐴𝐴 to point 𝐵𝐵 at epoch 𝑖𝑖 and another from point 𝐴𝐴 to point 𝐵𝐵 at epoch 
+𝑗𝑗.  The observation equation is: 
+𝒀𝒀 = �𝚫𝚫𝑿𝑿𝑨𝑨𝑩𝑩,𝒊𝒊
+𝚫𝚫𝑿𝑿𝑨𝑨𝑩𝑩,𝒋𝒋
+� + 𝒆𝒆𝒚𝒚    ,     𝒆𝒆𝒚𝒚~�𝟎𝟎, 𝚺𝚺𝒚𝒚�. (58) 
+ 
+This expands to: 
+
+##########################################################################
+### PDF page 42 (of 52)   matches: epoch
+##########################################################################
+38 
+ 
+3) If the covariances in the GVCMs are not known, what conditions will cause the 
+previously-zero covariance elements in Σ𝑦𝑦 to be non-zero in Σ𝑦𝑦�? 
+The first question has been answered with equations found in Table 2. 
+Table 2:  Summary of equations which compute elements of the dispersion matrix for the 
+contribution of the MCPV to the projected observations. 
+Adjustment 
+Type 
+Number of 
+observations 
+GVCM covariances 
+known? 
+Number of points 
+in common 
+Equation 
+number 
+Geometric 1 Yes N/A 18 
+Geometric 1 No N/A 19,20,21 
+Geometric 2 Yes 0 27 
+Geometric 2 No 0 28 
+Geometric 2 No18 1 32 
+Geometric 2 No 2 36 
+Orthometric 1 Yes N/A 46 
+Orthometric 1 No N/A 47 
+Orthometric 2 Yes 0 52 
+Orthometric 2 No 0 53 
+Orthometric 2 No18 1 57 
+Orthometric 2 No 2 61 
+ 
+The second question can be answered by examination of the equations just listed, where this 
+conclusion becomes obvious:  
+Conclusion 5:  Knowledge of the covariances in the GVCM introduces covariances 
+between the errors of every pair of projected observations.  
+In simple terms, it means that the dispersion matrix Σ𝑦𝑦�,𝑚𝑚 of the contribution of the MCPV to 
+projected observations will always be full, and thus so will the dispersion matrix Σ𝑦𝑦� of the 
+projected observations.  By extension, assuming the Gauss-Markov Model is used, the cofactor 
+matrix 𝑄𝑄𝑦𝑦� will also always be full.  The implications of a full cofactor matrix are daunting, and 
+will be discussed in subsection 7.1. 
+The third question was answered in equations 32, 36, 57 and 61.  In those equations it was seen 
+that two observations which share at least one common point, even at different epochs, will 
+transform from two uncorrelated observations into two correlated projected observations, even in 
+the absence of GVCM covariances.  While this will not create a full Σ𝑦𝑦�,𝑚𝑚 or Σ𝑦𝑦� matrix, it will 
+create non-zero elements where none existed in Σ𝑦𝑦.  This loss of sparsity is a concern discussed 
+next. 
+ 
+18 Note that the addition of GVCM covariances was ignored for later examples, since (a) they aren’t expected to be 
+known and (b) they only complicated and distracted from the work. 
+
+##########################################################################
+### PDF page 46 (of 52)   matches: epoch
+##########################################################################
+42 
+ 
+However, when 𝑃𝑃𝑦𝑦� is full the sparsity of 𝐴𝐴̅𝑇𝑇𝑃𝑃𝑦𝑦� 𝐴𝐴̅ will always be 0%.  The only time an element of 
+𝐴𝐴̅𝑇𝑇𝑃𝑃𝑦𝑦� 𝐴𝐴̅ could be non-zero is if there existed two unknown parameters which both had zero 
+observations relating to them.  As one cannot estimate unknown parameters unless at least one 
+observation relates to that parameter, such a situation should never arise. 
+What this means is that it is risky to construct matrix 𝑄𝑄𝑦𝑦� into any form besides block-diagonal.   
+We can guarantee that if 𝑄𝑄𝑦𝑦� is not singular and is block-diagonal, that 𝑃𝑃𝑦𝑦� will also be block-
+diagonal with the same distribution of non-zero elements as 𝑄𝑄𝑦𝑦�.  But the same cannot be said for a 
+sparse, but not block-diagonal 𝑄𝑄𝑦𝑦�.  This brings us to another conclusion: 
+Conclusion 7:  For large least-squares adjustments, unless it can be guaranteed that 𝑃𝑃𝑦𝑦� is 
+sparse, one should not construct 𝑄𝑄𝑦𝑦� into any form besides block-diagonal. 
+The term “large” is left purposefully vague, since it is dependent upon the amount of 
+computational power and memory available.  However, even if there were unlimited 
+computational resources, there remains one other issue:  most legacy LSA software packages at 
+NGS presume matrix 𝑃𝑃𝑦𝑦� will be diagonal or at least block-diagonal, due to lack of known 
+correlations between observations, as reasons mentioned earlier.  This is the case for NGS’s 
+original ADJUST (Milbert and Kass, 1987), ASTA19, BIGADJUST19 and NETSTAT (Pursell and 
+Potterfield, 2008) software packages, and is the case for the new LSA package being developed, 
+LASER.  Even if we can guarantee that a sparse, but not-block diagonal 𝑄𝑄𝑦𝑦� would yield a sparse, 
+but not-block diagonal 𝑃𝑃𝑦𝑦�, there remains the issue that the LSA software must be prepared to read 
+and use such an unusually formed 𝑃𝑃𝑦𝑦� matrix.  As that is not going to immediately be the case at 
+NGS, we arrive at a modification of the above conclusion: 
+Conclusion 7, revision 1:  For large least-squares adjustments, NGS should not construct 
+𝑄𝑄𝑦𝑦� into any form besides block-diagonal. 
+However even this conclusion is not quite satisfactory yet, as it doesn’t specify a way to prevent 
+𝑄𝑄𝑦𝑦� from using blocks so large that they become a computational burden.   
+Consider that each on-diagonal block in the cofactor matrix of the original observations, 𝑄𝑄𝑦𝑦, 
+contains covariance information between observations at a single observational epoch 
+representing a single GNSS session (covariance information being generally unavailable between 
+other observation types), but that between any two observational epochs we assume no 
+covariances.  Consider an example of, say, two observational epochs containing two and three 
+GNSS measured baselines respectively.  Their on-diagonal blocks in matrix 𝑄𝑄𝑦𝑦 would be 6 × 6 
+and 9 × 9 in size, and the off-diagonal 6 × 9  and 9 × 6  blocks would be zeroes.  Now consider 
+that one or more of the points observed in the first epoch were also observed in the second epoch.  
+As these two sets of observations become two sets of projected observations, the 15 × 15 block 
+representing these two epochs in 𝑄𝑄𝑦𝑦� would contain more non-zero elements than just the 6 × 6 
+and 9 × 9 on-diagonal blocks, and could be completely full if all points were common between 
+ 
+19 These programs have never been formally documented. 
+
+##########################################################################
+### PDF page 47 (of 52)   matches: epoch
+##########################################################################
+43 
+ 
+the epochs.  Taken to its logical conclusion, we will end up with a matrix 𝑄𝑄𝑦𝑦� that could either be 
+described as “sparse, but not block-diagonal”, or one that is “block-diagonal, with large blocks 
+that are sparse”.  Neither case is acceptable for large networks, as mentioned earlier.  As such, we 
+revise again conclusion 7 as: 
+Conclusion 7, revision 2:  For large least-squares adjustments, NGS will only construct 
+non-zero elements in 𝑄𝑄𝑦𝑦� if the corresponding element in 𝑄𝑄𝑦𝑦 is also non-zero. 
+The corollary to this, since 𝑄𝑄𝑦𝑦� is the sum 𝑄𝑄𝑦𝑦 and Σ𝑦𝑦�,𝑚𝑚 is: 
+Conclusion 8:  For large least-squares adjustments, NGS will only construct non-zero 
+elements in Σ𝑦𝑦�,𝑚𝑚 if the corresponding element in 𝑄𝑄𝑦𝑦 is also non-zero. 
+The only place the above two conclusions will be invoked will be within one GNSS session, with 
+multiple GNSS measured baselines processed simultaneously.  In that instance, and that instance 
+alone, NGS will invoke equations 32 or 36 to compute Σ𝑦𝑦�,𝑚𝑚, for any two GNSS measured 
+baselines in a single session that already have a known covariance in matrix 𝑄𝑄𝑦𝑦.  In all other 
+cases, equations 19, 20 and 21, (for geometric adjustments) and equation 47 (for orthometric 
+adjustments) will be used.  In this way, NGS may assure that diagonal and/or block-diagonal 
+structure of 𝑄𝑄𝑦𝑦� will match that of 𝑄𝑄𝑦𝑦. 
+ 
+8 Summary 
+The multi-epoch least-squares adjustment (ME-LSA) problem was documented, in very general 
+terms, in Smith et al. (2023).  Key to solving the ME-LSA is the existence of one or more 
+geodetic value change models (GVCMs), which will yield a single model of changes to parameter 
+values (MCPV), which in its own turn is used to relate observations to projected observations.  In 
+(ibid) the derivations allowed for the GVCM to be fixed or stochastic.  However, the existence of, 
+and impact of, covariances within the GVCM was not fully detailed in that paper, nor was the 
+topic of correlations arising between projected observations due to the use of a common velocity 
+and/or displacement field.  The need to properly understand those two topics is what motivated 
+this paper. 
+Within this paper, three questions were asked and answered:  1) How should we convert GVCM 
+covariances, if they exist, into MCPV covariances; 2) How will covariances within the GVCM   
+impact the sparsity of the cofactor matrix of the projected observations 𝑄𝑄𝑦𝑦�; and 3) Even without 
+covariances in the GVCMs, how will common velocities or displacing events impact the sparsity 
+of 𝑄𝑄𝑦𝑦�? 
+The first question was answered in equations 18 (geometric) and 46 (orthometric), though in each 
+case we have assumed certain covariances will never be available, such as those between 
+velocities and displacing events or between ellipsoid height velocities and geoid height velocities. 
+
+##########################################################################
+### PDF page 48 (of 52)   matches: Epoch, epoch
+##########################################################################
+44 
+ 
+The second question was answered thus:  such covariances will yield a full cofactor matrix of the 
+projected observations 𝑄𝑄𝑦𝑦� which, in large networks, would be impractical, if not impossible, to 
+invert for the needed weight matrix of projected observations, 𝑃𝑃𝑦𝑦�.   
+The answer to the third question was that such covariances will yield a cofactor matrix of the 
+projected observations 𝑄𝑄𝑦𝑦� which is sparse, but not block-diagonal, which comes with a variety of 
+complications.  We therefore concluded that an element in matrix 𝑄𝑄𝑦𝑦� should be non-zero only if 
+that same element was also non-zero in the cofactor matrix of the original observations 𝑄𝑄𝑦𝑦. 
+NGS will compute reference epoch coordinates (RECs) using the strategies and conclusions 
+found in this paper.   This means that, generally speaking, all non-zero off-diagonal blocks in 
+matrix Σ𝑦𝑦�,𝑚𝑚 will be ignored, except in a single case:  when two GNSS measured baselines occur 
+at the same epoch, were simultaneously processed, and they share one or more points.  Then, and 
+only then, will off-diagonal elements be computed and used in the construction of Σ𝑦𝑦�,𝑚𝑚. 
+ 
+9 Bibliography 
+ 
+Dennis, M., 2020:  The National Adjustment of 2011 Alignment of Passive GNSS Control with 
+the Three Frames of the North American Datum of 1983 at Epoch 2010.00: NAD83 (2011), 
+NAD83 (PA11), and NAD83 (MA11).  NOAA Technical Report NOS NGS 65.  URL 
+https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0065.pdf 
+Milbert, D. and W. Kass, 1987:  ADJUST: THE HORIZONTAL OBSERVATION ADJU STMENT 
+PROGRAM.  NOAA Technical Memorandum NOS NGS-47.  URL 
+https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0047.pdf 
+National Geodetic Survey, 2021a:  Blueprint for the Modernized NSRS, Part 1: Geometric 
+Coordinates and Terrestrial Reference Frames.  NOAA Technical Report NOS NGS 62.  URL 
+https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0062.pdf 
+National Geodetic Survey, 2021b: Blueprint for the Modernized NSRS,Part 2: Geopotential 
+Coordinates and Geopotential Datum 
+.  NOAA Technical Report NOS NGS 64.  URL 
+https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0064.pdf 
+National Geodetic Survey, 2021c:  Blueprint for the Modernized NSRS,Part 3: Working in the 
+Modernized NSRS.  NOAA Technical Report NOS NGS 67.  URL 
+https://geodesy.noaa.gov/PUBS_LIB/NOAA_TR_NOS_NGS_0067.pdf 
+ 
+
+##########################################################################
+### PDF page 49 (of 52)   matches: epoch
+##########################################################################
+45 
+ 
+Pursell, D. and M. Potterfield, 2008:  NAD83 (NSR2007) National Readjustment Final Report.  
+NOAA Technical Report NOS NGS 69.  URL 
+https://geodesy.noaa.gov/PUBS_LIB/NOAA_TR_NOS_NGS_0060.pdf 
+Snow, K., 2021. Adjustment Computations: OSU Class Notes [Based on former courses taught by 
+Burkhard Schaffrin at The Ohio State University]. URL 
+https://earthsciences.osu.edu/research/geodetic-science/resources 
+Smith, D.A., 2023:  Interpolation from a grid of standard deviations.  NOAA Technical 
+Memorandum, NOS NGS 94, URL 
+https://geodesy.noaa.gov/library/pdfs/NOAA_TM_NOS_NGS_0094.pdf 
+Smith, D.A., D. Gillins, J. Heck, D. Roman, 2023:  The multi-epoch least-squares adjustment 
+problem:  General equations relating estimable coordinates at a single epoch to geodetic 
+observations, stochastic constraints and fixed constraints at multiple other epochs.  Volume I:  
+The Projection Method. NOAA Technical Report NOS NGS 79.  URL 
+https://geodesy.noaa.gov/library/pdfs/NOAA_TR_NOS_NGS_0079.pdf 
+Snay, R., 1999:  Using the HTDP Software to Transform Spatial Coordinates Across Time and 
+Between Reference Frames, Surveying and Land Information Systems, V. 59, No. 1, pp 15-25. 
+ 
+10 Appendix A:  Dealing with the singularity arising from one baseline 
+with two common points 
+ 
+Section 5.5 showed that matrix Σ𝑦𝑦�,𝑚𝑚 takes a special form when two GNSS measured baselines 
+share the same two points.  That pattern was seen in (37).  That equation is repeated here, for ease 
+of reference.   
+Σ𝑦𝑦�,𝑚𝑚 =
+⎝
+⎜⎜
+⎛
+�𝑎𝑎2𝐻𝐻 𝑎𝑎𝑎𝑎 𝐻𝐻
+𝑎𝑎𝑎𝑎
+𝐻𝐻 𝑎𝑎2𝐻𝐻
+� + � �
+𝐻𝐻𝑘𝑘 𝐻𝐻𝑘𝑘
+𝐻𝐻𝑘𝑘 𝐻𝐻𝑘𝑘
+�
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
++ � � 𝐻𝐻𝑘𝑘 0
+0 0 �
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∉𝐾𝐾(𝑗𝑗)
++ � �
+0 0
+0 𝐻𝐻𝑘𝑘
+�
+𝑘𝑘
+𝑘𝑘∉𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗) ⎠
+⎟⎟
+⎞
+ 
+ 
+ 
+ 
+The question we now raise is whether or not a matrix of this form is invertible.   However, note 
+that (37) was a special circumstance.  There were only two observations and they shared both 
+points.  What if there were multiple observations, so that the pattern in (37) would remain but 
+only represent blocks of a larger matrix Σ𝑦𝑦�,𝑚𝑚? 
+First, we consider solely to the two-observation situation.  We will show that each of the four 
+types of contributing matrices in (37) are singular.  We begin by noticing that sub-matrices 𝐻𝐻 and 
+
+##########################################################################
+### PDF page 51 (of 52)   matches: IFDM
+##########################################################################
+47 
+ 
+  
+In (65) we know that each 3 × 3 block must be invertible, since each component matrix (𝑎𝑎2𝐻𝐻, 
+𝑎𝑎2𝐻𝐻, 𝑎𝑎𝑎𝑎𝐻𝐻 or 𝐻𝐻𝑘𝑘) is positive-definite, and the sum of two or more positive definite matrices 
+remains positive definite (and thus invertible).  As such, we can attempt to apply the matrix 
+inverse lemma from earlier, examining the Schur complement of the bottom right block: 
+𝑆𝑆
+⎝
+⎜⎜
+⎛
+𝑎𝑎2𝐻𝐻 + � 𝐻𝐻𝑘𝑘
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
++ � 𝐻𝐻𝑘𝑘
+𝑘𝑘
+𝑘𝑘∉𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗) ⎠
+⎟⎟
+⎞
+=
+⎝
+⎜⎜
+⎛
+𝑎𝑎2𝐻𝐻 + � 𝐻𝐻𝑘𝑘
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
++ � 𝐻𝐻𝑘𝑘
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∉𝐾𝐾(𝑗𝑗) ⎠
+⎟⎟
+⎞
+−
+⎝
+⎜⎜
+⎛
+𝑎𝑎𝑎𝑎𝐻𝐻 + � 𝐻𝐻𝑘𝑘
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗) ⎠
+⎟⎟
+⎞
+⎝
+⎜⎜
+⎛
+𝑎𝑎2𝐻𝐻 + � 𝐻𝐻𝑘𝑘
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗)
++ � 𝐻𝐻𝑘𝑘
+𝑘𝑘
+𝑘𝑘∉𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗) ⎠
+⎟⎟
+⎞
+−1
+⎝
+⎜⎜
+⎛
+𝑎𝑎𝑎𝑎𝐻𝐻
++ � 𝐻𝐻𝑘𝑘
+𝑘𝑘
+𝑘𝑘∈𝐾𝐾(𝑖𝑖)
+𝑘𝑘∈𝐾𝐾(𝑗𝑗) ⎠
+⎟⎟
+⎞
+ 
+(66) 
+ 
+This is where things could get complicated.  To avoid that, let us first draw an immediate 
+conclusion:  if there are no displacements which contribute to Σ𝑦𝑦�,𝑚𝑚, then (66) reduces to (64) and 
+we may conclude that, in the absence of displacements, Σ𝑦𝑦�,𝑚𝑚 is always singular for two GNSS 
+measured baselines that share the same endpoints.20 
+Rather than attempting to prove under which circumstances a larger Σ𝑦𝑦�,𝑚𝑚 might be singular (say 
+with certain combinations of point-sharing observations), it is enough to have proven that it is 
+sometimes singular, even in this very small, yet possible example.  However, a number of simple 
+examples of matrices of the form �
+𝑎𝑎2𝐻𝐻 𝑥𝑥 𝑎𝑎𝑎𝑎𝐻𝐻
+𝑥𝑥 𝑦𝑦 𝑧𝑧
+𝑎𝑎𝑎𝑎𝐻𝐻 𝑧𝑧 𝑎𝑎2𝐻𝐻
+� were constructed and tested, where x, y and z 
+were blocks of the appropriate size, and each constructed matrix was either (a) singular or (b) else 
+ 
+20 Though a similar conclusion could be made by only allowing displacements that impact both 𝑖𝑖 and 𝑗𝑗, and no 
+velocities, such a case is not relevant, since the GVCM (IFDM2022) is, for now, a model consisting of velocities that 
+always impact all projected observations, and displacements that might impact some projected observations. 
+
+##########################################################################
+### PDF page 52 (of 52)   matches: epoch
+##########################################################################
+48 
+ 
+their inverse had at least one eigenvalue equal to zero.  Knowing that Σ𝑦𝑦�,𝑚𝑚 (whether for two 
+observations or more) is occasionally singular is reason enough to completely avoid any attempt 
+to invert the matrix when modeling the multi-epoch least-squares adjustment problem.   
+Thus, as mentioned in Smith et al. (2023), the occasional, though possibly rare, singular nature of 
+Σ𝑦𝑦�,𝑚𝑚 was kept in mind, and a careful reading of that paper will show that, while inverses of both 
+Σ𝑦𝑦 and Σ𝑦𝑦� are used in the ME-LSA problem, the inverse of Σ𝑦𝑦�,𝑚𝑚 is never used. 

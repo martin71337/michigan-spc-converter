@@ -1,0 +1,208 @@
+Verbatim page extraction from pres_2026_geometric_nsrs_opus.pdf
+pages: 45;  matched pages: 13
+
+##########################################################################
+### PDF page 2 (of 45)   matches: Euler pole
+##########################################################################
+geodesy.noaa.gov
+Outline
+• Defining Geometric Components of the Modernized NSRS
+• ITRF2020 – why start with it?
+• Multi-Year CORS Solution 3 (MYCS3)
+• CORS Coordinate Functions
+• New plate-fixed terrestrial reference frames
+• Euler pole parameters (EPPs) 
+• Accessing the Terrestrial Reference Frames for the Modernized 
+NSRS
+• BETA products
+• Modernized OPUS-Static
+• Data Delivery Service
+• NCAT
+
+##########################################################################
+### PDF page 4 (of 45)   matches: NAD 83(2011), NATRF2022
+##########################################################################
+geodesy.noaa.gov
+Crosswalk from Current to Modernized NSRS
+Horizontal Datums
+• NAD 83(2011)
+• NAD 83(PA11)
+• NAD 83(MA11)
+Vertical Datums
+• NAVD88
+• PRVD02, VIVD08, GUVD04, 
+NMVD03
+Hybrid Geoid Models (GEOID18)
+State Plane Coordinates of 1983
+Terrestrial Reference Frames
+• ITRF2020 (Global)
+• NATRF2022 (North American Plate)
+• PATRF2022 (Pacific Plate)
+• MATRF2022 (Mariana Plate)
+• CATRF2022 (Caribbean Plate)
+Geopotential Datum 
+• NAPGD2022
+Gravimetric Geoid Model (GEOID2022)
+State Plane Coordinates of 2022
+
+##########################################################################
+### PDF page 18 (of 45)   matches: NATRF2022
+##########################################################################
+geodesy.noaa.gov
+Velocity Field at Frame-Defining Stations; NA
+National Ocean Service  |  National Geodetic Survey
+Velocities in ITRF2020 at the frame-defining stations.
+ Velocities in NATRF2022 at the frame-defining stations.
+
+##########################################################################
+### PDF page 19 (of 45)   matches: Euler Pole, epoch
+##########################################################################
+geodesy.noaa.gov
+Euler Pole Parameters
+National Ocean Service  |  National Geodetic Survey
+𝑋𝑋𝑖𝑖(𝑡𝑡)
+𝑌𝑌𝑖𝑖(𝑡𝑡)
+𝑍𝑍𝑖𝑖(𝑡𝑡) 𝑁𝑁𝑁𝑁𝑁𝑁𝑁𝑁𝑁𝑁2022
+= 𝐑𝐑𝐸𝐸𝐸𝐸𝐸𝐸2022 Δ𝑡𝑡
+𝑋𝑋𝑖𝑖(𝑡𝑡)
+𝑌𝑌𝑖𝑖(𝑡𝑡)
+𝑍𝑍𝑖𝑖(𝑡𝑡) 𝐼𝐼𝑁𝑁𝑁𝑁𝑁𝑁2020
+where
+𝐑𝐑𝐸𝐸𝐸𝐸𝐸𝐸2022 Δ𝑡𝑡
+≃
+1 𝜔𝜔𝑍𝑍∆𝑡𝑡 −𝜔𝜔𝑌𝑌∆𝑡𝑡
+−𝜔𝜔𝑍𝑍∆𝑡𝑡 1 𝜔𝜔𝑋𝑋∆𝑡𝑡
+𝜔𝜔𝑌𝑌∆𝑡𝑡 −𝜔𝜔𝑋𝑋∆𝑡𝑡 1
+𝑁𝑁𝑁𝑁𝐸𝐸𝐸𝐸𝐸𝐸2022
+t0= 2020.00  reference epoch
+
+##########################################################################
+### PDF page 20 (of 45)   matches: Euler Pole
+##########################################################################
+geodesy.noaa.gov
+Final Euler Pole Parameters
+National Ocean Service  |  National Geodetic Survey
+𝑋𝑋𝑖𝑖 𝑡𝑡
+𝑌𝑌𝑖𝑖 𝑡𝑡
+𝑍𝑍𝑖𝑖 𝑡𝑡 𝑁𝑁𝑁𝑁𝑁𝑁𝑁𝑁𝑁𝑁2022
+=
+𝑋𝑋𝑖𝑖 𝑡𝑡 + 𝑌𝑌𝑖𝑖 𝑡𝑡 𝜔𝜔𝑍𝑍∆𝑡𝑡 −𝑍𝑍𝑖𝑖 𝑡𝑡 𝜔𝜔𝑌𝑌 ∆𝑡𝑡
+−𝑋𝑋𝑖𝑖 𝑡𝑡 𝜔𝜔𝑍𝑍∆𝑡𝑡 + 𝑌𝑌𝑖𝑖 𝑡𝑡 + 𝑍𝑍𝑖𝑖 𝑡𝑡 𝜔𝜔𝑋𝑋∆𝑡𝑡
+𝑋𝑋𝑖𝑖 𝑡𝑡 𝜔𝜔𝑌𝑌∆𝑡𝑡 − 𝑌𝑌𝑖𝑖 𝑡𝑡 𝜔𝜔𝑋𝑋∆𝑡𝑡 + 𝑍𝑍𝑖𝑖 𝑡𝑡 𝐼𝐼𝑁𝑁𝑁𝑁𝑁𝑁2020
+𝑁𝑁𝑁𝑁𝐸𝐸𝐸𝐸𝐸𝐸2022
+
+##########################################################################
+### PDF page 22 (of 45)   matches: NATRF2022
+##########################################################################
+In NATRF2022NATRF2022 Velocities; NOAA CORS Network
+
+##########################################################################
+### PDF page 23 (of 45)   matches: IFDM
+##########################################################################
+Residual Velocities After Applying IFDM2022; NOAA CORS Network
+
+##########################################################################
+### PDF page 24 (of 45)   matches: NATRF2022, epoch
+##########################################################################
+geodesy.noaa.gov
+Horizontal Shift from NAD 83 to NATRF2022
+Horizontal shift between NAD83 (2011)2010.00 and NATRF2022 (epoch 2020.0) 
+
+##########################################################################
+### PDF page 25 (of 45)   matches: IFDM, NATRF2022, epoch
+##########################################################################
+geodesy.noaa.gov
+Summary of Steps for Positioning in the 
+Modernized NSRS
+1. Process GNSS baselines at the time of the measurements (e.g., 
+2026.25) using latest ITRF2020 products
+2. Reduce GNSS data into dX, dY, dZ vector components
+3. Transform results to ITRF2020 at epoch 2020.00 by applying 
+IFDM2022 (deformation grid)
+4. Constrain published control (e.g., CORS) coordinates in ITRF2020 
+epoch 2020.00
+5. Perform least squares adjustment. Report adjusted coordinates
+Note: since Δt = 0, coordinates in ITRF2020 = NATRF2022 at 
+epoch 2020.00!
+
+##########################################################################
+### PDF page 26 (of 45)   matches: Euler pole
+##########################################################################
+geodesy.noaa.gov
+Outline
+• Defining Geometric Components of the Modernized NSRS
+• ITRF2020 – why start with it?
+• Multi-Year CORS Solution 3 (MYCS3)
+• CORS Coordinate Functions
+• New plate-fixed terrestrial reference frames
+• Euler pole parameters (EPPs) 
+• Accessing the Terrestrial Reference Frames for the Modernized 
+NSRS
+• BETA products
+• Modernized OPUS-Static
+• Data Delivery Service
+
+##########################################################################
+### PDF page 27 (of 45)   matches: NATRF2022
+##########################################################################
+geodesy.noaa.gov
+Beta Products
+https://beta.ngs.noaa.gov/
+• NAPGD2022
+• GEOID2022
+• Surface gravity model
+• Deflection of vertical model
+• EPPs for the 4 plate-fixed 
+terrestrial reference frames
+• NATRF2022, PATRF2022, 
+MATRF2022, CATRF2022
+• State Plane Coordinate System of 
+2022
+• Zone definitions and zone polygons
+• NCAT – early version for 
+SPCS2022
+
+
+##########################################################################
+### PDF page 29 (of 45)   matches: IFDM, transformation
+##########################################################################
+geodesy.noaa.gov
+Upcoming Beta Releases
+• OPUS-S 5.2
+• OPUS-Static solutions in Modernized NSRS
+• Multi-GNSS capable
+• Sharing possible
+• Data Delivery Service
+• Replacement to Datasheets
+• Geodetic Mark Page (e.g., passive marks)
+• Geodetic Station Page (CORS)
+• NCAT
+• Coordinate transformations
+• NADCON and VERTCON grids
+• Deformation modeling (IFDM2022)
+
+
+##########################################################################
+### PDF page 40 (of 45)   matches: IFDM, epoch
+##########################################################################
+geodesy.noaa.gov
+OPUS 6.0: Core Development Requirements
+• Cloud-native architecture 
+• scalability & reduced O&M
+• Selects base stations according to 
+recommendations
+• Multi-GNSS (M-PAGES)
+• Single occupation on a single mark
+• Pre-processes data file to list input antenna height & 
+type, GNSS, file duration 
+• Multiple occupations on a single mark
+• Uploads ~10 data files on a mark
+• Selects common base stations for processing of 
+baselines
+• Auto checks precision of the repeat measurements
+• Propagates measurements to reference epoch 
+(2020.00) using IFDM2022
+• Performs least squares adjustment using LASER
+• Emails adjusted coordinates in a multi-occupation 
+solution report
+

@@ -1,0 +1,12 @@
+User-agent: usasearch  
+Crawl-delay: 2
+Disallow: /ngsstandard/
+Disallow: /OPUS-Tools/
+
+User-agent: *
+Crawl-delay: 10
+Disallow: /ngsstandard/
+Disallow: /OPUS-Tools/
+
+Sitemap: https://beta.ngs.noaa.gov/sitemap.xml
+

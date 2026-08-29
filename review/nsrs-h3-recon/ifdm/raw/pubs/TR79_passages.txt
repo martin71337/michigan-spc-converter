@@ -1,0 +1,3071 @@
+Verbatim page extraction from NOAA_TR_NOS_NGS_0079.pdf
+pages: 68;  matched pages: 52
+
+##########################################################################
+### PDF page 1 (of 68)   matches: epoch
+##########################################################################
+ 
+ 
+ 
+ 
+NOAA Technical Report NOS NGS 79 
+ 
+The multi-epoch least-squares adjustment 
+problem: 
+Models relating estimable parameters at a 
+single epoch to geodetic observations, 
+stochastic constraints and fixed constraints 
+at multiple epochs 
+Volume I:  The Projection Method 
+ 
+Dru Smith 
+Dan Gillins 
+Jacob Heck 
+Dan Roman 
+Silver Spring, MD 
+March 2026 
+ 
+ 
+National Oceanic and Atmospheric Administration                                       National Geodetic Survey 
+  
+
+
+##########################################################################
+### PDF page 3 (of 68)   matches: epoch
+##########################################################################
+iii 
+ 
+Contents 
+Executive Summary .......................................................................................................................................... v 
+Notation and Terminology ............................................................................................................................... x 
+1 Introduction .......................................................................................................................................... 1 
+2 Parameter values that change over time .............................................................................................. 2 
+3 Observations ......................................................................................................................................... 5 
+3.1 Observations modeled at various epochs ..................................................................................... 5 
+3.2 Addressing changes in parameter values in time ......................................................................... 7 
+3.3 Projected observations at the adjustment epoch ........................................................................ 8 
+3.3.1 When the model of changes in parameter values is fixed .................................................. 10 
+3.3.2 When the model of changes in parameter values is stochastic ......................................... 11 
+3.4 Linearization ................................................................................................................................ 12 
+4 Stochastic constraints ......................................................................................................................... 12 
+4.1 Stochastic constraints at various epochs .................................................................................... 13 
+4.2 Projected stochastic constraints at the adjustment epoch ........................................................ 14 
+4.2.1 When the model of changes in parameter values is fixed .................................................. 15 
+4.2.2 When the model of changes in parameter values is stochastic ......................................... 15 
+4.3 Linearization of the stochastic-constraint equations ................................................................. 16 
+5 Fixed constraints ................................................................................................................................. 17 
+5.1 Fixed constraints at various epochs ............................................................................................ 17 
+5.2 Projected fixed constraints at the adjustment epoch ................................................................ 18 
+5.2.1 When the model of changes in parameter values is fixed .................................................. 19 
+5.2.1.1 Linearization of the fixed-constraint equations .............................................................. 19 
+5.2.2 When the model of changes in parameter values is stochastic ......................................... 20 
+5.2.2.1 Special case A: The fixed-constraint epoch is not equal to the adjustment epoch ........ 20 
+5.2.2.1.1 Linearization of the equation for projected stochastic constraints ......................... 21 
+5.2.2.2 Special case B: The fixed-constraint epoch is equal to the adjustment epoch ............... 22 
+5.2.2.2.1 Linearization of the equation for projected fixed constraints .................................. 23 
+5.2.3 Putting the special cases together ...................................................................................... 24 
+6 Random errors .................................................................................................................................... 26 
+7 The combined data models ................................................................................................................ 27 
+7.1 When the model of changes in parameter values is fixed .......................................................... 27 
+7.1.1 The Gauss-Markov Model ................................................................................................... 28 
+
+##########################################################################
+### PDF page 4 (of 68)   matches: epoch
+##########################################################################
+iv 
+ 
+7.1.2 The Variance Component Model ........................................................................................ 28 
+7.2 When the model of changes in parameter values is stochastic ................................................. 29 
+7.2.1 The Gauss-Markov Model ................................................................................................... 30 
+7.2.2 The Variance Component Model ........................................................................................ 31 
+8 Solving the multi-epoch least-squares adjustment problem .............................................................. 35 
+8.1 An algorithm for solving the multi-epoch least-squares adjustment problem with a fixed model 
+of changes in parameter values using the projection method ............................................................... 36 
+8.2 An algorithm for solving the multi-epoch least-squares adjustment problem with a stochastic 
+model of changes in parameter values using the projection method .................................................... 38 
+9 Future Work ........................................................................................................................................ 40 
+10 Bibliography ........................................................................................................................................ 41 
+Appendix A:  Details of the random errors with emphasis on the model of changes in parameter values .. 42 
+A.1 Relation between geodetic-value change-models and the model of changes to parameter values
+ ................................................................................................................................................................ 42 
+A.2 Covariances within a stochastic model of changes to parameter values ......................................... 43 
+A.3 Modeling of random errors in the multi-epoch least-squares adjustment problem ....................... 46 
+A.4 Practical considerations for computing cofactor matrices related to the model of changes in 
+parameter values .................................................................................................................................... 56 
+ 
+ 
+  
+
+##########################################################################
+### PDF page 5 (of 68)   matches: epoch
+##########################################################################
+v 
+ 
+Executive Summary 
+ 
+This is Volume I of a three-volume report.   
+In the modernized National Spatial Reference System (NSRS) the National Geodetic Survey 
+(NGS) will have new tools for external users of the NSRS (such as a revised version of the 
+Online Positioning User Service, OPUS) as well as for internal computations of new NSRS 
+coordinates called reference epoch coordinates (RECs) and survey epoch coordinates (SECs).  
+Each of these three applications (OPUS, REC and SEC) will use a least-squares adjustment 
+(LSA) to estimate coordinates (and their associated variances).  But each LSA will be faced with 
+the same basic problem – observations are made at a variety of epochs (dates and times) while 
+estimated coordinates are required at one specific epoch.  This is further complicated by the 
+possibility that both stochastic constraints and fixed constraints are imposed on the parameters, 
+and that they may be imposed at a variety of additional epochs.   
+The estimation of parameters at one epoch, from observations and constraints given at other 
+epochs will be called the multi-epoch least-squares adjustment (ME-LSA) problem. 
+This report derives the equations that relate observations and constraints, provided at multiple 
+epochs, to estimable parameters (usually geodetic coordinates plus some nuisance parameters) at 
+a different epoch.  The derivations are generic, applicable to any ME-LSA problem, though 
+certain geodetic-specific situations will be addressed.  Solutions to those equations are not found 
+herein, since the particular least-squares solution (LESS) depends on a variety of factors (such as 
+rank deficiency of the model and the number of estimated variance components).  However, 
+references to where such solutions can be found are provided for all but one case, where the 
+existence of a solution remains hypothetical. 
+The key factor which allows the estimation of parameters at one epoch from observations made, 
+and constraints imposed, at various other epochs is a model of changes in parameter values 
+(MCPV).   
+While the MCPV is key to modeling and solving the ME-LSA problem, there are multiple ways 
+it can be used to do so.  The most common method used by NGS is a method that we will call the 
+projection method.  That is the method derived herein, where we will differentiate between 
+observations (which were made at various epochs) and projected observations (“moved through 
+time” or “projected” to the adjustment epoch).  A similar distinction is made between constraints 
+and projected constraints.   
+There are other methods possible, but not as widely used.  Another, that we will call the direct 
+method has been developed at NGS, which does not rely upon projected observations and 
+constraints.  That method is detailed in Volume II of this report.  As a matter of interest, despite 
+their different approaches to modeling the ME-LSA problem, it may be proven that the 
+projection method and the direct method are, at their core, mathematically identical.  That proof 
+will be provided in Volume III of this report, as well as a discussion of other methods of 
+
+##########################################################################
+### PDF page 8 (of 68)   matches: epoch
+##########################################################################
+viii 
+ 
+Equations ES4 and ES5 together form the Gauss-Markov model (GMM) with fixed and 
+stochastic constraints, albeit with two independent sets of stochastic-constraint equations (one for 
+𝒘𝒘�, one for 𝒈𝒈�).  Equation ES5 avoids the use of the weight matrices 𝑃𝑃𝑦𝑦�,𝑚𝑚, 𝑃𝑃𝑤𝑤� ,𝑚𝑚 and 𝑃𝑃𝑔𝑔�,𝑚𝑚 because 
+there are some circumstances when matrices 𝑄𝑄𝑦𝑦�,𝑚𝑚 or 𝑄𝑄𝑤𝑤� ,𝑚𝑚 may be singular (though 𝑄𝑄𝑔𝑔�,𝑚𝑚 cannot 
+be singular).  If multiple variance components are to be estimated, then the stochastic model is  
+�
+𝒆𝒆𝒚𝒚�
+𝒆𝒆𝒘𝒘�
+𝒆𝒆𝒈𝒈�
+� ~
+⎝
+⎜
+⎜
+⎜
+⎜
+⎜
+⎜
+⎛
+�
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎
+� ,
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡� 𝜎𝜎𝑦𝑦
+2
+𝑣𝑣𝑄𝑄𝑦𝑦𝑣𝑣
+𝑐𝑐𝑦𝑦
+𝑣𝑣=1
++ � 𝜎𝜎𝑚𝑚
+2
+𝑣𝑣𝑄𝑄𝑦𝑦�,𝑚𝑚𝑣𝑣
+𝑐𝑐𝑚𝑚
+𝑣𝑣=1
+0 0
+0 � 𝜎𝜎𝑤𝑤
+2
+𝑣𝑣𝑄𝑄𝑤𝑤𝑣𝑣
+𝑐𝑐𝑤𝑤
+𝑣𝑣=1
++ � 𝜎𝜎𝑚𝑚
+2
+𝑣𝑣𝑄𝑄𝑤𝑤� ,𝑚𝑚𝑣𝑣
+𝑐𝑐𝑚𝑚
+𝑣𝑣=1
+0
+0 0 � 𝜎𝜎𝑚𝑚
+2
+𝑣𝑣𝑄𝑄𝑔𝑔�,𝑚𝑚𝑣𝑣
+𝑐𝑐𝑚𝑚
+𝑣𝑣=1 ⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+⎠
+⎟
+⎟
+⎟
+⎟
+⎟
+⎟
+⎞
+. (ES6) 
+Equations ES4 and ES6 together form the variance component model (VCM) with fixed and 
+stochastic constraints, again with two independent sets of stochastic-constraint equations. 
+In (ES4), (ES5) and (ES6) all variables are identical to those in (ES1), (ES2) and (ES3) except 
+that 
+ℎ𝑔𝑔 is the total number of fixed constraints imposed at epochs different from the 
+adjustment epoch; 
+ℎ𝜸𝜸 is the total number of fixed constraints imposed at the adjustment epoch; 
+𝒈𝒈� is an ℎ𝑔𝑔 × 1 vector of incremental, projected, stochastic constraints, originally imposed 
+as fixed constraints at various epochs which differ from the adjustment epoch; 
+𝐹𝐹�𝑔𝑔 is an ℎ𝑔𝑔 × 𝑢𝑢 matrix of coefficients relating 𝒈𝒈� to 𝝃𝝃; 
+𝒆𝒆𝒈𝒈� is an ℎ𝑔𝑔 × 1 vector of random errors of 𝒈𝒈�; 
+𝜸𝜸�𝒂𝒂 is an ℎ𝜸𝜸 × 1 vector of incremental, projected, fixed constraints1, originally imposed at 
+the adjustment epoch; 
+ 𝐹𝐹�𝜸𝜸 is an ℎ𝜸𝜸 × 𝑢𝑢 matrix of coefficients relating 𝜸𝜸�𝒂𝒂 to 𝝃𝝃; 
+𝑄𝑄𝑦𝑦�,𝑚𝑚 is an 𝑛𝑛 × 𝑛𝑛 cofactor matrix of that portion of 𝒚𝒚� coming from the MCPV, possibly 
+singular;  
+𝑄𝑄𝑤𝑤� ,𝑚𝑚 is an 𝑙𝑙 × 𝑙𝑙 cofactor of that portion of 𝒘𝒘� coming from the MCPV, possibly singular; 
+ 
+1 Because they are imposed at the adjustment epoch (and therefore do not need to be projected), these projected 
+fixed constraints are identical to the original fixed constraints.  However, the term “projected fixed constraints” is 
+used to remain consistent with other values which are projected. 
+
+##########################################################################
+### PDF page 10 (of 68)   matches: epoch
+##########################################################################
+x 
+ 
+Notation and Terminology 
+ 
+The complexity of this report has required that very specific conventions be followed so that 
+variables can be unique, meaningful and understood at a glance.  We have chosen to follow, as 
+best we could, certain conventions popularized by Burkhard Schaffrin (Snow, 2021) as follows: 
+• Bold, Latin, upper-case (e.g. 𝑾𝑾, 𝒀𝒀) represent vectors of complete (i.e., non-linearized) 
+random values 
+• Bold, Latin, lower-case (e.g. 𝒘𝒘, 𝒚𝒚) represent vectors of incremental (i.e., possibly 
+linearized) random values 
+• Non-bold, Latin, upper-case (e.g. 𝐴𝐴, 𝐹𝐹, 𝑆𝑆) represent matrices 
+• Non-bold, Latin, lower-case (e.g. 𝑎𝑎, 𝑓𝑓, 𝑖𝑖, 𝑗𝑗) represent functions or general variables 
+• Bold, Greek, upper-case (e.g. 𝚵𝚵, 𝚿𝚿) represent vectors of complete, non-random values 
+• Bold, Greek, lower-case (e.g. 𝝃𝝃, 𝜸𝜸) represent vectors of incremental non-random 
+values 
+• Non-bold, Greek, upper-case (e.g. Φ, Λ) and lower-case (e.g. 𝛼𝛼, 𝛽𝛽) are rarely used and 
+their meaning will be explained when necessary 
+• An overbar (e.g. 𝒀𝒀�, 𝑆𝑆̅, 𝒚𝒚�, 𝒆𝒆𝒚𝒚�) represents something projected (i.e., in time) or related 
+to projected data 
+• A lack of subscript on vector 𝚵𝚵 means “at the adjustment epoch” 
+• A lack of subscript on other vectors means “a combination of many sub-vectors at 
+their respective epochs” 
+• The sum of a random and non-random quantity is always random 
+The most important variables used in this report are summarized in Table 1.  Those boxes 
+highlighted gray are provided for comparison only, but are not found in this report.  They will be 
+used in Volume II of this report. 
+The words “mapped onto other values” appear repeatedly, which requires some explanation.  
+The MCPV provides direct access to changes in parameter values over time, as well as their 
+random errors.  When discussing errors provided directly from the MCPV, variables will have a 
+capital 𝑀𝑀 subscript.  However, to compute changes to observations (or constraints) in time, the 
+MCPV (including its random errors) must be “mapped” onto observations (or constraints) using 
+appropriate functions.  When discussing the MCPV random errors that have been so-mapped 
+onto observations or constraints, variables will have a lower-case 𝑚𝑚 subscript.   
+Additionally, the order of subscripts, particularly with respect to the 𝑚𝑚 subscript is intentional, 
+as it implies a way of reading the variable name.  Consider, for example, the difference between 
+random-error vectors 𝒆𝒆𝒚𝒚� and 𝒆𝒆𝒚𝒚�,𝒎𝒎.  The first, with a single subscript, tells us that this vector 
+contains all of the random errors in the incremental, projected, observation vector, 𝒚𝒚�.  But the 
+second, with two subscripts, tells us that this vector only contributes to 𝒆𝒆𝒚𝒚�, and that the source of 
+the contribution is the MCPV. 
+
+##########################################################################
+### PDF page 11 (of 68)   matches: epoch
+##########################################################################
+xi 
+ 
+Table 1:  Summary of variables used in this report (Volume I); gray-highlighted variables are 
+not in this volume but are used in Volume II.  Entries in parentheses refer to the case when 
+the MCPV is stochastic. 
+ Observations  Projected 
+observations 
+Stochastic 
+constraints 
+Projected, 
+stochastic 
+constraints 
+Fixed constraints Projected, fixed 
+constraints2 
+Parameters 
+Total number 𝑛𝑛 𝑛𝑛 𝑙𝑙 𝑙𝑙 ℎ or (ℎ𝑔𝑔& ℎ𝛾𝛾) ℎ or (ℎ𝑔𝑔&ℎ𝛾𝛾) 𝑢𝑢 
+# epochs 𝑝𝑝 𝑝𝑝 𝑞𝑞 𝑞𝑞 𝑟𝑟 𝑟𝑟 - 
+Individual epoch counter 𝑖𝑖 𝑖𝑖 𝑗𝑗 𝑗𝑗 𝑘𝑘 𝑘𝑘 - 
+Consecutive epoch counter 𝑖𝑖 𝑖𝑖 𝑝𝑝 + 𝑗𝑗 𝑝𝑝 + 𝑗𝑗 𝑝𝑝 + 𝑞𝑞 + 𝑘𝑘 𝑝𝑝 + 𝑞𝑞 + 𝑘𝑘 - 
+Function relating to 
+parameters 𝑎𝑎 𝑎𝑎 𝑠𝑠 𝑠𝑠 𝑓𝑓 𝑓𝑓 - 
+Coefficient matrix 𝐴𝐴 𝐴𝐴̅ 𝑆𝑆 𝑆𝑆̅ 𝐹𝐹 𝐹𝐹� or (𝐹𝐹�𝑔𝑔&𝐹𝐹�𝛾𝛾) - 
+Complete value 𝒀𝒀 𝒀𝒀� 𝑾𝑾 𝑾𝑾��� 𝚪𝚪 or (𝑮𝑮 & 𝚪𝚪𝒂𝒂) 𝚪𝚪� or (𝑮𝑮� & 𝚪𝚪�𝒂𝒂) 𝚵𝚵 
+Initial approximation 𝚿𝚿𝟎𝟎 or (𝐘𝐘𝟎𝟎) 𝚿𝚿�𝟎𝟎 𝛀𝛀𝟎𝟎 or 
+(𝐖𝐖𝟎𝟎) 𝛀𝛀�𝟎𝟎 𝚪𝚪𝟎𝟎 or (𝑮𝑮𝟎𝟎 & 𝚪𝚪𝒂𝒂,𝟎𝟎) 𝚪𝚪𝟎𝟎 𝚵𝚵𝟎𝟎 
+Incremental value 𝒚𝒚 𝒚𝒚� 𝒘𝒘 𝒘𝒘�  𝜸𝜸 or (𝒈𝒈 & 𝛄𝛄𝐚𝐚) 𝜸𝜸� or (𝒈𝒈� & 𝛄𝛄�𝒂𝒂) 𝝃𝝃 
+Changes in time - - - - - - 𝚫𝚫𝚵𝚵 or (𝚫𝚫𝑿𝑿) 
+Random error 𝒆𝒆𝒚𝒚 𝒆𝒆𝒚𝒚� 𝒆𝒆𝒘𝒘 𝒆𝒆𝒘𝒘�  - - - 
+Random error of MCPV, 
+mapped onto other values - 𝒆𝒆𝒚𝒚�,𝒎𝒎 - 𝒆𝒆𝒘𝒘�,𝒎𝒎 - N/A or (𝒆𝒆𝒈𝒈�,𝒎𝒎) - 
+Dispersion Matrix Σ𝑦𝑦 Σ𝑦𝑦�  Σ𝑤𝑤 Σ𝑤𝑤�  - N/A or (Σ𝑔𝑔�) - 
+Weight Matrix 𝑃𝑃𝑦𝑦 𝑃𝑃𝑦𝑦�  𝑃𝑃𝑤𝑤 𝑃𝑃𝑤𝑤�  - - - 
+Dispersion matrix of MCPV, 
+mapped onto other values - Σ𝑦𝑦�,𝑚𝑚 - Σ𝑤𝑤� ,𝑚𝑚 - N/A or (Σ𝑔𝑔�,𝑚𝑚) - 
+Cofactor Matrix 𝑄𝑄𝑦𝑦 - 𝑄𝑄𝑤𝑤 - - - - 
+Cofactor matrix of MCPV, 
+mapped onto other values 
+- 𝑄𝑄𝑦𝑦�,𝑚𝑚 - 𝑄𝑄𝑤𝑤� ,𝑚𝑚 - N/A or (𝑄𝑄𝑔𝑔�,𝑚𝑚) - 
+# of variance components 𝑐𝑐𝑦𝑦 - 𝑐𝑐𝑤𝑤 - - - - 
+# of variance components of 
+MCPV 
+- - - - - - 𝑐𝑐𝑚𝑚 
+Variance components 𝜎𝜎𝑦𝑦
+2 - 𝜎𝜎𝑤𝑤
+2  - - - - 
+Variance components of 
+MCPV 
+- - - - - - 𝜎𝜎𝑚𝑚
+2  
+ 
+In addition to conventions on notation, certain terminology will be adhered to rigorously: 
+Initial:  An approximate value which will be incrementally updated (i.e., changed) 
+iteration-by-iteration in solving the LSA problem.  Initial values will usually have a 0 
+subscript. 
+Fixed:  non-random. 
+Examples from this report: 
+• 𝚵𝚵𝟎𝟎 is an initial approximation of 𝚵𝚵.  It is non-random and must be updated every iteration. 
+ 
+2 When the MCPV is stochastic, and the fixed constraint epoch is not the adjustment epoch, then the quantities 
+become projected, stochastic constraints.  In that case, the quantity is found in parentheses. 
+
+##########################################################################
+### PDF page 13 (of 68)   matches: epoch
+##########################################################################
+1 
+ 
+1 Introduction 
+As part of the modernized National Spatial Reference System (NSRS), the National Geodetic 
+Survey (NGS) is developing new surveying specifications, new models for the gravity field, for 
+motions of geodetic marks (which we will call simply “marks”) and other phenomena, new 
+definitions of coordinates and an entirely new Online Positioning User Service (OPUS) software 
+suite.  Central to many of those changes is the task of estimating coordinates at a specific epoch 
+of interest through the least-squares adjustment (LSA) of observations made in geodetic surveys 
+at various epochs.  These LSAs will typically involve a combination of observations, prior 
+information and constraints on the unknown parameters. 
+The estimation of parameters at one epoch, from observations and constraints given at other 
+epochs will be called the multi-epoch least-squares adjustment (ME-LSA) problem. 
+One critical assumption is made in both Volume I and Volume II of this report:  that the 
+parameters being estimated only include coordinates and nuisance parameters.  No velocities, 
+displacements or other phenomena are contained within the estimable parameter set.  However, 
+alternative modeling of the ME-LSA problem, including the estimation of such phenomena, will 
+be briefly addressed in Volume III. 
+The need to consider epochs in time is motivated by the dynamics of the earth’s crust to which 
+marks are attached.  To accommodate those physical motions, it is assumed that one or more 
+geodetic-value change-models3,4 (GVCMs) are available.  This has been the case for years at 
+NGS with the Horizontal Time-Dependent Positioning (HTDP) model.  However, that model 
+will be expanded to include ellipsoidal heights and new GVCMs that estimate changes to the 
+geoid and gravity field will soon be available.  We will therefore generically refer to a model of 
+changes in parameter values or MCPV to describe the change to any estimable parameter 
+(whether it is a coordinate or not) over time.  The MCPV can be treated as known without 
+variance (fixed) or known with variance (stochastic).  Both approaches are outlined herein.5 
+The purpose of this report is to present the mathematical equations needed for any of these 
+parameter-estimating LSAs, without regard to any specific type of network adjustment.  
+Addressing specific adjustments will be done in future reports. 
+However, the problem of estimating unknown model parameters at one epoch which rely upon 
+observations at one or more different epochs can be handled in more than one way.  The method 
+outlined in this report will be called the projection method.  That method relies upon projecting 
+ 
+3 Latitude, longitude, ellipsoidal height, orthometric height or gravity 
+4 The somewhat awkward phrasing of this term was intentional.  Since there is already a “model of changes to 
+parameter values” or MCPV, in this paper, the authors wished to use an acronym which did not begin with the 
+letter M, so that a quick glance at the acronym GVCM would immediately distinguish it from MCPV, as an aide to 
+the reader.   
+5 Geodetic value change models, such as HTDP, or the forthcoming GEOID2022, may not use the same coordinate 
+system as the parameters of the LSA (e.g. latitude, longitude, ellipsoid height versus X, Y, Z).  Strictly speaking, such 
+geodetic value change models (GVCMs) are not the MCPV, but rather provide the information needed to compute 
+the MCPV.  This will be briefly touched on in the Appendix, and fully fleshed out in Volume III. 
+
+##########################################################################
+### PDF page 14 (of 68)   matches: epoch
+##########################################################################
+2 
+ 
+observations and constraints from their given epochs to the adjustment epoch, to derive projected 
+observations and projected constraints.  Other methods exist.  One, which we call the direct 
+method, does not rely upon projecting anything through time, but rather builds a direct 
+relationship between observations and constraints at their respective epochs and the unknown 
+parameters at the adjustment epoch.  The direct method is derived in Volume II of this report, 
+and though it takes a different mathematical approach to the ME-LSA, it can be shown to have 
+mathematical equivalence to the projection method.  The proof of their equivalence will be 
+provided in Volume III.   
+While LSAs have a variety of wider uses within NGS, such as estimating tropospheric 
+parameters and integer ambiguities in baseline processing of Global Navigation Satellite 
+Systems, (GNSS) observables, those uses are not addressed herein.  This report restricts itself 
+solely to a limited list of geodetic observations, prior information and constraints as input and 
+estimated geodetic coordinates and some nuisance parameters, if necessary, as output (i.e., 
+network adjustments).  The central question is:  how should the model be constructed when 
+observations and constraints come from a variety of epochs, while parameters are estimated at a 
+common epoch and the MCPV might contain random errors? 
+This report contains the following sections: 
+Section 2 contains a discussion of parameters that change over time, and how they are related to 
+the parameters of interest (i.e., at the adjustment epoch). 
+Sections 3, 4 and 5 describe the general equations for observations, stochastic constraints and 
+fixed constraints (on the unknown parameters), respectively.  Formulae for transforming the 
+observations and constraints to projected values at the adjustment epoch are provided, under the 
+cases of the MCPV being fixed or stochastic.  Linearization of the observation and constraint 
+equations is described, leading to incremental equations required to solve the ME-LSA problem 
+iteratively. 
+Section 6 describes the stochastic modeling of the various random errors. 
+Section 7 combines the equations from sections 3, 4, 5 and 6.  The ME-LSA is then further 
+formulated as either the Gauss-Markov Model (GMM) or the Variance Component Model 
+(VCM). 
+Section 8 briefly discusses solving the ME-LSA problem, though particular solutions are 
+themselves found elsewhere, with references provided, while section 9 closes the main body of 
+the report by highlighting upcoming work on the topic of the ME-LSA problem. 
+Substantial mathematical details regarding random errors, perhaps too detailed for the main body 
+of the report, are found in Appendix A. 
+2 Parameter values that change over time 
+A primary goal of many least-squares adjustments is to estimate unknown parameters of interest, 
+from observations that have a specified relationship to those parameters.  In geodetic 
+applications, parameters may include a variety of quantities but they frequently contain 
+
+##########################################################################
+### PDF page 15 (of 68)   matches: epoch
+##########################################################################
+3 
+ 
+coordinates of marks, such as global Cartesian coordinates, orthometric heights or acceleration of 
+gravity, though so-called “nuisance” parameters, such as orientation of a set of directions, may 
+also need to be estimated.  Observations that connect marks include GNSS vectors, angles, 
+distances, leveled height differences and more.  Although the mathematics herein can be applied 
+to any least-squares adjustment problem where parameter values change over time, we will tend 
+to focus solely on those quantities common to geodesy, and in particular the estimation of 
+geodetic coordinates. 
+Because marks are physical objects attached to the Earth’s crust, and because the crust moves 
+and the gravity field changes over time, the geodetic coordinates of points tend to vary over time.  
+This means observations connecting such points should also be expected to vary, depending on 
+when they were made.  As an example, an observation of a GNSS baseline between two points in 
+2000 might reasonably be expected to differ from an observation between the same two points 
+made in 2020, due to crustal motion. 
+This report deals with the estimation of unknown parameters at a single time, which we will call 
+the adjustment epoch, from observations made at a variety of other times, which we will call 
+observation epochs.  The use of both fixed and stochastic constraints, imposed at a variety of 
+epochs, called fixed-constraint epochs and stochastic-constraint epochs, will also be addressed. 
+To distinguish between parameters at the adjustment epoch and those at other epochs, we will 
+adopt certain conventions.  There will be one (and only one) adjustment epoch, and when 
+discussing a vector of parameters at that epoch they will be designated by the variable 𝚵𝚵 without 
+a subscript.  This rule applies solely to the variable 𝚵𝚵. 
+Observation epochs will be designated with a subscript 𝑖𝑖, stochastic-constraint epochs with the 
+subscript 𝑗𝑗, and fixed-constraint epochs with the subscript 𝑘𝑘.  There will be 𝑝𝑝 observation 
+epochs, 𝑞𝑞 stochastic-constraint epochs and 𝑟𝑟 fixed-constraint epochs so that 𝑖𝑖 ∈ {1, … , 𝑝𝑝}, 𝑗𝑗 ∈
+{1, … , 𝑞𝑞} and 𝑘𝑘 ∈ {1, … , 𝑟𝑟}. 
+The number of unknown model parameters is 𝑢𝑢, and the number of observations is 𝑛𝑛.  
+Parameters, in general, will be denoted by some variation of the symbol 𝚵𝚵, while the change in 
+parameters over time will be denoted by some variation of the symbol 𝚫𝚫𝚵𝚵 (if the MCPV is fixed) 
+or 𝚫𝚫𝑿𝑿 (if the MCPV is stochastic).  We list the following examples: 
+𝚵𝚵 is a 𝑢𝑢 × 1 vector of unknown parameters at the adjustment epoch. 
+𝚵𝚵𝒊𝒊 is a 𝑢𝑢 × 1 vector of unknown parameters at observation epoch 𝑖𝑖. 
+𝚵𝚵𝒑𝒑+𝒋𝒋 is a 𝑢𝑢 × 1 vector of unknown parameters at stochastic-constraint epoch 𝑗𝑗. 
+𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌  is a 𝑢𝑢 × 1 vector of unknown parameters at fixed-constraint epoch 𝑘𝑘. 
+𝚫𝚫𝚵𝚵𝒊𝒊 is a 𝑢𝑢 × 1 vector of (known) changes to parameter values between the 
+adjustment epoch and observation epoch 𝑖𝑖. 
+𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋 is a 𝑢𝑢 × 1 vector of (known) changes to parameter values between the 
+adjustment epoch and stochastic-constraint epoch 𝑗𝑗. 
+𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌 is a 𝑢𝑢 × 1 vector of (known) changes to parameter values between the 
+adjustment epoch and fixed-constraint epoch 𝑘𝑘. 
+ 
+
+##########################################################################
+### PDF page 16 (of 68)   matches: epoch
+##########################################################################
+4 
+ 
+We therefore define the following relationships to relate parameters at various epochs to the 
+adjustment epoch: 
+𝚵𝚵𝒊𝒊 = 𝚵𝚵 + 𝚫𝚫𝚵𝚵𝒊𝒊      ∀  𝑖𝑖 ∈ {1, … , 𝑝𝑝}, (1a) 
+𝚵𝚵𝒑𝒑+𝒋𝒋 = 𝚵𝚵 + 𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋      ∀  𝑗𝑗 ∈ {1, … , 𝑞𝑞}, (1b) 
+𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌 = 𝚵𝚵 + 𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌      ∀  𝑘𝑘 ∈ {1, … , 𝑟𝑟}. (1c) 
+There is a good reason the parameters at stochastic-constraint epoch 𝑗𝑗 and at fixed-constraint 
+epoch 𝑘𝑘 are listed as 𝚵𝚵𝒑𝒑+𝒋𝒋 and 𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌, and not as 𝚵𝚵𝒋𝒋 and 𝚵𝚵𝒌𝒌.  This is because parameters can be 
+represented at all three types of epochs, and have a relationship to all three types of information 
+(observations, stochastic constraints and fixed constraints).  Yet we use a common variable (𝚵𝚵) to 
+represent them.  That means we need a way to differentiate between, for example, parameters 
+represented at the first observation epoch (𝑖𝑖 = 1) the first stochastic-constraint epoch (𝑗𝑗 = 1) and 
+the first fixed-constraint epoch (𝑘𝑘 = 1), might differ from one another since each of these three 
+epochs might represent unique epochs in time different from the others.  If we used 𝚵𝚵𝒊𝒊, 𝚵𝚵𝒋𝒋 and 
+𝚵𝚵𝒌𝒌, then the first observation epoch, first stochastic constraint epoch and first fixed constraint 
+epoch, all potentially at different epochs in time, would all be called “𝚵𝚵𝟏𝟏”, which is obviously 
+confusing.  To avoid this, under the proposed notation they will have the numerically unique 
+values 𝚵𝚵𝟏𝟏, 𝚵𝚵𝒑𝒑+𝟏𝟏 and 𝚵𝚵𝒑𝒑+𝒒𝒒+𝟏𝟏.  See Figure 1 for further clarification. 
+ 
+Figure 1:  Notation used for distinguishing between epochs in general and specific 
+observation, stochastic constraint and fixed constraint epochs 
+ 
+ 
+ 
+
+
+##########################################################################
+### PDF page 17 (of 68)   matches: IFDM, Intra-Frame, epoch
+##########################################################################
+5 
+ 
+Note that nothing prevents an observation epoch from being identical to the adjustment epoch.  
+Doing so merely results in 𝚫𝚫𝚵𝚵𝒊𝒊 = 𝟎𝟎 for that particular observation epoch.  Similarly, for a 
+stochastic-constraint epoch or a fixed-constraint epoch (which would result in 𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋 = 𝟎𝟎 or 
+𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌 = 𝟎𝟎, respectively). 
+The introduction of changes in parameter values in time obviously complicates this entire 
+problem when we are interested only in parameter values at the adjustment epoch.  Later parts of 
+the report will address what role they should play in the least-squares adjustment.  However, in 
+preparation for that discussion we mention that, for NGS, a model of changes in parameter 
+values (MCPV) exists (in a manner of speaking6) which attempts to provide these values as prior 
+information to the LSA.    
+We close by mentioning that if the changes of parameter values in time are so small as to be 
+insignificant, then these approximations apply: 
+𝚵𝚵𝒊𝒊 ≈ 𝚵𝚵𝒑𝒑+𝒋𝒋 ≈ 𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌 ≈ 𝚵𝚵     ∀  𝑖𝑖 ∈ {1, … , 𝑝𝑝}, 𝑗𝑗 ∈ {1, … , 𝑞𝑞}, 𝑘𝑘 ∈ {1, … , 𝑟𝑟},  (2a) 
+𝚫𝚫𝚵𝚵𝒊𝒊 ≈ 𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋 ≈ 𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌 ≈ 𝟎𝟎     ∀  𝑖𝑖 ∈ {1, … , 𝑝𝑝}, 𝑗𝑗 ∈ {1, … , 𝑞𝑞}, 𝑘𝑘 ∈ {1, … , 𝑟𝑟}.  (2b) 
+In such a case, all the mathematics of this report collapse down to the common LSA problem 
+without consideration of epochs whatsoever. 
+3 Observations 
+3.1 Observations modeled at various epochs 
+The observation equation at observation epoch 𝑖𝑖 is: 
+𝒀𝒀𝒊𝒊 = 𝑎𝑎𝑖𝑖(𝚵𝚵𝒊𝒊) + 𝒆𝒆𝒚𝒚𝒊𝒊. (3) 
+The function 𝑎𝑎𝑖𝑖 has a subscript, because the type of observations made at one observation epoch 
+might be different than observations made at a different observation epoch (e.g. GNSS vectors 
+ 
+6Currently NGS uses the Horizontal Time Dependent Positioning (HTDP) model to compute the changes to latitude 
+and longitude (and some ellipsoid heights) of points on the Earth’s crust with a time span covering about a century.  
+However, NGS plans call for least-squares adjustments where the parameters being estimated are either global 
+Cartesian coordinates (𝑋𝑋, 𝑌𝑌, 𝑍𝑍), orthometric heights (𝐻𝐻) or gravity (𝑔𝑔).  Therefore, HTDP does not directly provide 
+changes to the parameter values, so it should not be considered an “MCPV”.  This is because HTDP provides linear 
+velocities of marks in east, north (and sometimes up/ellipsoid height), 𝐸𝐸̇ , 𝑁𝑁̇ , ℎ̇  or instantaneous displacements due to 
+earthquakes, Δ𝐸𝐸, Δ𝑁𝑁, Δℎ.  Thus, HTDP falls in a class of models we will call geodetic value change models 
+(GVCMs), rather than MCPV.  With proper rotation (and scaling of velocities by Δ𝑡𝑡) one can use HTDP to compute 
+changes to parameter values.  Future GVCMs include the Intra-Frame Deformation Model (IFDM2022, replacing 
+HTDP) and DGEOID2022 (which will contain geoid undulation velocities).  For orthometric heights, both 
+HTDP/IFDM2022 and DGEOID22 will be used to obtain changes in orthometric heights.  To summarize:  we may 
+have one or more GVCMs and from them we may derive a single MCPV.  Variances, at least in the form of standard 
+deviations, in the GVCM are usually available, and will be used to derive variances in the MCPV.  This will be 
+detailed in Volume III. 
+ 
+
+##########################################################################
+### PDF page 18 (of 68)   matches: epoch
+##########################################################################
+6 
+ 
+on day 1, angles and distances on day 2, etc.), and we will need to keep track of the functions 
+that went with each epoch. 
+With 𝑝𝑝 observation epochs we can combine all observations among all epochs to form one 
+combined observation equation, as follows: 
+𝒀𝒀 =
+⎣
+⎢
+⎢
+⎢
+⎡𝒀𝒀𝟏𝟏
+𝒀𝒀𝟐𝟐
+𝒀𝒀𝟑𝟑
+…
+𝒀𝒀𝒑𝒑⎦
+⎥
+⎥
+⎥
+⎤
+=
+⎣
+⎢
+⎢
+⎢
+⎡𝑎𝑎1(𝚵𝚵𝟏𝟏)
+𝑎𝑎2(𝚵𝚵𝟐𝟐)
+𝑎𝑎3(𝚵𝚵𝟑𝟑)
+…
+𝑎𝑎𝑝𝑝�𝚵𝚵𝒑𝒑�⎦
+⎥
+⎥
+⎥
+⎤
++
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡
+𝒆𝒆𝒚𝒚𝟏𝟏
+𝒆𝒆𝒚𝒚𝟐𝟐
+𝒆𝒆𝒚𝒚𝟑𝟑
+…
+𝒆𝒆𝒚𝒚𝒑𝒑⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+=
+⎣
+⎢
+⎢
+⎢
+⎡𝑎𝑎1(𝚵𝚵𝟏𝟏)
+𝑎𝑎2(𝚵𝚵𝟐𝟐)
+𝑎𝑎3(𝚵𝚵𝟑𝟑)
+…
+𝑎𝑎𝑝𝑝�𝚵𝚵𝒑𝒑�⎦
+⎥
+⎥
+⎥
+⎤
++ 𝒆𝒆𝒚𝒚. (4) 
+Note the use of 𝒀𝒀 without a subscript here does not imply “at the adjustment epoch”, but is 
+merely a convenience to indicate a collection of numerous vectors at a variety of epochs into a 
+single larger vector.  This convention will be applied to all other combined vectors throughout 
+this report, except for 𝚵𝚵 (as mentioned in section 2). 
+Each vector 𝒀𝒀𝒊𝒊 is of size 𝑛𝑛𝑖𝑖  ×  1, so that the total number of observations, 𝑛𝑛, is computed by 
+𝑛𝑛 = � 𝑛𝑛𝑖𝑖
+𝑝𝑝
+𝑖𝑖=1
+. (5) 
+The new terms in (3) and (4) are defined as follows: 
+ 𝒀𝒀 is an 𝑛𝑛 × 1 vector of observations at all of the various observation epochs; 
+ 𝒀𝒀𝒊𝒊 is an 𝑛𝑛𝑖𝑖 × 1 vector of observations at observation epoch 𝑖𝑖; 
+𝑎𝑎𝑖𝑖(. ) is a vector of functions (not necessarily linear) relating the observations at 
+observation epoch 𝑖𝑖 to the parameters at observation epoch 𝑖𝑖, that maps ℝ𝑢𝑢 into 
+ℝ𝑛𝑛𝑖𝑖, where, as stated earlier, u is the total number of unknown parameters being 
+estimated; 
+𝒆𝒆𝒚𝒚𝒊𝒊 is an 𝑛𝑛𝑖𝑖 × 1 vector of random errors associated with the observations at 
+observation epoch 𝑖𝑖; and, 
+𝒆𝒆𝒚𝒚 is an 𝑛𝑛 × 1 vector of random errors associated with the observations at all of the 
+various observation epochs. 
+We pause here to reiterate the notation convention.  Specifically, 𝒀𝒀𝒊𝒊 is a subset of 𝒀𝒀, but 𝚵𝚵𝒊𝒊 is not 
+a subset of 𝚵𝚵.  Rather 𝚵𝚵𝒊𝒊  represents the values of all parameters at epoch 𝑖𝑖, while 𝚵𝚵 represents 
+the values of all parameters at the adjustment epoch.  Therefore, the two vectors 𝚵𝚵𝒊𝒊 and 𝚵𝚵 are of 
+identical length (𝑢𝑢 × 1), whereas 𝒀𝒀𝒊𝒊 is a smaller vector than 𝒀𝒀 (e.g. 𝑛𝑛𝑖𝑖 × 1  < 𝑛𝑛 × 1) since 𝒀𝒀𝒊𝒊 
+represents only those observations made at epoch 𝑖𝑖, while 𝒀𝒀 represents all observations made at 
+all epochs.   
+Note again that in every vector, except those involving variables 𝚵𝚵 or 𝑿𝑿, that the subscript always 
+refers to a subset of total vectors (such as observations or constraints) associated with an epoch, 
+
+##########################################################################
+### PDF page 19 (of 68)   matches: epoch
+##########################################################################
+7 
+ 
+while in the case of 𝚵𝚵 or 𝑿𝑿, the subscript refers to epoch, but that these vectors always represent 
+all parameters at that epoch (or changes to all parameter values from that epoch to the 
+adjustment epoch) and will thus always be of size 𝑢𝑢 × 1.  Thus, for example, 𝒀𝒀𝒊𝒊 ⊂ 𝒀𝒀, but 𝚵𝚵𝒊𝒊 ⊄ 𝚵𝚵. 
+Notice that every row of (4) refers to a different set of parameter values.  That is, row 1 refers to 
+𝚵𝚵𝟏𝟏, the value of all parameters at epoch 1 while row 2 refers to 𝚵𝚵𝟐𝟐, the value of all parameters at 
+epoch 2, etc.  This, then, is the first difficulty of the ME-LSA problem:  we are given 𝒀𝒀𝒊𝒊 which has 
+a simple relationship to 𝚵𝚵𝒊𝒊 (see equation 4), but does not have such a simple relationship to our 
+parameters of interest, namely those at the adjustment epoch, 𝚵𝚵. 
+To address this, we rely upon the relationship between parameter values at the observation epoch 
+𝑖𝑖 (𝚵𝚵𝒊𝒊) and parameter values at the adjustment epoch (𝚵𝚵), as defined in (1).  Using that, (3) 
+becomes 
+𝒀𝒀𝒊𝒊 = 𝑎𝑎𝑖𝑖(𝚵𝚵 + 𝚫𝚫𝚵𝚵𝒊𝒊) + 𝒆𝒆𝒚𝒚𝒊𝒊, (6) 
+and (4) becomes  
+𝒀𝒀 =
+⎣
+⎢
+⎢
+⎢
+⎡𝑎𝑎1(𝚵𝚵 + 𝚫𝚫𝚵𝚵𝟏𝟏)
+𝑎𝑎2(𝚵𝚵 + 𝚫𝚫𝚵𝚵𝟐𝟐)
+𝑎𝑎3(𝚵𝚵 + 𝚫𝚫𝚵𝚵𝟑𝟑)
+…
+𝑎𝑎𝑝𝑝�𝚵𝚵 + 𝚫𝚫𝚵𝚵𝒑𝒑�⎦
+⎥
+⎥
+⎥
+⎤
++ 𝒆𝒆𝒚𝒚. (7) 
+Equation 7 has somewhat alleviated the first difficulty of the ME-LSA problem.  That is, we 
+have introduced our parameters of interest, 𝚵𝚵, but at the cost of introducing additional vectors of 
+changes to parameter values, 𝚫𝚫𝚵𝚵𝒊𝒊.  This raises the question of how to deal with these terms. 
+3.2 Addressing changes in parameter values in time 
+Although a number of solutions may be proposed, we hypothesize four options to deal with the 
+inclusion of 𝚫𝚫𝚵𝚵𝒊𝒊, each with its pros and cons:  
+1. Leave all the vectors 𝚵𝚵 and 𝚫𝚫𝚵𝚵𝒊𝒊 on the right side of (7) to be estimated. 
+2. Assume that all the changes to parameter values in 𝚫𝚫𝚵𝚵𝒊𝒊 are the result of linear changes in 
+time (velocities; call them 𝚵𝚵̇ ) and estimate both 𝚵𝚵 and 𝚵𝚵̇ . 
+3. Use a model of changes in parameter values (MCPV) to provide approximations to the 
+vectors 𝚫𝚫𝚵𝚵𝒊𝒊.  These can then be used to “project” observations (and constraints) through 
+time.  This option moves 𝚫𝚫𝚵𝚵𝒊𝒊 from the right side to the left side of the observation 
+equation. 
+4. Like option 3, use an MCPV to provide approximations to the quantities 𝚫𝚫𝚵𝚵𝒊𝒊, but unlike 
+option 3, leave the observations at their observation epochs (e.g. do not create projected 
+observations), and leave constraints at their constraint epochs (e.g. no projected 
+constraints), but use 𝚫𝚫𝚵𝚵𝒊𝒊 to modify the design matrix, 𝐴𝐴, etc., and estimate 𝚵𝚵 directly 
+from the non-projected observations and constraints.  This option also moves 𝚫𝚫𝚵𝚵𝒊𝒊 from 
+the right side to the left side of the observation equation. 
+
+##########################################################################
+### PDF page 20 (of 68)   matches: epoch
+##########################################################################
+8 
+ 
+Option 1, while mathematically conceivable, is computationally impractical.  A proof-by-
+example of this impracticality will be provided in Volume III of this report.   
+Option 2 assumes linear motion for all parameters.  While this option has fewer unknown 
+parameters than option 1, the assumption of linear change cannot be applied in general, since 
+events such as earthquakes can invalidate the assumption of linear change to a coordinate 
+(parameter).  Also, doubling the number of parameters to be estimated (from 𝚵𝚵 to 𝚵𝚵 and 𝚵𝚵̇ ) 
+requires repeat observations at all marks, and these may not be available.  (As an example, NGS 
+maintains a database of over 2 million points, of which only about 5 percent have ever been 
+surveyed more than one time.) 
+That leaves just options 3 and 4.  Option 4 will be called the direct method, and it might be 
+considered a “purer” option, in that it does not rely upon projected observations.  On the other 
+hand, it is a method not generally found in geodetic literature, and requires a bit of extra 
+bookkeeping to implement.  Furthermore, though options 3 and 4 are formulated differently, they 
+are strongly related, and it can be proven that the estimates of parameter values in each method 
+are identical.  This proof will be provided in Volume III.  So, while option 4 is viable, it is not 
+well known to the geodetic community.  It is, however, mathematically interesting.  As such, 
+Volume II of this report will provide the details of the direct method, but NGS is not expected to 
+pursue that path when solving the ME-LSA problem in future applications.   
+Therefore, we will adopt option 3, the projection method, herein.  To do this, we must define and 
+compute the projected observations and projected constraints at the adjustment epoch.  Projected 
+observations are defined in the next section, while projected constraints will be defined in 
+sections 4.2  and 5.2. 
+3.3 Projected observations at the adjustment epoch 
+We hypothesize that observations at various epochs have a definable relationship to so-called 
+projected observations, all of which are at the adjustment epoch.  We show how to transform 
+observations into projected observations, using the MCPV.  We use the term “projected” because 
+such transformed observations were never actually observed, but are projected (or translated, or 
+reduced, or moved through time) as if they had occurred at the adjustment epoch. 
+We introduce the use of an overbar to denote any terms that are projected or related to a 
+projected quantity.  Thus, 𝒀𝒀 refers to the vector of observations made across a wide variety of 
+observation epochs, and 𝒀𝒀� refers to the vector of projected observations, transformed from the 
+actual observations but now referenced to the adjustment epoch.   
+The reason for projecting observations is that they have a simpler relationship to the parameters 
+of interest (that is, the parameters at the adjustment epoch).  To wit, for any given observation 
+epoch 𝑖𝑖, the projected observations, should satisfy  
+𝒀𝒀�𝒊𝒊 = 𝑎𝑎𝑖𝑖(𝚵𝚵) + 𝒆𝒆𝒚𝒚�𝒊𝒊. (8) 
+There are a few things to note about (8).  First, the function 𝑎𝑎𝑖𝑖(. )is identical to that in (3) and (6).  
+That is, if the observations at epoch 𝑖𝑖 were, say, slope distances, then so are their associated 
+
+##########################################################################
+### PDF page 21 (of 68)   matches: epoch
+##########################################################################
+9 
+ 
+projected observations.  Second, the random error vector 𝒆𝒆𝒚𝒚𝒊𝒊 in (3) and (6) is not necessarily the 
+same as the random error vector 𝒆𝒆𝒚𝒚�𝒊𝒊 in (8); more on that below.  Lastly, compare (8) to (6) to see 
+that the unknown parameters 𝚵𝚵 on the right side of (8) are at the adjustment epoch and therefore 
+not influenced by 𝚫𝚫𝚵𝚵𝒊𝒊. 
+To arrive at (8) from (6) we first expand 𝑎𝑎𝑖𝑖(𝚵𝚵𝒊𝒊) about the point 𝚵𝚵𝒊𝒊 = 𝚵𝚵𝟎𝟎, (or, equivalently, about 
+the point 𝚵𝚵 = 𝚵𝚵𝟎𝟎, 𝚫𝚫𝚵𝚵𝒊𝒊 = 𝟎𝟎), using a Taylor series.  Then we drop second order and higher terms 
+and adopt some abbreviations, as follows: 
+𝑎𝑎𝑖𝑖(𝚵𝚵𝒊𝒊) = 𝑎𝑎𝑖𝑖(𝚵𝚵𝒊𝒊)|𝚵𝚵𝒊𝒊=𝚵𝚵𝟎𝟎 + 𝜕𝜕𝑎𝑎𝑖𝑖(𝚵𝚵𝒊𝒊)
+𝜕𝜕𝚵𝚵𝒊𝒊
+𝑻𝑻 �
+𝚵𝚵𝒊𝒊=𝚵𝚵𝟎𝟎
+(𝚵𝚵𝒊𝒊 − 𝚵𝚵𝟎𝟎)
+= 𝑎𝑎𝑖𝑖�𝚵𝚵𝒊𝒊(𝚵𝚵, 𝚫𝚫𝚵𝚵𝒊𝒊)�� 𝚵𝚵=𝚵𝚵𝟎𝟎
+𝚫𝚫𝚵𝚵𝒊𝒊=𝟎𝟎
++ 𝜕𝜕𝑎𝑎𝑖𝑖�𝚵𝚵𝒊𝒊(𝚵𝚵, 𝚫𝚫𝚵𝚵𝒊𝒊)�
+𝜕𝜕𝚵𝚵𝒊𝒊
+𝑻𝑻
+𝜕𝜕𝚵𝚵𝒊𝒊
+𝜕𝜕𝚵𝚵𝑻𝑻�
+𝚵𝚵=𝚵𝚵𝟎𝟎
+𝚫𝚫𝚵𝚵𝒊𝒊=𝟎𝟎
+(𝚵𝚵 − 𝚵𝚵𝟎𝟎)
++ 𝜕𝜕𝑎𝑎𝑖𝑖�𝚵𝚵𝒊𝒊(𝚵𝚵, 𝚫𝚫𝚵𝚵𝒊𝒊)�
+𝜕𝜕𝚵𝚵𝒊𝒊
+𝑻𝑻
+𝜕𝜕𝚵𝚵𝒊𝒊
+𝜕𝜕 𝚫𝚫𝚵𝚵𝒊𝒊
+𝑻𝑻�
+𝚵𝚵=𝚵𝚵𝟎𝟎
+𝚫𝚫𝚵𝚵𝒊𝒊=𝟎𝟎
+( 𝚫𝚫𝚵𝚵𝒊𝒊 −  𝟎𝟎) 
+= 𝑎𝑎𝑖𝑖(𝚵𝚵𝟎𝟎) + 𝐴𝐴̅𝑖𝑖𝐼𝐼𝑢𝑢𝝃𝝃 + 𝐴𝐴̅𝑖𝑖𝐼𝐼𝑢𝑢Δ𝚵𝚵𝒊𝒊 
+= 𝑎𝑎𝑖𝑖(𝚵𝚵𝟎𝟎) + 𝐴𝐴̅𝑖𝑖𝝃𝝃 + 𝐴𝐴̅𝑖𝑖𝚫𝚫𝚵𝚵𝒊𝒊 
+= 𝚿𝚿�𝒊𝒊,𝟎𝟎 + 𝐴𝐴̅𝑖𝑖𝝃𝝃 + 𝐴𝐴̅𝑖𝑖𝚫𝚫𝚵𝚵𝒊𝒊. 
+(9) 
+The equivalence of 
+𝜕𝜕𝚵𝚵𝒊𝒊
+𝜕𝜕 𝚫𝚫𝚵𝚵𝒊𝒊𝑻𝑻 = 𝐼𝐼𝑢𝑢 and 
+𝜕𝜕𝚵𝚵𝒊𝒊
+𝜕𝜕𝚵𝚵𝑻𝑻 = 𝐼𝐼𝑢𝑢 comes from (1a).   
+In (9) we have defined 
+𝐴𝐴̅𝑖𝑖
+𝑛𝑛𝑖𝑖 × 𝑢𝑢
+∶= 𝜕𝜕𝑎𝑎𝑖𝑖(𝚵𝚵)
+𝜕𝜕𝚵𝚵𝑻𝑻 �
+𝚵𝚵=𝚵𝚵𝟎𝟎
+= 𝜕𝜕𝑎𝑎𝑖𝑖(𝚵𝚵𝒊𝒊)
+𝜕𝜕𝚵𝚵𝒊𝒊
+𝑻𝑻 �
+𝚵𝚵𝒊𝒊=𝚵𝚵𝟎𝟎
+= 𝜕𝜕𝑎𝑎𝑖𝑖�𝚵𝚵𝒊𝒊(𝚵𝚵, 𝚫𝚫𝚵𝚵𝒊𝒊)�
+𝜕𝜕𝚵𝚵𝒊𝒊
+𝑻𝑻 �
+𝚵𝚵=𝚵𝚵𝟎𝟎
+𝚫𝚫𝚵𝚵𝒊𝒊=𝟎𝟎
+, (10) 
+𝚿𝚿�𝒊𝒊,𝟎𝟎 ∶= 𝑎𝑎𝑖𝑖(𝚵𝚵𝟎𝟎), (11) 
+𝝃𝝃 ∶= 𝚵𝚵 − 𝚵𝚵𝟎𝟎. (12) 
+  
+The overbar on matrix 𝐴𝐴̅𝑖𝑖 indicates that it is the design (or coefficient) matrix relating projected 
+observations to parameters at the adjustment epoch.  The vector 𝚿𝚿�𝒊𝒊,𝟎𝟎 is the zeroth-order term of 
+the Taylor series, and it might be thought of as the “initial approximations to the projected 
+observation vector 𝒀𝒀�𝒊𝒊”7.   
+ 
+7 That isn’t a perfect description.  A better, but lengthier, description is that 𝚿𝚿�𝒊𝒊,𝟎𝟎 will contain values that would be 
+equivalent to projected observations if 𝚵𝚵𝟎𝟎 contained true values, and there were no observation errors.  Note also 
+the use of the Greek 𝚿𝚿�𝒊𝒊,𝟎𝟎 here, rather than the Latin 𝒀𝒀�𝒊𝒊,𝟎𝟎 which reflects the non-random nature of evaluating the 
+function 𝑎𝑎𝑖𝑖(. ) with non-random value 𝚵𝚵𝟎𝟎.  In Snow (2021) 𝚿𝚿�𝒊𝒊,𝟎𝟎 is not adopted.  Instead, they retain the form 
+ 
+
+##########################################################################
+### PDF page 23 (of 68)   matches: epoch
+##########################################################################
+11 
+ 
+𝒀𝒀𝒊𝒊 − 𝐴𝐴̅𝑖𝑖𝚫𝚫𝚵𝚵𝒊𝒊,𝑴𝑴 = 𝑎𝑎𝑖𝑖(𝚵𝚵) + 𝒆𝒆𝒚𝒚𝒊𝒊. (18) 
+Comparing (18) to (8), we adopt these two definitions, when the MCPV is fixed: 
+𝒀𝒀�𝒊𝒊 ∶= 𝒀𝒀𝒊𝒊 − 𝐴𝐴̅𝑖𝑖𝚫𝚫𝚵𝚵𝒊𝒊,𝑴𝑴, (19) 
+𝒆𝒆𝒚𝒚�𝒊𝒊 ∶= 𝒆𝒆𝒚𝒚𝒊𝒊. (20) 
+ 
+Vector 𝒀𝒀�𝒊𝒊 contains projected observations at the adjustment epoch, but based upon observations 
+made at epoch 𝑖𝑖.  This gives us all the information needed to use (8) as our observation equation, 
+but to do so requires linearization.  That will be covered in section 3.4.  But first, we will 
+consider the case when the MCPV is stochastic. 
+3.3.2 When the model of changes in parameter values is stochastic 
+If the MCPV provides changes in parameter values with variance (stochastic), we use the Latin 
+variable 𝚫𝚫𝑿𝑿𝒊𝒊,𝑴𝑴 (with the M subscript) to represent the values of 𝚫𝚫𝚵𝚵𝒊𝒊 coming from the MCPV.  
+Thus, we can state that the changes in parameter values from the MCPV represent the sum of the 
+true changes in parameter values plus some random error, i.e. 
+𝚫𝚫𝑿𝑿𝒊𝒊,𝑴𝑴 = 𝚫𝚫𝚵𝚵𝒊𝒊 + 𝒆𝒆𝑴𝑴𝒊𝒊 , (21) 
+where the subscript 𝑀𝑀𝑖𝑖 has a very specific meaning.  It indicates these random errors come from 
+the MCPV.  This is in contrast to a lower case 𝑚𝑚 which indicates a random error on some 
+quantity that is not a change in parameter value but is related to the changes in parameter values 
+(such as a projected observation or projected constraint).   The 𝑖𝑖 means those random errors are 
+with respect to the changes in parameter values between observation epoch 𝑖𝑖 and the adjustment 
+epoch.  
+Substituting (21) into (15) and re-arranging allows us to write 
+𝒀𝒀𝒊𝒊 − 𝐴𝐴̅𝑖𝑖𝚫𝚫𝑿𝑿𝒊𝒊,𝑴𝑴 = 𝑎𝑎𝑖𝑖(𝚵𝚵) + 𝒆𝒆𝒚𝒚𝒊𝒊 − 𝐴𝐴̅𝑖𝑖𝒆𝒆𝑴𝑴𝒊𝒊 . (22) 
+Comparing (22) to (8), we define the following model for the case that the MCPV is stochastic: 
+𝒀𝒀�𝒊𝒊 ∶= 𝒀𝒀𝒊𝒊 − 𝐴𝐴̅𝑖𝑖𝚫𝚫𝑿𝑿𝒊𝒊,𝑴𝑴 = 𝑎𝑎𝑖𝑖(𝚵𝚵) + 𝒆𝒆𝒚𝒚�𝒊𝒊, (23) 
+𝒆𝒆𝒚𝒚�𝒊𝒊 ∶= 𝒆𝒆𝒚𝒚𝒊𝒊 − 𝐴𝐴̅𝑖𝑖𝒆𝒆𝑴𝑴𝒊𝒊 ≔ 𝒆𝒆𝒚𝒚𝒊𝒊 + 𝒆𝒆𝒚𝒚�,𝒎𝒎𝒊𝒊. (24) 
+ 
+Equations 19 and 23 project observations in time, beginning with 𝒀𝒀𝒊𝒊 and ending with 𝒀𝒀�𝒊𝒊.  
+Equation 24 shows that the random error of the projected observation (denoted by subscript mi) 
+is computed from the random error of the MCPV (denoted by subscript Mi) using the design 
+matrix 𝐴𝐴̅𝑖𝑖.  
+Note that 𝚫𝚫𝑿𝑿𝒊𝒊,𝑴𝑴 (stochastic) and 𝚫𝚫𝚵𝚵𝒊𝒊,𝑴𝑴 (fixed) are numerically identical to, but stochastically 
+different from, one another, since the values for both vectors are obtained identically from the 
+
+##########################################################################
+### PDF page 24 (of 68)   matches: epoch
+##########################################################################
+12 
+ 
+MCPV.  This means that the vectors 𝒀𝒀�𝒊𝒊 in (23) and (19) will be numerically identical, but 
+stochastically different as well.  We turn now to linearizing (8). 
+3.4 Linearization 
+Equation pair (19) and (20) and pair (23) and (24) provide the necessary information about 𝒀𝒀�𝒊𝒊 
+and 𝒆𝒆𝒚𝒚�𝒊𝒊 to adopt (8) as the observation equation for any given observation epoch 𝑖𝑖, under the two 
+cases of MCPV being fixed or stochastic, respectively.  However, because 𝑎𝑎𝑖𝑖(𝚵𝚵) may be non-
+linear, we first linearize it, using (13), so that (8) becomes 
+𝒀𝒀�𝒊𝒊 = 𝚿𝚿�𝒊𝒊,𝟎𝟎 + 𝐴𝐴̅𝑖𝑖𝝃𝝃 + 𝒆𝒆𝒚𝒚�𝒊𝒊. (25) 
+We now introduce 𝒚𝒚�𝒊𝒊, the vector of incremental changes to projected observations at the 
+adjustment epoch (based on observations at 𝑖𝑖), as 
+𝒚𝒚�𝒊𝒊 ∶= 𝒀𝒀�𝒊𝒊 − 𝚿𝚿�𝒊𝒊,𝟎𝟎. (26) 
+ 
+Substituting (26) into (25) yields the final incremental observation equation    
+𝒚𝒚�𝒊𝒊 = 𝐴𝐴̅𝑖𝑖𝝃𝝃 + 𝒆𝒆𝒚𝒚�𝒊𝒊. (27) 
+ 
+All values refer to the adjustment epoch, but their origins can be traced back to observation 
+epoch 𝑖𝑖.  Numerically, 𝒚𝒚�𝒊𝒊 does not depend on whether the MCPV is fixed or stochastic, but the 
+definition and stochastic properties of 𝒆𝒆𝒚𝒚�𝒊𝒊 does; compare (20) to (24).  Modeling of the random 
+error vector 𝒆𝒆𝒚𝒚� will be addressed in section 6. 
+We close this section by combining all incremental projected observations from epochs 𝑖𝑖 =
+1, … , 𝑝𝑝 into the single set of observation equations as follows:  
+𝒚𝒚� =
+⎣
+⎢
+⎢
+⎢
+⎡𝒚𝒚�𝟏𝟏
+𝒚𝒚�𝟐𝟐
+𝒚𝒚�𝟑𝟑
+…
+𝒚𝒚�𝒑𝒑⎦
+⎥
+⎥
+⎥
+⎤
+=
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡𝐴𝐴̅1
+𝐴𝐴̅2
+𝐴𝐴̅3
+…
+𝐴𝐴̅𝑝𝑝⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+𝝃𝝃 +
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡
+𝒆𝒆𝒚𝒚�𝟏𝟏
+𝒆𝒆𝒚𝒚�𝟐𝟐
+𝒆𝒆𝒚𝒚�𝟑𝟑
+…
+𝒆𝒆𝒚𝒚�𝒑𝒑⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+= 𝐴𝐴̅𝝃𝝃 + 𝒆𝒆𝒚𝒚�. (28) 
+ 
+The next two sections will provide similar treatment of stochastic and fixed constraints imposed 
+upon the unknown model parameters. 
+4 Stochastic constraints 
+This section has very similar derivations to those in the previous section.  This is because the 
+same basic situation occurs:  we impose stochastic constraints at various stochastic-constraint 
+epochs, and we must project them to the adjustment epoch. 
+
+##########################################################################
+### PDF page 25 (of 68)   matches: epoch
+##########################################################################
+13 
+ 
+While it may be argued that most constraints applied to the ME-LSA problem will be imposed at 
+the adjustment epoch, many situations exist where it is preferable, even necessary, to impose a 
+constraint at an earlier epoch9.     
+Because this derivation follows closely to that of the previous section, some text and derivations 
+found there will be omitted in this section, for the sake of brevity.   
+4.1 Stochastic constraints at various epochs 
+The stochastic-constraint equation at stochastic-constraint epoch 𝑗𝑗 is provided by10  
+𝑾𝑾𝒋𝒋 = 𝑠𝑠𝑗𝑗�𝚵𝚵𝒑𝒑+𝒋𝒋� + 𝒆𝒆𝒘𝒘𝒋𝒋. (29) 
+With 𝑞𝑞 stochastic-constraint epochs we can combine all stochastic constraints among all epochs 
+to form one combined stochastic-constraint equation as follows: 
+𝑾𝑾 =
+⎣
+⎢
+⎢
+⎢
+⎡𝑾𝑾𝟏𝟏
+𝑾𝑾𝟐𝟐
+𝑾𝑾𝟑𝟑
+…
+𝑾𝑾𝒒𝒒⎦
+⎥
+⎥
+⎥
+⎤
+=
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡𝑠𝑠1�𝚵𝚵𝒑𝒑+𝟏𝟏�
+𝑠𝑠2�𝚵𝚵𝒑𝒑+𝟐𝟐�
+𝑠𝑠3�𝚵𝚵𝒑𝒑+𝟑𝟑�
+…
+𝑠𝑠𝑞𝑞�𝚵𝚵𝒑𝒑+𝒒𝒒�⎦
+⎥
+⎥
+⎥
+⎥
+⎤
++
+⎣
+⎢
+⎢
+⎢
+⎡
+𝒆𝒆𝒘𝒘𝟏𝟏
+𝒆𝒆𝒘𝒘𝟐𝟐
+𝒆𝒆𝒘𝒘𝟑𝟑
+…
+𝒆𝒆𝒘𝒘𝒒𝒒⎦
+⎥
+⎥
+⎥
+⎤
+=
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡𝑠𝑠1�𝚵𝚵𝒑𝒑+𝟏𝟏�
+𝑠𝑠2�𝚵𝚵𝒑𝒑+𝟐𝟐�
+𝑠𝑠3�𝚵𝚵𝒑𝒑+𝟑𝟑�
+…
+𝑠𝑠𝑞𝑞�𝚵𝚵𝒑𝒑+𝒒𝒒�⎦
+⎥
+⎥
+⎥
+⎥
+⎤
++ 𝒆𝒆𝒘𝒘. (30) 
+Each vector 𝑾𝑾𝒋𝒋 is of size 𝑙𝑙𝑗𝑗  ×  1, so that the total number of stochastic constraints, 𝑙𝑙, is 
+computed by: 
+𝑙𝑙 = � 𝑙𝑙𝑗𝑗
+𝑞𝑞
+𝑗𝑗=1
+. (31) 
+The terms found in (30) are defined as follows: 
+𝑾𝑾 is an 𝑙𝑙 × 1 vector of stochastic constraints at all of the various stochastic-
+constraint epochs; 
+ 𝑾𝑾𝒋𝒋 is an 𝑙𝑙𝑗𝑗 × 1 vector of stochastic constraints at stochastic-constraint epoch 𝑗𝑗; 
+𝑠𝑠𝑗𝑗(. ) is a vector of functions (not necessarily linear) relating the stochastic constraints 
+at stochastic-constraint epoch 𝑗𝑗 to the parameters at stochastic-constraint epoch 𝑗𝑗, 
+that maps ℝ𝑢𝑢 into ℝ𝑙𝑙𝑗𝑗, where, as stated earlier, u is the total number of unknown 
+parameters being estimated;  
+𝒆𝒆𝒘𝒘𝒋𝒋 is an 𝑙𝑙𝑗𝑗 × 1 vector of random errors associated with stochastic constraints at 
+stochastic-constraint epoch 𝑗𝑗; and, 
+ 
+9 Consider, for example, the case where we are interested in estimating heights in a network at epoch 2020.00, 
+using decades of leveling surveys, but for legal (or other) reasons we must fix a specific height at a specific location 
+(say a mark on the local courthouse steps) at a specific date (say H=100.000 m at epoch 1980.00). 
+10 As a reminder, the variable 𝚵𝚵 must have more than just a 𝑗𝑗 in its subscript, so that one may refer to any epoch’s 
+index (observation, stochastic-constraint and fixed-constraint) without ambiguity. 
+
+##########################################################################
+### PDF page 26 (of 68)   matches: epoch
+##########################################################################
+14 
+ 
+𝒆𝒆𝒘𝒘 is an 𝑙𝑙 × 1 vector of random errors associated with the stochastic constraints at all 
+of the various stochastic-constraint epochs. 
+Equations 29 and 30 expressed as functions of the parameter values and changes in parameter 
+values are  
+𝑾𝑾𝒋𝒋 = 𝑠𝑠𝑗𝑗�𝚵𝚵 + 𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋� + 𝒆𝒆𝒘𝒘𝒋𝒋, (32) 
+and 
+𝑾𝑾 =
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡𝑠𝑠1�𝚵𝚵 + 𝚫𝚫𝚵𝚵𝒑𝒑+𝟏𝟏�
+𝑠𝑠2�𝚵𝚵 + 𝚫𝚫𝚵𝚵𝒑𝒑+𝟐𝟐�
+𝑠𝑠3�𝚵𝚵 + 𝚫𝚫𝚵𝚵𝒑𝒑+𝟑𝟑�
+…
+𝑠𝑠𝑞𝑞�𝚵𝚵 + 𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒�⎦
+⎥
+⎥
+⎥
+⎥
+⎤
++ 𝒆𝒆𝒘𝒘. (33) 
+4.2 Projected stochastic constraints at the adjustment epoch 
+Projected stochastic constraints are obtained from the original stochastic constraints using the 
+same procedure used for projected observations. 
+As such, it is proposed that for each epoch 𝑗𝑗, the equation of the projected stochastic constraints 
+should take this form: 
+𝑾𝑾���𝒋𝒋 = 𝑠𝑠𝑗𝑗(𝚵𝚵) + 𝒆𝒆𝒘𝒘� 𝒋𝒋. (34) 
+Since 𝑠𝑠𝑗𝑗(𝚵𝚵) may be non-linear, a truncated Taylor series about the point 𝚵𝚵𝒊𝒊 = 𝚵𝚵𝟎𝟎 is again useful, 
+so that we have 
+𝑠𝑠𝑗𝑗�𝚵𝚵𝒑𝒑+𝒋𝒋� = 𝛀𝛀�𝒋𝒋,𝟎𝟎 + 𝑆𝑆̅𝑗𝑗𝝃𝝃 + 𝑆𝑆̅𝑗𝑗𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋, (35) 
+and 
+𝑠𝑠𝑗𝑗(𝚵𝚵) = 𝛀𝛀�𝒋𝒋,𝟎𝟎 + 𝑆𝑆̅𝑗𝑗𝝃𝝃, (36) 
+where we have adopted (12) and these definitions for brevity: 
+𝑆𝑆̅𝑗𝑗 =
+𝜕𝜕𝑠𝑠𝑗𝑗(𝚵𝚵)
+𝜕𝜕𝚵𝚵𝑻𝑻 �
+𝚵𝚵=𝚵𝚵𝟎𝟎
+=
+𝜕𝜕𝑠𝑠𝑗𝑗(𝚵𝚵𝒑𝒑+𝒋𝒋)
+𝜕𝜕𝚵𝚵𝒑𝒑+𝒋𝒋𝑻𝑻 �
+𝚵𝚵𝒑𝒑+𝒋𝒋=𝚵𝚵𝟎𝟎
+=
+𝜕𝜕𝑠𝑠𝑗𝑗�𝚵𝚵𝒑𝒑+𝒋𝒋�𝚵𝚵,𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋��
+𝜕𝜕𝚵𝚵𝒑𝒑+𝒋𝒋𝑻𝑻 �
+𝚵𝚵=𝚵𝚵𝟎𝟎
+𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋=𝟎𝟎
+, (37) 
+ 
+𝛀𝛀�𝒋𝒋,𝟎𝟎 ∶= 𝑠𝑠𝑗𝑗(𝚵𝚵𝟎𝟎). 
+ 
+(38) 
+ 
+The vector 𝛀𝛀�𝒋𝒋,𝟎𝟎 is the zeroth-order term of the Taylor series, and it might be thought of as the 
+“initial approximations to the projected stochastic-constraint vector 𝑾𝑾���𝒋𝒋”.  A comparison of (35) 
+with (36) shows 
+
+##########################################################################
+### PDF page 27 (of 68)   matches: epoch
+##########################################################################
+15 
+ 
+𝑠𝑠𝑗𝑗�𝚵𝚵𝒑𝒑+𝒋𝒋� = 𝑠𝑠𝑗𝑗(𝚵𝚵) + 𝑆𝑆̅𝑗𝑗𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋, (39) 
+and thus: 
+𝑾𝑾𝒋𝒋 = 𝑠𝑠𝑗𝑗(𝚵𝚵) + 𝑆𝑆̅𝑗𝑗𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋 + 𝒆𝒆𝒘𝒘𝒋𝒋. (40) 
+The situation for stochastic constraints now stands much as it did for observations in section 3.  
+Specifically, while (40) gets us much closer to (29), we do not have the true values of changes in 
+parameter values (𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋).  What we do have is a model of changes in parameter values (MCPV).  
+To transform (40) into a form that resembles (29) we must choose whether to treat the MCPV as 
+fixed or stochastic.  Each case will be considered in the next two subsections.  Afterward, we 
+will close out with linearizing the equation for projected stochastic constraints so that it may be 
+used in an LSA. 
+4.2.1 When the model of changes in parameter values is fixed 
+If the MCPV provides changes in parameter values without variance (fixed), we use the Greek 
+variable 𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋,𝑴𝑴 (with the 𝑀𝑀 subscript) to represent the values of 𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋 coming from the 
+MCPV.  Thus, we can state that the changes in parameter values from the MCPV represent the 
+true values of changes in parameter values, i.e.  
+𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋,𝑴𝑴 = 𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋, (41) 
+implying that 
+𝑾𝑾𝒋𝒋 − 𝑆𝑆̅𝑗𝑗𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋,𝑴𝑴 = 𝑠𝑠𝑗𝑗(𝚵𝚵) + 𝒆𝒆𝒘𝒘𝒋𝒋. (42) 
+Comparing (42) to (29), we adopt these two definitions, when the MCPV is fixed: 
+𝑾𝑾���𝒋𝒋 ∶= 𝑾𝑾𝒋𝒋 − 𝑆𝑆̅𝑗𝑗𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋,𝑴𝑴, (43) 
+𝒆𝒆𝒘𝒘� 𝒋𝒋 ∶= 𝒆𝒆𝒘𝒘𝒋𝒋. (44) 
+Vector 𝑾𝑾���𝒋𝒋 contains projected, stochastic constraints (at the adjustment epoch, but based upon 
+stochastic constraints imposed at epoch 𝑗𝑗).  This gives us all the information needed to use (29) 
+as our stochastic-constraint equation, but to do so requires linearization.  That will be covered in 
+section 4.3.  But first, we will consider the case when the MCPV is stochastic. 
+ 
+4.2.2 When the model of changes in parameter values is stochastic 
+If the MCPV provides changes in parameter values with variance (stochastic), we use the 
+variable 𝚫𝚫𝑿𝑿𝒑𝒑+𝒋𝒋,𝑴𝑴 to represent the values of 𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋 coming from the MCPV.  Thus, we can state 
+that the changes in parameter values from the MCPV represent the sum of true values of changes 
+in parameter values plus some random error, i.e. 
+𝚫𝚫𝑿𝑿𝒑𝒑+𝒋𝒋,𝑴𝑴 = 𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋 + 𝒆𝒆𝑴𝑴𝒑𝒑+𝒋𝒋. (45) 
+Substituting (45) into (40) yields 
+
+##########################################################################
+### PDF page 28 (of 68)   matches: epoch
+##########################################################################
+16 
+ 
+𝑾𝑾𝒋𝒋 − 𝑆𝑆̅𝑗𝑗𝚫𝚫𝑿𝑿𝒑𝒑+𝒋𝒋,𝑴𝑴 = 𝑠𝑠𝑗𝑗(𝚵𝚵) + 𝒆𝒆𝒘𝒘𝒋𝒋 − 𝑆𝑆̅𝑗𝑗𝒆𝒆𝑴𝑴𝒑𝒑+𝒋𝒋 . (46) 
+Comparing (46) to (34), we adopt the following two definitions, when the MCPV is stochastic: 
+𝑾𝑾���𝒋𝒋 ∶= 𝑾𝑾𝒋𝒋 − 𝑆𝑆̅𝑗𝑗𝚫𝚫𝑿𝑿𝒑𝒑+𝒋𝒋,𝑴𝑴, (47) 
+𝒆𝒆𝒘𝒘� 𝒋𝒋 ∶= 𝒆𝒆𝒘𝒘𝒋𝒋 − 𝑆𝑆̅𝑗𝑗𝒆𝒆𝑴𝑴𝒑𝒑+𝒋𝒋 = 𝒆𝒆𝒘𝒘𝒋𝒋 + 𝒆𝒆𝒘𝒘�,𝒎𝒎𝒋𝒋 . (48) 
+ 
+Equations 47 and 43 project stochastic constraints through time. 
+As before, 𝚫𝚫𝑿𝑿𝒑𝒑+𝒋𝒋,𝑴𝑴 (stochastic) and 𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋,𝑴𝑴 (fixed) are numerically identical to, but 
+stochastically different from, one another.  The same holds for the vectors 𝑾𝑾���𝒋𝒋 in (47) and (43). 
+4.3 Linearization of the stochastic-constraint equations 
+We now linearize (34) using (36), to arrive at 
+𝑾𝑾���𝒋𝒋 = 𝛀𝛀�𝒋𝒋,𝟎𝟎 + 𝑆𝑆̅𝑗𝑗𝝃𝝃 + 𝒆𝒆𝒘𝒘� 𝒋𝒋. (49) 
+We introduce 𝒘𝒘� 𝒋𝒋, the vector of incremental changes to projected stochastic constraints, as 
+𝒘𝒘� 𝒋𝒋 ∶= 𝑾𝑾���𝒋𝒋 − 𝛀𝛀�𝒋𝒋,𝟎𝟎. (50) 
+ 
+Finally, substituting (50) into (49) yields the incremental stochastic-constraint equation 
+𝒘𝒘� 𝒋𝒋 = 𝑆𝑆̅𝑗𝑗𝝃𝝃 + 𝒆𝒆𝒘𝒘� 𝒋𝒋. (51) 
+ 
+All values in (51) refer to the adjustment epoch, but trace their roots back to stochastic-constraint 
+epoch 𝑗𝑗.  Numerically, 𝒘𝒘� 𝒋𝒋 does not depend on the stochastic properties of the MCPV, but the 
+definition (and stochastic modeling) of 𝒆𝒆𝒘𝒘� 𝒋𝒋does; compare (44) to (48).  Modeling of the random-
+error vector 𝒆𝒆𝒘𝒘�  will be addressed in section 6.   
+The following combines all projected stochastic constraints into a single system of equations:  
+𝒘𝒘� =
+⎣
+⎢
+⎢
+⎢
+⎡𝒘𝒘� 𝟏𝟏
+𝒘𝒘� 𝟐𝟐
+𝒘𝒘� 𝟑𝟑
+…
+𝒘𝒘� 𝒒𝒒⎦
+⎥
+⎥
+⎥
+⎤
+=
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡𝑆𝑆̅1
+𝑆𝑆̅2
+𝑆𝑆̅3
+…
+𝑆𝑆̅𝑞𝑞⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+𝝃𝝃 +
+⎣
+⎢
+⎢
+⎢
+⎡
+𝒆𝒆𝒘𝒘� 𝟏𝟏
+𝒆𝒆𝒘𝒘� 𝟐𝟐
+𝒆𝒆𝒘𝒘� 𝟑𝟑
+…
+𝒆𝒆𝒘𝒘� 𝒒𝒒⎦
+⎥
+⎥
+⎥
+⎤
+= 𝑆𝑆̅𝝃𝝃 + 𝒆𝒆𝒘𝒘� . (52) 
+ 
+Next, we address fixed constraints on the unknown parameters. 
+
+##########################################################################
+### PDF page 29 (of 68)   matches: epoch
+##########################################################################
+17 
+ 
+5 Fixed constraints 
+This section is similar to the previous with the exception that, here, constraints have no variance.  
+This will require careful handling when parameter constraints are fixed but the MCPV is 
+stochastic, which will be covered in detail in section 5.2.2.  Otherwise, when possible, text which 
+is identical to the previous section will be shortened or skipped. 
+Similar to stochastic constraints, it’s likely that fixed constraints will only be imposed at the 
+adjustment epoch, but this section allows for a more generalized approach, in case they are 
+imposed at other epochs. 
+5.1 Fixed constraints at various epochs 
+The fixed-constraint equation at fixed-constraint epoch 𝑘𝑘 is 
+𝚪𝚪𝒌𝒌 = 𝑓𝑓𝑘𝑘�𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌�. (53) 
+With 𝑟𝑟 fixed-constraint epochs we can combine all fixed constraints among all epochs to form 
+one combined fixed-constraint equation, namely 
+𝚪𝚪 =
+⎣
+⎢
+⎢
+⎢
+⎡𝚪𝚪𝟏𝟏
+𝚪𝚪𝟐𝟐
+𝚪𝚪𝟑𝟑
+…
+𝚪𝚪𝒓𝒓⎦
+⎥
+⎥
+⎥
+⎤
+=
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡𝑓𝑓1�𝚵𝚵𝒑𝒑+𝒒𝒒+𝟏𝟏�
+𝑓𝑓2�𝚵𝚵𝒑𝒑+𝒒𝒒+𝟐𝟐�
+𝑓𝑓3�𝚵𝚵𝒑𝒑+𝒒𝒒+𝟑𝟑�
+…
+𝑓𝑓𝑟𝑟�𝚵𝚵𝒑𝒑+𝒒𝒒+𝒓𝒓�⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+. (54) 
+Each vector 𝚪𝚪𝒌𝒌 will be of size ℎ𝑘𝑘  ×  1, so that he total number of fixed constraints, ℎ, is 
+computed by 
+ℎ = � ℎ𝑘𝑘
+𝑟𝑟
+𝑘𝑘=1
+. (55) 
+The terms found in (55) are defined as follows: 
+𝚪𝚪 is an ℎ × 1 vector of fixed constraints at all of the various fixed-constraint 
+epochs; 
+ 𝚪𝚪𝒌𝒌 is an ℎ𝑘𝑘 × 1 vector of fixed constraints at fixed-constraint epoch 𝑘𝑘; and, 
+𝑓𝑓𝑘𝑘(. ) is a vector of functions (not necessarily linear) relating the fixed constraints at 
+fixed-constraint epoch 𝑘𝑘 to the parameters at fixed-constraint epoch 𝑘𝑘, that maps 
+ℝ𝑢𝑢 into ℝℎ𝑘𝑘, where, as stated earlier, u is the total number of unknown 
+parameters being estimated. 
+Equation 53, expressed as functions of the parameters and changes in parameter values, is 
+𝚪𝚪𝒌𝒌 = 𝑓𝑓𝑘𝑘�𝚵𝚵 + 𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌�, (56) 
+with 
+
+##########################################################################
+### PDF page 30 (of 68)   matches: epoch
+##########################################################################
+18 
+ 
+𝚪𝚪 =
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡𝑓𝑓1�𝚵𝚵 + 𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝟏𝟏�
+𝑓𝑓2�𝚵𝚵 + 𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝟐𝟐�
+𝑓𝑓3�𝚵𝚵 + 𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝟑𝟑�
+…
+𝑓𝑓𝑟𝑟�𝚵𝚵 + 𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒓𝒓�⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+. (57) 
+5.2 Projected fixed constraints at the adjustment epoch 
+Projected fixed constraints are obtained from the original fixed constraints at the various 
+fixed-constraint epochs, but refer to the adjustment epoch.   
+In the previous section, it was postulated that a unique equation for the original stochastic 
+constraints (29) could be transformed into a unique equation for the projected stochastic 
+constraints (34) by using an MCPV and without regard to the stochastic nature of the MCPV.   
+That situation does not hold for fixed constraints.  Although we have begun with a unique 
+equation for the original fixed constraints (53), and we will show how to transform it into a new 
+equation for projected constraints, there will be two different forms of the transformed equation 
+for the projected constraints.  The reason for this dichotomy is due entirely to one possible 
+situation:  the MCPV is stochastic and a fixed constraint is imposed at an epoch different from 
+the adjustment epoch.  In that special situation, the fixed-constraint equation (53) will actually 
+transform into a stochastic-constraint equation for the projected constraints.  In every other 
+situation, the fixed-constraint equation will remain a fixed-constraint equation for the projected 
+fixed constraints. 
+To elaborate on the preceding paragraph, we split this section into two sub-sections:  one for 
+when the MCPV is fixed and the other for when the MCPV is stochastic, but first we will 
+provide some derivations that are common to both cases. 
+We begin as before with Taylor series expansions about the point 𝚵𝚵𝒊𝒊 = 𝚵𝚵𝟎𝟎, namely: 
+𝑓𝑓𝑘𝑘�𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌� = 𝚪𝚪�𝒌𝒌,𝟎𝟎 + 𝐹𝐹�𝑘𝑘𝝃𝝃 + 𝐹𝐹�𝑘𝑘𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌, (58) 
+and 
+𝑓𝑓𝑘𝑘(𝚵𝚵) = 𝚪𝚪�𝒌𝒌,𝟎𝟎 + 𝐹𝐹�𝑘𝑘𝝃𝝃. (59) 
+Here we have used (12) and the following definitions: 
+𝐹𝐹�𝑘𝑘 =
+𝜕𝜕𝑓𝑓𝑘𝑘(𝚵𝚵)
+𝜕𝜕𝚵𝚵𝑻𝑻 �
+𝚵𝚵=𝚵𝚵𝟎𝟎
+=
+𝜕𝜕𝑓𝑓𝑘𝑘(𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌)
+𝜕𝜕𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌𝑻𝑻 �
+𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌=𝚵𝚵𝟎𝟎
+=
+𝜕𝜕𝑓𝑓𝑘𝑘�𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌�𝚵𝚵,𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌��
+𝜕𝜕𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌𝑻𝑻 �
+𝚵𝚵=𝚵𝚵𝟎𝟎
+𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌=𝟎𝟎
+, (60) 
+ 
+𝚪𝚪�𝒌𝒌,𝟎𝟎 ∶= 𝑓𝑓𝑘𝑘(𝚵𝚵𝟎𝟎). 
+ 
+(61) 
+A comparison of (58) with (59) shows that 
+
+##########################################################################
+### PDF page 31 (of 68)   matches: epoch
+##########################################################################
+19 
+ 
+𝑓𝑓𝑘𝑘�𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌� = 𝑓𝑓𝑘𝑘(𝚵𝚵) + 𝐹𝐹�𝑘𝑘𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌, (62) 
+and thus 
+𝚪𝚪𝒌𝒌 = 𝑓𝑓𝑘𝑘(𝚵𝚵) + 𝐹𝐹�𝑘𝑘𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌. (63) 
+In the following sections, we provide separate derivations for the fixed and stochastic treatments 
+of the MCPV. 
+ 
+5.2.1 When the model of changes in parameter values is fixed 
+When both the constraints and the MCPV are fixed, the projected fixed constraints take the form 
+of a fixed-constraint equation, namely 
+𝚪𝚪�𝒌𝒌 = 𝑓𝑓𝑘𝑘(𝚵𝚵). (64) 
+With the MCPV fixed, the relation 
+𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌,𝑴𝑴 = 𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌 (65) 
+holds, so that (63) becomes 
+ 
+𝚪𝚪𝒌𝒌 − 𝐹𝐹�𝑘𝑘𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌,𝑴𝑴 = 𝑓𝑓𝑘𝑘(𝚵𝚵). (66) 
+Thus, we adopt the following definition, when the MCPV is fixed: 
+𝚪𝚪�𝒌𝒌 ∶= 𝚪𝚪𝒌𝒌 − 𝐹𝐹�𝑘𝑘𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌,𝑴𝑴. (67) 
+The vector 𝚪𝚪�𝒌𝒌 contains projected fixed constraints at the adjustment epoch, but it is based on 
+fixed constraints imposed at epoch 𝑘𝑘.   
+5.2.1.1 Linearization of the fixed-constraint equations 
+We linearize (64) using (59) to first arrive at 
+𝚪𝚪�𝒌𝒌 = 𝚪𝚪�𝒌𝒌,𝟎𝟎 + 𝐹𝐹�𝑘𝑘𝝃𝝃. (68) 
+We now introduce, as the vector of incremental changes to projected fixed constraints 
+𝜸𝜸�𝒌𝒌 ∶= 𝚪𝚪�𝒌𝒌 − 𝚪𝚪�𝒌𝒌,𝟎𝟎. (69) 
+ 
+Substituting (69) into (68) yields the final incremental fixed-constraint equation (70), where all 
+terms refers to the adjustment epoch, but we can trace its roots back to fixed-constraint epoch 𝑘𝑘, 
+but only if the MCPV is fixed. 
+𝜸𝜸�𝒌𝒌 = 𝐹𝐹�𝑘𝑘𝝃𝝃 (70) 
+ 
+
+##########################################################################
+### PDF page 32 (of 68)   matches: epoch
+##########################################################################
+20 
+ 
+Combining all projected fixed constraints together into a single system of equations allows 𝜸𝜸� to 
+be expressed as 
+𝜸𝜸� =
+⎣
+⎢
+⎢
+⎢
+⎡𝜸𝜸�𝟏𝟏
+𝜸𝜸�𝟐𝟐
+𝜸𝜸�𝟑𝟑
+…
+𝜸𝜸�𝒓𝒓⎦
+⎥
+⎥
+⎥
+⎤
+=
+⎣
+⎢
+⎢
+⎢
+⎡𝐹𝐹�1
+𝐹𝐹�2
+𝐹𝐹�3
+…
+𝐹𝐹�𝑟𝑟 ⎦
+⎥
+⎥
+⎥
+⎤
+𝝃𝝃 = 𝐹𝐹�𝝃𝝃. (71) 
+The situation is more complicated if the MCPV is stochastic. 
+5.2.2 When the model of changes in parameter values is stochastic 
+When the constraints are fixed, but the MCPV is stochastic, different considerations must be 
+made depending on whether the fixed-constraint epoch is the same as the adjustment epoch.  If 
+the fixed-constraint epoch is the same as the adjustment epoch, then the MCPV is not needed to 
+project the fixed constraints in time.  In this case, the stochastic nature of the MCPV is irrelevant, 
+and the constraint equation remains a fixed-constraint equation.  However, if the fixed-constraint 
+epoch falls at any other epoch besides the adjustment epoch, then the random errors in the 
+MCPV mean that the constraint equation must be written as a stochastic-constraint equation. 
+Because these two special cases are mutually exclusive, they will be addressed separately and 
+then combined later. 
+To facilitate the discussion, we will use a subscripted variable 𝑡𝑡 to denote the times of particular 
+epochs.  We therefore introduce the following four variables (where 𝑝𝑝 is the number of 
+observation epochs and 𝑞𝑞 is the number of stochastic-constraint epochs). 
+𝑡𝑡𝑖𝑖 denotes observation epoch 𝑖𝑖; 
+𝑡𝑡𝑝𝑝+𝑗𝑗 denotes stochastic-constraint epoch 𝑗𝑗; 
+𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 denotes fixed-constraint epoch 𝑘𝑘, and 
+𝑡𝑡𝑎𝑎 denotes the adjustment epoch. 
+5.2.2.1 Special case A: The fixed-constraint epoch is not equal to the adjustment epoch  
+When the constraints are fixed, and the MCPV is stochastic and 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 ≠ 𝑡𝑡𝑎𝑎, then the random 
+errors in the MCPV must be accounted for.  Therefore, we require that the original fixed 
+constraints must be expressed in the form of a stochastic-constraint equation, namely 
+𝐆𝐆�𝒌𝒌 = 𝑓𝑓𝑘𝑘(𝚵𝚵) + 𝒆𝒆𝒈𝒈�𝒌𝒌, ∀ 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 ≠ 𝑡𝑡𝑎𝑎. (72) 
+Before proceeding, we point out that projected fixed constraints would be a misnomer in this 
+case, because the original constraints (at the fixed-constraint epochs) are fixed, their projected 
+counterparts, having been projected through time using a stochastic MCPV, have been 
+transformed into projected stochastic constraints.  It is for this reason that we have replaced the 
+symbol 𝚪𝚪�𝒌𝒌 with 𝐆𝐆�𝒌𝒌 in (72).  
+
+##########################################################################
+### PDF page 33 (of 68)   matches: epoch
+##########################################################################
+21 
+ 
+If the MCPV provides changes in parameter values with variance, we use the variable 
+𝚫𝚫𝚫𝚫𝒑𝒑+𝒒𝒒+𝒌𝒌,𝑴𝑴 to represent the values of 𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌 provided by the MCPV.  Thus, we can state that 
+the changes in parameter values from the MCPV are provided as the sum of true values of 
+changes in parameter values plus some random error, i.e. 
+𝚫𝚫𝑿𝑿𝒑𝒑+𝒒𝒒+𝒌𝒌,𝑴𝑴 = 𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌 + 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒌𝒌 , ∀ 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 ≠ 𝑡𝑡𝑎𝑎. (73) 
+ 
+Substituting (73) into (63) yields 
+𝚪𝚪𝒌𝒌 − 𝐹𝐹�𝑘𝑘𝚫𝚫𝑿𝑿𝒑𝒑+𝒒𝒒+𝒌𝒌,𝑴𝑴 = 𝑓𝑓𝑘𝑘(𝚵𝚵) − 𝐹𝐹�𝑘𝑘𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒌𝒌 , ∀ 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 ≠ 𝑡𝑡𝑎𝑎. (74) 
+Note that the use of the Greek (non-random, in our conventions) letter 𝚪𝚪 remains appropriate 
+here since the random errors in 𝚫𝚫𝑿𝑿𝒑𝒑+𝒒𝒒+𝒌𝒌,𝑴𝑴 and 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒌𝒌 are identical and cancel one another.  
+Comparing (74) to (72) leads us to adopt the following two definitions when the MCPV is 
+stochastic and 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 ≠ 𝑡𝑡𝑎𝑎. 
+𝑮𝑮�𝒌𝒌 ∶= 𝚪𝚪𝒌𝒌 − 𝐹𝐹�𝑘𝑘𝚫𝚫𝑿𝑿𝒑𝒑+𝒒𝒒+𝒌𝒌,𝑴𝑴, ∀ 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 ≠ 𝑡𝑡𝑎𝑎, (75) 
+𝒆𝒆𝒈𝒈�𝒌𝒌 ∶= −𝐹𝐹�𝑘𝑘𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒌𝒌 = 𝒆𝒆𝒈𝒈�,𝒎𝒎𝒌𝒌 , ∀ 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 ≠ 𝑡𝑡𝑎𝑎. (76) 
+ 
+The vector 𝑮𝑮�𝒌𝒌 contains projected stochastic constraints (based on original fixed 
+constraints when 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 ≠ 𝑡𝑡𝑎𝑎).  Note that the random-error vector 𝒆𝒆𝒈𝒈� 𝒌𝒌 contains only 
+random errors from the MCPV but none from the fixed constraints. 
+ 
+ 
+5.2.2.1.1 Linearization of the equation for projected stochastic constraints 
+We now linearize (72) using (59), first writing 
+𝐆𝐆�𝒌𝒌 = 𝚪𝚪�𝒌𝒌,𝟎𝟎 + 𝐹𝐹�𝑘𝑘𝝃𝝃 + 𝒆𝒆𝒈𝒈�𝒌𝒌,     ∀ 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 ≠ 𝑡𝑡𝑎𝑎. (77) 
+We introduce 𝒈𝒈�𝒌𝒌, the vector of incremental changes to projected stochastic (initially fixed) 
+constraints at the adjustment epoch, as 
+𝒈𝒈�𝒌𝒌 ∶= 𝐆𝐆�𝒌𝒌 − 𝚪𝚪�𝒌𝒌,𝟎𝟎,    ∀ 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 ≠ 𝑡𝑡𝑎𝑎. (78) 
+ 
+Finally, substituting (78) into (77) yields the equation for the incremental projected stochastic 
+(originally fixed) constraints at the adjustment epoch when 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 ≠ 𝑡𝑡𝑎𝑎, namely 
+𝒈𝒈�𝒌𝒌 = 𝐹𝐹�𝑘𝑘𝝃𝝃 + 𝒆𝒆𝒈𝒈�𝒌𝒌,          ∀ 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 ≠ 𝑡𝑡𝑎𝑎. (79) 
+ 
+Combining all the constraints into a system of equations allows 𝒈𝒈� to be expressed as 
+
+##########################################################################
+### PDF page 34 (of 68)   matches: epoch
+##########################################################################
+22 
+ 
+𝒈𝒈� =
+⎣
+⎢
+⎢
+⎢
+⎡ 𝒈𝒈�𝟏𝟏
+𝒈𝒈�𝟐𝟐
+𝒈𝒈�𝟑𝟑
+…
+𝒈𝒈�𝒓𝒓′⎦
+⎥
+⎥
+⎥
+⎤
+=
+⎣
+⎢
+⎢
+⎢
+⎡𝐹𝐹�1
+𝐹𝐹�2
+𝐹𝐹�3
+…
+𝐹𝐹�𝑟𝑟′⎦
+⎥
+⎥
+⎥
+⎤
+𝝃𝝃 +
+⎣
+⎢
+⎢
+⎢
+⎡
+𝒆𝒆𝒈𝒈� 𝟏𝟏
+𝒆𝒆𝒈𝒈� 𝟐𝟐
+𝒆𝒆𝒈𝒈� 𝟑𝟑
+…
+𝒆𝒆𝒈𝒈� 𝒓𝒓′⎦
+⎥
+⎥
+⎥
+⎤
+= 𝐹𝐹�𝑔𝑔𝝃𝝃 + 𝒆𝒆𝒈𝒈�, (80) 
+ 
+where the term 𝑟𝑟′ is defined as 
+𝑟𝑟′ = �𝑟𝑟 − 1
+𝑟𝑟  if there are any fixed constraints at the adjustment epoch; 
+if there are no fixed constraints at the adjustment epoch. (81) 
+ 
+We also use the symbol 𝐹𝐹�𝑔𝑔, rather than 𝐹𝐹� with its definition obvious from the context.   
+The size of vector 𝒈𝒈� may or may not be ℎ × 1, in contrast to 𝜸𝜸� (from section 5.2.1, when the 
+MCPV is fixed) whose size is, by definition, ℎ × 1.  This is because of the possibility that, with a 
+stochastic MCPV, some fixed constraints may be imposed at the adjustment epoch.  We 
+therefore introduce some additional notation to handle that case.  First, as mentioned, we have 
+introduced 𝑟𝑟′ to cover both cases of fixed constraints at, or not at, the adjustment epoch.  Second, 
+we define the size of 𝒈𝒈� as ℎ𝑔𝑔 × 1.  Last, the matrix 𝐹𝐹�𝑔𝑔 has the subscript 𝑔𝑔 to distinguish it from 
+matrix 𝐹𝐹� and indicate its relation to 𝒈𝒈�.  The size of 𝐹𝐹�𝑔𝑔 is ℎ𝑔𝑔 × 𝑢𝑢. 
+This section dealt with the case where the fixed-constraint epoch 𝑘𝑘 is not the same as the 
+adjustment epoch: 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 ≠ 𝑡𝑡𝑎𝑎.  The special case where the fixed-constraint epoch is the same as 
+the adjustment epoch is addressed next. 
+5.2.2.2 Special case B: The fixed-constraint epoch is equal to the adjustment epoch  
+With the constraints fixed and 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 = 𝑡𝑡𝑎𝑎, the MCPV plays no role.  Thus, the “projected”11 
+constraint equations take the form of a fixed-constraint equation, namely 
+𝚪𝚪�𝒂𝒂 = 𝑓𝑓𝑘𝑘(𝚵𝚵),       iff    𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 = 𝑡𝑡𝑎𝑎. (82) 
+Here we have purposefully chosen to replace the symbol 𝚪𝚪�𝒌𝒌 with 𝚪𝚪�𝒂𝒂 for the following reasons: 
+1) In adherence to our conventions, we use a Greek variable for this non-random vector. 
+2) We cannot use 𝚪𝚪�𝒌𝒌, originally appearing in (64), because that variable represented all 
+epochs, and (82) only covers the adjustment epoch. 
+3) Though the constraints are originally imposed at the adjustment epoch we retain the 
+overbar because we retained it in both equations for projected observations (8) and 
+equations for projected stochastic constraints (34) without differentiating whether they 
+originally fell at the adjustment epoch. 
+ 
+11 Although these fixed constraints have not been projected through time, we nonetheless call them projected 
+fixed constraints to maintain consistency with other projected quantities. 
+
+##########################################################################
+### PDF page 35 (of 68)   matches: epoch
+##########################################################################
+23 
+ 
+4) We cannot simply drop the subscript.  This is because the lack of a subscript in this 
+report, on all vectors but 𝚵𝚵, has meant “a collection of multiple sub-vectors” such as 𝒀𝒀 =
+�𝒀𝒀𝟏𝟏
+𝑻𝑻, 𝒀𝒀𝟐𝟐
+𝑻𝑻, … , 𝒀𝒀𝒑𝒑
+𝑻𝑻�
+𝑇𝑇
+ as seen in (4).  Just using 𝚪𝚪� without a subscript would break this rule. 
+5) Although in general we have not used the subscript “𝑎𝑎” to mean the adjustment epoch 
+(except in 𝑡𝑡𝑎𝑎), it is helpful here and seems the most logical choice. 
+Recall that the MCPV provides changes to parameter values in time.  However, with 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 =
+𝑡𝑡𝑎𝑎, there is no change in time between the fixed-constraint epoch and the adjustment epoch. As 
+such, the MCPV, including its stochastic nature, is irrelevant and therefore can be ignored.  This 
+case is reflected mathematically by 
+𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌 = 𝟎𝟎,  iff    𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 = 𝑡𝑡𝑎𝑎. (83) 
+ 
+Note the lack of subscript 𝑀𝑀.  It is omitted because these are not values from the MCPV but are 
+the true values of changes in parameter values themselves.  This is the only time we can 
+definitively say what the true changes to the parameter values are.   
+Substituting (83) into (63) yields 
+𝚪𝚪𝒌𝒌 = 𝑓𝑓𝑘𝑘(𝚵𝚵),  iff    𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 = 𝑡𝑡𝑎𝑎. (84) 
+Comparing (84) to (82), we adopt the following definition when the MCPV is stochastic and 
+𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 = 𝑡𝑡𝑎𝑎: 
+𝚪𝚪�𝒂𝒂 ∶= 𝚪𝚪𝒌𝒌,  iff    𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 = 𝑡𝑡𝑎𝑎. (85) 
+5.2.2.2.1 Linearization of the equation for projected fixed constraints 
+We now linearize (82) using (59), first writing 
+𝚪𝚪�𝒂𝒂 = 𝚪𝚪�𝒌𝒌,𝟎𝟎 + 𝐹𝐹�𝑘𝑘𝝃𝝃,  iff    𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 = 𝑡𝑡𝑎𝑎. (86) 
+We introduce 𝜸𝜸�𝒂𝒂, (following the same logic that led us to choose the symbol 𝚪𝚪�𝒂𝒂) the vector of 
+incremental changes to projected, fixed constraints as 
+𝜸𝜸�𝒂𝒂 ∶= 𝚪𝚪�𝒂𝒂 − 𝚪𝚪�𝒌𝒌,𝟎𝟎,  iff    𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 = 𝑡𝑡𝑎𝑎. (87) 
+ 
+Finally, substituting (87) into (86) yields the equation for the incremental projected fixed 
+constraints at the adjustment epoch when 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 = 𝑡𝑡𝑎𝑎, namely 
+𝜸𝜸�𝒂𝒂 = 𝐹𝐹�𝛾𝛾𝝃𝝃,  iff    𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 = 𝑡𝑡𝑎𝑎. (88) 
+ 
+We also use the symbol 𝐹𝐹�𝛾𝛾 rather than 𝐹𝐹� with the definition obvious from the context.   
+
+##########################################################################
+### PDF page 36 (of 68)   matches: epoch
+##########################################################################
+24 
+ 
+In contrast to (71) and (80), there is no need to combine these constraints into a single system of 
+equations, as this special case (fixed constraints, MCPV is stochastic and 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 = 𝑡𝑡𝑎𝑎) only 
+happens at the adjustment epoch. 
+The size of vector 𝜸𝜸�𝒂𝒂 may or may not be ℎ × 1, in contrast to 𝜸𝜸� (from section 5.2.1, when the 
+MCPV is fixed) whose size is, by definition, ℎ × 1.  This is because of the possibility that, with a 
+stochastic MCPV, some fixed constraints may not be imposed at the adjustment epoch.  We 
+therefore introduce some notation.  First, we define the size of 𝜸𝜸�𝒂𝒂 as ℎ𝛾𝛾 × 1.  Second, matrix 𝐹𝐹�𝛾𝛾 
+has a 𝛾𝛾 subscript to distinguish it from 𝐹𝐹� and indicate its relation to 𝜸𝜸�𝒂𝒂.  The size of 𝐹𝐹�𝛾𝛾 is ℎ𝛾𝛾 × 𝑢𝑢. 
+It is now worth considering how the system looks for the mixed situation when the MCPV is 
+stochastic and there are fixed constraints at both 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 = 𝑡𝑡𝑎𝑎 and 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 ≠ 𝑡𝑡𝑎𝑎. 
+5.2.3 Putting the special cases together 
+With a stochastic MCPV and fixed constraints, we consider now the following three cases, and 
+the sizes of vectors and matrices associated with them: 
+1) All fixed constraints are at the adjustment epoch (i.e., 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 = 𝑡𝑡𝑎𝑎 only). 
+2) No fixed constraints are at the adjustment epoch (i.e., 𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 ≠ 𝑡𝑡𝑎𝑎 only). 
+3) Some fixed constraints are at the adjustment epoch and some are not. 
+Figure 1 best summarizes the three cases and provides a direct comparison to the case when the 
+MCPV is fixed. 
+
+##########################################################################
+### PDF page 37 (of 68)   matches: epoch
+##########################################################################
+25 
+ 
+ 
+Figure 2:  Clarification of notation and vector sizes for three cases of fixed constraint epochs 
+compared against two cases of the MCPV being fixed or stochastic 
+
+
+##########################################################################
+### PDF page 39 (of 68)   matches: epoch
+##########################################################################
+27 
+ 
+this report relies upon the choices12 made in Appendix A.  We close by summarizing some of the 
+key ones, which will assist in development of formulae in the next section.   
+We have chosen to ignore the following covariances between quantities, regardless of whether 
+they are known or not: 
+• Observations and stochastic constraints 
+• Observations and the MCPV 
+• Stochastic constraints and the MCPV 
+• Values from the MCPV at different epochs 
+7 The combined data models 
+The previous sections have introduced three types of information relating to estimable 
+parameters:  observations, stochastic constraints and fixed constraints.  Additionally, three 
+sources of random error were introduced:  observations, stochastic constraints and the model of 
+changes in parameter values, MCPV (if it is stochastic).  We can combine sources of information 
+and random error into a data model, of which we will consider two types:  The Gauss-Markov 
+model (GMM), incorporating a single variance component and the variance component model 
+(VCM) where multiple variance components are allowed.   We will address each type of model 
+as it pertains to the MCPV being fixed or stochastic. 
+7.1 When the model of changes in parameter values is fixed 
+Equations 28, 52 and 71 are combined into one model as follows, recalling that n is the number 
+of observations, u is the number of parameters to be estimated, l is the number of stochastic 
+constraints, and h is the number of fixed constraints. 
+    𝒚𝒚� = 𝐴𝐴̅𝝃𝝃 + 𝒆𝒆𝒚𝒚�  
+   (𝒏𝒏 × 𝒖𝒖)     
+    𝒘𝒘� = 𝑆𝑆̅ 𝝃𝝃 + 𝒆𝒆𝒘𝒘�  (94) 
+(𝒍𝒍 × 𝒖𝒖)  
+    𝜸𝜸� = 𝐹𝐹�𝝃𝝃    
+ 
+        (𝒉𝒉 × 𝒖𝒖)  
+ 
+Using (20) and (44) and the choices and definitions found in Appendix A, the distribution of the 
+random errors for the projected observations (𝒚𝒚�) and projected stochastic constraints (𝒘𝒘�) is given 
+by 
+�𝒆𝒆𝒚𝒚�
+𝒆𝒆𝒘𝒘�
+� ~ ��𝟎𝟎
+𝟎𝟎� , �Σ𝑦𝑦 0
+0 Σ𝑤𝑤
+��. (95) 
+ 
+12 We say “choices” and not “approximations” for a reason:  Appendix A shows that the availability of certain 
+standard deviations (e.g., of linear velocities) within a GVCM will always lead to the availability of certain 
+covariances (e.g., across epochs) in the MCPV.  However, for the purposes of computational efficiency NGS will 
+ignore those covariances (i.e., set them to zero).  This is a choice to set them to zero, and not an assumption that 
+they are zero.  While numerically amounting to the same thing, we felt that grammatical correctness was 
+necessary. 
+
+##########################################################################
+### PDF page 43 (of 68)   matches: epoch
+##########################################################################
+31 
+ 
+𝑄𝑄𝑦𝑦�,𝑚𝑚 is an 𝑛𝑛 × 𝑛𝑛 cofactor matrix for that part of projected observations due to the 
+MCPV; 
+𝑄𝑄𝑤𝑤� ,𝑚𝑚 is an 𝑙𝑙 × 𝑙𝑙 cofactor matrix for that part of projected stochastic constraints due to 
+the MCPV; 
+𝑄𝑄𝑔𝑔�,𝑚𝑚 is an ℎ𝑔𝑔 × ℎ𝑔𝑔 cofactor matrix for that part of projected stochastic constraints 
+(related to fixed constraints not at the adjustment epoch) due to the MCPV; 
+𝑃𝑃𝑔𝑔�,𝑚𝑚 is an ℎ𝑔𝑔 × ℎ𝑔𝑔 weight matrix for that part of projected stochastic constraints 
+(related to fixed constraints not at the adjustment epoch) due to the MCPV. 
+The remaining equations in this section will not contain inverses of Σ𝑦𝑦�,𝑚𝑚 or Σ𝑤𝑤� ,𝑚𝑚, so that the 
+possibility of their being singular will not present any difficulties.   
+With the above definitions, (103) is elaborated as 
+�
+𝒆𝒆𝒚𝒚�
+𝒆𝒆𝒘𝒘�
+𝒆𝒆𝒈𝒈�
+� ~ ��
+𝟎𝟎
+𝟎𝟎
+𝟎𝟎
+� , 𝜎𝜎0
+2 �
+𝑃𝑃𝑦𝑦�
+−1 0 0
+0 𝑃𝑃𝑤𝑤�
+−1 0
+0 0 𝑃𝑃𝑔𝑔�
+−1
+� = 𝜎𝜎0
+2 �
+𝑄𝑄𝑦𝑦� 0 0
+0 𝑄𝑄𝑤𝑤� 0
+0 0 𝑄𝑄𝑔𝑔�
+�
+= 𝜎𝜎0
+2 �
+𝑄𝑄𝑦𝑦 + 𝑄𝑄𝑦𝑦�,𝑚𝑚 0 0
+0 𝑄𝑄𝑤𝑤 + 𝑄𝑄𝑤𝑤� ,𝑚𝑚 0
+0 0 𝑄𝑄𝑔𝑔�,𝑚𝑚
+�
+= 𝜎𝜎0
+2 �
+𝑃𝑃𝑦𝑦
+−1 + 𝑄𝑄𝑦𝑦�,𝑚𝑚 0 0
+0 𝑃𝑃𝑤𝑤
+−1 + 𝑄𝑄𝑤𝑤� ,𝑚𝑚 0
+0 0 𝑃𝑃𝑔𝑔�,𝑚𝑚
+−1
+��. 
+(110) 
+  
+The combination of (102) with (110) is again a Gauss-Markov model (GMM) with Fixed and 
+Stochastic Constraints (Snow and Smith, 2023), although in this case, the stochastic constraints 
+are comprised of the combination of the vectors 𝒘𝒘� and 𝒈𝒈�.  
+7.2.2 The Variance Component Model 
+As before, let us assume there are 𝑐𝑐𝑦𝑦 types of observations and 𝑐𝑐𝑤𝑤 types of stochastic constraints 
+but now also 𝑐𝑐𝑚𝑚 types of changes from the MCPV, each with its own unique variance 
+components (𝜎𝜎𝑦𝑦
+2
+𝑣𝑣 , 𝑣𝑣 ∈ �1,2, … , 𝑐𝑐𝑦𝑦� and 𝜎𝜎𝑤𝑤
+2
+𝑣𝑣 , 𝑣𝑣 ∈ {1,2, … , 𝑐𝑐𝑤𝑤}  and 𝜎𝜎𝑚𝑚
+2
+𝑣𝑣 , 𝑣𝑣 ∈ {1,2, … , 𝑐𝑐𝑚𝑚} 
+respectively).  To our previous choices we add the choice of ignoring the covariances between 
+the types of changes coming from the MCPV (per Appendix A). 
+In this case we write  
+Σ𝑦𝑦� = � 𝜎𝜎𝑦𝑦
+2
+𝑣𝑣𝑄𝑄𝑦𝑦𝑣𝑣
+𝑐𝑐𝑦𝑦
+𝑣𝑣=1
++ � 𝜎𝜎𝑚𝑚
+2
+𝑣𝑣𝑄𝑄𝑦𝑦�,𝑚𝑚𝑣𝑣
+𝑐𝑐𝑚𝑚
+𝑣𝑣=1
+, (111) 
+
+##########################################################################
+### PDF page 47 (of 68)   matches: epoch
+##########################################################################
+35 
+ 
+Without proof, we offer this insight:  it appears that one necessary condition to estimate variance 
+components within the VCM is for no two variance components to scale exactly the same matrix 
+elements in the dispersion matrix.  This situation can be seen in (116a) through (116c).  
+However, the fact that both 𝜎𝜎𝑚𝑚1
+2  and 𝜎𝜎𝑚𝑚2
+2  scale all of the same blocks in matrix Σ𝑦𝑦�,𝑚𝑚 means they 
+will scale all of the same blocks in matrix Σ𝑦𝑦�.   
+Some cursory experiments show that this generally leads to a failure of the standard solution for 
+the VCM (Snow, 2021) through various matrix singularities.  In some cases, two variance 
+components could scale some common dispersion matrix elements, but if they only scaled the 
+exact same blocks, then singularities occurred.  It was as though the estimation process could not 
+differentiate between the two variance components unless they had at least some elements of the 
+dispersion matrix not in common, implying that the problem was over-parameterized. 
+Because of this non-standard parameterization of the VCM, it cannot be assumed that a solution 
+exists for the unknown variance components if the MCPV is stochastic.  See further comments in 
+section 8.   
+We close the section with a few words about the various cofactor matrices in (114).  The 
+matrices 𝑄𝑄𝑦𝑦𝑣𝑣 and 𝑄𝑄𝑤𝑤𝑣𝑣 will be formed as shown in section 7.1.2, yielding singular cofactor 
+matrices that have a single block on the diagonal, as shown in Figure 3.  But the matrices 𝑄𝑄𝑦𝑦�,𝑚𝑚𝑣𝑣, 
+𝑄𝑄𝑤𝑤� ,𝑚𝑚𝑣𝑣 and 𝑄𝑄𝑔𝑔�,𝑚𝑚𝑣𝑣 cannot be formed in this way, since the random errors in the MCPV affect all 
+observations and stochastic constraints, yielding much fuller cofactor matrices, as shown in 
+Figure 4. 
+8 Solving the multi-epoch least-squares adjustment problem 
+So far, we have only described how to model the ME-LSA using the projection method.  We 
+have not provided a solution to the ME-LSA problem.   
+Least-squares solutions to the ME-LSA problem exist within the following three models: 
+• The Gauss-Markov Model (GMM) with a fixed MCPV 
+• The Gauss-Markov Model (GMM) with a stochastic MCPV 
+• The Variance Component Model (VCM) with a fixed MCPV 
+Within the GMM, with or without a stochastic MCPV, least-squares solutions for the unknown 
+model parameters are found in Snow (2021), chapters 3 (GMM without constraints), 5 (GMM 
+with fixed constraints) and 6 (GMM with stochastic constraints).  For the GMM with both fixed 
+and stochastic constraints, a solution is found in Snow and Smith (2023). 
+For the VCM, with or without constraints but only with a fixed MCPV, the solution is provided 
+in Snow (2021), chapter 16.   
+Within the VCM with a stochastic MCPV, the existence of a solution is not guaranteed, as 
+mentioned in section 7.2.2.  Some initial experiments point to some numerical stability issues in 
+this case, necessitating further investigation.  However, considering the cause of the potential 
+
+##########################################################################
+### PDF page 48 (of 68)   matches: epoch
+##########################################################################
+36 
+ 
+problem within the VCM with a stochastic MCPV (as identified in section 7.2.2) we suggest that 
+a third model (different from the GMM or VCM) should be investigated in the future – such a 
+model would allow for one or more variance components on, say, observations and stochastic 
+constraints, but none on the MCPV.  That is, every detail of the VCM with a stochastic MCPV 
+would remain the same, except the dispersion matrices associated with the MCPV would be 
+replaced with the following (compare to equations 107-109): 
+Σ𝑦𝑦�,𝑚𝑚 = 𝑄𝑄𝑦𝑦�,𝑚𝑚, (118) 
+Σ𝑤𝑤� ,𝑚𝑚 = 𝑄𝑄𝑤𝑤� ,𝑚𝑚, (119) 
+Σ𝑔𝑔�,𝑚𝑚 = 𝑃𝑃𝑔𝑔�,𝑚𝑚
+−1 = 𝑄𝑄𝑔𝑔�,𝑚𝑚. (120) 
+ 
+Assuming a solution to the ME-LSA problem exists, the steps one might take to set up and solve 
+the problem, using the projection method follow, split into the cases when the MCPV is fixed 
+versus stochastic. 
+8.1 An algorithm for solving the multi-epoch least-squares adjustment problem with a 
+fixed model of changes in parameter values using the projection method 
+ 
+Table 2:  An algorithm for solving the ME-LSA problem with a fixed MCPV using the projection 
+method 
+Step # Description Relevant 
+equation(s) 
+0 
+Given: 
+a. Times for all epochs 𝑖𝑖, 𝑗𝑗 and 𝑘𝑘. 
+b. Code needed to evaluate 𝑎𝑎𝑖𝑖(. ), 𝑠𝑠𝑗𝑗(. ) and 𝑓𝑓𝑘𝑘(. ) as well as their 
+derivatives (for matrices 𝐴𝐴̅𝑖𝑖, 𝑆𝑆̅𝑗𝑗 and 𝐹𝐹�𝑘𝑘). 
+ 
+1 
+Numerically form the quantities: 
+a. Observations 𝒀𝒀𝒊𝒊 ∀ 𝑖𝑖 ∈ {1, … , 𝑝𝑝}  
+b. Stochastic constraints 𝑾𝑾𝒋𝒋 ∀ 𝑗𝑗 ∈ {1, … , 𝑞𝑞} 
+c. Fixed constraints 𝚪𝚪𝒌𝒌 ∀ 𝑘𝑘 ∈ {1, … , 𝑟𝑟} 
+d. Cofactor matrices 𝑄𝑄𝑦𝑦 for all observations14 
+e. Cofactor matrices 𝑄𝑄𝑤𝑤 for all stochastic constraints15.   
+ 
+1a 
+Form weight matrices from cofactor matrices: 
+a. Weight matrices 𝑃𝑃𝑦𝑦 for all observations16 
+b. Weight matrices 𝑃𝑃𝑤𝑤 for all stochastic constraints17 
+96, 97 
+2 
+Choose the parameters you wish to estimate 𝚵𝚵, the adjustment epoch 
+𝑡𝑡𝑎𝑎, and which data model (Gauss-Markov Model or Variance 
+Component Model) 
+ 
+ 
+14 If using the Variance Component Model, there could be multiple matrices. 
+15 See footnote 14. 
+16 See footnote 14. 
+17 See footnote 14. 
+
+##########################################################################
+### PDF page 49 (of 68)   matches: epoch
+##########################################################################
+37 
+ 
+3 Determine which functions go with which epochs:  𝑎𝑎𝑖𝑖(. ), 𝑠𝑠𝑗𝑗(. ) and 
+𝑓𝑓𝑘𝑘(. ). 
+ 
+4 Evaluate the MCPV to form 𝚫𝚫𝚵𝚵𝒊𝒊 ∀ 𝑖𝑖 ∈ {1, … , 𝑝𝑝}, 𝚫𝚫𝚵𝚵𝒑𝒑+𝒋𝒋 ∀ 𝑗𝑗 ∈
+{1, … , 𝑞𝑞} and 𝚫𝚫𝚵𝚵𝒑𝒑+𝒒𝒒+𝒌𝒌 ∀ 𝑘𝑘 ∈ {1, … , 𝑟𝑟}.   
+ 
+5 Specify initial approximations of the parameters 𝚵𝚵𝟎𝟎  
+6 Using 𝚵𝚵𝟎𝟎 compute or update the 𝐴𝐴̅, 𝑆𝑆̅ and 𝐹𝐹� matrices18 10, 37, 60 
+7 
+Compute or update projected quantities (at adjustment epoch): 
+a. Observations 𝒀𝒀�𝒊𝒊 ∀ 𝑖𝑖 ∈ {1, … , 𝑝𝑝}  
+b. Stochastic constraints 𝑾𝑾���𝒋𝒋 ∀ 𝑗𝑗 ∈ {1, … , 𝑞𝑞} 
+c. Fixed constraints 𝚪𝚪�𝒌𝒌 ∀ 𝑘𝑘 ∈ {1, … , 𝑟𝑟} 
+19, 43, 67 
+8 
+Compute or update initial approximations of projected quantities: 
+a. Observations 𝚿𝚿�𝒊𝒊,𝟎𝟎∀ 𝑖𝑖 ∈ {1, … , 𝑝𝑝} 
+b. Stochastic constraints 𝛀𝛀�𝒋𝒋,𝟎𝟎∀ 𝑗𝑗 ∈ {1, … , 𝑞𝑞} 
+c. Fixed constraints 𝚪𝚪�𝒌𝒌,𝟎𝟎∀ 𝑘𝑘 ∈ {1, … , 𝑟𝑟} 
+11, 38, 61 
+ 
+9 
+Compute or update incremental projected quantities: 
+a. Observations 𝒚𝒚�𝒊𝒊∀ 𝑖𝑖 ∈ {1, … , 𝑝𝑝} 
+b. Stochastic constraints 𝒘𝒘� 𝒋𝒋 ∀ 𝑗𝑗 ∈ {1, … , 𝑞𝑞} 
+c. Fixed constraints 𝜸𝜸�𝒌𝒌 ∀ 𝑘𝑘 ∈ {1, … , 𝑟𝑟} 
+26, 50, 69 
+10 
+Solve the LSA problem (see section 8), estimating the unknown 
+incremental parameters, 𝝃𝝃 as 𝝃𝝃�.   
+ 
+Example of the GMM solution without any constraints would be 
+𝝃𝝃� = �𝐴𝐴̅𝑇𝑇𝑃𝑃𝑦𝑦𝐴𝐴̅�
+−1
+𝐴𝐴̅𝑇𝑇𝑃𝑃𝑦𝑦𝒚𝒚� , etc. 
+See section 8 
+for references. 
+11 
+Check to see if �𝝃𝝃�� is small enough to stop iterating.  
+a. If no, replace 𝚵𝚵𝟎𝟎 with 𝚵𝚵𝟎𝟎 + 𝝃𝝃� and return to step 6. 
+b. If yes, go to step 12.   
+ 
+12 
+Compute other matrices, vectors or scalars of interest, such as the 
+estimated variance component (if GMM; if using the VCM the 
+multiple variance components are estimated as part of step 10), the 
+final estimated parameters, estimated dispersion matrices, etc. 
+a. The final estimated parameters are found using the sum of 
+the last approximation 𝚵𝚵𝟎𝟎 and the last estimate 𝝃𝝃�, i.e. 𝚵𝚵� =
+𝚵𝚵𝟎𝟎 +  𝝃𝝃�. 
+ 
+ 
+ 
+18 The need to update the 𝐴𝐴̅, 𝑆𝑆̅ and 𝐹𝐹� matrices at each iteration will be unnecessary in some geodetic applications, 
+namely when the observations and constraints have a linear relationship (𝑎𝑎𝑖𝑖, 𝑠𝑠𝑗𝑗 or 𝑓𝑓𝑘𝑘 respectively) to the parameters.  
+In those cases, the derivatives of the 𝑎𝑎𝑖𝑖, 𝑠𝑠𝑗𝑗 or 𝑓𝑓𝑘𝑘 functions, relative to the parameters will have no dependence upon 
+𝚵𝚵𝟎𝟎.  As such, as each iteration occurs, and 𝚵𝚵𝟎𝟎 is updated, there is no need to update the 𝐴𝐴̅, 𝑆𝑆̅ and 𝐹𝐹� matrices, at least 
+in the GMM.  All other “compute or update” steps should be read as “only update if necessary”.  For instance, step 8 
+relies on evaluating 𝑎𝑎𝑖𝑖(𝚵𝚵𝟎𝟎), 𝑠𝑠𝑗𝑗(𝚵𝚵𝟎𝟎) and 𝑓𝑓𝑘𝑘(𝚵𝚵𝟎𝟎), and since 𝚵𝚵𝟎𝟎 does change every iteration, the values in step 8 should 
+be updated every iteration. 
+
+##########################################################################
+### PDF page 50 (of 68)   matches: epoch
+##########################################################################
+38 
+ 
+8.2 An algorithm for solving the multi-epoch least-squares adjustment problem with a 
+stochastic model of changes in parameter values using the projection method  
+ 
+Aside from equation number differences, all other changes to these steps, from section 9.1 are 
+highlighted in gray. 
+Table 3:  An algorithm for solving the ME-LSA problem with a stochastic MCPV using the 
+projection method 
+Step # Description Relevant 
+equation(s) 
+0 
+Given: 
+a. Times for all epochs 𝑖𝑖, 𝑗𝑗 and 𝑘𝑘. 
+b. Code needed to evaluate 𝑎𝑎𝑖𝑖(. ), 𝑠𝑠𝑗𝑗(. ) and 𝑓𝑓𝑘𝑘(. ) as well as their 
+derivatives (for matrices 𝐴𝐴̅𝑖𝑖, 𝑆𝑆̅𝑗𝑗 and 𝐹𝐹�𝑘𝑘). 
+ 
+1 
+Numerically form the quantities: 
+a. Observations 𝒀𝒀𝒊𝒊 ∀ 𝑖𝑖 ∈ {1, … , 𝑝𝑝} 
+b. Stochastic constraints 𝑾𝑾𝒋𝒋 ∀ 𝑗𝑗 ∈ {1, … , 𝑞𝑞} 
+c. Fixed constraints 𝚪𝚪𝒌𝒌 ∀ 𝑘𝑘 ∈ {1, … , 𝑟𝑟} 
+d. Cofactor matrix 𝑄𝑄𝑦𝑦 for all observations19 
+e. Cofactor matrix 𝑄𝑄𝑤𝑤 for all stochastic constraints20   
+f. Cofactor matrices 𝑄𝑄𝑀𝑀𝑖𝑖, 𝑄𝑄𝑀𝑀𝑝𝑝+𝑗𝑗 and 𝑄𝑄𝑀𝑀𝑝𝑝+𝑞𝑞+𝑘𝑘of the MCPV for 
+every epoch21,22. 
+ 
+1a 
+Form weight matrices 𝑄𝑄𝑦𝑦 and 𝑄𝑄𝑤𝑤 from cofactor matrices: 
+a. Weight matrix 𝑃𝑃𝑦𝑦 for all observations23 
+b. Weight matrix 𝑃𝑃𝑤𝑤 for all stochastic constraints24. 
+96, 97 
+2 
+Choose the parameters you wish to estimate 𝚵𝚵, the adjustment epoch 
+𝑡𝑡𝑎𝑎, and which data model (Gauss-Markov Model or Variance 
+Component Model). 
+ 
+3 Determine which functions go with which epochs:  𝑎𝑎𝑖𝑖(. ), 𝑠𝑠𝑗𝑗(. ) and 
+𝑓𝑓𝑘𝑘(. ). 
+ 
+4 Evaluate the MCPV to form 𝚫𝚫𝑿𝑿𝒊𝒊 ∀ 𝑖𝑖 ∈ {1, … , 𝑝𝑝}, 𝚫𝚫𝑿𝑿𝒑𝒑+𝒋𝒋 ∀ 𝑗𝑗 ∈
+{1, … , 𝑞𝑞} and 𝚫𝚫𝑿𝑿𝒑𝒑+𝒒𝒒+𝒌𝒌 ∀ 𝑘𝑘 ∈ {1, … , 𝑟𝑟}.   
+ 
+5 Specify initial approximations of the parameters 𝚵𝚵𝟎𝟎.  
+6 Using 𝚵𝚵𝟎𝟎 compute or update the 𝐴𝐴̅, 𝑆𝑆̅, 𝐹𝐹�𝑔𝑔 and 𝐹𝐹�𝛾𝛾 matrices25 10, 37, 60 
+ 
+19 See footnote 14. 
+20 See footnote 14. 
+21 See footnote 14. 
+22 These full matrices are not actually needed in RAM, but the ability to access a very small number of relevant 
+values per matrix is needed.  See Appendix A. 
+23 See footnote 14 
+24 See footnote 14. 
+25 See footnote 18. 
+
+##########################################################################
+### PDF page 51 (of 68)   matches: epoch
+##########################################################################
+39 
+ 
+6a 
+Using the 𝐴𝐴̅, 𝑆𝑆̅ and 𝐹𝐹�𝑔𝑔 matrices, form cofactor matrices 𝑄𝑄𝑀𝑀𝑖𝑖, 𝑄𝑄𝑀𝑀𝑝𝑝+𝑗𝑗 
+or 𝑄𝑄𝑀𝑀𝑝𝑝+𝑞𝑞+𝑘𝑘 of the contribution of the MCPV to projected values, 
+from the cofactor matrices of the MCPV itself26: 
+a. Cofactor matrix 𝑄𝑄𝑦𝑦�,𝑚𝑚 for MCPV contribution to projected 
+observations27 
+b. Cofactor matrix 𝑄𝑄𝑤𝑤� ,𝑚𝑚 for MCPV contribution to projected 
+stochastic constraints28 
+c. Cofactor matrix 𝑄𝑄𝑔𝑔�,𝑚𝑚 for MCPV contribution to projected 
+stochastic constraints, based on fixed constraints not at the 
+adjustment epoch29. 
+A25, A36, 
+A44 
+7 
+Compute or update projected quantities: 
+a. Observations 𝒀𝒀�𝒊𝒊 ∀ 𝑖𝑖 ∈ {1, … , 𝑝𝑝} 
+b. Stochastic constraints 𝑾𝑾���𝒋𝒋 ∀ 𝑗𝑗 ∈ {1, … , 𝑞𝑞} 
+c. Stochastic constraints 𝑮𝑮�𝒌𝒌 ∀ 𝑘𝑘 ∈ {1, …, 𝑟𝑟’ } 
+d. Fixed constraints 𝚪𝚪�𝒂𝒂 
+23, 47, 75, 
+8530 
+8 
+Compute or update initial approximations of projected quantities: 
+a. Observations 𝚿𝚿�𝒊𝒊,𝟎𝟎∀ 𝑖𝑖 ∈ {1, … , 𝑝𝑝} 
+b. Stochastic constraints 𝛀𝛀�𝒋𝒋,𝟎𝟎∀ 𝑗𝑗 ∈ {1, … , 𝑞𝑞} 
+c. Stochastic constraints 𝚪𝚪�𝒌𝒌,𝟎𝟎 ∀ 𝑘𝑘 ∈ {1, …, 𝑟𝑟’ } 
+d. Fixed constraints 𝚪𝚪�𝒌𝒌,𝟎𝟎 iff    𝑡𝑡𝑝𝑝+𝑞𝑞+𝑘𝑘 = 𝑡𝑡𝑎𝑎 
+11, 38, 61 
+ 
+9 
+Compute or update incremental projected quantities: 
+a. Observations 𝒚𝒚�𝒊𝒊 ∀ 𝑖𝑖 ∈ {1, … , 𝑝𝑝} 
+b. Stochastic constraints 𝒘𝒘� 𝒋𝒋 ∀ 𝑗𝑗 ∈ {1, … , 𝑞𝑞} 
+c. Stochastic constraints 𝒈𝒈�𝒌𝒌 ∀ 𝑘𝑘 ∈ {1, …, 𝑟𝑟’ } 
+d. Fixed constraints 𝜸𝜸�𝒂𝒂  
+26, 50, 78, 
+8731 
+10 
+Solve the LSA problem (see section 8), estimating the unknown 
+parameters 𝝃𝝃 as 𝝃𝝃�.   
+ 
+Example of the GMM solution without any constraints would be 
+𝝃𝝃� = �𝐴𝐴̅𝑇𝑇𝑃𝑃𝑦𝑦� 𝐴𝐴̅�
+−1
+𝐴𝐴̅𝑇𝑇𝑃𝑃𝑦𝑦� 𝒚𝒚� , etc. 
+See section 8 
+for references. 
+11 
+Check to see if �𝝃𝝃�� is small enough to stop iterating.  
+a. If no, replace 𝚵𝚵𝟎𝟎 with 𝚵𝚵𝟎𝟎 + 𝝃𝝃� and return to step 6 
+b. If yes, go to step 12.   
+ 
+ 
+26 See footnote 14. 
+27 See footnote 14. 
+28 See footnote 14. 
+29 See footnote 14 
+30 Numerically identical to (19), (43) and (67). 
+31 Numerically identical to (26), (50) and (69). 
+
+##########################################################################
+### PDF page 52 (of 68)   matches: epoch
+##########################################################################
+40 
+ 
+12 
+Compute other matrices, vectors or scalars of interest, such as the 
+estimated variance component (if GMM), the final estimated 
+parameters, estimated dispersion matrices, etc. 
+a. The final estimated parameters are found using the sum of the 
+last approximation 𝚵𝚵𝟎𝟎 and the last estimate 𝝃𝝃�:  𝚵𝚵� = 𝚵𝚵𝟎𝟎 +  𝝃𝝃�. 
+ 
+ 
+9 Future Work 
+This report is Volume I of a 3-part report dealing with the multi-epoch least-squares adjustment 
+(ME-LSA) problem, which consists of estimating parameters at one epoch from observations, 
+stochastic constraints and fixed constraints at other epochs.  It outlined the mathematical model 
+and procedures necessary to estimate those parameters using a technique which we have called 
+the “projection method”.  That method involves transforming the original observations and 
+constraints from their various epochs into projected observations and constraints, where the 
+projected values refer to the adjustment epoch. 
+There is another method of modeling the ME-LSA problem, which we call the “direct method”.  
+That approach has a great number of similarities to, but subtle differences from, the approach in 
+this report. The key difference is that there are no projected values.  A relationship is developed 
+directly between observations and constraints at their various epochs and the parameters at the 
+adjustment epoch.  That method is discussed in Volume II.  Despite their different approaches to 
+modeling the ME-LSA problem, it can be shown that the two methods are actually 
+mathematically identical.  A proof of that equivalence will be in Volume III of this report.  A 
+graphical representation of the two approaches, including the basic notational differences, is 
+shown in Figure 4. 
+
+##########################################################################
+### PDF page 53 (of 68)   matches: epoch
+##########################################################################
+41 
+ 
+ 
+Figure 5:  Graphical representation of the difference between the "projection method" and 
+"direct method" of solving the multi-epoch least-squares adjustment problem. 
+Finally, several interesting details, derivations and direct applications to NGS products and 
+services can be associated with the ME-LSA problem.  They will be organized and published in 
+Volume III to complete the report. 
+ 
+10 Bibliography 
+ 
+Snow, K., 2021. Adjustment Computations: OSU Class Notes [Based on former courses taught 
+by Burkhard Schaffrin at The Ohio State University]. 
+https://earthsciences.osu.edu/research/geodetic-science/resources 
+ 
+Snow, K., and D.A. Smith, 2023.  The Gauss-Markov Model with both Fixed and Stochastic 
+Constraints, in preparation. 
+ 
+ 
+  
+
+
+##########################################################################
+### PDF page 54 (of 68)   matches: IFDM, epoch
+##########################################################################
+42 
+ 
+Appendix A:  Details of the random errors with emphasis on the model 
+of changes in parameter values 
+The stochastic model of changes in parameter values (MCPV) introduces a complexity in 
+modeling of the random errors that needs careful consideration.  The details are a bit lengthy, so 
+they are provided in this appendix rather than the main body of the report.  Because they are so 
+numerous and their consideration will radically impact the number of computations in the 
+ME-LSA problem, we begin with a detailed discussion of the covariances within a stochastic 
+MCPV.   
+However, understanding the covariances in a stochastic MCPV begins with an understanding of 
+the current state of geodetic value change models (GVCMs), such as the horizontal time-
+dependent positioning (HTDP) model and their relationship to the MCPV. 
+ 
+A.1 Relation between geodetic-value change-models and the model of changes to 
+parameter values 
+Currently, the best source within NGS for deriving changes in parameter values are one or more 
+geodetic-value change-models (GVCMs).  Such models, what they contain, and their status are 
+listed below: 
+• HTDP (available):  Grids of linear velocities in local East, North (and some Up).  Grids 
+of linear displacements (due to earthquakes) in local East, North (and some Up).  No 
+stochastic information. 
+• DGEOID2022 (available in beta form):  Grids of linear velocities of geoid undulations, 
+and grids of the standard deviations of those velocities. 
+• IFDM2022 (an alpha form is being tested in NGS; a public beta release is expected in 
+2024):  Operates much like HTDP, and will replace it, but has grids of standard 
+deviations of velocities but none for displacements. 
+If the unknown parameters in the ME-LSA problem are global Cartesian coordinates 𝑋𝑋, 𝑌𝑌, 𝑍𝑍, 
+then the MCPV will be changes in 𝑋𝑋, 𝑌𝑌, 𝑍𝑍 between two epochs.  In order for HTDP to provide 
+the MCPV, the gridded linear velocities would need to be multiplied by time, and the entire 
+𝐸𝐸, 𝑁𝑁, 𝑈𝑈 frame rotated to align with the 𝑋𝑋, 𝑌𝑌, 𝑍𝑍 frame.  This is why it was stated in the introduction 
+of this report that GVCMs, such as HTDP, are not the MCPV, but rather provide the information 
+needed to compute the MCPV.  This situation actually causes some significant complexity when 
+attempting to transform the stochastic information of, say, IFDM2022 into the dispersion matrix 
+of the MCPV.  That will mostly be covered in another paper.  It is sufficient to state that, if 
+stochastic information is available in the GVCM, that it is available in the MCPV.  However, 
+three immediate conclusions can be reached if the above GVCMs remain the source for the 
+MCPV: 
+1) When the unknown parameters are global Cartesian coordinates 𝑋𝑋, 𝑌𝑌, 𝑍𝑍, then error 
+covariances between coordinate types, say 𝑋𝑋 and 𝑌𝑌, at the same point will always exist, 
+
+##########################################################################
+### PDF page 55 (of 68)   matches: epoch
+##########################################################################
+43 
+ 
+even if they did not exist between coordinate types in the GVCM (say between East and 
+North).  This is due to the full rotation matrix that transforms changes in East, North and 
+Up into changes in 𝑋𝑋, 𝑌𝑌 and 𝑍𝑍. 
+2) When the GVCM contains grids of linear velocities, error covariances between epochs 
+(say 𝑖𝑖 = 1 and 𝑖𝑖 = 2) at the same point will always exist.  This is because the changes in 
+a parameter, from epoch 𝑖𝑖 = 1 to the adjustment epoch are computed by multiplying the 
+linear velocity of that parameter times Δ𝑡𝑡1, whereas the changes in a parameter, from 
+epoch 𝑖𝑖 = 2 to the adjustment epoch are computed by multiplying that same linear 
+velocity times Δ𝑡𝑡2.  If that linear velocity has a variance, then this use of a common 
+velocity immediately means there will be a covariance between the two epochs in the 
+MCPV.   
+3) With no covariance information provided between the gridded values (whether velocities 
+or displacements), it is difficult, maybe impossible, to accurately derive covariances 
+between two different points.  Therefore, at this time, it seems unlikely that error 
+covariances between points (say 𝐴𝐴 and 𝐵𝐵) will exist in the MCPV, unless those points are 
+so close to one another that they rely on one or more of the same gridded velocities from 
+the GVCM. 
+Further details of the relationship between one or more GVCMs and the MCPV are deferred for 
+future papers.  
+A.2 Covariances within a stochastic model of changes to parameter values 
+We have earlier (sections 3.3.2, 4.2.2 and 5.2.2) designated the random errors associated with 
+changes in parameter values from the stochastic MCPV as 𝒆𝒆𝑴𝑴𝒊𝒊, 𝒆𝒆𝑴𝑴𝒑𝒑+𝒋𝒋 and 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒌𝒌 for each 
+epoch 𝑖𝑖, 𝑗𝑗 or 𝑘𝑘.  For the sake of brevity, we adopt the following notation for their respective 
+dispersion matrices: 
+Σ𝑀𝑀𝑖𝑖 ∶= 𝐷𝐷�𝒆𝒆𝑴𝑴𝒊𝒊�, (A1) 
+Σ𝑀𝑀𝑝𝑝+𝑗𝑗 ∶= 𝐷𝐷 �𝒆𝒆𝑴𝑴𝒑𝒑+𝒋𝒋 �, (A2) 
+Σ𝑀𝑀𝑝𝑝+𝑞𝑞+𝑘𝑘 ∶= 𝐷𝐷 �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒌𝒌 �. (A3) 
+ 
+where the uppercase 𝑀𝑀 indicates that the variances are for the MCPV itself (as opposed to a 
+lower case 𝑚𝑚, meaning the impact of the MCPV upon other quantities, such as projected 
+observations or projected constraints).  We have introduced the 𝐷𝐷{. } notation for the dispersion 
+operator because that is a more formal notation, and will be helpful, in conjunction with the 
+covariance operator 𝐶𝐶{. , . }, in some of the derivations in this appendix. 
+Before proceeding, it is worth remembering that dispersion matrices (represented by a Σ) are not 
+generally available for either observations, stochastic constraints or a GVCM.  Rather, one or 
+more cofactor matrices (represented by a 𝑄𝑄) are available, with the relationship between 
+dispersion matrices and cofactor matrices being through one or more variance components, such 
+as in equation 99 or 103.  For example, if we are working within the Gauss-Markov Model 
+(GMM), then we have these relationships: 
+
+##########################################################################
+### PDF page 56 (of 68)   matches: epoch
+##########################################################################
+44 
+ 
+Σ𝑀𝑀𝑖𝑖 = 𝜎𝜎0
+2𝑄𝑄𝑀𝑀𝑖𝑖 , (A4) 
+Σ𝑀𝑀𝑝𝑝+𝑗𝑗 = 𝜎𝜎0
+2𝑄𝑄𝑀𝑀𝑝𝑝+𝑗𝑗 , (A5) 
+Σ𝑀𝑀𝑝𝑝+𝑞𝑞+𝑘𝑘 = 𝜎𝜎0
+2𝑄𝑄𝑀𝑀𝑝𝑝+𝑞𝑞+𝑘𝑘 . (A6) 
+ 
+However, if we are working within the Variance Component Model (VCM), then we have these 
+relationships: 
+Σ𝑀𝑀𝑖𝑖 = � 𝜎𝜎𝑚𝑚
+2
+𝑣𝑣𝑄𝑄𝑀𝑀𝑖𝑖𝑣𝑣
+𝑐𝑐𝑚𝑚
+𝑣𝑣=1
+, (A7) 
+Σ𝑀𝑀𝑝𝑝+𝑗𝑗 = � 𝜎𝜎𝑚𝑚
+2
+𝑣𝑣𝑄𝑄𝑀𝑀𝑝𝑝+𝑗𝑗𝑣𝑣
+𝑐𝑐𝑚𝑚
+𝑣𝑣=1
+, (A8) 
+Σ𝑀𝑀𝑝𝑝+𝑞𝑞+𝑘𝑘 = � 𝜎𝜎𝑚𝑚
+2
+𝑣𝑣𝑄𝑄𝑀𝑀𝑝𝑝+𝑞𝑞+𝑘𝑘𝑣𝑣
+𝑐𝑐𝑚𝑚
+𝑣𝑣=1
+. (A9) 
+ 
+The remainder of this appendix will focus on dispersion matrices related to the MCPV, and 
+whether or not we know their on-diagonal elements (variances) and off-diagonal elements 
+(covariances).  Recall that “knowing” a dispersion matrix really means knowing one or more 
+cofactor matrices. 
+In general, we acknowledge that covariances exist, whether they are between two types of 
+coordinates (say Cartesian coordinates 𝑋𝑋 and 𝑌𝑌), or two different points (say 𝐴𝐴 and 𝐵𝐵) or 
+between two epochs (say 𝑖𝑖 = 1 or 𝑖𝑖 = 2, or even more generally 𝑖𝑖 = 1 vs. 𝑘𝑘 = 1) or any 
+combination of all three.  However, whether their values are known is another question. 
+Consider this:  In order to use the MCPV in the ME-LSA problem, changes in parameter values 
+must be provided by the MCPV, even if they are fixed.  But the minimum information needed to 
+treat the MCPV as stochastic are the variances of those changes.  Those occupy the diagonal of 
+any dispersion matrix Σ𝑀𝑀𝑖𝑖, Σ𝑀𝑀𝑝𝑝+𝑗𝑗,  or Σ𝑀𝑀𝑝𝑝+𝑞𝑞+𝑘𝑘.     
+However, there are multiple types of covariances, and each one complicates the ME-LSA 
+problem in its own way.  An example may help illuminate this issue.  Consider a stochastic 
+MCPV yielding changes in parameter values at points 𝐴𝐴 and 𝐵𝐵 for epochs 1 and 2.  In this 
+example, assume that the parameters of interest are global Cartesian coordinates 𝑋𝑋, 𝑌𝑌, 𝑍𝑍.  Let’s 
+first focus only on covariances occupying the non-diagonal elements in the dispersion matrices 
+from (A1)-(A3). 
+If the MCPV contains covariances between types of coordinates (say 𝑋𝑋𝐴𝐴𝑖𝑖 and 𝑌𝑌𝐴𝐴𝑖𝑖) then Σ𝑀𝑀𝑖𝑖 will 
+contain non-zero 3 × 3 blocks on its diagonal relative to each point, to account for the 
+covariances among the three types of coordinates.  This likely situation was discussed in section 
+A.1. 
+
+##########################################################################
+### PDF page 57 (of 68)   matches: epoch
+##########################################################################
+45 
+ 
+If the MCPV contains covariances between points (say 𝑋𝑋𝐴𝐴1 vs. 𝑋𝑋𝐵𝐵1), then Σ𝑀𝑀𝑖𝑖 will contain non-
+zero off-diagonal blocks.  This unlikely situation was discussed in section A.1. 
+If the MCPV contains covariances between epochs (say 𝑋𝑋𝐴𝐴1 and 𝑋𝑋𝐴𝐴2), these appear in neither 
+matrix Σ𝑀𝑀1 nor matrix Σ𝑀𝑀2, but rather in the covariance matrix 𝐶𝐶�𝒆𝒆𝑴𝑴𝟏𝟏, 𝒆𝒆𝑴𝑴𝟐𝟐�.  This likely 
+situation was discussed in section A.1. 
+We might envision that eventually one or more NGS GVCMs, covering continental scale regions 
+and spanning decades of time, might be built in such a way that they provide an MCPV with all 
+possible covariances among coordinate types, between different points and between different 
+epochs.   
+However, introducing that many covariances could change the complexity of the ME-LSA 
+substantially.  Consider that dispersion matrices for observations and stochastic constraints are 
+generally diagonal or block-diagonal.  But an MCPV where all covariances are known would 
+yield full dispersion matrices, changing the number of computations necessary to estimate the 
+unknown parameters, possibly by many orders of magnitude. 
+Therefore, we must draw a distinction between the availability of covariances, and their 
+practical implementation.  Consider a national least-squares adjustment performed by NGS in 
+the future, consisting of 1.5 million observations (500,000 GNSS vectors) and estimating 
+300,000 parameters (𝑋𝑋𝑌𝑌𝑍𝑍 coordinates at 100,000 points).  While the cofactor matrix of 
+observations 𝑄𝑄𝑦𝑦 is, by definition, 1,500,000 × 1,500,000, it will likely be very sparse, 
+consisting entirely of blocks on the diagonal, many of which will be only 3 × 3.  That cofactor 
+matrix must be inverted to yield the required weight matrix 𝑃𝑃𝑦𝑦 of the observations.   However, 
+the inversion of such a sparse, block-diagonal, matrix is quick and straightforward.  Now 
+consider what happens if the MCPV is stochastic and all covariances are known.  This situation 
+will yield a full cofactor matrix 𝑄𝑄𝑦𝑦,� 𝑚𝑚 for the MCPV contribution to projected observations, and 
+therefore a full cofactor matrix 𝑄𝑄𝑦𝑦� for the projected observations.  It is necessary to invert 𝑄𝑄𝑦𝑦� to 
+get the weight matrix of the projected observations, 𝑃𝑃𝑦𝑦�.  But inverting the full 1,500,000 ×
+1,500,000 cofactor matrix 𝑄𝑄𝑦𝑦� is non-trivial.  In fact, we argue that it is so cumbersome as to be 
+impractical.  We make this argument on two grounds: 
+1) The number of computations needed to invert a full matrix is, by an oft-quoted rule of 
+thumb, about 𝑂𝑂(𝑛𝑛3), whereas the number needed to invert a diagonal matrix is about 
+𝑂𝑂(𝑛𝑛).  With a block-diagonal matrix, it will obviously be greater than 𝑂𝑂(𝑛𝑛).  Even if it is 
+as large as 𝑂𝑂(𝑛𝑛2), this still means that inverting the full matrix will take 1.5 million times 
+as many computations32 as inverting the block-diagonal version.  With 1000 CPUs in 
+parallel, and assuming that parallelization may be fully utilized in the inversion process, 
+at best this means the inversion of the full matrix will take 1500 times as long as 
+inverting the block-diagonal version. 
+ 
+32 Not “1.5 million more computations”, but 1.5 million times as many computations. 
+
+##########################################################################
+### PDF page 58 (of 68)   matches: epoch
+##########################################################################
+46 
+ 
+2) Fully populating matrix 𝑄𝑄𝑦𝑦,� 𝑚𝑚, while leaving matrix 𝑄𝑄𝑦𝑦 block-diagonal comes with the 
+unspoken assumptions that (a) the covariances in 𝑄𝑄𝑦𝑦,� 𝑚𝑚 are correct and that (b) the 
+covariances that have been set to zero in matrix 𝑄𝑄𝑦𝑦 are also correct.  We consider it an 
+open question whether both of these assumptions should be given equal credence.   
+With the questions raised above in #2, the computational burden in #1 seems of questionable 
+usefulness, at best.  We conclude, in this case, that it is impractical to use every covariance that is 
+known.  Rather, we offer that the following compromise will be adhered to, for the foreseeable 
+future, as NGS performs various least-squares adjustments when solving the ME-LSA problem:   
+If an off-diagonal matrix element is set to zero in 𝑄𝑄𝑦𝑦, then that same element will be set 
+to zero in 𝑄𝑄𝑦𝑦,� 𝑚𝑚.   
+In this way, the fullness of the weight matrix of the projected observations, 𝑄𝑄𝑦𝑦�, will be no more 
+than the fullness of the weight matrix of the observations, 𝑄𝑄𝑦𝑦.  This is a computational 
+compromise, and in no way should be taken as a mathematical truth.   
+With the above compromise in mind, we make the following choice: 
+Choice #1:  covariances between epochs within the MCPV will be ignored.  
+This means: 
+𝐶𝐶 �𝒆𝒆𝑴𝑴𝒊𝒊𝟏𝟏
+, 𝒆𝒆𝑴𝑴𝒊𝒊𝟐𝟐
+� ≔ 0      ∀ 𝑖𝑖1 ≠ 𝑖𝑖2, {𝑖𝑖1, 𝑖𝑖2} ∈ {1,2, … , 𝑝𝑝}, (A10) 
+𝐶𝐶 �𝒆𝒆𝑴𝑴𝒑𝒑+𝒋𝒋𝟏𝟏
+, 𝒆𝒆𝑴𝑴𝒑𝒑+𝒋𝒋𝟐𝟐
+� ≔ 0      ∀ 𝑗𝑗1 ≠ 𝑗𝑗2, {𝑗𝑗1, 𝑗𝑗2} ∈ {1,2, … , 𝑞𝑞}, (A11) 
+𝐶𝐶 �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒌𝒌𝟏𝟏
+, 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒌𝒌𝟐𝟐
+� ≔ 0      ∀ 𝑘𝑘1 ≠ 𝑘𝑘2, {𝑘𝑘1, 𝑘𝑘2} ∈ {1,2, … , 𝑟𝑟′}, (A12) 
+𝐶𝐶 �𝒆𝒆𝑴𝑴𝒊𝒊, 𝒆𝒆𝑴𝑴𝒑𝒑+𝒋𝒋� ≔ 0      ∀ 𝑖𝑖 ∈ {1,2, … , 𝑝𝑝}, 𝑗𝑗 ∈ {1,2, … , 𝑞𝑞}, (A13) 
+𝐶𝐶 �𝒆𝒆𝑴𝑴𝒊𝒊, 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒌𝒌� ≔ 0      ∀ 𝑖𝑖 ∈ {1,2, … , 𝑝𝑝}, 𝑘𝑘 ∈ {1,2, … , 𝑟𝑟′}, (A14) 
+𝐶𝐶 �𝒆𝒆𝑴𝑴𝒑𝒑+𝒋𝒋, 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒌𝒌� ≔ 0      ∀ 𝑗𝑗 ∈ {1,2, … , 𝑞𝑞}, 𝑘𝑘 ∈ {1,2, … , 𝑟𝑟′}. (A15) 
+ 
+This is because covariances between observations at different epochs are essentially never 
+provided, and therefore will always be set to zero in the matrix 𝑄𝑄𝑦𝑦.   
+There are other choices to make too, but none zero out so many elements of the MCPV 
+dispersion matrices.   
+A.3 Modeling of random errors in the multi-epoch least-squares adjustment problem 
+There are three random-error vectors involved in the data models we have presented, namely:  
+𝒆𝒆𝒚𝒚�, 𝒆𝒆𝒘𝒘�  and 𝒆𝒆𝒈𝒈�, reflecting projected observations, projected stochastic constraints and projected 
+stochastic constraints (which began as fixed constraints, but become stochastic due to the 
+stochastic MCPV), respectively. 
+
+##########################################################################
+### PDF page 59 (of 68)   matches: epoch
+##########################################################################
+47 
+ 
+This section addresses their relation to one another, and their associated dispersion matrices.  
+Section A.4 will address how to efficiently compute the dispersion matrix for the MCPV.  
+However, if the MCPV is stochastic, then 𝒆𝒆𝒚𝒚�, 𝒆𝒆𝒘𝒘�  and 𝒆𝒆𝒈𝒈� depend upon 𝒆𝒆𝒚𝒚�,𝒎𝒎, 𝒆𝒆𝒘𝒘�,𝒎𝒎 and 𝒆𝒆𝒈𝒈�,𝒎𝒎, and 
+so we must first show their relation to the error vectors 𝒆𝒆𝑴𝑴𝒊𝒊, 𝒆𝒆𝑴𝑴𝒑𝒑+𝒋𝒋 and 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒌𝒌.  Note here the 
+use of a lowercase m to denote indirectly computed random errors of the MCPV, as compared to 
+the uppercase M for random errors obtained directly from the MCPV.  Referring to (24), (48) and 
+(76), we can state their relationship to the random errors in the MCPV as follows: 
+𝒆𝒆𝒚𝒚�,𝒎𝒎 ∶=
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡
+𝒆𝒆𝒚𝒚�,𝒎𝒎𝟏𝟏
+𝒆𝒆𝒚𝒚�,𝒎𝒎𝟐𝟐
+𝒆𝒆𝒚𝒚�,𝒎𝒎𝟑𝟑
+…
+𝒆𝒆𝒚𝒚�,𝒎𝒎𝒑𝒑⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+=
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡−𝐴𝐴̅1𝒆𝒆𝑴𝑴𝟏𝟏
+−𝐴𝐴̅2𝒆𝒆𝑴𝑴𝟐𝟐
+−𝐴𝐴̅3𝒆𝒆𝑴𝑴𝟑𝟑
+…
+−𝐴𝐴̅𝑝𝑝𝒆𝒆𝑴𝑴𝒑𝒑 ⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+, 
+ 
+(A16) 
+𝒆𝒆𝒘𝒘�,𝒎𝒎 ∶=
+⎣
+⎢
+⎢
+⎢
+⎡
+𝒆𝒆𝒘𝒘�,𝒎𝒎𝟏𝟏
+𝒆𝒆𝒘𝒘�,𝒎𝒎𝟐𝟐
+𝒆𝒆𝒘𝒘�,𝒎𝒎𝟑𝟑
+…
+𝒆𝒆𝒘𝒘�,𝒎𝒎𝒒𝒒⎦
+⎥
+⎥
+⎥
+⎤
+=
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡−𝑆𝑆̅1𝒆𝒆𝑴𝑴𝒑𝒑+𝟏𝟏
+−𝑆𝑆̅2𝒆𝒆𝑴𝑴𝒑𝒑+𝟐𝟐
+−𝑆𝑆̅3𝒆𝒆𝑴𝑴𝒑𝒑+𝟑𝟑
+…
+−𝑆𝑆̅𝑝𝑝𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒 ⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+, 
+ 
+(A17) 
+𝒆𝒆𝒈𝒈�,𝒎𝒎 ∶=
+⎣
+⎢
+⎢
+⎢
+⎡
+𝒆𝒆𝒈𝒈�,𝒎𝒎𝟏𝟏
+𝒆𝒆𝒈𝒈�,𝒎𝒎𝟐𝟐
+𝒆𝒆𝒈𝒈�,𝒎𝒎𝟑𝟑
+…
+𝒆𝒆𝒈𝒈�,𝒎𝒎𝒓𝒓′ ⎦
+⎥
+⎥
+⎥
+⎤
+=
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡ −𝐹𝐹�1𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟏𝟏
+−𝐹𝐹�2𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟐𝟐
+−𝐹𝐹�3𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟑𝟑
+…
+−𝐹𝐹�𝑟𝑟′ 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒓𝒓′ ⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+. (A18) 
+ 
+As a reminder all vectors 𝒆𝒆𝑴𝑴(.) are random-error vectors from the MCPV with respect to all 
+parameters, but at a single epoch.  Equations (A16) through (A18) provide the information 
+needed to characterize the three vectors, 𝒆𝒆𝒚𝒚�, 𝒆𝒆𝒘𝒘�  and 𝒆𝒆𝒈𝒈�, computed from the random errors of the 
+MCPV. 
+To characterize the complete interrelations of 𝒆𝒆𝒚𝒚�, 𝒆𝒆𝒘𝒘�  and 𝒆𝒆𝒈𝒈� we show the dispersion matrix of 
+the vector of combined random errors: 
+𝐷𝐷 ��
+𝒆𝒆𝒚𝒚�
+𝒆𝒆𝒘𝒘�
+𝒆𝒆𝒈𝒈�
+�� = �
+𝐷𝐷�𝒆𝒆𝒚𝒚�� 𝐶𝐶�𝒆𝒆𝒚𝒚�, 𝒆𝒆𝒘𝒘� � 𝐶𝐶�𝒆𝒆𝒚𝒚�, 𝒆𝒆𝒈𝒈��
+𝐷𝐷{𝒆𝒆𝒘𝒘� } 𝐶𝐶�𝒆𝒆𝒘𝒘� , 𝒆𝒆𝒈𝒈� �
+sym 𝐷𝐷�𝒆𝒆𝒈𝒈� �
+�. (A19) 
+ 
+When the MCPV is stochastic, we use the definitions in (24), (48) and (76) to expand (A19) to  
+
+##########################################################################
+### PDF page 60 (of 68)   matches: epoch
+##########################################################################
+48 
+ 
+𝐷𝐷 ��
+𝒆𝒆𝒚𝒚�
+𝒆𝒆𝒘𝒘�
+𝒆𝒆𝒈𝒈�
+�� = �
+𝐷𝐷�𝒆𝒆𝒚𝒚 + 𝒆𝒆𝒚𝒚�,𝒎𝒎� 𝑪𝑪�𝒆𝒆𝒚𝒚 + 𝒆𝒆𝒚𝒚�,𝒎𝒎, 𝒆𝒆𝒘𝒘 + 𝒆𝒆𝒘𝒘�,𝒎𝒎� 𝑪𝑪�𝒆𝒆𝒚𝒚 + 𝒆𝒆𝒚𝒚�,𝒎𝒎, 𝒆𝒆𝒈𝒈�,𝒎𝒎�
+𝐷𝐷�𝒆𝒆𝒘𝒘 + 𝒆𝒆𝒘𝒘�,𝒎𝒎� 𝑪𝑪�𝒆𝒆𝒘𝒘 + 𝒆𝒆𝒘𝒘�,𝒎𝒎, 𝒆𝒆𝒈𝒈�,𝒎𝒎�
+sym 𝐷𝐷�𝒆𝒆𝒈𝒈�,𝒎𝒎�
+�. (A20) 
+ 
+We will treat the fixed MCPV at the end of this section.   
+Now we examine each of the six unique block matrices in (A20) in detail, with the intent of 
+simplifying them when possible.   
+ 
+Block Matrix 1,1 of (A20) 
+This matrix can be expanded as 
+𝐷𝐷�𝒆𝒆𝒚𝒚 + 𝒆𝒆𝒚𝒚�,𝒎𝒎� = 𝐷𝐷�𝒆𝒆𝒚𝒚� + 𝐷𝐷�𝒆𝒆𝒚𝒚�,𝒎𝒎� + 2𝐶𝐶�𝒆𝒆𝒚𝒚, 𝒆𝒆𝒚𝒚�,𝒎𝒎�
+= 𝐷𝐷�𝒆𝒆𝒚𝒚� + 𝐷𝐷 �− �𝒆𝒆𝑴𝑴𝟏𝟏
+𝑻𝑻𝐴𝐴̅1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑
+𝑻𝑻𝐴𝐴̅𝑝𝑝
+𝑇𝑇
+�
+𝑇𝑇
+�
++ 2𝐶𝐶 �𝒆𝒆𝒚𝒚, − �𝒆𝒆𝑴𝑴𝟏𝟏
+𝑻𝑻𝐴𝐴̅1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑
+𝑻𝑻𝐴𝐴̅𝑝𝑝
+𝑇𝑇
+�
+𝑇𝑇
+�. 
+(A21) 
+ 
+Deconstructing, we begin with 𝐷𝐷�𝒆𝒆𝒚𝒚� which is the dispersion matrix of the observations.  We 
+designate it as 
+Σ𝑦𝑦 ∶= 𝐷𝐷�𝒆𝒆𝒚𝒚�. (A22) 
+ 
+Following this convention for dispersion matrices, we also define the dispersion matrix 
+Σ𝑦𝑦�,𝑚𝑚 ∶= 𝐷𝐷�𝒆𝒆𝒚𝒚�,𝒎𝒎�, (A23) 
+which can be expanded to 
+Σ𝑦𝑦�,𝑚𝑚 = 𝐷𝐷�𝒆𝒆𝒚𝒚�,𝒎𝒎� = 𝐷𝐷 �− �𝒆𝒆𝑴𝑴𝟏𝟏
+𝑻𝑻𝐴𝐴̅1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑
+𝑻𝑻𝐴𝐴̅𝑝𝑝
+𝑇𝑇
+�
+𝑇𝑇
+� =
+=
+⎣
+⎢
+⎢
+⎢
+⎢
+⎢
+⎢
+⎡𝐴𝐴̅1𝐷𝐷�𝒆𝒆𝑴𝑴𝟏𝟏�𝐴𝐴̅1
+𝑇𝑇 𝐴𝐴̅1𝐶𝐶�𝒆𝒆𝑴𝑴𝟏𝟏, 𝒆𝒆𝑴𝑴𝟐𝟐�𝐴𝐴̅2
+𝑇𝑇 𝐴𝐴̅1𝐶𝐶�𝒆𝒆𝑴𝑴𝟏𝟏, 𝒆𝒆𝑴𝑴𝟑𝟑�𝐴𝐴̅3
+𝑇𝑇 … 𝐴𝐴̅1𝐶𝐶 �𝒆𝒆𝑴𝑴𝟏𝟏, 𝒆𝒆𝑴𝑴𝒑𝒑� 𝐴𝐴̅𝑝𝑝
+𝑇𝑇
+𝐴𝐴̅2𝐷𝐷�𝒆𝒆𝑴𝑴𝟐𝟐�𝐴𝐴̅2
+𝑇𝑇 𝐴𝐴̅2𝐶𝐶�𝒆𝒆𝑴𝑴𝟐𝟐, 𝒆𝒆𝑴𝑴𝟑𝟑�𝐴𝐴̅3
+𝑇𝑇 … 𝐴𝐴̅2𝐶𝐶 �𝒆𝒆𝑴𝑴𝟐𝟐, 𝒆𝒆𝑴𝑴𝒑𝒑� 𝐴𝐴̅𝑝𝑝
+𝑇𝑇
+𝐴𝐴̅3𝐷𝐷�𝒆𝒆𝑴𝑴𝟑𝟑�𝐴𝐴̅3
+𝑇𝑇 … 𝐴𝐴̅3𝐶𝐶 �𝒆𝒆𝑴𝑴𝟑𝟑, 𝒆𝒆𝑴𝑴𝒑𝒑� 𝐴𝐴̅𝑝𝑝
+𝑇𝑇
+… …
+sym 𝐴𝐴̅𝑝𝑝𝐷𝐷 �𝒆𝒆𝑴𝑴𝒑𝒑� 𝐴𝐴̅𝑝𝑝
+𝑇𝑇
+⎦
+⎥
+⎥
+⎥
+⎥
+⎥
+⎥
+⎤
+. 
+ 
+(A24) 
+ 
+However, based on the choice to ignore covariances between epochs, we may simplify (A24) as 
+
+##########################################################################
+### PDF page 62 (of 68)   matches: epoch
+##########################################################################
+50 
+ 
+Thus, with the help of (A22)-(A29), equation (A21) is simplified to  
+𝐷𝐷�𝒆𝒆𝒚𝒚�� = 𝐷𝐷�𝒆𝒆𝒚𝒚 + 𝒆𝒆𝒚𝒚�,𝒎𝒎� = 𝐷𝐷�𝒆𝒆𝒚𝒚� + 𝐷𝐷�𝒆𝒆𝒚𝒚�,𝒎𝒎�, (A30) 
+or 
+Σ𝑦𝑦� = Σ𝑦𝑦 + Σ𝑦𝑦�,𝑚𝑚, (A31) 
+ 
+where Σ𝑦𝑦�,𝑚𝑚 is in the block-diagonal form from (A25). 
+ 
+Block Matrix 2,2 of (A20) 
+This matrix can be expanded as 
+𝐷𝐷�𝒆𝒆𝒘𝒘 + 𝒆𝒆𝒘𝒘�,𝒎𝒎� = 𝐷𝐷{𝒆𝒆𝒘𝒘} + 𝐷𝐷�𝒆𝒆𝒘𝒘�,𝒎𝒎� + 2𝐶𝐶�𝒆𝒆𝒘𝒘, 𝒆𝒆𝒘𝒘�,𝒎𝒎�
+= 𝐷𝐷{𝒆𝒆𝒘𝒘} + 𝐷𝐷 �− �𝒆𝒆𝑴𝑴𝒑𝒑+𝟏𝟏
+𝑻𝑻𝑆𝑆̅1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒
+𝑻𝑻𝑆𝑆̅𝑞𝑞
+𝑇𝑇
+�
+𝑇𝑇
+�
++ 2𝐶𝐶 �𝒆𝒆𝒘𝒘, − �𝒆𝒆𝑴𝑴𝒑𝒑+𝟏𝟏
+𝑻𝑻𝑆𝑆̅1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒
+𝑻𝑻𝑆𝑆̅𝑞𝑞
+𝑇𝑇
+�
+𝑇𝑇
+�. 
+(A32) 
+ 
+Deconstructing, we begin with 𝐷𝐷{𝒆𝒆𝒘𝒘} which is the dispersion matrix of the stochastic 
+constraints.  We designate it as  
+Σ𝑤𝑤 ∶= 𝐷𝐷{𝒆𝒆𝒘𝒘}. (A33) 
+ 
+Following this convention for dispersion matrices, we also define dispersion matrix 
+Σ𝑤𝑤� ,𝑚𝑚 ∶= 𝐷𝐷�𝒆𝒆𝒘𝒘�,𝒎𝒎�, (A34) 
+ 
+which can be expanded to 
+Σ𝑤𝑤� ,𝑚𝑚 = 𝐷𝐷�𝒆𝒆𝒘𝒘�,𝒎𝒎� = 𝐷𝐷 �− �𝒆𝒆𝑴𝑴𝒑𝒑+𝟏𝟏
+𝑻𝑻𝑆𝑆̅1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒
+𝑻𝑻𝑆𝑆̅𝑞𝑞
+𝑇𝑇
+�
+𝑇𝑇
+� =
+=
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡𝑆𝑆̅1𝐷𝐷 �𝒆𝒆𝑴𝑴𝒑𝒑+𝟏𝟏� 𝑆𝑆̅1
+𝑇𝑇 𝑆𝑆̅1𝐶𝐶 �𝒆𝒆𝑴𝑴𝒑𝒑+𝟏𝟏, 𝒆𝒆𝑴𝑴𝒑𝒑+𝟐𝟐� 𝑆𝑆̅2
+𝑇𝑇 … 𝑆𝑆̅1𝐶𝐶 �𝒆𝒆𝑴𝑴𝒑𝒑+𝟏𝟏, 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒� 𝑆𝑆̅𝑞𝑞
+𝑇𝑇
+𝑆𝑆̅2𝐷𝐷 �𝒆𝒆𝑴𝑴𝒑𝒑+𝟐𝟐� 𝑆𝑆̅2
+𝑇𝑇 … 𝑆𝑆̅2𝐶𝐶 �𝒆𝒆𝑴𝑴𝒑𝒑+𝟐𝟐, 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒� 𝑆𝑆̅𝑞𝑞
+𝑇𝑇
+… …
+sym 𝑆𝑆̅𝑞𝑞𝐷𝐷 �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒� 𝑆𝑆̅𝑞𝑞
+𝑇𝑇
+⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+. 
+ 
+(A35) 
+ 
+Again, based on the choice to ignore covariances between epochs, we may simplify (A35) as 
+
+##########################################################################
+### PDF page 64 (of 68)   matches: epoch
+##########################################################################
+52 
+ 
+Σ𝑤𝑤� ,𝑚𝑚 = 𝐷𝐷�𝒆𝒆𝒘𝒘�,𝒎𝒎� = 𝐷𝐷 �− �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟏𝟏
+𝑻𝑻𝐹𝐹�1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒓𝒓′
+𝑻𝑻𝐹𝐹�𝑞𝑞
+𝑇𝑇
+�
+𝑇𝑇
+� =
+=
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡𝐹𝐹�1𝐷𝐷 �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟏𝟏� 𝐹𝐹�1
+𝑇𝑇 𝐹𝐹�1𝐶𝐶 �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟏𝟏, 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟐𝟐� 𝐹𝐹�2
+𝑇𝑇 … 𝐹𝐹�1𝐶𝐶 �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟏𝟏, 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒓𝒓′� 𝐹𝐹�𝑟𝑟′
+𝑇𝑇
+𝐹𝐹�2𝐷𝐷 �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟐𝟐� 𝐹𝐹�2
+𝑇𝑇 … 𝐹𝐹�2𝐶𝐶 �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟐𝟐, 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒓𝒓′� 𝐹𝐹�𝑟𝑟′
+𝑇𝑇
+… …
+sym 𝐹𝐹�𝑟𝑟′𝐷𝐷 �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒓𝒓′� 𝐹𝐹�𝑟𝑟′
+𝑇𝑇
+⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+. 
+ 
+(A43) 
+ 
+Again, based on the choice to ignore covariances between epochs, we may simplify (A43) as 
+Σ𝑔𝑔�,𝑚𝑚 = 𝐷𝐷�𝒆𝒆𝒈𝒈�,𝒎𝒎� =
+⎣
+⎢
+⎢
+⎢
+⎡𝐹𝐹�1Σ𝑀𝑀𝑝𝑝+𝑞𝑞+1 𝐹𝐹�1
+𝑇𝑇 0 … 0
+𝐹𝐹�2Σ𝑀𝑀𝑝𝑝+𝑞𝑞+2 𝐹𝐹�2
+𝑇𝑇 … 0
+… …
+sym 𝐹𝐹�𝑟𝑟′Σ𝑀𝑀𝑝𝑝+𝑞𝑞+𝑟𝑟′ 𝐹𝐹�𝑟𝑟′
+𝑇𝑇
+⎦
+⎥
+⎥
+⎥
+⎤
+=
+⎣
+⎢
+⎢
+⎢
+⎢
+⎡Σ𝑔𝑔�,𝑚𝑚1 0 0 … 0
+Σ𝑔𝑔�,𝑚𝑚2 0 … 0
+Σ𝑔𝑔�,𝑚𝑚3 … 0
+… …
+sym Σ𝑔𝑔�,𝑚𝑚𝑟𝑟′ ⎦
+⎥
+⎥
+⎥
+⎥
+⎤
+. 
+ 
+(A44) 
+ 
+Thus, with the help of (A43) and (A44), equation (A42) is simplified to  
+𝐷𝐷�𝒆𝒆𝒈𝒈� � = Σ𝑔𝑔�,𝑚𝑚, (A45) 
+ 
+where Σ𝑔𝑔�,𝑚𝑚 is in the block-diagonal form from (A44). 
+Block Matrix 1,2 of (A20) 
+This matrix can be expanded as 
+𝐶𝐶�𝒆𝒆𝒚𝒚 + 𝒆𝒆𝒚𝒚�,𝒎𝒎, 𝒆𝒆𝒘𝒘 + 𝒆𝒆𝒘𝒘�,𝒎𝒎� = 𝐶𝐶�𝒆𝒆𝒚𝒚, 𝒆𝒆𝒘𝒘� + 𝐶𝐶�𝒆𝒆𝒚𝒚, 𝒆𝒆𝒘𝒘�,𝒎𝒎� + 𝐶𝐶�𝒆𝒆𝒚𝒚�,𝒎𝒎, 𝒆𝒆𝒘𝒘� + 𝐶𝐶�𝒆𝒆𝒚𝒚�,𝒎𝒎, 𝒆𝒆𝒘𝒘�,𝒎𝒎�
+= 𝐶𝐶�𝒆𝒆𝒚𝒚, 𝒆𝒆𝒘𝒘� + 𝐶𝐶 �𝒆𝒆𝒚𝒚, − �𝒆𝒆𝑴𝑴𝒑𝒑+𝟏𝟏
+𝑻𝑻𝑆𝑆̅1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒
+𝑻𝑻𝑆𝑆̅𝑞𝑞
+𝑇𝑇
+�
+𝑇𝑇
+�
++ 𝐶𝐶 �− �𝒆𝒆𝑴𝑴𝟏𝟏
+𝑻𝑻𝐴𝐴1
+𝑇𝑇, … , 𝒆𝒆𝑴𝑴𝒑𝒑
+𝑻𝑻𝐴𝐴̅𝑝𝑝
+𝑇𝑇
+�
+𝑇𝑇
+, 𝒆𝒆𝒘𝒘�
++ 𝐶𝐶 �− �𝒆𝒆𝑴𝑴𝟏𝟏
+𝑻𝑻𝐴𝐴1
+𝑇𝑇, … , 𝒆𝒆𝑴𝑴𝒑𝒑
+𝑻𝑻𝐴𝐴̅𝑝𝑝
+𝑇𝑇
+�
+𝑇𝑇
+, − �𝒆𝒆𝑴𝑴𝒑𝒑+𝟏𝟏
+𝑻𝑻𝑆𝑆̅1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒
+𝑻𝑻𝑆𝑆̅𝑞𝑞
+𝑇𝑇
+�
+𝑇𝑇
+�. 
+(A46) 
+ 
+Deconstructing, we begin with 𝐶𝐶�𝒆𝒆𝒚𝒚, 𝒆𝒆𝒘𝒘� which are the covariances between observations and 
+stochastic constraints.  We argue, as before, that there are examples one might reasonably expect 
+where these covariances may be non-zero, such as a GNSS vector (an observation) but where the 
+coordinates of one of the endpoints of that vector might be held as a constraint.  Despite the 
+
+##########################################################################
+### PDF page 65 (of 68)   matches: epoch
+##########################################################################
+53 
+ 
+ability to imagine such covariances, it may be nearly impossible to determine their numerical 
+values.  As such, we make another choice. 
+Choice #4:  covariances between observation errors and stochastic constraint errors will be 
+considered unknown and will thus be set to zero, i.e. 
+𝐶𝐶�𝒆𝒆𝒚𝒚, 𝒆𝒆𝒘𝒘� = 0. (A47) 
+ 
+The second part, 𝐶𝐶 �𝒆𝒆𝒚𝒚, − �𝒆𝒆𝑴𝑴𝒑𝒑+𝟏𝟏
+𝑻𝑻𝑆𝑆̅1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒
+𝑻𝑻𝑆𝑆̅𝑞𝑞
+𝑇𝑇
+�
+𝑇𝑇
+�, has a similar expansion as (A26), 
+leading to a matrix full of covariances between observational errors and MCPV errors, which we 
+have already chosen to ignore (Choice #2).   
+The third part, 𝐶𝐶 �− �𝒆𝒆𝑴𝑴𝟏𝟏
+𝑻𝑻𝐴𝐴1
+𝑇𝑇, … , 𝒆𝒆𝑴𝑴𝒑𝒑
+𝑻𝑻𝐴𝐴̅𝑝𝑝
+𝑇𝑇
+�
+𝑇𝑇
+, 𝒆𝒆𝒘𝒘�, has a similar expansion as (A26), leading to 
+a matrix full of covariances between stochastic constraint errors and MCPV errors, which we 
+have already chosen to ignore (Choice #3).   
+The fourth part, 𝐶𝐶 �− �𝒆𝒆𝑴𝑴𝟏𝟏
+𝑻𝑻𝐴𝐴1
+𝑇𝑇, … , 𝒆𝒆𝑴𝑴𝒑𝒑
+𝑻𝑻𝐴𝐴̅𝑝𝑝
+𝑇𝑇
+�
+𝑇𝑇
+, − �𝒆𝒆𝑴𝑴𝒑𝒑+𝟏𝟏
+𝑻𝑻𝑆𝑆̅1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒
+𝑻𝑻𝑆𝑆̅𝑞𝑞
+𝑇𝑇
+�
+𝑇𝑇
+�, could be 
+expanded, but it should be obvious at a glance that it will lead to covariances between MCPV 
+errors at observation epochs and MCPV errors at stochastic-constraint epochs.  If there are no 
+common epochs between observations and stochastic constraints, then we will have a matrix full 
+of covariances of MCPV errors between epochs, which we have already chosen to ignore 
+(Choice #1).   
+Under all of the above choices, all four parts are zero and thus block matrix 1,2 of (A20) is also 
+zero. 
+However, it is possible that there may be common epochs between observations and stochastic 
+constraints.  Such a situation would turn one of these covariances into a variance.  If this is the 
+case, then the fourth part of block matrix 1,2 of (A20) would not be zero.  This situation is highly 
+undesirable as it immediately will invalidate the required structure of the dispersion matrix in 
+both the Gauss-Markov Model and the Variance Component Model. 
+Therefore, even if there are common epochs between observations and stochastic constraints, we 
+will steadfastly assume that block matrix 1,2 of (A20) is zero, as 
+𝐶𝐶�𝒆𝒆𝒚𝒚 + 𝒆𝒆𝒚𝒚�,𝒎𝒎, 𝒆𝒆𝒘𝒘 + 𝒆𝒆𝒘𝒘�,𝒎𝒎� ≔ 0. (A48) 
+ 
+Block Matrix 1,3 of (A20) 
+This matrix can be expanded as 
+
+##########################################################################
+### PDF page 66 (of 68)   matches: epoch
+##########################################################################
+54 
+ 
+𝐶𝐶�𝒆𝒆𝒚𝒚 + 𝒆𝒆𝒚𝒚�,𝒎𝒎, 𝒆𝒆𝒈𝒈�,𝒎𝒎� = 𝐶𝐶�𝒆𝒆𝒚𝒚, 𝒆𝒆𝒈𝒈�,𝒎𝒎� + 𝐶𝐶�𝒆𝒆𝒚𝒚�,𝒎𝒎, 𝒆𝒆𝒈𝒈�,𝒎𝒎�
+= 𝐶𝐶 �𝒆𝒆𝒚𝒚, − �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟏𝟏
+𝑻𝑻𝐹𝐹�1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒓𝒓′
+𝑻𝑻𝐹𝐹�𝑟𝑟′
+𝑇𝑇
+�
+𝑇𝑇
+�
++ 𝐶𝐶 �− �𝒆𝒆𝑴𝑴𝟏𝟏
+𝑻𝑻𝐴𝐴1
+𝑇𝑇, … , 𝒆𝒆𝑴𝑴𝒑𝒑
+𝑻𝑻𝐴𝐴̅𝑝𝑝
+𝑇𝑇
+�
+𝑇𝑇
+, − �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟏𝟏
+𝑻𝑻𝐹𝐹�1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒓𝒓′
+𝑻𝑻𝐹𝐹�𝑟𝑟′
+𝑇𝑇
+�
+𝑇𝑇
+�. 
+(A49) 
+ 
+The first part, 𝐶𝐶 �𝒆𝒆𝒚𝒚, − �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟏𝟏
+𝑻𝑻𝐹𝐹�1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒓𝒓′
+𝑻𝑻𝐹𝐹�𝑟𝑟′
+𝑇𝑇
+�
+𝑇𝑇
+�, has a similar expansion as (A26), 
+leading to a matrix full of covariances between observational errors and MCPV errors, which we 
+have already chosen to ignore (Choice #2).   
+The second part (𝐶𝐶 �− �𝒆𝒆𝑴𝑴𝟏𝟏
+𝑻𝑻𝐴𝐴1
+𝑇𝑇, … , 𝒆𝒆𝑴𝑴𝒑𝒑
+𝑻𝑻𝐴𝐴̅𝑝𝑝
+𝑇𝑇
+�
+𝑇𝑇
+, − �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟏𝟏
+𝑻𝑻𝐹𝐹�1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒓𝒓′
+𝑻𝑻𝐹𝐹�𝑟𝑟′
+𝑇𝑇
+�
+𝑇𝑇
+�) could be 
+expanded, but it should again be obvious at a glance that it will lead to covariances between 
+MCPV errors at observation epochs and MCPV errors at fixed-constraint epochs.  If there are no 
+common epochs between observations and fixed constraints, then we will have a matrix full of 
+covariances of MCPV errors between epochs, which we have already chosen to ignore (Choice 
+#1).   
+Under all of the above choices, both parts are zero and block matrix 1,3 of (A20) is also zero. 
+As in block matrix 1,2 of (A20), common epochs between observations and fixed constrains 
+could cause unsolvable problems in the math model.  Therefore, even if there are common 
+epochs between observations and fixed constraints, we will steadfastly assume that block matrix 
+1,3 of (A20) is zero: 
+𝐶𝐶�𝒆𝒆𝒚𝒚 + 𝒆𝒆𝒚𝒚�,𝒎𝒎, 𝒆𝒆𝒈𝒈�,𝒎𝒎� = 0. (A50) 
+ 
+Block Matrix 2,3 of (A20) 
+This matrix can be expanded as 
+𝐶𝐶�𝒆𝒆𝒘𝒘 + 𝒆𝒆𝒘𝒘�,𝒎𝒎, 𝒆𝒆𝒈𝒈�,𝒎𝒎� = 𝐶𝐶�𝒆𝒆𝒘𝒘, 𝒆𝒆𝒈𝒈�,𝒎𝒎� + 𝐶𝐶�𝒆𝒆𝒘𝒘�,𝒎𝒎, 𝒆𝒆𝒈𝒈�,𝒎𝒎�
+= 𝐶𝐶 �𝒆𝒆𝒘𝒘, − �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟏𝟏
+𝑻𝑻𝐹𝐹�1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒓𝒓′
+𝑻𝑻𝐹𝐹�𝑟𝑟′
+𝑇𝑇
+�
+𝑇𝑇
+�
++ 𝐶𝐶 �− �𝒆𝒆𝑴𝑴𝒑𝒑+𝟏𝟏
+𝑻𝑻𝑆𝑆̅1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒
+𝑻𝑻𝑆𝑆̅𝑞𝑞
+𝑇𝑇
+�
+𝑇𝑇
+, − �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟏𝟏
+𝑻𝑻𝐹𝐹�1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒓𝒓′
+𝑻𝑻𝐹𝐹�𝑟𝑟′
+𝑇𝑇
+�
+𝑇𝑇
+�. 
+(A51) 
+ 
+The first part, 𝐶𝐶 �𝒆𝒆𝒘𝒘, − �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟏𝟏
+𝑻𝑻𝐹𝐹�1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒓𝒓′
+𝑻𝑻𝐹𝐹�𝑟𝑟′
+𝑇𝑇
+�
+𝑇𝑇
+�, has a similar expansion as (A26), 
+leading to a matrix full of covariances between stochastic constraint errors and MCPV errors, 
+which we have already chosen to ignore (Choice #3).   
+The second part, 𝐶𝐶 �− �𝒆𝒆𝑴𝑴𝒑𝒑+𝟏𝟏
+𝑻𝑻𝑆𝑆̅1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒
+𝑻𝑻𝑆𝑆̅𝑞𝑞
+𝑇𝑇
+�
+𝑇𝑇
+, − �𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝟏𝟏
+𝑻𝑻𝐹𝐹�1
+𝑇𝑇
+, … , 𝒆𝒆𝑴𝑴𝒑𝒑+𝒒𝒒+𝒓𝒓′
+𝑻𝑻𝐹𝐹�𝑟𝑟′
+𝑇𝑇
+�
+𝑇𝑇
+�, could 
+be expanded, but it should (yet again) be obvious at a glance that it will lead to covariances 
+
+##########################################################################
+### PDF page 67 (of 68)   matches: epoch
+##########################################################################
+55 
+ 
+between MCPV errors at stochastic-constraint epochs and MCPV errors at fixed-constraint 
+epochs.  If there are no common epochs between them, then we will have a matrix full of 
+covariances of MCPV errors between epochs, which we have already chosen to ignore (Choice 
+#1).   
+Under all of the above choices, both parts are zero and block matrix 2,3 of (A20) is also zero. 
+As in block elements 1,2 or 1,3 of (A20), common epochs between stochastic constraints and 
+fixed constrains could cause unsolvable problems in the math model.  Therefore, even if there 
+are common epochs between stochastic constraints and fixed constraints, we will steadfastly 
+assume that block element 2,3 of (A20) is zero: 
+𝐶𝐶�𝒆𝒆𝒘𝒘 + 𝒆𝒆𝒘𝒘�,𝒎𝒎, 𝒆𝒆𝒈𝒈�,𝒎𝒎� = 0. (A52) 
+ 
+Final combined model of random errors 
+Finally, based on the choices just stated, we can rewrite (A20) as 
+𝐷𝐷 ��
+𝒆𝒆𝒚𝒚�
+𝒆𝒆𝒘𝒘�
+𝒆𝒆𝒈𝒈�
+�� = �
+𝐷𝐷�𝒆𝒆𝒚𝒚�� 0 0
+0 𝐷𝐷{𝒆𝒆𝒘𝒘� } 0
+0 0 𝐷𝐷�𝒆𝒆𝒈𝒈� �
+� = �
+𝐷𝐷�𝒆𝒆𝒚𝒚� + 𝐷𝐷�𝒆𝒆𝒚𝒚�,𝒎𝒎� 0 0
+0 𝐷𝐷{𝒆𝒆𝒘𝒘} + 𝐷𝐷�𝒆𝒆𝒘𝒘�,𝒎𝒎� 0
+0 0 𝐷𝐷�𝒆𝒆𝒈𝒈�,𝒎𝒎�
+�, (A53) 
+or 
+𝐷𝐷 ��
+𝒆𝒆𝒚𝒚�
+𝒆𝒆𝒘𝒘�
+𝒆𝒆𝒈𝒈�
+�� = �
+Σ𝑦𝑦� 0 0
+0 Σ𝑤𝑤� 0
+0 0 Σ𝑔𝑔�
+� = �
+Σ𝑦𝑦 + Σ𝑦𝑦�,𝑚𝑚 0 0
+0 Σ𝑤𝑤 + Σ𝑤𝑤� ,𝑚𝑚 0
+0 0 Σ𝑔𝑔�,𝑚𝑚
+�. (A54) 
+ 
+We now can express the dispersion matrix for the case when the MCPV is fixed, rather than 
+stochastic.  In that case, the third row and column vanish, as do all random errors associated with 
+the MCPV, and we are left with 
+𝐷𝐷 �𝒆𝒆𝒚𝒚�
+𝒆𝒆𝒘𝒘�
+� = �Σ𝑦𝑦� 0
+0 Σ𝑤𝑤�
+� = �Σ𝑦𝑦 0
+0 Σ𝑤𝑤
+�. (A55) 
+ 
+To summarize, in performing multi-epoch least-squares adjustment computations, practical 
+considerations imply that four types of covariances should be ignored, regardless of whether they 
+are known: 
+1. Covariances between epochs 
+2. Covariances between observations and the MCPV 
+3. Covariances between stochastic constraints and the MCPV 
+4. Covariances between observations and stochastic constraints  
+ 

@@ -1,0 +1,16 @@
+IFDM2022_vel_svel.nc sampled at the 12 frozen frame anchors
+grid: lat -90..90 step 0.1, lon 0..360 step 0.1, units mm/yr, crs epsg:9990
+bilinear on the enclosing 2x2 nodes; NGS's own scheme for these grids is NOT documented in anything captured here
+
+frame_p01.html   lat= 41.8000 lon= -83.5000  ve=-15.4051 vn= +1.3791 vu= -1.9969 mm/yr   (x10 yr: dE= -154.1 dN=  +13.8 dU=  -20.0 mm)
+frame_p02.html   lat= 42.3000 lon= -83.1000  ve=-15.7259 vn= +1.7287 vu= -2.1314 mm/yr   (x10 yr: dE= -157.3 dN=  +17.3 dU=  -21.3 mm)
+frame_p03.html   lat= 42.3000 lon= -86.2000  ve=-15.6826 vn= +0.0234 vu= -2.3844 mm/yr   (x10 yr: dE= -156.8 dN=   +0.2 dU=  -23.8 mm)
+frame_p04.html   lat= 43.0000 lon= -84.5000  ve=-15.8592 vn= +0.6696 vu= -1.9292 mm/yr   (x10 yr: dE= -158.6 dN=   +6.7 dU=  -19.3 mm)
+frame_p05.html   lat= 43.8000 lon= -86.4000  ve=-16.0731 vn= -0.0526 vu= -2.0629 mm/yr   (x10 yr: dE= -160.7 dN=   -0.5 dU=  -20.6 mm)
+frame_p06.html   lat= 44.3000 lon= -84.7000  ve=-16.1953 vn= +0.5935 vu= -1.5738 mm/yr   (x10 yr: dE= -162.0 dN=   +5.9 dU=  -15.7 mm)
+frame_p07.html   lat= 45.1000 lon= -83.5000  ve=-16.4003 vn= +0.9462 vu= -1.0063 mm/yr   (x10 yr: dE= -164.0 dN=   +9.5 dU=  -10.1 mm)
+frame_p08.html   lat= 45.8000 lon= -84.7000  ve=-16.7188 vn= +0.4023 vu= -0.8799 mm/yr   (x10 yr: dE= -167.2 dN=   +4.0 dU=   -8.8 mm)
+frame_p09.html   lat= 46.3000 lon= -85.5000  ve=-16.6905 vn= +0.0867 vu= -0.3940 mm/yr   (x10 yr: dE= -166.9 dN=   +0.9 dU=   -3.9 mm)
+frame_p10.html   lat= 46.6000 lon= -87.4000  ve=-16.7696 vn= -0.4327 vu= -0.8992 mm/yr   (x10 yr: dE= -167.7 dN=   -4.3 dU=   -9.0 mm)
+frame_p11.html   lat= 47.2000 lon= -88.5000  ve=-16.9054 vn= -0.8505 vu= -0.4113 mm/yr   (x10 yr: dE= -169.1 dN=   -8.5 dU=   -4.1 mm)
+frame_p12.html   lat= 48.1000 lon= -88.6000  ve=-17.1670 vn= -1.9449 vu= +0.9684 mm/yr   (x10 yr: dE= -171.7 dN=  -19.4 dU=   +9.7 mm)

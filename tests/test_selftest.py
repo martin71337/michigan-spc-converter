@@ -154,6 +154,68 @@ def test_the_selftests_geoid12b_anchor_is_the_frozen_ngs_value():
     assert selftest.GEOID12B_ANCHOR_HEIGHT_M == anchor.geoid_height_m
 
 
+def test_the_selftests_spcs2022_anchor_is_the_frozen_beta_ncat_value():
+    """The transcription check for the SPCS2022 anchor. Exact, like the rest.
+
+    The bundle cannot import ``tests/``, so its SPCS2022 anchor is a second
+    copy of one row of ``tests/fixtures/spcs2022_engine_anchors.py``. The copy
+    is beta-derived, which is why ``michspc/selftest.py`` carries the ``NGS
+    beta`` token and appears in docs/REFREEZE-NSRS.md - re-freezing the fixture
+    without re-freezing this would leave the shipped bundle checking itself
+    against a superseded number.
+
+    ``==`` because the claim is "these are the same number", not "these agree
+    to within something" (docs/method/METHOD.md section 4).
+    """
+    from tests.fixtures.spcs2022_engine_anchors import SPCS2022_PROJECTION_ANCHORS
+
+    anchor = next(
+        a
+        for a in SPCS2022_PROJECTION_ANCHORS
+        if a.zone_code == selftest.SPCS2022_ZONE_CODE
+        and a.label == "origin -0.15/-0.25"
+    )
+
+    assert selftest.SPCS2022_ZONE_CODE == "261008"
+    assert selftest.SPCS2022_ANCHOR_LATITUDE == anchor.latitude
+    assert selftest.SPCS2022_ANCHOR_LONGITUDE == anchor.longitude
+    assert selftest.SPCS2022_ANCHOR_NORTHING_M == anchor.northing_m
+    assert selftest.SPCS2022_ANCHOR_EASTING_M == anchor.easting_m
+    assert selftest.SPCS2022_ANCHOR_SCALE_FACTOR == anchor.scale_factor
+
+
+def test_the_selftests_spcs2022_anchor_is_not_a_zone_origin():
+    """An origin reproduces the false origin without projecting anything.
+
+    Zone 261008's origin is published at N 228,600 m / E 1,409,700 m, and an
+    engine that returned the false origin for every input would satisfy a check
+    written at the origin. The self-test's anchor must therefore be one of the
+    off-origin points - stated here rather than left to the reader of a
+    latitude.
+    """
+    zone = selftest_zone(selftest.SPCS2022_ZONE_CODE)
+
+    assert selftest.SPCS2022_ANCHOR_LATITUDE != zone.definition.lat_origin
+    assert selftest.SPCS2022_ANCHOR_LONGITUDE != zone.definition.lon_origin
+    assert (
+        selftest.SPCS2022_ANCHOR_NORTHING_M != zone.definition.northing_grid_origin
+    )
+    assert selftest.SPCS2022_ANCHOR_EASTING_M != zone.definition.easting_origin
+
+
+def test_the_selftests_spcs2022_tolerances_are_the_frozen_printed_ones():
+    from tests.fixtures.spcs2022_engine_anchors import SPCS2022_PRINTED
+
+    assert selftest.SPCS2022_LINEAR_TOLERANCE_M == SPCS2022_PRINTED["linear_m"]
+    assert selftest.SPCS2022_SCALE_TOLERANCE == SPCS2022_PRINTED["scale_factor"]
+
+
+def selftest_zone(code):
+    from michspc.spc.zones import zone_by_code
+
+    return zone_by_code(code)
+
+
 def test_the_end_to_end_tolerance_is_two_ncat_legs_plus_the_written_place():
     """Hand-derived, in the unit the export is written in.
 
@@ -199,6 +261,8 @@ def test_the_check_registry_holds_every_check_by_name():
         "lazily imported dependencies",
         "Qt startup and bundled icon",
         "end-to-end conversion against NGS NCAT",
+        "SPCS2022 conversion against beta NGS NCAT",
+        "cross-frame refusal",
     ]
 
 
@@ -383,6 +447,111 @@ def test_the_geoid12b_check_fails_when_the_height_is_wrong(monkeypatch):
     assert "out by" in message
 
 
+def michspc_modules_imported_inside_function_bodies() -> dict[str, set[str]]:
+    """Every ``michspc`` module imported from inside a function body, by file.
+
+    The audit ``LAZY_IMPORTS`` used to be: a person reading the tree and
+    remembering to add what they found. That is how the VERTCON data came to
+    ship with no reader in the bundle (docs/DESIGN.md #38), and how the three
+    projection engines would have shipped as a dispatcher with no mathematics.
+    This walks the syntax tree instead.
+
+    An import inside a function body is invisible to PyInstaller unless the
+    spec declares it, so every one of these must be in ``LAZY_IMPORTS`` - which
+    ``michspc.spec`` uses as its ``hiddenimports`` and which the frozen bundle
+    then proves it can actually import.
+
+    ``michspc/selftest.py`` is excluded, and the exclusion is the point rather
+    than a convenience: its own deferred imports are executed by the checks
+    themselves, so one missing from a bundle fails the self-test directly and
+    by name. Everything else in the program is imported at a moment no gate is
+    watching.
+    """
+    import ast
+    import importlib.util
+
+    def resolves_to_a_module(name: str) -> bool:
+        try:
+            return importlib.util.find_spec(name) is not None
+        except (ImportError, AttributeError, ValueError):
+            return False
+
+    found: dict[str, set[str]] = {}
+    for path in sorted((REPO_ROOT / "michspc").rglob("*.py")):
+        if path.name == "selftest.py":
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        modules: set[str] = set()
+        for scope in ast.walk(tree):
+            if not isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            for node in ast.walk(scope):
+                if isinstance(node, ast.Import):
+                    modules.update(
+                        alias.name
+                        for alias in node.names
+                        if alias.name.startswith("michspc")
+                    )
+                elif isinstance(node, ast.ImportFrom):
+                    if node.level or not (node.module or "").startswith("michspc"):
+                        continue
+                    for alias in node.names:
+                        candidate = f"{node.module}.{alias.name}"
+                        modules.add(
+                            candidate
+                            if resolves_to_a_module(candidate)
+                            else node.module
+                        )
+        if modules:
+            found[path.relative_to(REPO_ROOT).as_posix()] = modules
+    return found
+
+
+def test_every_module_imported_inside_a_function_body_is_declared_lazy():
+    """The audit, as a mechanism rather than as a reading (work package N8).
+
+    Falsified by deleting ``michspc.spc.projection`` from LAZY_IMPORTS: this
+    test alone fails, naming zones.py as the file that imports it.
+    """
+    declared = set(selftest.LAZY_IMPORTS)
+    by_file = michspc_modules_imported_inside_function_bodies()
+
+    undeclared = {
+        source: sorted(modules - declared)
+        for source, modules in by_file.items()
+        if modules - declared
+    }
+    assert not undeclared, (
+        f"these modules are imported from inside a function body and are not "
+        f"in michspc.selftest.LAZY_IMPORTS: {undeclared}. PyInstaller's static "
+        f"analysis cannot see them, so the bundle would build and die the "
+        f"first time a surveyor reached the feature that needs one."
+    )
+
+
+def test_the_function_body_import_scan_finds_the_ones_that_are_known():
+    """Named, so a scanner quietly matching nothing cannot pass this file.
+
+    These seven are the deferred imports as of 0.7.0: the two the export layer
+    reaches for, the one the job record reaches back for, the three projection
+    engines behind the dispatch table, and the dispatcher the zone registry
+    asks for its own projection kind.
+    """
+    everything = set()
+    for modules in michspc_modules_imported_inside_function_bodies().values():
+        everything |= modules
+
+    assert {
+        "michspc.fileio.pnezd",
+        "michspc.fileio.report",
+        "michspc.fileio.exports",
+        "michspc.spc.lambert",
+        "michspc.spc.tm",
+        "michspc.spc.omerc",
+        "michspc.spc.projection",
+    } <= everything
+
+
 def test_the_lazy_import_check_fails_on_a_module_that_is_not_there(monkeypatch):
     monkeypatch.setattr(
         selftest,
@@ -441,6 +610,111 @@ def test_the_end_to_end_check_fails_when_the_coordinate_moves(monkeypatch):
         selftest.check_end_to_end_conversion()
     assert "NGS" in str(raised.value)
     assert "out by" in str(raised.value)
+
+
+def test_the_spcs2022_check_fails_when_the_coordinate_moves(monkeypatch):
+    """Move the expected northing by one metre; the check must notice.
+
+    One metre is far outside the 0.0005 m budget and small enough to be an
+    entirely ordinary-looking coordinate - the class of error this check exists
+    for. The message must state how far the point landed, in metres, because
+    that is what tells a reader whether the bundle picked the wrong engine
+    (hundreds of metres) or the right one with a wrong constant.
+    """
+    monkeypatch.setattr(
+        selftest,
+        "SPCS2022_ANCHOR_NORTHING_M",
+        selftest.SPCS2022_ANCHOR_NORTHING_M + 1.0,
+    )
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_spcs2022_conversion()
+    message = str(raised.value)
+    assert "beta NCAT" in message
+    assert "m away" in message
+
+
+def test_the_spcs2022_check_fails_on_a_wrong_scale_factor(monkeypatch):
+    """A coordinate can be right while the factor a distance is scaled by is not.
+
+    Seeded at one part in a hundred million - far below anything visible in a
+    coordinate, and 20,000 times the 5e-10 the printed precision supports.
+    """
+    monkeypatch.setattr(
+        selftest,
+        "SPCS2022_ANCHOR_SCALE_FACTOR",
+        selftest.SPCS2022_ANCHOR_SCALE_FACTOR + 1e-8,
+    )
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_spcs2022_conversion()
+    assert "grid scale factor" in str(raised.value)
+
+
+def test_the_frame_refusal_check_fails_when_the_refusal_is_gone(monkeypatch):
+    """Seeded with the defect it exists for: a bundle that ACCEPTS the crossing.
+
+    ``require_frame_path`` is replaced with one that hands back an identity for
+    any pair - which is precisely what a lost registry entry, or a future
+    edit that registered the bridge before it was verified, would look like
+    from inside the bundle. The check must refuse, and name both frames.
+    """
+    from michspc.spc import frames
+
+    monkeypatch.setattr(
+        frames,
+        "require_frame_path",
+        lambda source, target: "a transformation that does not exist",
+    )
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_frame_refusal()
+    message = str(raised.value)
+    assert "ACCEPTED" in message
+    assert "NAD83(2011)" in message
+    assert "NATRF2022" in message
+
+
+def test_the_frame_refusal_check_fails_on_the_wrong_exception(monkeypatch):
+    """The class is load-bearing, not only the fact that something was raised.
+
+    ``michspc.job`` and the GUI both catch ``FrameMismatchError`` by name, so a
+    refusal raised as some other exception reaches the surveyor as a crash
+    rather than as an explanation - the shape of the WP-V2 dialect finding
+    (docs/DESIGN.md #35).
+    """
+    from michspc.spc import frames
+
+    def wrong_class(source, target):
+        raise RuntimeError("no path")
+
+    monkeypatch.setattr(frames, "require_frame_path", wrong_class)
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_frame_refusal()
+    assert "RuntimeError" in str(raised.value)
+
+
+def test_the_frame_refusal_check_passes_only_while_conversion_still_works():
+    """A gate that refuses everything would satisfy the refusal check alone.
+
+    The pairing is the point: ``check_frame_refusal`` says the crossing is
+    refused, and ``check_spcs2022_conversion`` - which goes through the same
+    ``require_frame_path`` gate - says a same-frame conversion is not. Both are
+    in CHECKS, and this states why neither is sufficient by itself.
+    """
+    assert "cross-frame refusal" in dict(
+        (name, check) for name, check in selftest.CHECKS
+    )
+    assert "SPCS2022 conversion against beta NGS NCAT" in dict(
+        (name, check) for name, check in selftest.CHECKS
+    )
+
+    from michspc.spc.frames import NATRF2022, require_frame_path
+
+    # The same gate the SPCS2022 check runs through, within one frame.
+    assert require_frame_path(NATRF2022, NATRF2022) is not None
+    assert selftest.check_frame_refusal()
 
 
 def test_the_selftest_main_reports_a_failure_and_exits_nonzero(tmp_path, monkeypatch):
@@ -719,6 +993,161 @@ def test_the_release_script_runs_the_frozen_selftest_as_a_gate():
 
     assert build < frozen < installer
     assert "--selftest" in source
+
+
+# --------------------------------------------------------------------------
+# The NGS beta acknowledgement gate (work package N8).
+# --------------------------------------------------------------------------
+
+
+def test_the_beta_gate_refuses_a_release_without_the_acknowledgement():
+    """The promise docs/REFREEZE-NSRS.md records, driven directly.
+
+    Run against the REAL repository, so while this tree carries beta-derived
+    artifacts the refusal is demonstrated rather than simulated. When the
+    re-freeze is done and no artifact carries the token, this test asserts the
+    other half - that the gate then passes and asks for nothing.
+    """
+    from tools import build_release
+
+    tagged = build_release.tagged_beta_artifacts()
+
+    if not tagged:
+        assert build_release.gate_beta_acknowledgement(False) == []
+        return
+
+    with pytest.raises(build_release.BuildError) as raised:
+        build_release.gate_beta_acknowledgement(False)
+    message = str(raised.value)
+    assert "--acknowledge-ngs-beta" in message
+    assert "docs/REFREEZE-NSRS.md" in message
+    assert "Nothing has been built." in message
+    for artifact in tagged:
+        assert artifact in message
+
+
+def test_the_beta_gate_lists_every_tagged_artifact_when_acknowledged(capsys):
+    """The flag suppresses nothing: it prints what it is acknowledging.
+
+    The artifacts named here are the beta surface as of 0.7.0 - the zone
+    registry, the frame registry, the job record's SPCS2022 prose, the anchor
+    fixture, and the frozen self-test's own transcribed anchor. A sixth is
+    fine; these five disappearing would mean the scan stopped working rather
+    than the repository being clean (the shape
+    tests/test_refreeze_inventory.py uses for the same reason).
+    """
+    from tools import build_release
+
+    acknowledged = build_release.gate_beta_acknowledgement(True)
+    printed = capsys.readouterr().out
+
+    assert acknowledged == build_release.tagged_beta_artifacts()
+    assert set(acknowledged) >= {
+        "michspc/spc/zones.py",
+        "michspc/spc/frames.py",
+        "michspc/fileio/report.py",
+        "michspc/selftest.py",
+        "tests/fixtures/spcs2022_engine_anchors.py",
+    }
+    for artifact in acknowledged:
+        assert artifact in printed
+    assert "docs/REFREEZE-NSRS.md" in printed
+
+
+def test_the_acknowledgement_reaches_the_checksum_file():
+    """A release's own evidence must say what era it was built from.
+
+    The comment lines begin with ``#``, which every ``sha256sum``-style checker
+    ignores, so recording the acknowledgement cannot break verification of the
+    installer's digest.
+    """
+    from tools import build_release
+
+    assert build_release.beta_acknowledgement_lines([]) == []
+
+    lines = build_release.beta_acknowledgement_lines(
+        ["michspc/spc/zones.py", "tests/fixtures/spcs2022_engine_anchors.py"]
+    )
+    text = "\n".join(lines)
+
+    assert "--acknowledge-ngs-beta" in text
+    assert "docs/REFREEZE-NSRS.md" in text
+    assert "michspc/spc/zones.py" in text
+    assert "tests/fixtures/spcs2022_engine_anchors.py" in text
+    for line in lines:
+        assert line == "" or line.startswith("#")
+
+
+def test_the_build_gates_beta_scan_is_the_inventory_tests_scan(tmp_path):
+    """Two implementations of one rule, held together.
+
+    ``tools/build_release.py`` must not import ``tests/`` - a build tool that
+    depended on the suite would refuse to run where the suite is not installed,
+    and would make the gate depend on the thing it gates - so the scan exists
+    twice. Twice means it can drift, and a drifted build-tool scan would find
+    nothing and let a beta release through silently.
+
+    Checked on the real repository AND on synthetic trees covering each rule
+    the scanners share: both casings of the token, the roots that are scanned,
+    the root that is not, and the binary suffixes that are skipped.
+    """
+    from tests import test_refreeze_inventory as inventory
+    from tools import build_release
+
+    assert build_release.BETA_TOKENS == inventory.BETA_TOKENS
+    assert tuple(build_release.BETA_SCANNED_ROOTS) == tuple(inventory.SCANNED_ROOTS)
+
+    assert build_release.tagged_beta_artifacts() == sorted(
+        inventory.tagged_files(REPO_ROOT)
+    )
+
+    (tmp_path / "michspc" / "spc").mkdir(parents=True)
+    (tmp_path / "michspc" / "spc" / "tagged.py").write_text(
+        "# captured 2027-01-01. NGS beta\n", encoding="utf-8"
+    )
+    (tmp_path / "michspc" / "spc" / "shouted.py").write_text(
+        '"""**NGS BETA.**"""\n', encoding="utf-8"
+    )
+    (tmp_path / "michspc" / "spc" / "ordinary.py").write_text(
+        "# nothing pre-release here\n", encoding="utf-8"
+    )
+    (tmp_path / "tests" / "fixtures").mkdir(parents=True)
+    (tmp_path / "tests" / "fixtures" / "anchors.py").write_text(
+        "# NGS beta\n", encoding="utf-8"
+    )
+    (tmp_path / "review").mkdir()
+    (tmp_path / "review" / "capture.py").write_text("# NGS beta\n", encoding="utf-8")
+    (tmp_path / "michspc" / "grid.bin").write_bytes(b"NGS beta")
+
+    assert build_release.tagged_beta_artifacts(tmp_path) == sorted(
+        inventory.tagged_files(tmp_path)
+    )
+    assert build_release.tagged_beta_artifacts(tmp_path) == [
+        "michspc/spc/shouted.py",
+        "michspc/spc/tagged.py",
+        "tests/fixtures/anchors.py",
+    ]
+
+
+def test_the_beta_gate_runs_immediately_after_the_version_gate():
+    """Ordering, for the same reason the version gate is first: cost.
+
+    Both refusals are about a decision rather than about an artifact, so they
+    belong before twenty minutes of building. The suite, the bundle and the
+    installer all run after them.
+    """
+    from tools import build_release
+
+    source = Path(build_release.__file__).read_text(encoding="utf-8")
+    version = source.index("version = gate_version()")
+    beta = source.index("acknowledged_beta = gate_beta_acknowledgement(")
+    tree = source.index("revision = gate_clean_tree()")
+    # Indented, so this finds the CALL in main's try block rather than the
+    # definition further up the file.
+    suite = source.index("\n        gate_test_suite()")
+
+    assert version < beta < tree < suite
+    assert "--acknowledge-ngs-beta" in source
 
 
 def test_the_installer_script_freezes_one_appid_and_uses_hka_conventions():

@@ -21,9 +21,14 @@ plain-text job record. Also converts geodetic ⇄ State Plane in either directio
 Reports grid scale factor, convergence angle, elevation factor and combined
 factor per point, with geoid separation from a bundled GEOID18 grid.
 
-It deliberately does **not** do UTM, SPCS2022, NAD 83 ↔ NATRF2022
-transformation, other states, NAD 27, or two-point azimuth/distance. See
-DESIGN.md §10 for why each was deferred.
+Since the 0.7.0 build it also converts on the **19 Michigan SPCS2022 zones**,
+with NATRF2022 geodetic in and out — any-to-any **within** each datum.
+
+It deliberately does **not** do UTM, the **NAD 83 ↔ NATRF2022 transformation**
+(held on measured evidence, `docs/DEFERRED-NATRF2022-BRIDGE.md`), **NAPGD2022 /
+GEOID2022 elevations** (`docs/DEFERRED-NAPGD2022.md`), other states, NAD 27, or
+two-point azimuth/distance. See DESIGN.md §10, #61 and #62 for why each was
+deferred; the two standing markers are the live ones.
 
 ## Status (2026-08-07, 0.3.1 RELEASED)
 
@@ -46,7 +51,104 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: the modernized-NSRS build is OPEN — H0 done, H1 next (2026-08-28)
+## Current state: 0.7.0-dev — H1–H6 and N8 are DONE, ON MAIN, UNRELEASED (2026-08-29)
+
+**Read `docs/PLAN-nsrs-modernization.md` (status block first) and DESIGN.md
+#61 and #62 before touching this work.** The whole horizontal half of the
+modernized-NSRS build is on `main`: the 19 SPCS2022 Michigan zones, three new
+projection engines behind one dispatcher, per-frame geodetic entries, the
+era-correct job record, and the packaging/self-test/release gates. Suite
+**3,726**, green in `pytest` and `-O`, exit codes read unpiped. **NOT
+RELEASED — the version literal is `0.7.0-dev` and nothing is tagged.**
+
+**What a surveyor gets:** all 19 SPCS2022 zones (statewide Hotine oblique
+Mercator, 13 LC1 and 5 TM low-distortion zones), native NATRF2022 geodetic in
+and out, any-to-any **within** each datum, metres and international feet on
+the 2022 zones (no US survey foot — NGS publishes none), and every factor on
+every zone. SPCS 83 jobs are unchanged, held by the 18-digest cross-version
+pin.
+
+**Two halves are DEFERRED FUTURE WORK with standing markers, not dropped:**
+`docs/DEFERRED-NAPGD2022.md` (elevations onto the modernized vertical datum —
+NGS publishes no NAVD 88 ↔ NAPGD2022 product at all) and
+`docs/DEFERRED-NATRF2022-BRIDGE.md` (**the frame bridge, held by the owner's
+decision on measured evidence, DESIGN.md #62** — NGS publishes no
+transformation parameters, and the best public candidate misses NCAT by 17 cm
+at a re-probed, verified-real Michigan point). A cross-frame selection stays
+selectable and **refuses loudly at Convert**, naming that fact; it never
+passes coordinates through unchanged.
+
+**The work packages, in the order they landed** (each built by an Opus
+subagent to the lead's brief, diff reviewed and both modes re-run by the lead
+before acceptance):
+
+- **H1** — `projection.py` dispatcher (one table yields kind + engine +
+  forward + inverse), `tm.py` (§3.2), `omerc.py` (§3.3, CENTRE variant — the
+  natural-origin form is the ~6,969 km trap), `from_one_parallel`.
+- **H2** — the 19 zone records on NGS's own polygon bounds, per-zone
+  `allowed_units` and NGS-cited `easting_range_m`. **Interim Codex gate over
+  H1–H2: FINDINGS, 2 MEDIUM 1 LOW, all test-layer, fixed at the root**; Codex
+  died on quota during the narrowing re-confirmation and an independent Opus
+  reviewer completed it (25/25 coefficient mutations caught, detection floor
+  1.8 µm) — `review/gate-nsrs-h1h2/`, DESIGN.md #62.
+- **H3′** — the frames registry mirrored from `vertical.py`: `FrameStatus`
+  required, NATRF2022 USABLE, WGS 84 declared-not-usable,
+  `FRAME_TRANSFORMATIONS` identity-only with a `__post_init__` that refuses a
+  non-identity record, `require_frame_path` replacing `require_same_frame` at
+  both call sites.
+- **H5** — `report._zone_block` dispatches per projection kind (the 2SP block
+  byte-identical to 0.1.0's, pinned as frozen literal text); the METHOD and
+  verification prose has an era branch; **`docs/REFREEZE-NSRS.md` and its
+  two-way inventory test** close #61's obligation.
+- **H6** — the modernized system reaches the screen: the `GEODETIC` string
+  sentinel is gone, a frozen `GeodeticChoice` per offered frame, four combos
+  offering 26 items, per-zone unit filtering, the cross-frame refusal pinned
+  end to end on both tabs.
+- **N8 (this session)** — packaging, self-test and the release gate:
+  - **Self-test checks 10 and 11.** The frozen bundle now converts one
+    SPCS2022 point through the public path (`convert.project_point`, zone
+    261008) against a frozen beta-NCAT anchor, and proves the **cross-frame
+    refusal is alive in the bundle** in both directions. Eleven checks; the
+    printed count derives from `len(CHECKS)`.
+  - **The LAZY_IMPORTS audit is now a mechanism, not a reading**: a test walks
+    every `michspc` module with `ast` and requires each module imported inside
+    a function body to be declared. It found two undeclared —
+    `michspc.fileio.exports` and `michspc.spc.projection`.
+  - **The beta-acknowledgement release gate exists** (the promise
+    REFREEZE-NSRS.md recorded): gate 2 of **nine**, scanning `michspc/**` and
+    `tests/fixtures/**` for the literal `NGS beta` and refusing unless
+    `--acknowledge-ngs-beta` is passed; the flag prints every artifact it
+    acknowledges and `SHA256SUMS.txt` records the acknowledgement. The build
+    tool reimplements the inventory test's scan (a tool must not import
+    `tests/`) and the two scanners are pinned against each other.
+  - **`michspc/selftest.py` now carries the `NGS beta` token and a
+    REFREEZE-NSRS.md row of its own** — it transcribes a beta anchor into
+    shipped code, so re-freezing the fixture without it would leave the bundle
+    checking itself against a superseded number. Five tagged artifacts, not
+    four.
+  - `docs/RELEASE-NOTES-0.7.0.md` is a marked **DRAFT**.
+
+### What remains, in order
+
+1. **The closing Codex gate** over the whole `v0.6.4..HEAD` range (Opus
+   reviewers if Codex is out of quota — the owner's standing fallback).
+2. **The owner's screen review of both tabs.** He has seen none of H6's
+   controls on a real screen; layout decisions are flagged in H6's work
+   record and nothing there is final until he has.
+3. **The release build, on his machine**: drop the `-dev` marker, then
+   `py tools/build_release.py --acknowledge-ngs-beta` (gates 5 and 7 are
+   PyInstaller and Inno Setup, Windows-only), then tag and the GitHub
+   Release. **The flag is required and is the point** — a beta-era release is
+   a conscious act.
+4. **Still human, still outstanding:** the clean-profile install proof
+   (METHOD.md §6) and a real PNEZD file from an actual job.
+
+**Process (owner's instruction, clarified 2026-08-28): the session lead
+develops all plans and designs; Opus subagents do recon and build; the lead
+reviews every diff and re-derives the load-bearing math; Codex gates — two
+interim, one closing, none skipped.**
+
+## Superseded status: the modernized-NSRS build in flight — H0-H2 (2026-08-28/29)
 
 **Read `docs/PLAN-nsrs-modernization.md` (status block first) and DESIGN.md
 #61 before touching this work.** The owner approved the build 2026-08-28:

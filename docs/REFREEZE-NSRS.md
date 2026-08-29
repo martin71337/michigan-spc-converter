@@ -55,12 +55,25 @@ whichever lands first, for the artifacts that depend on it. Watch:
 
 ## The release gate
 
-**The release gate will refuse to build while any `NGS beta` tag remains,
-unless an explicit acknowledgement flag is passed**, so that every beta-era
-release is a conscious act rather than a default (DESIGN.md #61; the `-dev`
-marker idiom). **That flag arrives with work package N8** (packaging,
-self-test and build gates) and is not in `tools/build_release.py` yet. Until it
-is, this document and its inventory test are the whole mechanism.
+**The release gate refuses to build while any `NGS beta` tag remains, unless an
+explicit acknowledgement flag is passed**, so that every beta-era release is a
+conscious act rather than a default (DESIGN.md #61; the `-dev` marker idiom).
+
+**It exists.** Work package **N8** built it: `gate_beta_acknowledgement` in
+`tools/build_release.py` is gate 2 of nine, immediately after the version gate,
+and it scans the same roots for the same token this document's inventory test
+scans (the two scanners are separate implementations — the build tool must not
+import `tests/` — pinned against each other in
+`tests/test_selftest.py::test_the_build_gates_beta_scan_is_the_inventory_tests_scan`).
+
+    py tools/build_release.py                        refuses, naming every tag
+    py tools/build_release.py --acknowledge-ngs-beta builds, printing each one
+
+The flag suppresses nothing: the gate prints every artifact it acknowledges,
+and the run's `SHA256SUMS.txt` carries a trailing comment naming the
+acknowledgement and listing those artifacts, so the release's own evidence
+records what era it was built from. When this document's table is empty — the
+re-freeze done — the gate passes silently and the flag is no longer needed.
 
 ## Tagged artifacts
 
@@ -80,6 +93,7 @@ checklist can neither miss an artifact nor outlive one.
 | `michspc/spc/zones.py` | The nineteen SPCS2022 zone records — every defining constant transcribed from `zoneDefinitions.json`, every extent and easting range from `zoneBounds.json` — and the shared citation carrying both files' capture dates and digests. | `review/nsrs-n0/capture_spcs.py` | `tests/test_zone_registry.py` |
 | `michspc/spc/frames.py` | NATRF2022's record and citation: the frame is defined by NOAA TR NOS NGS 62, and everything this program carries for it (zones, anchors) is beta. | `review/nsrs-h3-recon/ifdm/capture_pubs.py` | `tests/test_convert.py::test_natrf2022s_citation_carries_its_authority_and_its_beta_provenance` |
 | `michspc/fileio/report.py` | The job record's SPCS2022 METHOD and verification prose — the capture dates, both digests, and the beta-NCAT anchor count it states to the surveyor. | `review/nsrs-h1-anchors/capture_h1_anchors.py` | `tests/test_spcs2022_disclosure.py` |
+| `michspc/selftest.py` | The frozen bundle's own SPCS2022 anchor: zone 261008's `origin -0.15/-0.25` position, northing, easting and scale factor, transcribed from the fixture below because `tests/` is not in the bundle. | `review/nsrs-h1-anchors/capture_h1_anchors.py` | `tests/test_selftest.py::test_the_selftests_spcs2022_anchor_is_the_frozen_beta_ncat_value` |
 | `tests/fixtures/spcs2022_engine_anchors.py` | The 63 beta-NCAT projection anchors and the 19 published zone-parameter rows they are checked beside. | `review/nsrs-h1-anchors/capture_h1_anchors.py` | `tests/test_projection_engines.py` |
 
 ## The frozen captures those artifacts were read from

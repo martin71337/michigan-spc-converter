@@ -24,7 +24,14 @@ So the shipped executable answers ``--selftest`` by exercising itself:
 4. one real conversion runs the whole production path, PNEZD file on disk ->
    ``job.run`` -> ``exports.write_all`` -> the ZIP -> the clean export parsed
    back, and lands on coordinates **NGS computed**, not on this program's own
-   output.
+   output;
+5. one SPCS2022 conversion reaches its projection engine through the
+   dispatcher and lands on a coordinate **beta NGS NCAT computed** - the three
+   engines are imported only from inside a function body, so a bundle can carry
+   the dispatcher and none of the mathematics; and
+6. the cross-frame refusal is still there. NAD 83(2011) to NATRF2022 must
+   refuse by name: a bundle that lost that refusal is a bundle that silently
+   passes coordinates between frames one to two metres apart.
 
 ``tools/build_release.py`` runs this against the freshly built bundle as a hard
 gate. A bundle that fails its own self-test is not a release.
@@ -126,6 +133,48 @@ GEOID12B_ANCHOR_HEIGHT_M = -33.285
 # 0.001 m, so one printed figure carries +-0.0005 m; 0.002 m is four times that.
 LINEAR_TOLERANCE_M = 0.002
 GEOID_TOLERANCE_M = 0.002
+
+# tests/fixtures/spcs2022_engine_anchors.py, zone 261008 (MI_L45G, Michigan
+# Grand Rapids, Lambert conformal conic one parallel), the anchor labelled
+# "origin -0.15/-0.25" - a BETA NCAT ANCHOR, CAPTURED 2026-08-28, saved
+# response raw/z261008_p3.html in review/nsrs-h1-anchors/. Input datum and
+# output datum were both NATRF2022 epoch 2020.00 on that capture, so no frame
+# transformation stands between the position and the grid coordinate: this
+# anchors the PROJECTION and nothing else.
+#
+# **NGS beta.** Everything on these six lines came from NGS's pre-release
+# SPCS2022 products and MUST be re-frozen against NGS's official release
+# (docs/REFREEZE-NSRS.md, which lists this file; DESIGN.md #61).
+#
+# An off-origin point on purpose. At a zone's own origin the northing and
+# easting ARE the published false origin, which an engine can reproduce
+# without projecting anything; 0.15 degrees south and 0.25 west of it, the
+# answer depends on the whole Lambert derivation.
+#
+# Which off-origin point, and why this one rather than the other: 261008's two
+# off-origin anchors are equally valid, and this program agrees with beta NCAT
+# at both, inside the printed precision. It sits at 24% and 48% of the
+# per-axis budget below, where its neighbour at +0.15/+0.25 sits at 99% -
+# not because that one is wrong but because its true value falls almost
+# exactly on NCAT's own rounding boundary, which the fixture's SPCS2022_PRINTED
+# note explains at length. A release gate that is one rounding boundary away
+# from a false refusal is a bad gate; the suite holds all 63 anchors to the
+# same tolerance, and that is where the engine is verified.
+SPCS2022_ZONE_CODE = "261008"
+SPCS2022_ANCHOR_LATITUDE = 42.650000
+SPCS2022_ANCHOR_LONGITUDE = -85.400000
+SPCS2022_ANCHOR_NORTHING_M = 211966.963
+SPCS2022_ANCHOR_EASTING_M = 1389199.027
+SPCS2022_ANCHOR_SCALE_FACTOR = 1.000021412
+
+# tests/fixtures/spcs2022_engine_anchors.py, SPCS2022_PRINTED. Beta NCAT prints
+# linear values to 0.001 m and the grid scale factor to nine decimals, and a
+# printed figure cannot be held tighter than half a unit in its last place:
+# 0.0005 m and 5e-10. Tighter than the SPCS 83 anchors above, because these are
+# a single leg with no second quantization and nothing is written to a file in
+# between.
+SPCS2022_LINEAR_TOLERANCE_M = 0.0005
+SPCS2022_SCALE_TOLERANCE = 5e-10
 
 
 def _zone_to_zone_tolerance_ift() -> float:
@@ -508,8 +557,18 @@ LAZY_IMPORTS: tuple[str, ...] = (
     # Imported inside function bodies in production code:
     #   exports.verify_round_trip -> michspc.fileio.pnezd
     #   exports.write_all         -> michspc.fileio.report
+    #   report.build_report       -> michspc.fileio.exports
+    #   zones.Zone.projection_kind-> michspc.spc.projection
+    # The last two were found by the N8 audit, which is now a test rather than
+    # a reading: tests/test_selftest.py walks every module in michspc/ with the
+    # ast module and requires each michspc module imported inside a function
+    # body to appear here. Both happen to be reachable statically as well
+    # today; that is a property of other modules' import lines, which is
+    # exactly the kind of fact this list must not depend on.
     "michspc.fileio.pnezd",
     "michspc.fileio.report",
+    "michspc.fileio.exports",
+    "michspc.spc.projection",
     # The vertical-datum layer. Since WP-V6/V7 the shipped program DOES import
     # these (job.py and report.py, at module level), so they are statically
     # reachable - the declarations stay because this list's contract is the
@@ -762,6 +821,158 @@ def check_end_to_end_conversion() -> str:
     )
 
 
+def check_spcs2022_conversion() -> str:
+    """One SPCS2022 conversion, end to end, against beta NCAT's own figures.
+
+    The 2022 zones are computed by three engines this program did not have
+    before 0.7.0 - Lambert one-parallel, transverse Mercator and Hotine oblique
+    Mercator - and the engines are reached only from inside
+    ``projection._engines``, which PyInstaller's static analysis cannot see.
+    ``check_lazy_imports`` proves the three modules are IN the bundle; this
+    proves the dispatcher actually finds one and computes with it, through the
+    public conversion path a job takes (``convert.project_point``), which also
+    runs the frame gate on the way through.
+
+    A NATRF2022 geodetic position into zone 261008. Both the position and the
+    expected grid coordinate are beta NCAT's own, captured 2026-08-28 and
+    frozen; nothing this program produced appears on either side.
+
+    A bundle that shipped the dispatcher without the engines dies here with an
+    ImportError rather than converting; a bundle carrying the wrong engine for
+    this zone lands hundreds of metres away, which is why the failure states
+    the distance.
+    """
+    import math
+
+    from michspc.spc.convert import project_point
+    from michspc.spc.frames import NATRF2022
+    from michspc.spc.zones import zone_by_code
+
+    zone = zone_by_code(SPCS2022_ZONE_CODE)
+    try:
+        converted = project_point(
+            SPCS2022_ANCHOR_LATITUDE,
+            SPCS2022_ANCHOR_LONGITUDE,
+            NATRF2022,
+            zone,
+        )
+    except Exception as error:  # noqa: BLE001 — any failure is fatal here
+        raise SelfTestError(
+            f"an SPCS2022 conversion that succeeds in the source tree failed "
+            f"in this bundle: {type(error).__name__}: {error}. The 2022 zones "
+            f"reach their projection engine through a dispatch table built "
+            f"inside a function body, which is invisible to PyInstaller's "
+            f"static analysis."
+        ) from error
+
+    northing = converted.target_northing
+    easting = converted.target_easting
+    if northing is None or easting is None:
+        raise SelfTestError(
+            f"the SPCS2022 conversion produced no grid coordinate at "
+            f"{SPCS2022_ANCHOR_LATITUDE}, {SPCS2022_ANCHOR_LONGITUDE} in zone "
+            f"{SPCS2022_ZONE_CODE}."
+        )
+
+    distance = math.hypot(
+        northing - SPCS2022_ANCHOR_NORTHING_M, easting - SPCS2022_ANCHOR_EASTING_M
+    )
+    if (
+        abs(northing - SPCS2022_ANCHOR_NORTHING_M) > SPCS2022_LINEAR_TOLERANCE_M
+        or abs(easting - SPCS2022_ANCHOR_EASTING_M) > SPCS2022_LINEAR_TOLERANCE_M
+    ):
+        raise SelfTestError(
+            f"this bundle projected {SPCS2022_ANCHOR_LATITUDE}, "
+            f"{SPCS2022_ANCHOR_LONGITUDE} (NATRF2022) into zone "
+            f"{SPCS2022_ZONE_CODE} ({zone.name}) and produced "
+            f"N {northing:,.4f} m, E {easting:,.4f} m, where NGS's beta NCAT "
+            f"computes N {SPCS2022_ANCHOR_NORTHING_M:,.3f} m, "
+            f"E {SPCS2022_ANCHOR_EASTING_M:,.3f} m - the point landed "
+            f"{distance:.4f} m away, against a tolerance of "
+            f"{SPCS2022_LINEAR_TOLERANCE_M} m per axis. The projection "
+            f"mathematics in this bundle does not agree with the mathematics "
+            f"the test suite verified."
+        )
+
+    scale = converted.target_scale_factor
+    if scale is None or abs(scale - SPCS2022_ANCHOR_SCALE_FACTOR) > (
+        SPCS2022_SCALE_TOLERANCE
+    ):
+        raise SelfTestError(
+            f"this bundle reported a grid scale factor of {scale} at "
+            f"{SPCS2022_ANCHOR_LATITUDE}, {SPCS2022_ANCHOR_LONGITUDE} in zone "
+            f"{SPCS2022_ZONE_CODE}, where NGS's beta NCAT prints "
+            f"{SPCS2022_ANCHOR_SCALE_FACTOR:.9f}. A coordinate can be right "
+            f"while the factor a surveyor scales a distance by is wrong."
+        )
+
+    return (
+        f"SPCS2022 zone {SPCS2022_ZONE_CODE} ({zone.abbrev}) landed "
+        f"{distance:.4f} m from beta NCAT's own N "
+        f"{SPCS2022_ANCHOR_NORTHING_M:,.3f} / E "
+        f"{SPCS2022_ANCHOR_EASTING_M:,.3f} m, scale factor {scale:.9f}"
+    )
+
+
+def check_frame_refusal() -> str:
+    """The cross-frame refusal is alive in this bundle. Raises, never asserts.
+
+    NAD 83(2011) and NATRF2022 are one to two metres apart over North America,
+    and NGS has published no transformation between them, so this program
+    refuses to carry a coordinate across (docs/DESIGN.md #62,
+    docs/DEFERRED-NATRF2022-BRIDGE.md). **A bundle that lost the refusal is a
+    bundle that silently passes coordinates between frames** - it would return
+    an entirely ordinary-looking State Plane coordinate computed from a
+    position stated in the wrong frame, with nothing on any surface to show it.
+
+    The refusal lives in ``require_frame_path``, which is a pure ``if``/
+    ``raise`` in the core and therefore survives ``-O`` - but the failure this
+    check exists for is not a stripped assert: it is a bundle built from a tree
+    where the registry lost the pair, or where the module did not travel. It is
+    checked from inside the bundle because that is the only place the question
+    can be asked of the artifact that ships.
+
+    Both directions, because a registry that gained one identity by accident
+    would refuse the other and look correct here. That the gate is not simply
+    refusing EVERYTHING is proved by ``check_spcs2022_conversion`` above, which
+    converts through the same gate.
+    """
+    from michspc.spc.frames import (
+        NAD83_2011,
+        NATRF2022,
+        FrameTransformationUnavailableError,
+        require_frame_path,
+    )
+
+    for source, target in ((NAD83_2011, NATRF2022), (NATRF2022, NAD83_2011)):
+        try:
+            path = require_frame_path(source, target)
+        except FrameTransformationUnavailableError:
+            continue
+        except Exception as error:  # noqa: BLE001 — any other outcome is a failure
+            raise SelfTestError(
+                f"converting {source.code} to {target.code} raised "
+                f"{type(error).__name__} rather than the "
+                f"FrameTransformationUnavailableError this program refuses "
+                f"with: {error}. michspc.job and the GUI both catch that class "
+                f"by name, so a different exception reaches the user as a "
+                f"crash instead of as an explanation."
+            ) from error
+        raise SelfTestError(
+            f"this bundle ACCEPTED a conversion from {source.code} to "
+            f"{target.code} and returned {path!r}. NGS has published no "
+            f"transformation between these frames; they differ by one to two "
+            f"metres over North America, and a coordinate carried across "
+            f"without one looks entirely ordinary. The refusal did not reach "
+            f"this bundle."
+        )
+
+    return (
+        f"{NAD83_2011.code} <-> {NATRF2022.code} refuses in both directions, "
+        f"by name"
+    )
+
+
 CHECKS: tuple[tuple[str, object], ...] = (
     ("version and application name", check_version),
     ("bundled GEOID18 grid", check_geoid_grid),
@@ -772,6 +983,8 @@ CHECKS: tuple[tuple[str, object], ...] = (
     ("lazily imported dependencies", check_lazy_imports),
     ("Qt startup and bundled icon", check_icon_resource),
     ("end-to-end conversion against NGS NCAT", check_end_to_end_conversion),
+    ("SPCS2022 conversion against beta NGS NCAT", check_spcs2022_conversion),
+    ("cross-frame refusal", check_frame_refusal),
 )
 
 

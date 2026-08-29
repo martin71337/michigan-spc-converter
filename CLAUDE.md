@@ -46,7 +46,38 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.6.4 — new application artwork (2026-08-26)
+## Current state: the modernized-NSRS build is OPEN — H0 done, H1 next (2026-08-28)
+
+**Read `docs/PLAN-nsrs-modernization.md` (status block first) and DESIGN.md
+#61 before touching this work.** The owner approved the build 2026-08-28:
+the 19 SPCS2022 Michigan zones, NAD83(2011)⇄NATRF2022 at fixed NGS epochs
+(2010.0→2020.0), any-to-any across all 22 zones + geodetic on either frame,
+2022 zones restricted to metres + international feet — released ahead of
+NGS's official ~Q1 2027 rollout, every beta artifact capture-dated with a
+committed re-freeze obligation (`docs/REFREEZE-NSRS.md`, arrives with the
+first beta artifact in code).
+
+**H0/N0 is DONE and committed** (`review/nsrs-n0/`, DESIGN.md #61): all 19
+zone definitions captured and digest-pinned; beta NCAT performs the frame
+transformation (web app only — NO REST API accepts NATRF2022 tokens; the
+form-driving harness is committed) and emits SPCS2022 coordinates for all
+three projection kinds; EPP2022 frozen; `github.com/noaa-ngs/ncat-lib` is
+the reference implementation for H3. **The vertical half (NAPGD2022 /
+GEOID2022 / chained NGVD29) is DEFERRED by the owner** — N0 proved NGS
+publishes no NAVD88↔NAPGD2022 product at all; the reasons and the future
+path are in #61. **Hazard: beta's REST API fails open** (`200 OK` with
+`N/A`/`{}`) — legacy truth from geodesy.noaa.gov only.
+
+**Process (owner's instruction): Opus subagents design and build; the
+session lead verifies and re-derives; Codex gates — two interim, one
+closing, none skipped.** Work packages H1–H6 per the plan: H1 projection
+engines (tm.py, omerc.py, LC1 constructor, dispatcher), H2 zone registry,
+H3 helmert/frames (owns the epoch-labelling contradiction recorded in #61),
+H4 convert/job wiring (exit: the 18-digest cross-version pin untouched),
+H5 disclosure, H6 GUI. Version stays `0.6.4`-era `-dev` until the release
+gate; the release is 0.7.0.
+
+## Superseded status: 0.6.4 — new application artwork (2026-08-26)
 
 **0.6.4 carries #60 only, and it is artwork.** The compass rose that had been
 the icon since 0.1.0 is replaced by a survey monument — ring, crosshair, amber

@@ -1,16 +1,38 @@
 # PLAN — The Modernized NSRS Build (NATRF2022 · SPCS2022 · NAPGD2022/GEOID2022)
 
-**STATUS (2026-08-28): approved by the owner; N0 in progress.** This plan was
-approved by the owner on 2026-08-28 after two rounds of his decisions (recorded
-in the table below). It remains a proposal against DESIGN.md — the DESIGN.md
-amendment it calls for is an N0/H0 deliverable and lands before any production
-code; until that amendment merges, DESIGN.md's body (§2, §6, §10) is unchanged
-and still records this scope as deferred. N0's first capture is committed:
-`review/nsrs-n0/raw/zoneDefinitions.json`, 632,927 bytes, SHA-256
-`f222dac669503c8e25eb41d477bbb129b813b894b43e7d012effb9dc00bbc06a`, captured
-2026-08-28 — 19 Michigan rows confirmed (1 OMC skew −26° scale 0.999800,
-5 TM, 13 LC1, all origin scales ≥ 1, all on NATRF2022, false origins published
-in metres and international feet).
+**STATUS (2026-08-28): N0 IS DONE AND IT CHANGED THE PLAN — read
+`review/nsrs-n0/FINDINGS.md` and DESIGN.md #61 before building anything.**
+
+The owner approved this plan 2026-08-28; N0 ran the same day and returned:
+
+- **Horizontal half: GO in full.** All 19 zone definitions captured and
+  pinned; beta NCAT performs NAD83(2011)⇄NATRF2022 (web app ONLY — no REST
+  API accepts any NATRF2022 token on either host; anchors are captured by
+  form-driving, harness committed) and emits SPCS2022 coordinates for OMC,
+  LC1 and TM zones including the pure-projection shape; EPP2022 captured;
+  NGS's engine is open source (`github.com/noaa-ngs/ncat-lib`) — the
+  reference-implementation path for H3. usft is `N/A` on every 2022 zone —
+  the unit restriction's citation. Unresolved, owned by H3: the app's epoch
+  labelling contradiction (input "epoch 2010.00", reported "Input Epoch
+  2020.00").
+- **Vertical half: DEFERRED by the owner (2026-08-28).** NGS publishes NO
+  NAVD88↔NAPGD2022 product — no grid, no service, FAQ in the future tense.
+  The N-packages (N1–N5 vertical items, the chained NGVD29 path, GEOID2022)
+  do not run in this build; they return as data + anchors when NGS
+  publishes. GEOID2022 IS published (in legacy `.b`/`.bin` as well as GGXF —
+  **the build-time derivation tool below is unnecessary**; grids are
+  time-dependent, bicubic, ~475 MB, no reference implementation, no API
+  oracle, 2 Michigan-window test points) — all recorded for that future
+  build.
+- **Hazard, standing:** beta's REST API fails open (`200 OK` with
+  `N/A`/`{}`). Legacy truth from `geodesy.noaa.gov` only; NATRF2022 truth
+  from the frozen beta web-app captures.
+
+**The build that proceeds is H0–H6** (H0 = N0 + DESIGN.md #61, done
+2026-08-28) plus the packaging/release package, with the re-freeze
+mechanism, the two interim Codex gates and the closing gate as planned. The
+vertical sections below are retained as the deferred design of record;
+DESIGN.md #61 is the authority for what was measured and decided.
 
 ## Context
 

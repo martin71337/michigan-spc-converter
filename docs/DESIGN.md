@@ -467,6 +467,121 @@ lettering is below the size at which text resolves. Enlarging the badge does not
 fix it; the usual remedy is a cropped, text-free compass variant for the small
 sizes inside the same `.ico`.
 
+### #61 — 2026-08-28 — The modernized NSRS build opens: scope, N0 measurement, and the vertical half's deferral
+
+**This amendment reopens two items from §10's deferred list by revisiting
+their recorded reasons (METHOD.md §7), and re-defers a third with a new,
+measured reason.** The working specification is
+`docs/PLAN-nsrs-modernization.md`, approved by the owner 2026-08-28 after two
+rounds of his decisions (tabled there); this amendment is the design
+authority's record of the decision and of what the N0 measurement gate found.
+Until the work packages land, the program's behaviour is unchanged — this
+amendment changes the record, not the code.
+
+**What reopens, and why the recorded reasons no longer hold.** §10 deferred
+the SPCS2022 Michigan zones and the NAD 83 ↔ NATRF2022 transformation because
+NGS had published no final data ("Beta until 2027", "transformation grids that
+are not final"), and #21's verdict was "PARTIALLY BUILDABLE, and deliberately
+not built now" because the datum layer had no oracle. Two facts changed:
+NGS declared the definitional beta products **stable for implementation
+planning and integration** on 2026-05-28 (feedback periods complete), and the
+owner instructed on 2026-08-28: **build and release ahead of the official
+~Q1 2027 rollout** — "i want to have it ahead of time." Every beta-derived
+artifact carries the literal token `NGS beta` with its capture date, a
+committed re-freeze checklist (`docs/REFREEZE-NSRS.md`, arriving with the
+first beta artifact) maps each one to its recapture harness and
+authenticating pin, and the release gate will refuse while any `NGS beta` tag
+remains unless an explicit acknowledgement flag is passed — each beta release
+is a conscious act. **Sealed work may carry beta-era numbers; that is the
+owner's explicit, recorded decision**, and the record's factual provenance
+lines (capture dates, digests, NGS's own beta wording) are the defense.
+
+**N0 ran before any code (2026-08-28), on the owner's machine.** Full record:
+`review/nsrs-n0/FINDINGS.md`, with 177 raw captures, per-fetch manifests, and
+eight re-runnable harnesses; the session lead independently reproduced one
+probe of each decisive family before accepting. Verdicts:
+
+- **SPCS2022 Michigan: GO.** All 19 zone definitions captured verbatim and
+  digest-pinned (`zoneDefinitions.json`, SHA-256 `f222dac6…`): one statewide
+  Hotine oblique Mercator (OMC, skew −26°, k₀ 0.999800, origin 45°N/86°W),
+  five TM, thirteen LC1, all on NATRF2022, all origin scales ≥ 1, false
+  origins published in metres and international feet **only** — NCAT prints
+  `N/A` for usft on every 2022 zone, which is the citation basis for the
+  per-zone unit restriction. None of the three SPCS 83 Lambert zones survives
+  into SPCS2022. NGS states "All parameters are exact values."
+- **NAD83(2011) ⇄ NATRF2022: GO, web-app oracle only.** Beta NCAT v3.0
+  performs the transformation (at 43°N/−84.5°W: +0.943 m, −0.798 m, ±0.02 m
+  printed σ; the reverse is the exact negation to every printed digit; the
+  ellipsoid height changes by **−1.115 m**, load-bearing for factors). **No
+  REST API on either host accepts any NATRF2022 token** — the probe matrix is
+  frozen — so anchors are captured by driving NCAT's own form (harness
+  committed) and frozen, as GEOID12B's were. NGS's NCAT engine is open source
+  (`github.com/noaa-ngs/ncat-lib`, Java) — the reference-implementation path
+  the transformation math will be verified against, as `Vertcon.java` was for
+  VERTCON. EPP2022 captured (181 bytes, SHA-256 `63d80d64…`). One
+  contradiction is recorded and MUST be resolved at H3, not assumed: the
+  single-point app labels its input "NAD83(2011) epoch 2010.00" yet reports
+  "Input Epoch 2020.00".
+- **NAVD 88 ↔ NAPGD2022: NO-GO — the product does not exist.** No grid, no
+  service, no mention on any captured beta page; both hosts' APIs refuse
+  every token; the beta app has no geopotential-datum control and silently
+  drops orthometric heights; NGS's own FAQ answers the modernized-datum
+  question in the future tense. GEOID2022 grids themselves ARE published
+  (GGXF **and** legacy `.b`/`.bin` — so the plan's build-time conversion tool
+  is unnecessary), static grid at epoch 2020.0 plus a rate grid (the geoid is
+  now time-dependent), with σ grids, ~475 MB for Michigan's needs,
+  interpolation **bicubic** per the file's own declared attribute — with no
+  NGS reference implementation located and only two NGS test points near
+  Michigan. There is no geoid API for GEOID2022 on any host.
+
+**The owner's decision on the vertical half (2026-08-28): DEFERRED.** The
+program will not convert to a datum NGS has published no path to — deriving
+the ~0.5 m NAVD 88 → NAPGD2022 offset from the GEOID18/SGEOID2022 difference
+is exactly the fabrication this program refuses. NAPGD2022 stays
+`DECLARED_NOT_USABLE`; its registry citation gains the measured reason. The
+chained NGVD 29 → NAPGD2022 path (which the owner had approved, with RSS σ
+composition) defers with it, both to return as data + anchors when NGS
+publishes. The GEOID2022-for-GNSS-heights option (H = h − N onto NAPGD2022)
+was offered and declined for now — verification would rest on two check
+points and an unreferenced interpolation method, the thinnest footing of
+anything MCX would ship.
+
+**#32's ordering is thereby resolved, not violated:** #32 made SPCS2022
+downstream of NAPGD2022 so no conversion mixes eras inside a factor. With the
+vertical half deferred, a 2022-zone job carrying elevations computes its
+factors from the height its file holds and the geoid model the user selects
+(GEOID18 today), exactly as horizontal jobs have always done under the #41
+asymmetry — the datum question is undeclared in horizontal mode by the
+owner's standing decision, the model in force is named on every surface, and
+the magnitude of the era gap inside an elevation factor is ~0.5 m of H in
+R/(R+H+N) ≈ **8×10⁻⁸**, three orders below the 5.9 ppm the ellipsoid-height
+feature corrected. Recorded as fact, not mitigated further.
+
+**Operational hazard, standing rule:** `beta.ngs.noaa.gov/api/*` answers
+`200 OK` with `N/A`/`{}` where `geodesy.noaa.gov` returns numbers — **beta's
+REST API fails open.** Legacy-quantity truth captures come from production
+only; NATRF2022-era truth comes from the beta web-app captures, frozen with
+their harness. Also pinned when the anchors land: NCAT's multipoint datum
+list carries a duplicate `NATRF2022 epoch 2020.00` entry with a leading
+space, and NGS writes zone abbreviations both `MI_L45G` (JSON) and `MI L45G`
+(NCAT) — both sanctioned, neither canonical.
+
+**Body corrections carried by this amendment:** §2's out-of-scope line and
+§10's rows for SPCS2022 and NAD 83 ↔ NATRF2022 are superseded — those items
+are now in scope under the plan; §10's NAPGD2022-adjacent expectations gain
+the measured NO-GO reason; and §10's SPCS2022 row's sentence "The seam (§6)
+is built" was false when written (#21 proved the seams are intended design,
+not code) and is corrected in place. The body text edits land with the work
+packages that make them true.
+
+**Process, the owner's instruction:** Opus subagents design and build the
+work packages; the session lead verifies — independently re-deriving
+load-bearing math and checking claims against the code; **Codex reviews at
+every gate** (two interim, one closing — this tier runs all of them; the
+0.6.x releases' gateless cadence does not apply here). The horizontal work
+packages H1–H6 proceed per the plan; the first code lands only after this
+amendment, which is the H0 exit condition.
+
 ### #60 — 2026-08-26 — 0.6.4: new application artwork, chosen from three
 
 **The owner's instruction:** a new icon, presented for approval before anything

@@ -1,0 +1,32 @@
+You are the independent adversarial reviewer for MCX, running the NARROWING
+re-confirmation of your own interim gate over the modernized-NSRS H1+H2 work
+(your findings: review/gate-nsrs-h1h2/output.txt; the fixes: commit e0b7a91,
+touching ONLY tests/test_projection_engines.py and
+tests/fixtures/spcs2022_engine_anchors.py — production code untouched,
+tm.py byte-identical). TIER: a wrong coordinate lands on a sealed survey.
+
+Review ONLY the fixed surfaces, against your three findings:
+
+1. Your B7 5040→5000 seed. The fix: component-wise assertions replacing a
+   max() that collapsed the two series (the latitude residual is 4-7x the
+   longitude's and B7 is longitude-only); a new inverse-Jacobian test
+   (J_inv·J_fwd − I entry by entry, pinned per engine per probe, tolerance
+   5e-9 derived from a measured noise floor of ~1e-10, coverage pinned
+   against projection.registered_definition_types()); and the TM closure
+   curve pinned per component at 1% relative. Verify: does your seed now
+   fail? Can you construct ANOTHER single-coefficient inverse-series
+   mutation (any B or D coefficient, any denominator or sign) that still
+   passes everything? Is the 5e-9 tolerance genuinely derived and tight, or
+   does it admit a defect class?
+2. Your duplicated-Isle-Royale-row seed. The fix: a row-for-row
+   bidirectional join between the fixture and the SHA-256-authenticated
+   anchors.json. Verify the join is genuinely bidirectional and keyed
+   uniquely; try to construct a mutation of fixture OR capture-reading that
+   still passes (e.g. a value edited identically in neither file's favor, a
+   row moved between zones, the digest constant itself edited).
+3. The scale tolerance at 5e-10 with four anchors within 1% of the bound
+   and a fixture comment claiming all 63 engine values print identically to
+   NGS at nine decimals. Verify the claim and the derivation comment.
+
+METHOD: findings need concrete inputs and wrong outputs, with severity.
+End with exactly one line: VERDICT: APPROVED or VERDICT: FINDINGS

@@ -96,11 +96,31 @@ finite-difference γ/k test is the pin that catches it; raise at the interim
 gate. (2) `report._zone_block` still hard-codes the 2SP wording and fields —
 **H2 must not let 2022 zones reach the dropdowns before H5 rewrites it**
 (build the combos from SPCS83_ZONES until H6 flips them, pinned).
-Next: **H2 zone registry**, H3 helmert/frames (owns #61's epoch
-contradiction and the sign-convention discriminator), H4 wiring (exit: the
-18-digest pin untouched), interim Codex gate over H1–H2 before H3 code is
-accepted, H5 disclosure, H6 GUI. Version moves to a `-dev` marker at the
-next code WP; the release is 0.7.0.
+**H2 IS DONE** (2026-08-29, suite → 3478, version 0.7.0-dev): the 19 zone
+records on NGS's own polygon bounds (`zoneBounds.json`, an N0 supplement),
+per-zone `allowed_units` and NGS-cited `easting_range_m`, era tuples with
+derived `ALL_ZONES`, uniqueness + bracket import checks, the GUI gated to
+SPCS83_ZONES until H5/H6. **The interim Codex gate over H1–H2 ran:
+FINDINGS (2 MEDIUM, 1 LOW, all test-layer), fixed at the root** — the real
+disease was a `max()` collapsing two series' residuals; component-wise
+pins + an inverse-Jacobian test per engine now catch the reviewer's seeds
+(suite → 3490). Codex died on quota during the narrowing re-confirmation;
+the owner's standing fallback (Opus reviewer) completed it — verdict in
+`review/gate-nsrs-h1h2/`.
+
+**THE FRAME BRIDGE IS HELD (owner's decision 2026-08-29, DESIGN.md #62,
+`docs/DEFERRED-NATRF2022-BRIDGE.md`):** NGS publishes no transformation
+parameters; the best candidate misses NCAT by 17 cm at a verified-real
+point. Cross-frame refuses naming that fact. H3 reduces to the
+frames-registry restructure (identities only, NATRF2022 usable for
+same-frame work); helmert.py and the two-pivot PointConversion defer with
+the bridge.
+
+Next: **H3′ frames registry**, **H5 disclosure rewrite** (report per-kind
+zone blocks + era-correct prose — the gate before any 2022 zone reaches a
+dropdown), **H6 GUI** (per-frame geodetic entries, unit filtering, zone
+list opens), **N8 packaging/self-test/release-gates**, closing Codex gate,
+then 0.7.0 on the owner's machine after his screen review.
 
 ## Superseded status: 0.6.4 — new application artwork (2026-08-26)
 

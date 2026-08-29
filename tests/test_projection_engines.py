@@ -267,6 +267,74 @@ def test_inverse_recovers_the_anchor_latitude_and_longitude(anchor):
     assert position.longitude == pytest.approx(anchor.longitude, abs=5e-8)
 
 
+# --------------------------------------------------------------------------
+# The inverse's OWN gamma and k, against the same captured NCAT values.
+#
+# The convergence and the grid scale factor are properties of the POSITION, not
+# of the direction it was reached from: NCAT prints one value for each at a
+# point, and both of this program's directions must reproduce it. The forward
+# side has been anchored against those printed values since H1; the inverse
+# side had not, and its gamma and k come from a genuinely different series -
+# the manual's section 3.24 D and G coefficients, against section 3.23's C and
+# F.
+#
+# The re-confirmation round measured what that cost: all ten seeded mutations
+# of the transverse Mercator's inverse D/G series were caught by exactly ONE
+# test, test_the_two_directions_agree_about_convergence_and_scale, which
+# compares the two directions to each other. That test is worth keeping - it is
+# tight, and it holds at points no anchor covers - but on its own it is a
+# single point of coverage, and it is INTERNAL: it says the two directions
+# agree, not that either agrees with NGS. The two tests below add the external
+# half, per zone, at all 63 captured positions.
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.anchor
+@pytest.mark.parametrize("anchor", SPCS2022_PROJECTION_ANCHORS, ids=ANCHOR_IDS)
+def test_inverse_matches_beta_ncat_scale_factor(anchor):
+    """The inverse's k at NGS's own northing and easting.
+
+    Same captured value the forward test uses and the same derived tolerance -
+    half a unit in the ninth decimal place NCAT prints. Measured worst across
+    all 63 anchors on the inverse side: 4.9691e-10, at zone 261006's
+    +0.15/+0.25 point, which is the same anchor and the same near-rounding-
+    boundary reason recorded in the fixture's tolerance comment. All 63 inverse
+    values print identically to NGS at nine decimals.
+    """
+    position = projection.inverse(
+        anchor.northing_m, anchor.easting_m, ZONES_BY_CODE[anchor.zone_code]
+    )
+
+    assert position.scale_factor == pytest.approx(
+        anchor.scale_factor, abs=SPCS2022_PRINTED["scale_factor"]
+    )
+
+
+@pytest.mark.anchor
+@pytest.mark.parametrize("anchor", SPCS2022_PROJECTION_ANCHORS, ids=ANCHOR_IDS)
+def test_inverse_matches_beta_ncat_convergence(anchor):
+    """The inverse's gamma at NGS's own northing and easting.
+
+    The sign convention is checked here as well as on the forward side, at the
+    same eighteen east-of-origin and west-of-origin pairs: a sign error in the
+    inverse's D series alone would leave every forward anchor green.
+
+    Measured worst across all 63: 4.705e-03 arc seconds, at zone 261010's
+    +0.15/+0.25 point, against the 0.005 half-quantum of NCAT's printed 0.01
+    arc second. Close to the bound, and expected to be - it is a printed-
+    precision comparison, so a value near a rounding boundary must approach
+    half a quantum without crossing it.
+    """
+    position = projection.inverse(
+        anchor.northing_m, anchor.easting_m, ZONES_BY_CODE[anchor.zone_code]
+    )
+
+    expected = dms_to_degrees(anchor.convergence_dms)
+    assert position.convergence * 3600.0 == pytest.approx(
+        expected * 3600.0, abs=SPCS2022_PRINTED["convergence_arcsec"]
+    )
+
+
 @pytest.mark.parametrize("anchor", SPCS2022_PROJECTION_ANCHORS, ids=ANCHOR_IDS)
 def test_forward_then_inverse_returns_the_same_position(anchor):
     """Round trip through our own two directions, at every anchor point.
@@ -1921,6 +1989,180 @@ def test_the_fixture_is_the_capture_row_for_row():
                 )
 
     assert not problems, "\n".join(problems)
+
+
+# The columns of a captured row that must be traceable to the page NGS served.
+# Not every field: ``label`` is the harness's own name for a point and
+# ``northing_ift``/``easting_ift`` are checked through the metres in the join
+# above. These five are the ones a forgery would have to move.
+_TRACEABLE_FIELDS = (
+    "northing_m",
+    "easting_m",
+    "scale_factor",
+    "ncat_echo_lat",
+    "ncat_echo_lon",
+)
+
+# No thousands separators anywhere in the values, so the printed strings appear
+# in the page exactly as anchors.json stores them, with no normalisation.
+# Determined two ways rather than assumed: every row carries
+# ``thousands_stripped: false``, which the harness set when it extracted the
+# value, AND the comma-grouped form of a seven-digit easting ("1,755,596.782")
+# appears nowhere in the page it came from. Both are asserted below so the
+# claim cannot rot silently if NCAT's formatting changes at re-freeze.
+_NO_THOUSANDS_SEPARATORS = True
+
+
+def _appears_verbatim(value: str, text: str) -> bool:
+    """Is ``value`` in ``text`` as a whole number rather than inside a longer one?
+
+    The delimiting matters. Beta NCAT's page renders the same position several
+    times at different precisions - the echoed latitude appears as
+    ``42.100000000000000`` in a script attribute and as ``42.1000000000`` in the
+    result span - so a bare substring test would accept a truncated or extended
+    figure as a match. The lookaround requires the captured string to stand on
+    its own: no digit or decimal point immediately before it, no digit after.
+    """
+    import re
+
+    return (
+        re.search(r"(?<![0-9.])" + re.escape(value) + r"(?![0-9])", text) is not None
+    )
+
+
+def test_every_captured_value_is_in_the_page_ngs_served():
+    """The second link of the chain, and the reason it has to exist.
+
+    The row-for-row join above proves the fixture equals ``anchors.json``, and
+    ``anchors.json`` is authenticated by a SHA-256 written into this file. The
+    re-confirmation round pointed out where that chain ends: **the digest is a
+    constant a person can edit.** Change a value in the fixture, change it in
+    ``anchors.json``, refresh ``ANCHORS_CAPTURE_SHA256`` to match, and 1,686
+    tests pass - at which point the "external" anchors are a restatement of this
+    program's own arithmetic and prove nothing at all.
+
+    The link that closes it was already in the repository and unread: every row
+    of ``anchors.json`` records the SHA-256 of the raw HTML page beta NCAT
+    served for that point, and those pages are committed. So this test does two
+    things for all 63 rows:
+
+    1. re-hashes the named raw file and compares it against the digest the row
+       itself carries - the file cannot be edited to agree with a forged value;
+    2. requires each printed value to appear VERBATIM in that page's text - so a
+       forged value cannot agree with a page it never came from.
+
+    A forgery now has to alter the saved HTML too, and beta NCAT embeds a fresh
+    session token in every page, so the altered file cannot be re-fetched or
+    reproduced - which is exactly the "digests attest to the saved file only"
+    caveat that N0 recorded, used here as a defence.
+
+    What this does NOT prove, and must not be read as proving: that beta NCAT's
+    numbers are right. It proves they are NGS's numbers and not ours.
+    """
+    import hashlib
+
+    captured = _load_anchor_capture()
+    root = ANCHORS_CAPTURE_PATH.parent
+    problems: list[str] = []
+
+    for row in captured:
+        page = root / row["raw"]
+        if not page.is_file():
+            problems.append(f"{row['raw']} is named by the capture and is not present")
+            continue
+
+        raw = page.read_bytes()
+        digest = hashlib.sha256(raw).hexdigest()
+        if digest != row["sha256"]:
+            problems.append(
+                f"{row['raw']} hashes to {digest}, but the capture row for "
+                f"{row['zone_code']} {row['label']} records {row['sha256']}"
+            )
+            continue
+
+        text = raw.decode("utf-8")
+        for field in _TRACEABLE_FIELDS:
+            if not _appears_verbatim(row[field], text):
+                problems.append(
+                    f"{row['zone_code']} {row['label']}: {field} "
+                    f"{row[field]!r} does not appear in {row['raw']}, the page "
+                    f"beta NCAT served for that point"
+                )
+
+        if row["thousands_stripped"] is not (not _NO_THOUSANDS_SEPARATORS):
+            problems.append(
+                f"{row['raw']} records thousands_stripped="
+                f"{row['thousands_stripped']!r}; this test assumes the printed "
+                f"values need no separator normalisation"
+            )
+
+    assert not problems, "\n".join(problems)
+
+
+def test_the_captured_pages_carry_no_thousands_separators():
+    """The normalisation question, answered on the data rather than assumed.
+
+    If NCAT ever prints ``1,755,596.782``, the verbatim check above would fail
+    loudly rather than silently - but it would fail for a formatting reason and
+    look like a forgery. Stating the fact separately keeps the two apart, and
+    fixes what re-freeze has to re-examine.
+    """
+    captured = _load_anchor_capture()
+    root = ANCHORS_CAPTURE_PATH.parent
+
+    assert not [row for row in captured if row["thousands_stripped"]]
+
+    row = next(r for r in captured if float(r["easting_m"]) > 1_000_000.0)
+    text = (root / row["raw"]).read_text(encoding="utf-8")
+    whole, _, fraction = row["easting_m"].partition(".")
+    grouped = f"{int(whole):,}.{fraction}"
+
+    assert grouped != row["easting_m"], "the probe needs a value worth grouping"
+    assert grouped not in text
+    assert _appears_verbatim(row["easting_m"], text)
+
+
+def test_the_capture_record_quotes_the_digest_this_file_pins():
+    """CAPTURE.md's digest table, machine-checked against the file itself.
+
+    Three statements of one fact - the prose record, this module's constant, and
+    the bytes on disk - and a person editing two of them must now edit the
+    third. The record is the document a reader reaches for first, so a stale
+    digest there is worse than no digest.
+    """
+    import hashlib
+
+    record = (ANCHORS_CAPTURE_PATH.parent / "CAPTURE.md").read_text(encoding="utf-8")
+    actual = hashlib.sha256(ANCHORS_CAPTURE_PATH.read_bytes()).hexdigest()
+
+    assert actual == ANCHORS_CAPTURE_SHA256
+    assert f"anchors.json{' ' * 26}{actual}" in record or actual in record, (
+        f"review/nsrs-h1-anchors/CAPTURE.md does not quote {actual}"
+    )
+
+
+def test_the_page_check_would_notice_a_forged_value():
+    """Anti-vacuousness: the verbatim check rejects a number NGS did not print.
+
+    Without this, a bug in ``_appears_verbatim`` that made it return True for
+    everything would leave the whole chain green and worthless. Uses a value one
+    digit off a real one, which is what a forgery looks like - not a wild
+    number that any weak check would reject.
+    """
+    captured = _load_anchor_capture()
+    row = next(r for r in captured if r["zone_code"] == "260001")
+    text = (ANCHORS_CAPTURE_PATH.parent / row["raw"]).read_text(encoding="utf-8")
+
+    assert _appears_verbatim(row["northing_m"], text)
+
+    whole, _, fraction = row["northing_m"].partition(".")
+    nudged = f"{whole}.{int(fraction) + 1:0{len(fraction)}d}"
+    assert nudged != row["northing_m"]
+    assert not _appears_verbatim(nudged, text)
+
+    # And a truncation of the real value must not pass either - that is the
+    # case the lookaround exists for.
+    assert not _appears_verbatim(row["northing_m"][:-1], text)
 
 
 def test_the_fixture_carries_the_whole_capture():

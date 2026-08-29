@@ -599,6 +599,60 @@ gateless cadence does not apply here). The horizontal work packages H1–H6
 proceed per the plan; the first code lands only after this amendment, which
 is the H0 exit condition.
 
+### #62 — 2026-08-29 — The frame bridge is held: measured, decided, deferred
+
+**The owner's decision, on measured evidence: the NAD 83(2011) ⇄ NATRF2022
+transformation does not ship in 0.7.0.** The 22 zones and everything within
+each frame ship; a cross-frame selection refuses, naming NGS's unpublished
+transformation. Standing marker with the full evidence and reopen tripwire:
+`docs/DEFERRED-NATRF2022-BRIDGE.md`.
+
+**The evidence, in one paragraph** (details in `review/nsrs-h3-recon/` and
+`review/nsrs-h1-anchors/P05-PROBE.md`): NGS's NCAT computes the
+transformation with server-side parameters it has not published — proven to
+the level of parsing the offline tool's compiled classes; the definitional
+documents (TR NOS NGS 62 App. A; TM NOS NGS 90) establish that at the
+standard epochs the EPP rotation is the identity, so the bridge is one
+Helmert leg; the best public candidate (HTDP v3.6.0's values) reproduces
+beta NCAT to 2–3 cm at 11 of 12 frozen anchors and **17 cm at one** —
+re-probed, reproduced digit-for-digit, explained by neither EPP2022 nor the
+captured IFDM2022 grids, with NCAT's own printed σ varying 2× within 0.1°
+there (an unpublished grid component). The plan's acceptance bar
+("systematic residual = wrong parameters = stop") fired, and the owner
+confirmed the stop on 2026-08-29.
+
+**Consequences for the work packages:** H3 reduces to the frames-registry
+restructure (FrameStatus; the refusal successor tests; NATRF2022 usable as
+a frame for same-frame work) with `FRAME_TRANSFORMATIONS` carrying
+identities only; `helmert.py` and the two-pivot `PointConversion` defer
+with the bridge (their designs stay in the plan); H5's disclosure rewrite
+and H6's GUI proceed, with the per-frame geodetic entries enabling
+NATRF2022-native work. The interim gate over H1–H2 ran under Codex
+(FINDINGS: 2 MEDIUM 1 LOW, all test-layer, fixed at the root with the
+reviewer's own counterexamples, each falsified); **Codex died on quota
+during the narrowing re-confirmation** mid-way through building a
+coefficient mutation matrix — the pass fell to an independent Opus
+reviewer under the owner's standing quota fallback (2026-08-07), which
+**ran the matrix to completion: 25 of 25 inverse-and-control coefficient
+mutations caught, detection floor measured at 1.8 µm of ground shift, the
+three original seeds all failing, the 63-anchor print-identity claim
+independently re-verified — VERDICT: FINDINGS, one LOW plus one
+observation, both then fixed at the root and falsified.** The LOW: the
+capture's authentication chain terminated at an editable digest constant —
+a self-consistent forgery across the fixture, the capture and the pin
+passed 1,686 tests while NGS's real page sat unread in the repo. The fix
+completes the chain: every anchor row's raw page is re-hashed against the
+row's own recorded digest and must carry the row's printed values verbatim
+(delimited, not substring); the reviewer's exact four-file forgery now
+fails exactly one test, which names every moved value and the page it
+should have come from. The observation: the TM inverse's D/G series hung
+on a single internal test — every anchor's captured N/E is now run
+through `projection.inverse` and its convergence and scale pinned against
+the same printed NCAT values (a position's γ and k are
+direction-independent), so a D3 sign flip is caught nine times without
+that test. Suite **3,620**, both modes. The gate record, both prompts,
+both outputs: `review/gate-nsrs-h1h2/`. **The interim gate is closed.**
+
 ### #60 — 2026-08-26 — 0.6.4: new application artwork, chosen from three
 
 **The owner's instruction:** a new icon, presented for approval before anything

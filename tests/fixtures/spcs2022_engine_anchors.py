@@ -185,11 +185,26 @@ SPCS2022_PRINTED = {
     "linear_ift": 0.0005,
     # Convergence is printed to 0.01 arc second; half a unit there is 0.005.
     "convergence_arcsec": 0.005,
-    # The grid scale factor is printed to nine decimal places. Half a unit is
-    # 5e-10; 1e-9 is one full unit in the last place, which leaves headroom in
-    # the same spirit as ncat_anchors.py's linear tolerance. Measured worst
-    # across all 63 anchors: 4.967e-10.
-    "scale_factor": 1e-9,
+    # The grid scale factor is printed to nine decimal places, so the
+    # quantization interval is 1e-9 and a printed figure can be held to HALF of
+    # that - 5e-10 - and no looser. An earlier draft allowed a full 1e-9, which
+    # is twice the limit the printed precision supports: the interim H1+H2 gate
+    # showed that at that tolerance an engine result of 0.99985823075 passes
+    # against NGS's printed 0.999858230 even though it prints as 0.999858231,
+    # i.e. a value that DISAGREES with NGS at NGS's own precision. Tightened to
+    # the half-quantum bound.
+    #
+    # Measured worst across all 63 anchors: 4.9673e-10, at zone 261006's
+    # +0.15/+0.25 point - inside the bound by 0.65%, which is close and is
+    # EXPECTED to be close rather than lucky. NGS's printed 1.000034419 is the
+    # rounding of a true value near ...4185, and this engine computes
+    # 1.000034418503; a value sitting almost exactly on a rounding boundary
+    # necessarily shows a deviation approaching half a quantum, and cannot
+    # exceed it while still printing the same string. Four of the 63 sit above
+    # 4.9e-10 for that reason, none above 5e-10, and all 63 print IDENTICALLY
+    # to NGS at nine decimals - which is the statement this tolerance exists to
+    # make.
+    "scale_factor": 5e-10,
 }
 """Tolerances, each derived from the precision beta NCAT printed - never chosen
 to make a test pass. A printed figure cannot be held to more than half a unit in

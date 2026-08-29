@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import dataclasses
 import math
+from pathlib import Path
 
 import pytest
 
@@ -51,6 +52,7 @@ from michspc.spc.zones import (
     TransverseMercatorDef,
     Zone,
     dms,
+    zone_by_code,
 )
 from tests.fixtures.spcs2022_engine_anchors import (
     SPCS2022_PRINTED,
@@ -787,22 +789,222 @@ def test_forward_and_inverse_are_true_inverses_across_the_zone(zone):
             assert position.longitude == pytest.approx(longitude, abs=1e-9)
 
 
+# --------------------------------------------------------------------------
+# The INVERSE side's derivative. Every engine, no exemptions.
+#
+# Until the interim H1+H2 gate there was no derivative check on any inverse at
+# all: test_convergence_and_scale_agree_with_a_finite_difference differentiates
+# the FORWARD mapping only. The gate demonstrated what that costs by seeding the
+# inverse's B7 denominator 5040 -> 5000 and watching 1,674 tests stay green.
+#
+# The check here is the composition rule. If ``inverse`` really is the inverse
+# of ``forward``, then the Jacobian of one is the matrix inverse of the other's
+# at the same point, so their product is the identity:
+#
+#     J_inv = [[d phi / dN, d phi / dE],      J_fwd = [[dN / d phi, dN / d lam],
+#              [d lam / dN, d lam / dE]]               [dE / d phi, dE / d lam]]
+#
+#     J_inv . J_fwd = I
+#
+# Both are taken by central difference on the real public entry points, so no
+# engine internals are touched and the test reads the same for all four
+# projections. The product is dimensionless, which is what lets one tolerance
+# cover engines whose coordinates are metres and whose positions are degrees.
+#
+# **All four entries are asserted separately.** That is the same lesson the
+# closure table above carries: collapsing them with max() lets the entry with
+# the larger legitimate truncation hide a defect in another.
+# --------------------------------------------------------------------------
+
+JACOBIAN_FORWARD_STEP_DEG = 1e-4
+JACOBIAN_INVERSE_STEP_M = 10.0
+"""Central-difference steps, chosen where truncation and round-off cross.
+
+For the forward step: truncation goes as h^2/6 times the third derivative,
+about 5e-13 relative at 1e-4 degrees; round-off goes as the ulp of a
+million-metre coordinate divided by 2h, about 1e-11 relative. For the inverse
+step: the same two terms at 10 m give about 4e-13 and 6e-11. Both are
+round-off-dominated, and both are near the minimum - measured on an
+exact-inverse engine (LC1 261017, 7.8 degrees off its meridian), the worst
+product entry is 1.0e-10 at (1e-3, 100 m), 6.0e-11 at these steps, and
+1.1e-09 at (1e-5, 1 m), so a ten-times-smaller step is ten times WORSE.
+"""
+
+JACOBIAN_TOLERANCE = 5e-9
+"""How far a product entry may sit from its pinned value.
+
+Derived from the finite-difference noise above, not fitted: the worst entry
+measured on any engine whose inverse is exact - both Lamberts and the oblique
+Mercator, at both probes - is 1.04e-10, so this is about fifty times the
+measured noise floor. It is deliberately ONE absolute number for every entry of
+every engine, so that a pinned truncation value and a pinned zero are held to
+the same standard and no engine gets a tolerance of its own.
+"""
+
+JACOBIAN_PROBES = (
+    # (zone code, probe latitude, degrees west of the central meridian,
+    #  the four entries of J_inv . J_fwd - I, in reading order)
+    #
+    # Zero means "identity to within the finite-difference noise": the engine's
+    # inverse is exact there, and the pinned zero says so. A non-zero value is
+    # the engine's own legitimate series truncation, measured.
+    #
+    # One zone per registered definition type, checked below against the
+    # dispatch table so that a fifth projection cannot arrive unprobed.
+    ("2113", 41.5, 0.5, (0.0, 0.0, 0.0, 0.0)),
+    ("2113", 41.5, 7.8, (0.0, 0.0, 0.0, 0.0)),
+    ("261017", 46.7, 0.5, (0.0, 0.0, 0.0, 0.0)),
+    ("261017", 46.7, 7.8, (0.0, 0.0, 0.0, 0.0)),
+    ("260001", 45.0, 0.5, (0.0, 0.0, 0.0, 0.0)),
+    ("260001", 45.0, 7.8, (0.0, 0.0, 0.0, 0.0)),
+    ("261002", 40.2, 0.5, (0.0, 0.0, 0.0, 0.0)),
+    # The transverse Mercator is the one engine whose inverse is a truncated
+    # series, so it is the only row that departs from the identity. Measured:
+    # d(lat)/dN . dN/d(lat) - 1 = +4.7e-10 (inside the noise, pinned 0),
+    # the two cross terms +1.062611e-07 and +2.655635e-09, and
+    # d(lon)/dE . dE/d(lon) - 1 = -2.193424e-08.
+    #
+    # The last of those is what the gate's B7 seed moves: 5040 -> 5000 takes it
+    # to -4.366964e-08, a shift of 2.17e-08, more than four times this
+    # tolerance. The cross term +1.062611e-07 does NOT move, which is why the
+    # entries are pinned one by one.
+    ("261002", 40.2, 7.8, (0.0, 1.062611e-07, 2.655635e-09, -2.193424e-08)),
+)
+
+
+def _jacobian_forward(latitude, longitude, zone):
+    """[[dN/dphi, dN/dlam], [dE/dphi, dE/dlam]], metres per degree."""
+    step = JACOBIAN_FORWARD_STEP_DEG
+    north = projection.forward(latitude + step, longitude, zone)
+    south = projection.forward(latitude - step, longitude, zone)
+    east = projection.forward(latitude, longitude + step, zone)
+    west = projection.forward(latitude, longitude - step, zone)
+    return (
+        (north.northing - south.northing) / (2.0 * step),
+        (east.northing - west.northing) / (2.0 * step),
+        (north.easting - south.easting) / (2.0 * step),
+        (east.easting - west.easting) / (2.0 * step),
+    )
+
+
+def _jacobian_inverse(northing, easting, zone):
+    """[[dphi/dN, dphi/dE], [dlam/dN, dlam/dE]], degrees per metre."""
+    step = JACOBIAN_INVERSE_STEP_M
+    up = projection.inverse(northing + step, easting, zone)
+    down = projection.inverse(northing - step, easting, zone)
+    right = projection.inverse(northing, easting + step, zone)
+    left = projection.inverse(northing, easting - step, zone)
+    return (
+        (up.latitude - down.latitude) / (2.0 * step),
+        (right.latitude - left.latitude) / (2.0 * step),
+        (up.longitude - down.longitude) / (2.0 * step),
+        (right.longitude - left.longitude) / (2.0 * step),
+    )
+
+
+def _jacobian_product_minus_identity(latitude, longitude, zone):
+    """J_inv . J_fwd - I, as four numbers in reading order."""
+    point = projection.forward(latitude, longitude, zone)
+    f11, f12, f21, f22 = _jacobian_forward(latitude, longitude, zone)
+    g11, g12, g21, g22 = _jacobian_inverse(point.northing, point.easting, zone)
+    return (
+        g11 * f11 + g12 * f21 - 1.0,
+        g11 * f12 + g12 * f22,
+        g21 * f11 + g22 * f21,
+        g21 * f12 + g22 * f22 - 1.0,
+    )
+
+
+@pytest.mark.parametrize(
+    "code,latitude,offset,expected",
+    JACOBIAN_PROBES,
+    ids=[f"{row[0]}@{row[2]}deg" for row in JACOBIAN_PROBES],
+)
+def test_each_engines_inverse_jacobian_is_the_forwards_matrix_inverse(
+    code, latitude, offset, expected
+):
+    """The inverse's derivative, checked against the forward's, entry by entry.
+
+    A round trip composes the two mappings and can hide a defect inside a
+    legitimate truncation; this composes their DERIVATIVES, where a high-order
+    coefficient's contribution is amplified by its own order and cannot be
+    absorbed by the other coordinate's residual, because each entry is asserted
+    on its own.
+
+    Both probes matter and they say different things. In the zone, every entry
+    of every engine must be at the finite-difference noise floor - there is no
+    truncation to hide behind, so this is a flat statement that each inverse is
+    the inverse. Far out, the exact engines must STILL be at the floor, and the
+    one truncated engine must match its measured curve.
+    """
+    zone = zone_by_code(code)
+    longitude = zone.definition.lon_origin - offset
+
+    measured = _jacobian_product_minus_identity(latitude, longitude, zone)
+
+    names = ("d(lat)/dN.dN/d(lat)-1", "d(lat)/dE.dE/d(lat)", "d(lon)/dN.dN/d(lon)", "d(lon)/dE.dE/d(lon)-1")
+    for name, value, pinned in zip(names, measured, expected):
+        assert value == pytest.approx(pinned, abs=JACOBIAN_TOLERANCE), (
+            f"{zone.abbrev} at {latitude}, {longitude}: {name} is {value:.6e}, "
+            f"pinned at {pinned:.6e}"
+        )
+
+
+def test_the_jacobian_probes_cover_every_registered_projection():
+    """No engine's inverse is exempt, and none can become exempt quietly.
+
+    The probe table is keyed by zone code, so a projection added to the
+    dispatcher without a probe would leave its inverse with no derivative check
+    at all - exactly the gap the gate found on the transverse Mercator. This
+    compares the definition types the probes actually exercise against the
+    dispatch table itself.
+    """
+    probed = {type(zone_by_code(code).definition) for code, _lat, _off, _e in JACOBIAN_PROBES}
+
+    assert probed == set(projection.registered_definition_types())
+    assert len(probed) == 4
+
+
+def test_the_jacobian_check_would_notice_a_broken_inverse():
+    """Anti-vacuousness: the tolerance is not wide enough to pass anything.
+
+    A deliberately wrong inverse - here the real one with its longitude nudged
+    by one part in a million, far less than any coefficient typo would do -
+    must blow the tolerance. Without this, a tolerance mistakenly set to 1.0
+    would leave every assertion above green and meaningless.
+    """
+    zone = zone_by_code("261017")
+    latitude = 46.7
+    longitude = zone.definition.lon_origin - 0.5
+    point = projection.forward(latitude, longitude, zone)
+
+    step = JACOBIAN_INVERSE_STEP_M
+    right = projection.inverse(point.northing, point.easting + step, zone)
+    left = projection.inverse(point.northing, point.easting - step, zone)
+    true_dlon_dE = (right.longitude - left.longitude) / (2.0 * step)
+
+    f11, f12, f21, f22 = _jacobian_forward(latitude, longitude, zone)
+    up = projection.inverse(point.northing + step, point.easting, zone)
+    down = projection.inverse(point.northing - step, point.easting, zone)
+    dlon_dN = (up.longitude - down.longitude) / (2.0 * step)
+
+    broken = true_dlon_dE * (1.0 + 1e-6)
+    entry = dlon_dN * f12 + broken * f22 - 1.0
+
+    assert abs(entry) > JACOBIAN_TOLERANCE
+
+
+TM_CLOSURE_PROBE_LATITUDE = 45.0
+
 TM_CLOSURE_BY_OFFSET = (
-    # (degrees from the central meridian, bound on the round-trip error, m)
-    #
-    # Measured on zone 261002 (Detroit) at 45 N, and the bound at each offset is
-    # the next round number above the measurement, so a change in the series
-    # shows here rather than being absorbed:
-    #
-    #     1.0 deg -> 5.0e-7 m     4.0 deg -> 5.4e-5 m
-    #     2.0 deg -> 7.0e-7 m     6.0 deg -> 1.4e-3 m
-    #     3.0 deg -> 5.8e-6 m     7.8 deg -> 1.14e-2 m
-    (1.0, 1e-6),
-    (2.0, 1e-6),
-    (3.0, 1e-5),
-    (4.0, 1e-4),
-    (6.0, 1e-2),
-    (7.8, 2e-2),
+    # (degrees from the central meridian, |d latitude|, |d longitude|), both in
+    # DEGREES, measured on zone 261002 (Detroit) at 45 N going west.
+    (1.0, 4.490630e-12, 4.263256e-14),
+    (2.0, 6.323830e-12, 3.808509e-12),
+    (3.0, 5.199752e-11, 3.016964e-11),
+    (4.0, 4.816840e-10, 9.865175e-11),
+    (6.0, 1.238048e-08, 1.435097e-09),
+    (7.8, 1.023331e-07, 2.774695e-08),
 )
 """How far the transverse Mercator series' closure degrades off its meridian.
 
@@ -810,68 +1012,123 @@ TM_CLOSURE_BY_OFFSET = (
 section 3.2 series is truncated, and michspc.spc.tm keeps every term the manual
 publishes (its docstring says why it keeps even the ones the manual calls
 negligible). Within a zone's own area the closure is at the floating-point
-floor; a zone width away it is still micrometres; seven degrees out it is
-eleven millimetres.
+floor; a zone width away it is still micrometres; seven degrees out it is a
+hundred nanodegrees of latitude, about eleven millimetres.
 
-It is measured here because something downstream depends on it:
-tests/test_convert.py converts between all 342 ordered pairs of Michigan's
-nineteen 2022 zones, and the widest of those pairs evaluates this series 7.8
-degrees from its central meridian. That test holds two different bounds for
-that reason, and this is the evidence they rest on rather than on a number
-chosen to make it pass.
+**The two components are stored and asserted SEPARATELY, and that is the whole
+point of this table.** An earlier version stored one bound per offset on
+``max(d_latitude, d_longitude)``. The interim H1+H2 gate broke it: seeding the
+inverse's B7 denominator ``5040 -> 5000`` - a plausible one-token typo - left
+all 1,674 projection and conversion tests green. The reason is visible in the
+numbers above: at every offset the LATITUDE residual is four to seven times the
+longitude residual, and B7 belongs to the longitude series alone. Taking the
+max threw away the only component that carried the defect. Under that seed the
+longitude column reads 3.9e-12 / 1.6e-10 / 5.9e-09 / 5.6e-08 at 3, 4, 6 and 7.8
+degrees - between 60% and 310% away from the values above - while the latitude
+column is unchanged to every digit.
+
+Tolerance: 1% relative, or 1e-11 degrees absolute, whichever is larger
+(``pytest.approx`` takes the looser of the two). The absolute floor is the
+round-off floor of these coordinates - a double holds 45 degrees to about
+7e-15, and the accumulated round-off of the two series is a few thousand ulps,
+which is what the 1 and 2 degree rows are showing rather than any truncation.
+Above 3 degrees the values are truncation-dominated and the 1% band is what
+makes a coefficient change move the curve and fail.
+
+Something downstream depends on this too: tests/test_convert.py converts
+between all 342 ordered pairs of Michigan's nineteen 2022 zones, and the widest
+of those pairs evaluates this series 7.8 degrees from its central meridian.
+That test holds two different bounds for that reason, and this is the evidence
+they rest on rather than a number chosen to make it pass.
 
 Michigan's own SPCS 83 zones never reach this regime - the three zones overlap,
 and the widest of them spans about 4.6 degrees of longitude - and no SPCS 83
 Michigan zone is a transverse Mercator at all.
 """
 
+TM_CLOSURE_RELATIVE_BAND = 0.01
+TM_CLOSURE_FLOOR_DEG = 1e-11
 
-@pytest.mark.parametrize("offset,bound", TM_CLOSURE_BY_OFFSET)
-def test_the_transverse_mercator_series_closes_less_well_far_from_its_meridian(
-    offset, bound
+
+@pytest.mark.parametrize(
+    "offset,d_latitude,d_longitude",
+    TM_CLOSURE_BY_OFFSET,
+    ids=[f"{row[0]}deg" for row in TM_CLOSURE_BY_OFFSET],
+)
+def test_the_transverse_mercator_closure_matches_its_measured_curve(
+    offset, d_latitude, d_longitude
 ):
-    """The measurement above, run in both longitude directions.
+    """The measured degradation, pinned per component rather than bounded.
 
-    Asserted as a bound at each offset AND as monotone growth across them, so
-    the test states the shape of the degradation and not just its size.
+    Latitude and longitude are asserted separately so that neither series'
+    truncation can mask the other's defect - see the table's docstring for the
+    seeded case that made this necessary.
+    """
+    zone = ZONES_BY_CODE["261002"]
+    longitude = zone.definition.lon_origin - offset
+    latitude = TM_CLOSURE_PROBE_LATITUDE
+
+    point = projection.forward(latitude, longitude, zone)
+    back = projection.inverse(point.northing, point.easting, zone)
+
+    assert abs(back.latitude - latitude) == pytest.approx(
+        d_latitude, rel=TM_CLOSURE_RELATIVE_BAND, abs=TM_CLOSURE_FLOOR_DEG
+    )
+    assert abs(back.longitude - longitude) == pytest.approx(
+        d_longitude, rel=TM_CLOSURE_RELATIVE_BAND, abs=TM_CLOSURE_FLOOR_DEG
+    )
+
+
+def test_the_transverse_mercator_closure_is_symmetric_about_its_meridian():
+    """East of the meridian must degrade exactly as west of it.
+
+    The series is even in the longitude difference, so this is a real property
+    and not a restatement of the table: a sign error in an odd-order term would
+    break it while leaving the westward column above untouched.
     """
     zone = ZONES_BY_CODE["261002"]
     meridian = zone.definition.lon_origin
+    latitude = TM_CLOSURE_PROBE_LATITUDE
 
-    worst = 0.0
-    for signed in (offset, -offset):
-        longitude = meridian + signed
-        point = projection.forward(45.0, longitude, zone)
-        back = projection.inverse(point.northing, point.easting, zone)
-        worst = max(
-            worst,
-            abs(back.latitude - 45.0) * 111320.0,
-            abs(back.longitude - longitude) * 111320.0,
-        )
-
-    assert worst < bound, f"{offset} deg off the meridian closed to {worst:.3e} m"
+    for offset, _d_latitude, _d_longitude in TM_CLOSURE_BY_OFFSET:
+        residuals = []
+        for signed in (offset, -offset):
+            longitude = meridian + signed
+            point = projection.forward(latitude, longitude, zone)
+            back = projection.inverse(point.northing, point.easting, zone)
+            residuals.append(
+                (abs(back.latitude - latitude), abs(back.longitude - longitude))
+            )
+        west, east = residuals
+        assert west[0] == pytest.approx(east[0], rel=0.05, abs=TM_CLOSURE_FLOOR_DEG)
+        assert west[1] == pytest.approx(east[1], rel=0.05, abs=TM_CLOSURE_FLOOR_DEG)
 
 
 def test_the_transverse_mercator_closure_degrades_monotonically():
-    """Anti-vacuousness for the bounds above: they are not all one loose number.
+    """Anti-vacuousness for the table above: it is not one number repeated.
 
-    If the closure were flat, every bound in the table would be satisfied by
-    the same measurement and the table would say nothing. It is not flat: the
-    error at 7.8 degrees is more than four orders of magnitude above the error
-    at 1 degree.
+    If the closure were flat, every row would be satisfied by the same
+    measurement and the table would say nothing. It is not flat: BOTH components
+    grow monotonically with the offset, and each ends more than four orders of
+    magnitude above where it started.
     """
     zone = ZONES_BY_CODE["261002"]
     meridian = zone.definition.lon_origin
+    latitude = TM_CLOSURE_PROBE_LATITUDE
 
-    errors = []
-    for offset, _bound in TM_CLOSURE_BY_OFFSET:
+    latitudes: list[float] = []
+    longitudes: list[float] = []
+    for offset, _d_latitude, _d_longitude in TM_CLOSURE_BY_OFFSET:
         longitude = meridian - offset
-        point = projection.forward(45.0, longitude, zone)
+        point = projection.forward(latitude, longitude, zone)
         back = projection.inverse(point.northing, point.easting, zone)
-        errors.append(abs(back.longitude - longitude) + abs(back.latitude - 45.0))
+        latitudes.append(abs(back.latitude - latitude))
+        longitudes.append(abs(back.longitude - longitude))
 
-    assert errors == sorted(errors)
-    assert errors[-1] > errors[0] * 1e4
+    assert latitudes == sorted(latitudes)
+    assert longitudes == sorted(longitudes)
+    assert latitudes[-1] > latitudes[0] * 1e4
+    assert longitudes[-1] > longitudes[0] * 1e4
 
 
 @pytest.mark.parametrize("zone", LDP_ZONES)
@@ -1545,8 +1802,134 @@ def test_the_negative_zero_degree_case_is_actually_present_in_the_anchors():
 # --------------------------------------------------------------------------
 
 
+ANCHORS_CAPTURE_PATH = (
+    Path(__file__).resolve().parents[1] / "review" / "nsrs-h1-anchors" / "anchors.json"
+)
+
+ANCHORS_CAPTURE_SHA256 = (
+    "76d2b61e57d2b9ddeb5466bcc3add92907f687efe8221cd0914c595707390a2d"
+)
+"""The digest the H1 capture recorded for its own machine-readable summary, and
+the digest the fixture's docstring already quotes as the file its values were
+transcribed from. Checked before anything is read out of it.
+"""
+
+# The three glyphs beta NCAT prints in a convergence, dropped when the values
+# were transcribed (the fixture docstring records the transformation). Spelled
+# as code points so this file stays ASCII: degree, prime, double prime.
+_CONVERGENCE_GLYPHS = (chr(0x00B0), chr(0x2032), chr(0x2033))
+
+
+def _load_anchor_capture() -> list[dict]:
+    """The 63 captured projection results, after authenticating the bytes."""
+    import hashlib
+    import json
+
+    raw = ANCHORS_CAPTURE_PATH.read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    assert digest == ANCHORS_CAPTURE_SHA256, (
+        f"{ANCHORS_CAPTURE_PATH} hashes to {digest}, not the digest the H1 "
+        f"capture recorded ({ANCHORS_CAPTURE_SHA256}). Re-run the capture "
+        f"harness rather than editing this pin."
+    )
+    return json.loads(raw.decode("utf-8"))["projection_anchors"]
+
+
+def _captured_convergence(text: str) -> str:
+    """A captured convergence string in the form the fixture stores it in.
+
+    ``"+01 deg 54 prime 40.49 double-prime"`` -> ``"+01 54 40.49"``. Only the
+    three glyphs are removed and the whitespace is renormalised; every digit and
+    the sign character are untouched, which is exactly the transformation the
+    fixture's docstring documents.
+    """
+    for glyph in _CONVERGENCE_GLYPHS:
+        text = text.replace(glyph, " ")
+    return " ".join(text.split())
+
+
+def test_the_fixture_is_the_capture_row_for_row():
+    """Every anchor joined to NGS's own captured response, one for one.
+
+    **Counts are not enough, and the interim H1+H2 gate proved it.** This test
+    used to check totals only: 63 anchors, 19 origins, 9 statewide, 19 distinct
+    zone codes. The gate replaced the statewide Isle Royale row - the only
+    external assertion for 48.100000, -88.550000, N 1109582.833, E 1334062.199 -
+    with a duplicate of the Detroit-area row, and all 923 projection-engine
+    tests stayed green. Every count still added up; the suite had silently lost
+    a captured result while still claiming to carry the whole capture.
+
+    The fix is the discipline tests/test_zone_registry.py already applies to the
+    zone constants: authenticate the source by digest and JOIN to it, in BOTH
+    directions, on a key that must be unique. A fixture row that is not in the
+    capture fails; a capture row that is not in the fixture fails; and two
+    fixture rows sharing an input position fail before either.
+    """
+    captured = _load_anchor_capture()
+    assert len(captured) == 63
+
+    fixture_keys = [
+        (a.zone_code, f"{a.latitude:.6f}", f"{a.longitude:.6f}")
+        for a in SPCS2022_PROJECTION_ANCHORS
+    ]
+    captured_by_key = {
+        (row["zone_code"], row["input_lat_dd"], row["input_lon_dd"]): row
+        for row in captured
+    }
+    assert len(captured_by_key) == 63, "the capture itself has a duplicate key"
+
+    # Every complaint is collected before anything is asserted, so a single
+    # mutation reports everything it broke. A duplicated row loses a captured
+    # position AND repeats another; a message that named only the repetition
+    # would leave the reader to work out which anchor had gone.
+    problems: list[str] = []
+
+    for key in sorted(set(captured_by_key) - set(fixture_keys)):
+        row = captured_by_key[key]
+        problems.append(
+            f"the capture carries {key} ({row['label']}, N {row['northing_m']}, "
+            f"E {row['easting_m']}) and the fixture does not"
+        )
+
+    for key in sorted({k for k in fixture_keys if fixture_keys.count(k) > 1}):
+        problems.append(f"two or more fixture anchors share the input position {key}")
+
+    for key in sorted(set(fixture_keys) - set(captured_by_key)):
+        problems.append(f"{key} is in the fixture but in no captured response")
+
+    for anchor, key in zip(SPCS2022_PROJECTION_ANCHORS, fixture_keys):
+        row = captured_by_key.get(key)
+        if row is None:
+            continue
+        for name, stored, published in (
+            ("northing_m", anchor.northing_m, float(row["northing_m"])),
+            ("easting_m", anchor.easting_m, float(row["easting_m"])),
+            ("northing_ift", anchor.northing_ift, float(row["northing_ift"])),
+            ("easting_ift", anchor.easting_ift, float(row["easting_ift"])),
+            ("scale_factor", anchor.scale_factor, float(row["scale_factor"])),
+            (
+                "convergence_dms",
+                anchor.convergence_dms,
+                _captured_convergence(row["convergence"]),
+            ),
+            ("label", anchor.label, row["label"]),
+            ("capture", anchor.capture, row["raw"]),
+        ):
+            if stored != published:
+                problems.append(
+                    f"{key} {name}: fixture {stored!r}, capture {published!r}"
+                )
+
+    assert not problems, "\n".join(problems)
+
+
 def test_the_fixture_carries_the_whole_capture():
-    """Counts from review/nsrs-h1-anchors/CAPTURE.md, so a lost row is loud."""
+    """Counts from review/nsrs-h1-anchors/CAPTURE.md, so a lost row is loud.
+
+    Kept alongside the row-for-row join above rather than replaced by it: this
+    states the shape of the lattice (nineteen origins, nine statewide points),
+    which the join does not.
+    """
     assert len(SPCS2022_ZONE_PARAMETERS) == 19
     assert len(SPCS2022_PROJECTION_ANCHORS) == 63
     assert len(ORIGIN_ANCHORS) == 19

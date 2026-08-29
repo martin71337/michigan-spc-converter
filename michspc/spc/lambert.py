@@ -27,16 +27,39 @@ Conventions in this module:
   * Linear units are meters, matching the ellipsoid and the zone constants.
   * Convergence angle is returned in decimal degrees, positive east of the
     central meridian.
+
+``GridPoint``, ``GeodeticPoint``, the two input guards and ``constants_for`` now
+live in michspc.spc.projection, because the transverse and oblique Mercator
+engines share them. They are re-exported here under their old names so every
+existing import keeps working and there is still exactly one definition of each.
 """
 
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, replace
-from functools import cached_property, lru_cache
+from dataclasses import dataclass
+from functools import cached_property
 
 from michspc.spc.ellipsoid import GRS80, Ellipsoid
-from michspc.spc.zones import LambertTwoParallelDef, Zone
+from michspc.spc.projection import (
+    GeodeticPoint,
+    GridPoint,
+    _require_finite_grid,
+    _require_valid_geodetic,
+    constants_for,
+)
+from michspc.spc.zones import LambertOneParallelDef, LambertTwoParallelDef
+
+__all__ = [
+    "ApexLatitudeError",
+    "ConvergenceError",
+    "GeodeticPoint",
+    "GridPoint",
+    "LambertConstants",
+    "constants_for",
+    "forward",
+    "inverse",
+]
 
 # The inverse conversion solves for sin(phi) by Newton's method. The manual
 # (PDF p. 39) says to apply the correction and "iterate two times"; we instead
@@ -104,52 +127,6 @@ class ConvergenceError(Exception):
     ever does, the input is far outside the projection's usable domain and no
     plausible latitude should be invented for it.
     """
-
-
-def _require_valid_geodetic(latitude: float, longitude: float) -> None:
-    """Refuse a latitude or longitude that is out of domain or not a number.
-
-    Both engines call this. Neither the engine cross-check nor the zone-extent
-    warning can protect against a bad input here, because both engines are
-    handed the same bad value and agree perfectly on the wrong answer - so the
-    check has to happen before either of them runs.
-
-    The longitude domain matters more than it looks. This program uses signed
-    longitude, negative west; the geoid grid and many datasets use the 0-360
-    east convention, in which Michigan's 84.5555 W is 275.4445. That value is a
-    perfectly ordinary float, it produces a coordinate with no warning worth
-    noticing, and it is wrong by thousands of kilometres. Found by the interim
-    review gate; see docs/DESIGN.md amendment #10.
-    """
-    if not math.isfinite(latitude) or not math.isfinite(longitude):
-        raise ValueError(
-            f"Latitude {latitude!r} and longitude {longitude!r} must both be "
-            f"finite numbers. A coordinate that is not a number cannot be "
-            f"projected, and must never be written to a file."
-        )
-    if not -90.0 < latitude < 90.0:
-        raise ValueError(
-            f"Latitude {latitude} is not a valid geodetic latitude; it must lie "
-            f"strictly between -90 and 90 degrees."
-        )
-    if not -180.0 <= longitude <= 180.0:
-        raise ValueError(
-            f"Longitude {longitude} is outside the range -180 to 180. This "
-            f"program uses SIGNED longitude, negative west - Michigan runs from "
-            f"about -83 to -90. A value between 180 and 360 is the 0-360 east "
-            f"convention: subtract 360 from it ({longitude - 360.0:.6f} here). "
-            f"Converting it as given would place the point thousands of "
-            f"kilometres away."
-        )
-
-
-def _require_finite_grid(northing: float, easting: float) -> None:
-    """Refuse a grid coordinate that is not a number, before it is inverted."""
-    if not math.isfinite(northing) or not math.isfinite(easting):
-        raise ValueError(
-            f"Northing {northing!r} and easting {easting!r} must both be finite "
-            f"numbers. Check the input file for a blank or corrupt coordinate."
-        )
 
 
 @dataclass(frozen=True)
@@ -301,39 +278,112 @@ class LambertConstants:
             lon_origin=definition.lon_origin,
         )
 
+    @classmethod
+    def from_one_parallel(
+        cls,
+        definition: LambertOneParallelDef,
+        ellipsoid: Ellipsoid = GRS80,
+    ) -> LambertConstants:
+        """Derive the zone constants from a central parallel and its scale.
 
-@dataclass(frozen=True)
-class GridPoint:
-    """A point on the grid, with the two quantities that describe the grid there."""
+        The SPCS2022 **LC1** form. Nothing downstream changes: the mapping
+        equations consume only the fields of this record, so a one-parallel zone
+        converts through the same ``forward`` and ``inverse`` as a two-parallel
+        one. What differs is only how R_0 and K are reached.
 
-    northing: float
-    """Meters."""
+        The two-parallel constructor solves for sin(phi_0) and then derives k_0.
+        Here phi_0 and k_0 are the *published defining* constants, so the
+        derivation runs the other way, inverting the section 3.14 scale equation
+        (PDF p. 39) at the central parallel:
 
-    easting: float
-    """Meters."""
+            k   = W (R sin phi_0) / (a cos phi)     evaluated at phi = phi_0
+            k_0 = W_0 R_0 sin(phi_0) / (a cos phi_0)
+        =>  R_0 = k_0 a cos(phi_0) / (W_0 sin phi_0)
 
-    convergence: float
-    """Decimal degrees, positive east of the central meridian."""
+        and then section 3.12's own R = K / exp(Q sin phi_0), read backwards:
 
-    scale_factor: float
-    """Grid scale factor at the point (dimensionless)."""
+            K = R_0 exp(Q_0 sin phi_0)
 
+        **The grid origin of an LC1 zone is its central parallel** - the false
+        northing is assigned at phi_0, so phi_b = phi_0 and R_b = R_0. That is
+        why the definition record carries no separate grid-origin latitude, and
+        why R_grid_origin below is R_origin rather than a second evaluation of
+        the same expression at the same latitude.
 
-@dataclass(frozen=True)
-class GeodeticPoint:
-    """A geodetic position, with the grid quantities that apply at it."""
+        Refuses a definition outside the projection's domain: a Lambert cone
+        needs a central parallel strictly between the poles and off the equator
+        (sin phi_0 = 0 is the Mercator degenerate case, where the cone constant
+        vanishes and R_0 is infinite), and a scale factor must be positive.
+        """
+        lat_origin = definition.lat_origin
+        if not -90.0 < lat_origin < 90.0 or lat_origin == 0.0:
+            raise ValueError(
+                f"A Lambert conformal conic zone needs a central parallel "
+                f"strictly between the poles and off the equator; this zone "
+                f"gives phi_0 = {lat_origin!r} degrees. At the equator the cone "
+                f"constant sin(phi_0) is zero and the mapping radius is "
+                f"infinite - the projection degenerates to a Mercator and no "
+                f"grid coordinate corresponds."
+            )
+        if not definition.k_origin > 0.0:
+            raise ValueError(
+                f"A grid scale factor must be positive; this zone gives "
+                f"k_0 = {definition.k_origin!r}. A zero or negative scale "
+                f"factor would reflect or collapse the grid rather than scale "
+                f"it."
+            )
 
-    latitude: float
-    """Decimal degrees north."""
+        sin_lat_origin = math.sin(math.radians(lat_origin))
+        cos_lat_origin = math.cos(math.radians(lat_origin))
 
-    longitude: float
-    """Decimal degrees, NEGATIVE WEST."""
+        W_0 = ellipsoid.W(sin_lat_origin)
+        Q_0 = ellipsoid.isometric_latitude(sin_lat_origin)
 
-    convergence: float
-    """Decimal degrees, positive east of the central meridian."""
+        R_origin = (
+            definition.k_origin
+            * ellipsoid.a
+            * cos_lat_origin
+            / (W_0 * sin_lat_origin)
+        )
+        K = R_origin * math.exp(Q_0 * sin_lat_origin)
 
-    scale_factor: float
-    """Grid scale factor at the point (dimensionless)."""
+        constants = cls(
+            ellipsoid=ellipsoid,
+            sin_lat_origin=sin_lat_origin,
+            K=K,
+            # phi_b = phi_0 for this form, so R_b IS R_0 - the same number, not
+            # a second computation of it.
+            R_grid_origin=R_origin,
+            R_origin=R_origin,
+            northing_grid_origin=definition.northing_grid_origin,
+            easting_origin=definition.easting_origin,
+            lon_origin=definition.lon_origin,
+        )
+
+        # A TRANSCRIPTION-TYPO AND FLOAT-PATHOLOGY CHECK, NOT VERIFICATION.
+        # ``constants.k_origin`` re-evaluates the same section 3.14 equation
+        # this constructor just inverted, so agreement is an algebraic identity
+        # and proves nothing about whether the mathematics is right. What it
+        # DOES catch is a mistyped exponent or sign in the inversion above, and
+        # a definition so extreme that the round trip loses precision. The
+        # numbers are verified externally, by the frozen beta NCAT anchors in
+        # tests/fixtures/spcs2022_engine_anchors.py, exactly as the two-parallel
+        # form is verified by Appendix C and the frozen NCAT lattice.
+        recovered = constants.k_origin
+        if abs(recovered - definition.k_origin) > 1e-14 * abs(definition.k_origin):
+            raise ValueError(
+                f"Deriving this zone's constants from phi_0 = {lat_origin!r} "
+                f"and k_0 = {definition.k_origin!r} does not reproduce the "
+                f"defining scale factor: the section 3.14 equation gives "
+                f"{recovered!r} back, a relative difference of "
+                f"{abs(recovered - definition.k_origin) / abs(definition.k_origin):.3e}. "
+                f"The two are the same equation read in opposite directions, so "
+                f"a disagreement means the derivation or the transcribed "
+                f"defining constants are wrong, not that the zone is unusual. "
+                f"The definition refused is {definition!r}."
+            )
+
+        return constants
 
 
 def forward(
@@ -555,18 +605,8 @@ def _solve_sin_latitude(Q: float, ellipsoid: Ellipsoid) -> float:
     )
 
 
-@lru_cache(maxsize=32)
-def constants_for(zone: Zone, ellipsoid: Ellipsoid = GRS80) -> LambertConstants:
-    """Derive the working constants for a registry zone, once.
-
-    Cached, so a file of several thousand points does not re-derive the same
-    constants per row. The cache is what made it possible to delete the
-    ``constants=`` parameters the conversion functions used to accept: callers
-    now get the per-file efficiency for free and have no way to pair one zone's
-    constants with another zone's identity (docs/DESIGN.md amendment #11).
-
-    Zone and Ellipsoid are both frozen dataclasses and therefore hashable, so
-    they are usable as cache keys directly.
-    """
-    constants = LambertConstants.from_two_parallels(zone.definition, ellipsoid)
-    return replace(constants, zone_code=zone.code)
+# ``constants_for`` is imported at the top of this module from
+# michspc.spc.projection, which dispatches on the zone's definition type and
+# stamps the zone code. It used to live here and be Lambert-only; it is
+# re-exported under the same name so every existing caller and test keeps
+# working against one implementation rather than two.

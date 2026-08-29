@@ -520,6 +520,17 @@ LAZY_IMPORTS: tuple[str, ...] = (
     "michspc.fileio.ngs_grid",
     "michspc.fileio.vertcon",
     "michspc.spc.vertical",
+    # The three projection engines. michspc.spc.projection is statically
+    # reachable (convert.py and report.py import it at module level), but the
+    # engines themselves are imported ONLY from inside that module's dispatch
+    # table builder, which PyInstaller's static analysis cannot see - so
+    # without these three declarations the bundle would carry a dispatcher and
+    # no mathematics, and every conversion in a frozen build would die on an
+    # ImportError. Exactly the shape of the WP-V2 defect recorded at
+    # docs/DESIGN.md #38, where the VERTCON data shipped with no reader.
+    "michspc.spc.lambert",
+    "michspc.spc.tm",
+    "michspc.spc.omerc",
     # The GUI, which the self-test itself never opens — so nothing else in this
     # process would notice if Qt were missing from the bundle.
     "PySide6.QtCore",

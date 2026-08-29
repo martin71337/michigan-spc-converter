@@ -59,6 +59,31 @@ class Ellipsoid:
         """First eccentricity."""
         return math.sqrt(self.e2)
 
+    @cached_property
+    def e2_prime(self) -> float:
+        """Second eccentricity squared, e'^2 = e^2 / (1 - e^2).
+
+        Manual section 3.21 notation list (PDF p. 43): "Second eccentricity of
+        the ellipsoid = e / (1 - e^2)^(1/2)", so e'^2 is its square.
+
+        Used by the transverse Mercator series (eta^2 = e'^2 cos^2 phi, section
+        3.23) and by the oblique Mercator's B (section 3.33). Derived here, once,
+        rather than written out at either call site, so the two engines cannot
+        disagree about it.
+        """
+        return self.e2 / (1.0 - self.e2)
+
+    @cached_property
+    def n(self) -> float:
+        """Third flattening, n = (a - b) / (a + b) = f / (2 - f).
+
+        Manual section 3.21 (PDF p. 43) gives both forms; the two are
+        algebraically identical and f/(2 - f) is used here because f is one of
+        the two stored defining constants. Consumed only by the transverse
+        Mercator rectifying-latitude series (section 3.22).
+        """
+        return self.f / (2.0 - self.f)
+
     def W(self, sin_lat: float) -> float:
         """W = (1 - e^2 sin^2(phi))^(1/2), manual section 3.12 (PDF p. 37).
 

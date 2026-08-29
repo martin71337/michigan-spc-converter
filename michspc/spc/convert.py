@@ -8,8 +8,13 @@ The pipeline shape (docs/DESIGN.md section 4):
 
     (source zone, N, E) --inverse--> geodetic --forward--> (target zone, N, E)
 
-Both steps use the rigorous Lambert conformal conic equations of NOAA Manual
-NOS NGS 5 section 3.1, which are exact at any latitude.
+Both steps go through michspc.spc.projection, which dispatches on the zone's
+own definition record to the engine for that projection - the rigorous Lambert
+conformal conic equations of NOAA Manual NOS NGS 5 section 3.1 for every SPCS 83
+zone, and sections 3.2 and 3.3 for the transverse and oblique Mercator zones.
+Nothing here names an engine: a zone in a projection this program does not
+implement refuses by name in the dispatcher rather than being computed by
+whichever engine happened to be imported.
 
 **On verification.** An earlier design computed every coordinate a second time
 by the manual's section 3.4 polynomial coefficient method and cross-checked the
@@ -31,9 +36,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 
 from michspc.spc.frames import ReferenceFrame, require_same_frame
-from michspc.spc.lambert import constants_for
-from michspc.spc.lambert import forward as lambert_forward
-from michspc.spc.lambert import inverse as lambert_inverse
+from michspc.spc.projection import forward as project_forward
+from michspc.spc.projection import inverse as project_inverse
 from michspc.spc.zones import Zone
 
 # Half-width of the easting window used to notice that a file's coordinates do
@@ -238,7 +242,7 @@ def to_geodetic(
 
     Returns (latitude, longitude, convergence, scale_factor, warnings).
     """
-    position = lambert_inverse(northing, easting, constants_for(zone))
+    position = project_inverse(northing, easting, zone)
 
     return (
         position.latitude,
@@ -259,7 +263,7 @@ def from_geodetic(
 
     Returns (northing, easting, convergence, scale_factor, warnings).
     """
-    point = lambert_forward(latitude, longitude, constants_for(zone))
+    point = project_forward(latitude, longitude, zone)
 
     warnings: list[ConversionWarning] = []
     extent_warning = _check_extent(

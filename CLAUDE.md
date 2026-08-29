@@ -81,12 +81,26 @@ path are in #61. **Hazard: beta's REST API fails open** (`200 OK` with
 **Process (owner's instruction, clarified 2026-08-28): the session lead
 develops all plans and designs; Opus subagents do recon and build; the lead
 reviews every diff and re-derives the load-bearing math; Codex gates — two
-interim, one closing, none skipped.** Work packages H1–H6 per the plan: H1 projection
-engines (tm.py, omerc.py, LC1 constructor, dispatcher), H2 zone registry,
-H3 helmert/frames (owns the epoch-labelling contradiction recorded in #61),
-H4 convert/job wiring (exit: the 18-digest cross-version pin untouched),
-H5 disclosure, H6 GUI. Version stays `0.6.4`-era `-dev` until the release
-gate; the release is 0.7.0.
+interim, one closing, none skipped.** Work packages H1–H6 per the plan. **H1 IS DONE**
+(2026-08-29): `projection.py` dispatcher (ProjectionKind finally read, table
+derives kind and engine together), `tm.py` (§3.2), `omerc.py` (§3.3 + the
+CENTRE-variant u_c offset — the manual's natural-origin form is the ~6,969 km
+trap, discriminated by the frozen centre anchor), `from_one_parallel`,
+convert/report routed through the dispatcher bit-identically. Suite
+**1696 → 2593**, both modes, lead-verified unpiped; all 63 anchors inside
+NCAT's printed quantization (worst N/E 4.994e-4 m), 19 origins bit-exact,
+round-trips 2.7e-11°; five falsification seeds all caught, snapshot-restored.
+**Two facts for the next packages:** (1) the frozen lattice alone cannot see
+a high-order TM series defect (A4/A6 swap = 1e-4 m at the anchors) — the
+finite-difference γ/k test is the pin that catches it; raise at the interim
+gate. (2) `report._zone_block` still hard-codes the 2SP wording and fields —
+**H2 must not let 2022 zones reach the dropdowns before H5 rewrites it**
+(build the combos from SPCS83_ZONES until H6 flips them, pinned).
+Next: **H2 zone registry**, H3 helmert/frames (owns #61's epoch
+contradiction and the sign-convention discriminator), H4 wiring (exit: the
+18-digest pin untouched), interim Codex gate over H1–H2 before H3 code is
+accepted, H5 disclosure, H6 GUI. Version moves to a `-dev` marker at the
+next code WP; the release is 0.7.0.
 
 ## Superseded status: 0.6.4 — new application artwork (2026-08-26)
 

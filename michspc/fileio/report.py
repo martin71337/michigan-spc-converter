@@ -29,7 +29,7 @@ from michspc.job import (
 )
 from michspc.spc.convert import WarningCode
 from michspc.spc.factors import MEAN_EARTH_RADIUS_M
-from michspc.spc.lambert import constants_for
+from michspc.spc.projection import constants_for
 from michspc.spc.vertical import HeightKind, require_vertical_pair
 
 _RULE = "=" * 78

@@ -123,13 +123,17 @@ def zone_combo(parent, on_change) -> QComboBox:
 
     **It reads ``SPCS83_ZONES``, not ``ALL_ZONES``, and that is deliberate.**
     Michigan's nineteen SPCS2022 zones are in the registry as of H2 and convert
-    correctly through the engines, but the surfaces downstream of a job do not
-    speak 2022 yet: ``michspc.fileio.report``'s zone block writes the
-    two-standard-parallel wording unconditionally and reads
+    correctly through the engines, but the interface does not speak 2022 yet.
+    Until H5 the record could not either: ``michspc.fileio.report``'s zone block
+    wrote the two-standard-parallel wording unconditionally and read
     ``definition.lat_south``, so a 2022 job would convert every point and then
     die with an ``AttributeError`` while writing its record — after the work,
-    before the archive. Offering a zone the program cannot finish a job in is
-    worse than not offering it.
+    before the archive. **H5 has landed and that half is fixed**: the record
+    describes each projection kind in its own constants and carries the
+    era-dependent authority and verification prose. What is still missing is
+    this tab — the separator, the frame-derived labels, and the geodetic entry
+    per frame — so the gate stays until H6 supplies them. Offering a zone the
+    interface cannot state the frame of is worse than not offering it.
 
     **The flip condition, so this is a gate and not an oversight:** H5 rewrites
     the record's zone block per projection kind and the era-dependent

@@ -31,6 +31,21 @@ from michspc.spc.convert import WarningCode
 from michspc.spc.factors import MEAN_EARTH_RADIUS_M
 from michspc.spc.projection import constants_for
 from michspc.spc.vertical import HeightKind, require_vertical_pair
+from michspc.spc.zones import (
+    SPCS2022_BOUNDS_CAPTURED,
+    SPCS2022_BOUNDS_FILENAME,
+    SPCS2022_BOUNDS_SHA256,
+    SPCS2022_DEFINITIONS_CAPTURED,
+    SPCS2022_DEFINITIONS_FILENAME,
+    SPCS2022_DEFINITIONS_SHA256,
+    SPCS2022_POLICY_CITATION,
+    SPCS2022_ZONES,
+    LambertOneParallelDef,
+    LambertTwoParallelDef,
+    ObliqueMercatorCenterDef,
+    ProjectionKind,
+    TransverseMercatorDef,
+)
 
 _RULE = "=" * 78
 _THIN = "-" * 78
@@ -209,25 +224,282 @@ def _clean_export_block(settings) -> list[str]:
     ]
 
 
-def _zone_block(zone, label: str) -> list[str]:
-    """A zone's full defining and derived constants, with citations."""
+_HEADING_LABEL_WIDTH = 26
+"""The column the zone block's two heading lines put their value in.
+
+"Reference frame" plus its padding, and "Projection" plus its padding, both
+reach column 28 counting the two-space indent. Two widths in one block is not
+tidy, but it is what this record has printed since 0.1.0 and every SPCS 83
+record ever written is held to it byte for byte.
+"""
+
+_CONSTANT_LABEL_WIDTH = 28
+"""The column the zone block's defining and derived constants line up in.
+
+Two columns further right than the headings above, again because that is what
+was printed before this block learned about a second era.
+"""
+
+
+def _zone_heading(label: str, value: str) -> str:
+    """One of the zone block's two heading lines - frame, projection."""
+    return f"  {label:<{_HEADING_LABEL_WIDTH}}{value}"
+
+
+def _constant(label: str, value: str) -> str:
+    """One defining or derived constant, in the block's own column."""
+    return f"  {label:<{_CONSTANT_LABEL_WIDTH}}{value}"
+
+
+def _degrees_north(value: float) -> str:
+    """A latitude, in the block's house format."""
+    return f"{value:.10f} deg N"
+
+
+def _meters(value: float) -> str:
+    """A false coordinate, in the block's house format."""
+    return f"{value:,.4f} m"
+
+
+def _central_meridian(longitude: float) -> str:
+    """A central longitude, signed as this codebase carries it and glossed west.
+
+    The gloss is not decoration: every published table this program was
+    transcribed from prints these positive-west, and a reader checking the
+    record against NGS has to be able to see the same number they are holding
+    (docs/DESIGN.md section 7).
+    """
+    return f"{longitude:.10f} deg ({-longitude:.10f} deg west)"
+
+
+def _projection_lines(kind: ProjectionKind) -> list[str]:
+    """The "Projection" heading, wrapped under itself if the name is long.
+
+    ``LAMBERT_CONIC_2SP``'s name fits on one line and the line is byte-identical
+    to the one this record has always printed; ``LAMBERT_CONIC_1SP``'s does not
+    fit, and the record is read in Notepad at 78 columns.
+    """
+    width = 78 - 2 - _HEADING_LABEL_WIDTH
+    wrapped = textwrap.wrap(kind.value, width=width, break_long_words=False) or [""]
+    lines = [_zone_heading("Projection", wrapped[0])]
+    lines.extend(
+        f"{'':<{2 + _HEADING_LABEL_WIDTH}}{line}" for line in wrapped[1:]
+    )
+    return lines
+
+
+def _lambert_two_parallel_constants(zone) -> list[str]:
+    """SPCS 83's form: two standard parallels, and a derived central parallel.
+
+    Byte-identical to what this record has printed since 0.1.0, and pinned as
+    literal text: every sealed SPCS 83 job in existence describes its zones in
+    these words, and a second era arriving in this function must not restate
+    them differently.
+    """
     definition = zone.definition
     constants = constants_for(zone)
     return [
-        f"{label}: {zone.name}, zone {zone.code} ({zone.system})",
-        f"  Reference frame           {zone.frame.code}",
-        f"  Projection                Lambert conformal conic, two standard parallels",
-        f"  Southern standard parallel  {definition.lat_south:.10f} deg N",
-        f"  Northern standard parallel  {definition.lat_north:.10f} deg N",
-        f"  Latitude of grid origin     {definition.lat_grid_origin:.10f} deg N",
-        f"  Central meridian            {definition.lon_origin:.10f} deg "
-        f"({-definition.lon_origin:.10f} deg west)",
-        f"  False northing              {definition.northing_grid_origin:,.4f} m",
-        f"  False easting               {definition.easting_origin:,.4f} m",
-        f"  Central parallel (derived)  {constants.lat_origin:.10f} deg N",
-        f"  Scale at central parallel   {constants.k_origin:.12f}",
-        f"  Source: {zone.citation}",
+        _constant("Southern standard parallel", _degrees_north(definition.lat_south)),
+        _constant("Northern standard parallel", _degrees_north(definition.lat_north)),
+        _constant(
+            "Latitude of grid origin", _degrees_north(definition.lat_grid_origin)
+        ),
+        _constant("Central meridian", _central_meridian(definition.lon_origin)),
+        _constant("False northing", _meters(definition.northing_grid_origin)),
+        _constant("False easting", _meters(definition.easting_origin)),
+        _constant("Central parallel (derived)", _degrees_north(constants.lat_origin)),
+        _constant("Scale at central parallel", f"{constants.k_origin:.12f}"),
     ]
+
+
+def _lambert_one_parallel_constants(zone) -> list[str]:
+    """SPCS2022's LC1 form: the central parallel and its scale are PUBLISHED.
+
+    Both carry "(defining)", because on the two-parallel block above the same
+    two quantities are labelled "(derived)" - a reader who knows one form has
+    to be able to tell which they are looking at, and presenting a published
+    constant as something this program computed would misstate where the number
+    came from.
+
+    The grid origin is stated too, and stated as the central parallel, because
+    that is the LC1 fact a reader most needs: the false northing is assigned at
+    phi_0 itself, so there is no separate origin latitude to look for
+    (michspc.spc.zones.LambertOneParallelDef).
+    """
+    definition = zone.definition
+    return [
+        _constant(
+            "Central parallel",
+            f"{_degrees_north(definition.lat_origin)} (defining)",
+        ),
+        _constant(
+            "Scale on central parallel", f"{definition.k_origin:.12f} (defining)"
+        ),
+        _constant(
+            "Latitude of grid origin",
+            f"{_degrees_north(definition.lat_origin)} (the central parallel)",
+        ),
+        _constant("Central meridian", _central_meridian(definition.lon_origin)),
+        _constant("False northing", _meters(definition.northing_grid_origin)),
+        _constant("False easting", _meters(definition.easting_origin)),
+    ]
+
+
+def _transverse_mercator_constants(zone) -> list[str]:
+    """SPCS2022's TM form.
+
+    phi_0 here is the GRID ORIGIN latitude, not a standard parallel, and the
+    label says so: a transverse Mercator has no standard parallel at all, and
+    the scale is defined on the central meridian instead (manual section 3.2,
+    michspc.spc.zones.TransverseMercatorDef).
+    """
+    definition = zone.definition
+    return [
+        _constant(
+            "Latitude of grid origin", _degrees_north(definition.lat_grid_origin)
+        ),
+        _constant("Central meridian", _central_meridian(definition.lon_origin)),
+        _constant(
+            "Scale on central meridian", f"{definition.k_origin:.12f} (defining)"
+        ),
+        _constant("False northing", _meters(definition.northing_grid_origin)),
+        _constant("False easting", _meters(definition.easting_origin)),
+    ]
+
+
+def _oblique_mercator_constants(zone) -> list[str]:
+    """SPCS2022's OMC form - false coordinates AT THE PROJECTION CENTRE.
+
+    The variant is stated on the false northing and easting lines rather than
+    left to be assumed, because the natural-origin Hotine assigns the same two
+    numbers somewhere else entirely - for Alaska zone 1 the manual's own
+    equations put the centre 6,968,872 m from the false northing - so "false
+    northing" alone does not identify the quantity (michspc.spc.zones.
+    ObliqueMercatorCenterDef, and DESIGN.md #61).
+
+    The skew azimuth is signed and is NOT a longitude, so it is printed exactly
+    as NGS publishes it, with the sense of the angle named.
+    """
+    definition = zone.definition
+    return [
+        _constant("Latitude of centre", _degrees_north(definition.lat_center)),
+        _constant("Longitude of centre", _central_meridian(definition.lon_center)),
+        _constant(
+            "Skew azimuth",
+            f"{definition.skew_azimuth:.10f} deg (clockwise from north)",
+        ),
+        _constant(
+            "Scale at projection centre", f"{definition.k_center:.12f} (defining)"
+        ),
+        _constant(
+            "False northing",
+            f"{_meters(definition.northing_center)} at the projection centre",
+        ),
+        _constant(
+            "False easting",
+            f"{_meters(definition.easting_center)} at the projection centre",
+        ),
+    ]
+
+
+_ZONE_CONSTANT_BLOCKS = {
+    LambertTwoParallelDef: _lambert_two_parallel_constants,
+    LambertOneParallelDef: _lambert_one_parallel_constants,
+    TransverseMercatorDef: _transverse_mercator_constants,
+    ObliqueMercatorCenterDef: _oblique_mercator_constants,
+}
+"""THE table that turns a definition record into the lines describing it.
+
+Keyed on the record's type, exactly as ``michspc.spc.projection``'s engine
+table is, and for the same reason: a fifth projection that can be COMPUTED but
+not DESCRIBED must refuse rather than be described with another projection's
+field names. Every field name below belongs to one projection only - a
+transverse Mercator has no standard parallel, an oblique Mercator's false
+coordinates are not at a grid origin - so a wrong block here is a record that
+misdescribes a sealed job in plausible words.
+"""
+
+
+_SOURCE_PREFIX = "  Source: "
+
+_UNWRAPPED_SOURCE_DEFINITIONS = (LambertTwoParallelDef,)
+"""Definition types whose citation is printed whole, on one line.
+
+FROZEN HISTORY, not a style choice. The SPCS 83 citation is 78 characters and
+its line is 88, over the record's 78-column width, and it has been printed that
+way in every sealed job since 0.1.0 - so it stays, byte for byte.
+
+Every other kind wraps. A 2022 citation names two NGS captures with their URLs,
+byte counts, dates and SHA-256 digests: about 700 characters, which on one line
+is a horizontal scroll in the Notepad this document is written to be read in.
+The line is per kind because the block already is; nothing shared changes.
+"""
+
+
+def _source_lines(zone) -> list[str]:
+    """The zone's citation, whole or wrapped under itself.
+
+    ``break_on_hyphens=False`` and ``break_long_words=False`` for the reason
+    ``_labelled_paragraph`` carries them: a citation holds URLs and repository
+    paths (``review/nsrs-n0/raw/zoneBounds.json``), and a URL or a path broken
+    across a line in a sealed record is a wrong URL or a wrong path.
+    """
+    if type(zone.definition) in _UNWRAPPED_SOURCE_DEFINITIONS:
+        return [f"{_SOURCE_PREFIX}{zone.citation}"]
+    return textwrap.wrap(
+        zone.citation,
+        width=78,
+        initial_indent=_SOURCE_PREFIX,
+        subsequent_indent=" " * len(_SOURCE_PREFIX),
+        break_long_words=False,
+        break_on_hyphens=False,
+    ) or [_SOURCE_PREFIX.rstrip()]
+
+
+class ZoneBlockUnavailableError(ValueError):
+    """No description is registered for this kind of zone definition.
+
+    The ``ProjectionUnavailableError`` voice, in the document layer. This
+    record is what a surveyor defends a sealed survey with; a zone it cannot
+    describe is a zone it must not write about.
+    """
+
+
+def _zone_block(zone, label: str) -> list[str]:
+    """A zone's full defining and derived constants, with citations.
+
+    Per projection kind, dispatched on the definition record's type. The two
+    heading lines and the citation are common to every kind; what a zone's
+    constants ARE is not, and this block used to print the two-parallel Lambert
+    field names over whatever it was handed - which raised ``AttributeError``
+    on a one-parallel zone AFTER the coordinates had been computed, and would
+    have printed a plausible, wrong block for any definition that happened to
+    carry the same field names (docs/DESIGN.md amendment #21).
+    """
+    render = _ZONE_CONSTANT_BLOCKS.get(type(zone.definition))
+    if render is None:
+        described = ", ".join(
+            record.__name__ for record in _ZONE_CONSTANT_BLOCKS
+        )
+        raise ZoneBlockUnavailableError(
+            f"This job record cannot describe {zone.name} (zone {zone.code}, "
+            f"{zone.system}): no block is registered for a zone definition of "
+            f"type {type(zone.definition).__name__}. Every projection is "
+            f"defined by different constants - a transverse Mercator has no "
+            f"standard parallel, and an oblique Mercator's false coordinates "
+            f"are at its centre rather than at a grid origin - so describing "
+            f"this zone with another projection's field names would put a "
+            f"plausible falsehood into a sealed record. The definitions this "
+            f"record can describe are: {described}."
+        )
+    lines = [
+        f"{label}: {zone.name}, zone {zone.code} ({zone.system})",
+        _zone_heading("Reference frame", zone.frame.code),
+    ]
+    lines.extend(_projection_lines(zone.projection_kind))
+    lines.extend(render(zone))
+    lines.extend(_source_lines(zone))
+    return lines
 
 
 _LABEL_WIDTH = 19
@@ -659,6 +931,310 @@ def _vertical_elevation_block(result, transformation) -> list[str]:
     return lines
 
 
+_MANUAL_SECTIONS = {
+    ProjectionKind.LAMBERT_CONIC_2SP: "3.1",
+    ProjectionKind.LAMBERT_CONIC_1SP: "3.1",
+    ProjectionKind.TRANSVERSE_MERCATOR: "3.2",
+    ProjectionKind.OBLIQUE_MERCATOR: "3.3",
+}
+"""Which chapter of the manual defines each projection's equations.
+
+Every kind must be here. A kind missing from this table would be silently left
+out of the Authority section, so the record would name fewer sets of equations
+than the job actually used - a sealed document understating its own method -
+and ``_equation_lines`` refuses instead.
+"""
+
+_SPCS2022_ZONE_CODES = frozenset(zone.code for zone in SPCS2022_ZONES)
+"""The 2022 era, derived from the registry's own tuple rather than restated.
+
+A zone added to ``SPCS2022_ZONES`` is in this set the moment it is added, so a
+new 2022 zone cannot be described by the 1983 era's METHOD section.
+"""
+
+
+def _job_zones(settings) -> tuple:
+    """Every zone this record DESCRIBES, source first.
+
+    The same rule the COORDINATE SYSTEMS section applies a few lines above -
+    including the target zone unless the job converts TO geodetic, where there
+    is no target zone to describe and any value left in the field was not used.
+    Deriving both sections from one rule means METHOD states the equations for
+    exactly the zones the record set out, and cannot name a projection the
+    document never showed the reader.
+
+    A geodetic job has one zone; a zone-to-zone job has two; a vertical-only
+    job on geodetic positions has none.
+    """
+    zones = []
+    if settings.source_zone is not None:
+        zones.append(settings.source_zone)
+    if (
+        settings.target_zone is not None
+        and settings.direction is not Direction.ZONE_TO_GEODETIC
+    ):
+        zones.append(settings.target_zone)
+    return tuple(zones)
+
+
+def _equation_lines(zones) -> list[str]:
+    """The manual sections this job's projections are computed from.
+
+    Derived from the kinds ACTUALLY present, never a static list: a record that
+    named all three sets of equations on a job that used one would be
+    describing work that was not done, and one that named a fixed set would
+    stop being true the first time a zone of another kind was selected.
+
+    Kinds are listed in ``ProjectionKind``'s declaration order, so the section
+    reads the same way from job to job.
+    """
+    present = [
+        kind
+        for kind in ProjectionKind
+        if any(zone.projection_kind is kind for zone in zones)
+    ]
+    lines: list[str] = []
+    for kind in present:
+        section = _MANUAL_SECTIONS.get(kind)
+        if section is None:
+            known = ", ".join(
+                f"{k.value} (section {s})" for k, s in _MANUAL_SECTIONS.items()
+            )
+            raise ValueError(
+                f"This job record cannot state which equations converted it: "
+                f"no manual section is registered for {kind.value}. A record "
+                f"that silently omitted one projection's equations would "
+                f"understate the method of a sealed job. Registered: {known}."
+            )
+        lines.extend(
+            textwrap.wrap(
+                f"section {section}  {kind.value}",
+                width=78,
+                initial_indent=" " * (_LABEL_WIDTH + 2),
+                subsequent_indent=" " * (_LABEL_WIDTH + 2 + len(f"section {section}  ")),
+                break_long_words=False,
+            )
+        )
+    return lines
+
+
+def _method_spcs83() -> list[str]:
+    """The METHOD and verification sections for a job on the 1983 zones.
+
+    BYTE-IDENTICAL to what this record has printed since 0.1.0, and pinned as
+    literal text in the suite. Every sealed SPCS 83 job in existence carries
+    these words; a second era arriving in this document must not reword them.
+    """
+    return [
+        "Authority          NOAA Manual NOS NGS 5, State Plane Coordinate System",
+        "                   of 1983 (Stem, January 1989; reprinted with minor",
+        "                   corrections March 1990)",
+        "",
+        "Equations          The rigorous Lambert conformal conic mapping",
+        "                   equations of section 3.1 - zone constants (3.12),",
+        "                   direct conversion (3.13), inverse conversion (3.14).",
+        "                   Exact at any latitude, with no approximation term.",
+        "",
+        "Ellipsoid          GRS 80, the ellipsoid of NAD 83 (manual section 1.7).",
+        "                   Only the semimajor axis and the flattening are stored;",
+        "                   every other constant is derived from those two.",
+        "",
+        "HOW THIS SOFTWARE IS VERIFIED",
+        "",
+        "The zone constants used above are not taken on trust. The manual",
+        "publishes, in Appendix C, the constants NGS computed for every Lambert",
+        "zone. This software stores only the DEFINING constants - the standard",
+        "parallels, the grid origin, the central meridian - and derives the rest.",
+        "Its test suite recomputes all of them and requires a match with NGS's",
+        "published figures to the last decimal place NGS printed, for all three",
+        "Michigan zones.",
+        "",
+        "The conversion itself is checked against the National Geodetic Survey's",
+        "own Coordinate Conversion and Transformation Tool (NCAT). Twenty-seven",
+        "positions spanning the three zones were converted by NCAT, and those",
+        "results are held in the test suite as fixed reference values. This",
+        "software reproduces them to within 0.5 mm - which is the precision NCAT",
+        "publishes, so the agreement is as close as the reference permits.",
+        "",
+        "Both checks compare this software against NGS. Neither compares it",
+        "against itself.",
+        "",
+    ]
+
+
+def _method_spcs2022(zones) -> list[str]:
+    """The METHOD and verification sections for a job on the 2022 zones.
+
+    The same document in the same shape, saying what is true of THIS era. Four
+    facts differ and every one of them matters to a reader checking the work:
+
+    * the equations come from the same manual, but from up to three of its
+      sections rather than always from 3.1;
+    * the zone constants are not in Appendix C - they are NGS's own published
+      SPCS2022 parameters, captured and digest-pinned, and the suite compares
+      every stored field against that capture rather than recomputing anything;
+    * the conversion is anchored to beta NCAT, not production NCAT; and
+    * the anchors are pre-release. That is stated as the dated fact it is,
+      with the re-freeze obligation named, because a reader of a sealed job
+      six months from now must be able to tell which NGS products it rests on
+      (docs/DESIGN.md #61, docs/REFREEZE-NSRS.md).
+
+    The "Twenty-seven"/"three" of the 1983 arm becomes "Sixty-three"/"nineteen"
+    here; both are literals in this module and both are held against the length
+    of the fixture they describe by the suite, which is where the anchors live.
+    """
+    lines: list[str] = []
+    add = lines.append
+
+    lines.extend(
+        _labelled_paragraph(
+            "Authority",
+            "NOAA Manual NOS NGS 5, State Plane Coordinate System of 1983 "
+            "(Stem, January 1989; reprinted with minor corrections March "
+            "1990) - the mapping equations, which SPCS2022 is projected with "
+            "unchanged.",
+        )
+    )
+    add("")
+    lines.extend(
+        _labelled_paragraph(
+            "",
+            f"{SPCS2022_POLICY_CITATION} - the policy authority for SPCS2022, "
+            f"and the SPCS2022 Procedures its zones are designed under.",
+        )
+    )
+    add("")
+    lines.extend(
+        _labelled_paragraph(
+            "",
+            "NGS SPCS2022 zone parameters and zone bounds, published at "
+            "beta.ngs.noaa.gov and frozen in this repository (NGS beta):",
+        )
+    )
+    # Each file with its own capture date and its own digest, from the same
+    # constants the zone records cite - so the record and the registry cannot
+    # state different provenance for the same numbers. The digest lines run
+    # past 78 columns, as the geoid model's digest line already does: a
+    # SHA-256 is not wrappable without becoming a different string.
+    add(
+        f"{'':<{_LABEL_WIDTH}}{SPCS2022_DEFINITIONS_FILENAME}, captured "
+        f"{SPCS2022_DEFINITIONS_CAPTURED}"
+    )
+    add(f"{'':<{_LABEL_WIDTH}}SHA-256 {SPCS2022_DEFINITIONS_SHA256}")
+    add(
+        f"{'':<{_LABEL_WIDTH}}{SPCS2022_BOUNDS_FILENAME}, captured "
+        f"{SPCS2022_BOUNDS_CAPTURED}"
+    )
+    add(f"{'':<{_LABEL_WIDTH}}SHA-256 {SPCS2022_BOUNDS_SHA256}")
+    add("")
+
+    lines.extend(
+        _labelled_paragraph(
+            "Equations",
+            "The rigorous mapping equations of NOAA Manual NOS NGS 5, one set "
+            "per projection this job uses:",
+        )
+    )
+    lines.extend(_equation_lines(zones))
+    add("")
+    lines.extend(
+        _labelled_paragraph(
+            "Ellipsoid",
+            "GRS 80 - the ellipsoid of NAD 83 and of NATRF2022 alike (NOAA "
+            "Technical Report NOS NGS 62). Only the semimajor axis and the "
+            "flattening are stored; every other constant is derived from "
+            "those two.",
+        )
+    )
+    add("")
+    add("HOW THIS SOFTWARE IS VERIFIED")
+    add("")
+    lines.extend(
+        textwrap.wrap(
+            f"The zone constants used above are not taken on trust. This "
+            f"software stores only the DEFINING constants NGS publishes - the "
+            f"origin, the central meridian, the origin scale factor, the false "
+            f"coordinates - and derives the rest. Its test suite reads NGS's "
+            f"own captured files back and compares every stored field against "
+            f"them, zone by zone: the defining constants against "
+            f"{SPCS2022_DEFINITIONS_FILENAME} (SHA-256 "
+            f"{SPCS2022_DEFINITIONS_SHA256}), and the published zone bounds "
+            f"this program's warnings are measured against, against "
+            f"{SPCS2022_BOUNDS_FILENAME} (SHA-256 {SPCS2022_BOUNDS_SHA256}).",
+            width=78,
+            break_long_words=False,
+        )
+    )
+    add("")
+    lines.extend(
+        textwrap.wrap(
+            f"The conversion itself is checked against the National Geodetic "
+            f"Survey's own Coordinate Conversion and Transformation Tool "
+            f"(NCAT). Sixty-three positions spanning all nineteen Michigan "
+            f"SPCS2022 zones were converted by beta NCAT (captured "
+            f"{SPCS2022_DEFINITIONS_CAPTURED}), and those results are held in "
+            f"the test suite as fixed reference values. This software "
+            f"reproduces them within the precision NCAT prints. The inverse is "
+            f"checked at the same positions: each captured coordinate is "
+            f"converted back, and the convergence angle and grid scale factor "
+            f"reported there are held against the same printed NCAT values.",
+            width=78,
+            break_long_words=False,
+        )
+    )
+    add("")
+    lines.extend(
+        textwrap.wrap(
+            "Those anchors, and the zone parameters above, come from NGS's "
+            "beta products, published ahead of the official SPCS2022 release "
+            "for implementation. They are to be re-frozen against NGS's "
+            "official release when it is published, and the difference "
+            "measured (docs/REFREEZE-NSRS.md).",
+            width=78,
+            break_long_words=False,
+        )
+    )
+    add("")
+    add("Both checks compare this software against NGS. Neither compares it")
+    add("against itself.")
+    add("")
+    return lines
+
+
+def _method_and_verification(settings) -> list[str]:
+    """The METHOD section, in the era of the zones this job actually uses.
+
+    **A job cannot mix eras.** The 1983 zones are on NAD83(2011) and the 2022
+    zones are on NATRF2022; ``frames.require_frame_path`` refuses that pair
+    before any coordinate is converted, and ``job.run`` refuses it before the
+    file is read (docs/DESIGN.md #62). This function does not rely on that
+    assumption silently - it checks it, because a settings record can be built
+    by hand and a document that quietly described half a job in the wrong era's
+    words would be worse than a refusal.
+
+    A job with NO zone at all - a vertical-only conversion of geodetic
+    positions - takes the 1983 arm, which is what it has always printed.
+    """
+    zones = _job_zones(settings)
+    modern = [zone for zone in zones if zone.code in _SPCS2022_ZONE_CODES]
+    legacy = [zone for zone in zones if zone.code not in _SPCS2022_ZONE_CODES]
+    if modern and legacy:
+        raise ValueError(
+            f"This job names zones from two eras - "
+            f"{', '.join(f'{z.name} ({z.code}, {z.system})' for z in legacy)} "
+            f"and "
+            f"{', '.join(f'{z.name} ({z.code}, {z.system})' for z in modern)} "
+            f"- and they are on different reference frames, so no such "
+            f"conversion exists to describe. NGS has not published the "
+            f"NAD83(2011) to NATRF2022 transformation "
+            f"(docs/DEFERRED-NATRF2022-BRIDGE.md); a conversion between the "
+            f"eras is refused before any coordinate is computed."
+        )
+    if modern:
+        return _method_spcs2022(modern)
+    return _method_spcs83()
+
+
 def build_report(result: JobResult) -> str:
     """Render the job record."""
     settings = result.settings
@@ -849,39 +1425,7 @@ def build_report(result: JobResult) -> str:
     add(_THIN)
     add("METHOD")
     add(_THIN)
-    add("Authority          NOAA Manual NOS NGS 5, State Plane Coordinate System")
-    add("                   of 1983 (Stem, January 1989; reprinted with minor")
-    add("                   corrections March 1990)")
-    add("")
-    add("Equations          The rigorous Lambert conformal conic mapping")
-    add("                   equations of section 3.1 - zone constants (3.12),")
-    add("                   direct conversion (3.13), inverse conversion (3.14).")
-    add("                   Exact at any latitude, with no approximation term.")
-    add("")
-    add("Ellipsoid          GRS 80, the ellipsoid of NAD 83 (manual section 1.7).")
-    add("                   Only the semimajor axis and the flattening are stored;")
-    add("                   every other constant is derived from those two.")
-    add("")
-    add("HOW THIS SOFTWARE IS VERIFIED")
-    add("")
-    add("The zone constants used above are not taken on trust. The manual")
-    add("publishes, in Appendix C, the constants NGS computed for every Lambert")
-    add("zone. This software stores only the DEFINING constants - the standard")
-    add("parallels, the grid origin, the central meridian - and derives the rest.")
-    add("Its test suite recomputes all of them and requires a match with NGS's")
-    add("published figures to the last decimal place NGS printed, for all three")
-    add("Michigan zones.")
-    add("")
-    add("The conversion itself is checked against the National Geodetic Survey's")
-    add("own Coordinate Conversion and Transformation Tool (NCAT). Twenty-seven")
-    add("positions spanning the three zones were converted by NCAT, and those")
-    add("results are held in the test suite as fixed reference values. This")
-    add("software reproduces them to within 0.5 mm - which is the precision NCAT")
-    add("publishes, so the agreement is as close as the reference permits.")
-    add("")
-    add("Both checks compare this software against NGS. Neither compares it")
-    add("against itself.")
-    add("")
+    lines.extend(_method_and_verification(settings))
 
     if result.geoid_model:
         # Resolved through the registry so the tile name and digest printed

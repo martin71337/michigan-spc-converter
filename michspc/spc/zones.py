@@ -576,20 +576,59 @@ can be checked against, and the survey foot is 2 ppm from the international
 foot - about 26 feet at a four-million-metre easting.
 """
 
-_SPCS2022_CITATION = (
+SPCS2022_POLICY_CITATION = (
     "NOAA Special Publication NOS NGS 13, 'The State Plane Coordinate System: "
-    "History, Policy, & Future Directions' (Dennis, 2018), and the SPCS2022 "
-    "Procedures it is implemented under; defining constants from NGS's "
-    "zoneDefinitions.json, "
-    "https://beta.ngs.noaa.gov/SPCS/json_data/zoneDefinitions.json, captured "
-    "2026-08-28, 632,927 bytes, SHA-256 f222dac669503c8e25eb41d477bbb129b813b"
-    "894b43e7d012effb9dc00bbc06a, frozen at "
-    "review/nsrs-n0/raw/zoneDefinitions.json; zone bounds from NGS's "
-    "zoneBounds.json, "
-    "https://beta.ngs.noaa.gov/SPCS/json_data/zoneBounds.json, captured "
-    "2026-08-29, 654,390 bytes, SHA-256 040f9d5a6e4af2587cb8306d05829a0efefd1"
-    "7a482b37f55678e4ea861f48b66, frozen at "
-    "review/nsrs-n0/raw/zoneBounds.json. NGS beta"
+    "History, Policy, & Future Directions' (Dennis, 2018)"
+)
+"""The SPCS2022 policy authority, named once.
+
+Quoted by every 2022 zone's citation below AND by the job record's METHOD
+section (michspc.fileio.report), which is why it is a named constant rather
+than a phrase inside the citation string: the record and the registry state
+the same authority, so they must not be two separately typed copies of it.
+"""
+
+SPCS2022_DEFINITIONS_FILENAME = "zoneDefinitions.json"
+SPCS2022_DEFINITIONS_CAPTURED = "2026-08-28"
+SPCS2022_DEFINITIONS_SHA256 = (
+    "f222dac669503c8e25eb41d477bbb129b813b894b43e7d012effb9dc00bbc06a"
+)
+"""NGS's published zone parameters: the file, the capture date, the digest.
+
+Every defining constant in ``SPCS2022_ZONES`` was transcribed from this
+capture, and ``tests/test_zone_registry.py`` re-hashes the frozen file and
+cross-checks every stored field against it. The digest is a named constant
+because two surfaces state it - each zone's citation and the job record's
+METHOD section - and a digest typed twice is a digest that can disagree with
+itself.
+"""
+
+SPCS2022_BOUNDS_FILENAME = "zoneBounds.json"
+SPCS2022_BOUNDS_CAPTURED = "2026-08-29"
+SPCS2022_BOUNDS_SHA256 = (
+    "040f9d5a6e4af2587cb8306d05829a0efefd17a482b37f55678e4ea861f48b66"
+)
+"""NGS's published zone bounds: the file, the capture date, the digest.
+
+A second, independent kind of fact from the definitions above - the bounds the
+extent and easting warnings are measured against - and it carries its own
+capture date, which is a day later than the definitions'.
+"""
+
+_SPCS2022_CITATION = (
+    f"{SPCS2022_POLICY_CITATION}, and the SPCS2022 "
+    f"Procedures it is implemented under; defining constants from NGS's "
+    f"{SPCS2022_DEFINITIONS_FILENAME}, "
+    f"https://beta.ngs.noaa.gov/SPCS/json_data/"
+    f"{SPCS2022_DEFINITIONS_FILENAME}, captured "
+    f"{SPCS2022_DEFINITIONS_CAPTURED}, 632,927 bytes, SHA-256 "
+    f"{SPCS2022_DEFINITIONS_SHA256}, frozen at "
+    f"review/nsrs-n0/raw/{SPCS2022_DEFINITIONS_FILENAME}; zone bounds from "
+    f"NGS's {SPCS2022_BOUNDS_FILENAME}, "
+    f"https://beta.ngs.noaa.gov/SPCS/json_data/{SPCS2022_BOUNDS_FILENAME}, "
+    f"captured {SPCS2022_BOUNDS_CAPTURED}, 654,390 bytes, SHA-256 "
+    f"{SPCS2022_BOUNDS_SHA256}, frozen at "
+    f"review/nsrs-n0/raw/{SPCS2022_BOUNDS_FILENAME}. NGS beta"
 )
 """The shared half of every 2022 zone's citation; each record names its own row.
 

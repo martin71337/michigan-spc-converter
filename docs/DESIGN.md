@@ -599,6 +599,65 @@ gateless cadence does not apply here). The horizontal work packages H1–H6
 proceed per the plan; the first code lands only after this amendment, which
 is the H0 exit condition.
 
+### #63 — 2026-08-29 — H3′ through N8: the modernized system is built, gated per package
+
+**Everything after the interim gate's closure (#62), in four lead-briefed,
+Opus-built, lead-verified packages, each committed as its own boundary with
+its verification in the message.** Suite 3,620 → **3,726**, both modes
+throughout; the 18-digest cross-version pin green at every boundary; the
+frozen self-test grows 9 → **11 checks**.
+
+- **H3′ (4f86ddc):** `frames.py` mirrors `vertical.py` — status a required
+  field, NATRF2022 usable on TR NOS NGS 62's authority, WGS 84 declared
+  not usable (#58's fact made a record), identity-only transformations
+  whose constructor refuses a non-identity, `require_frame_path` replacing
+  `require_same_frame` (deleted) with the NGS-unpublished refusal; job.py's
+  geodetic-frame and per-zone-unit gates, before the file is read. The four
+  #26-era safety pins superseded by name; sixteen seeds caught.
+- **H5 (15fedf9):** the record tells the truth per projection kind —
+  per-kind zone blocks with defining constants labelled defining, the
+  era-branched METHOD/verification prose (1983 arm byte-identical, pinned
+  as frozen literals; 2022 arm stating the captures, digests, the 63-anchor
+  beta verification and the re-freeze fact), counts pinned against
+  fixtures, mixed-era jobs refusing by name; and **`docs/REFREEZE-NSRS.md`
+  plus its two-way inventory test** — #61's overdue obligation closed
+  (flagged by a builder, a lead miss). The builder caught its own vacuous
+  pin (the LOW-3 class) and rebuilt it. Eighteen seeds caught.
+- **H6 (3fee176):** the system reaches the screen — the string sentinel
+  deleted so all fourteen comparison sites failed loudly and were visited;
+  `GeodeticChoice` singletons (findData compares by identity, measured);
+  per-frame derived geodetic labels (#58's pin generalized); 26-item
+  combos with era separator and frame-deriving zone labels; per-zone unit
+  filtering through a guarded reader; cross-frame pairs selectable and
+  refusing loudly at Convert (#33's stance); every new path in the
+  invalidation pins. One real defect fixed at the root by an existing pin
+  (panel wrap, pixels → EMs, the #31 class); the builder caught its own
+  vacuous snap pin. Thirteen seeds caught. **Layout decisions are flagged
+  for the owner's screen review** — the combo order, the native separator,
+  the longer labels, the snap status wording, the 26-item dropdown at
+  laptop size — nothing final until he has seen both tabs.
+- **N8 (a9cf1f1):** self-test checks 10 (a 2022 conversion against a
+  frozen beta anchor, chosen off the rounding boundary) and 11 (the frame
+  refusal alive in both directions in the bundle); the LAZY_IMPORTS audit
+  as an AST mechanism, catching two undeclared lazy imports including one
+  that would have died frozen on first use (the #38 class); **release gate
+  2 of nine: the build refuses while `NGS beta` artifacts remain unless
+  `--acknowledge-ngs-beta` is passed** — five tagged artifacts today, the
+  acknowledgement stamped into SHA256SUMS.txt; the DRAFT 0.7.0 release
+  notes. Twenty seeds caught.
+
+**A contract change for the owner's confirmation at screen review:** the
+Multi point table now clears on a filter-forced unit snap — a narrowing of
+"the table describes a written archive, not the controls" — with a status
+line saying the archive on disk was untouched.
+
+**Remaining before 0.7.0:** the closing adversarial gate over the whole
+`aec20dd..HEAD` range; the owner's screen review of both tabs; his release
+build (`py tools/build_release.py --acknowledge-ngs-beta`) and tag; and
+the standing human items (clean-profile install; a real job end to end on
+the new surfaces before any sealed deliverable leans on them, the #59
+pattern).
+
 ### #62 — 2026-08-29 — The frame bridge is held: measured, decided, deferred
 
 **The owner's decision, on measured evidence: the NAD 83(2011) ⇄ NATRF2022

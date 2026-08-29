@@ -1,0 +1,76 @@
+You are the independent adversarial reviewer for MCX (Martin Coordinate
+Exchange), running the CLOSING GATE over the entire modernized-NSRS build.
+TIER: a wrong coordinate here lands on a sealed survey or a recorded legal
+description and moves a boundary. Review accordingly.
+
+SCOPE: the full git range aec20dd..HEAD (release 0.6.4 → now). An interim
+gate already ran over H1-H2 and closed (review/gate-nsrs-h1h2/ — read its
+output and reconfirm-output so you do not re-litigate closed findings;
+its three findings are fixed and falsified). Since then: H3′ (frames
+registry, bridge held per DESIGN.md #62), H5 (per-kind record blocks +
+era-branched METHOD prose + the re-freeze mechanism), H6 (the GUI round —
+the SPCS2022 zones became reachable), N8 (self-test checks 10-11, the
+LAZY_IMPORTS AST audit, the beta-acknowledgement release gate, DRAFT
+release notes). DESIGN.md #61/#62/#63 are the design authority for the
+range; docs/PLAN-nsrs-modernization.md the plan;
+docs/DEFERRED-NAPGD2022.md and docs/DEFERRED-NATRF2022-BRIDGE.md the two
+recorded holds.
+
+OWNER'S RULES: stdlib-only in michspc/spc (scanner also bans
+json/struct/csv there); no asserts anywhere in michspc (suite runs -O);
+every constant cited; refusals name the offending item and the exits; one
+authoritative representation per fact; SPCS 83 jobs byte-identical to
+0.6.4 (tests/test_orthometric_regression.py, digests computed by v0.5.0);
+MCX writes no caveat prose of its own on any surface (facts only;
+NGS-quoted caveats exempt); every beta artifact carries 'NGS beta' + a
+capture date and a REFREEZE-NSRS.md row.
+
+PRIORITY SURFACES, ranked by risk:
+
+A. THE INTEGRATION SEAMS NO SINGLE PACKAGE OWNED. A NATRF2022 job end to
+   end: GUI selection → JobSettings (geodetic_frame threading) → job.run's
+   gates (frame path, units, ordering) → conversion → record → archive →
+   round-trip verify. Construct concrete jobs: 2022 zone-to-zone in ift;
+   NATRF2022 geodetic→statewide OMC in metres; a 2022 ZONE_TO_GEODETIC
+   (which requires geodetic_frame=NATRF2022 — what happens through each
+   GUI path and each API path when it is defaulted?); vertical-only on a
+   2022 zone; ellipsoid-height input on a 2022 zone (H = h − N with
+   GEOID18 — era facts stated?). Hunt for any path where a wrong or
+   half-written output can escape, any refusal that fires after a file is
+   staged, any place the record states something false for a 2022 job.
+B. THE REFUSAL MATRIX. Cross-frame (both directions, both tabs, API);
+   WGS 84; usft on a 2022 zone (every direction); mixed-era; a 2022 zone
+   reaching any surface that still assumes 2SP (grep for lat_south/
+   lat_north/k_origin/two-standard-parallels consumers OUTSIDE the
+   dispatch tables — results_model, exports, selftest, tools).
+C. THE GUI ROUND (H6). The fourteen visited comparison sites — is any
+   comparison semantically changed, not just mechanically translated? The
+   invalidation matrix: era change, frame change, unit snap, on BOTH tabs
+   incl. vertical modes. The separator's None data. findData identity
+   semantics. The unit filter's interaction with the elevation-only
+   relabelling rules (#48/#57).
+D. DISCLOSURE HONESTY (H5). Read a generated 2022 record end to end in a
+   test harness: is every sentence true? (The verification prose's counts,
+   the digests, the defining/derived labels, the frame lines.) Is any 1983
+   sentence now false for any job shape that can occur? The vertical-only
+   METHOD text on a NATRF2022 job (a recorded pre-existing carry — assess,
+   don't relitigate).
+E. THE RELEASE MACHINERY (N8). The nine gates' order and renumbering; the
+   beta gate's scan parity with the inventory test (try to construct a
+   token/casing/root that one scan sees and the other misses); the
+   self-test's new checks — could check 10 pass with a broken frame gate,
+   or check 11 with a broken projection? LAZY_IMPORTS completeness (the
+   AST audit's exclusions).
+F. TEST QUALITY. Vacuous pins in the ~1,100 tests added since 0.6.4: a
+   tolerance admitting the defect it names, a falsified-once pin whose
+   falsification no longer discriminates after later changes, a
+   supersession that silently weakened its predecessor. Sample
+   adversarially, especially the H6 invalidation pins and the H5
+   byte-identity literals.
+G. THE RECORD ITSELF. DESIGN.md #61-#63 vs the code: any claim the code
+   contradicts? REFREEZE-NSRS.md's five rows vs reality?
+
+METHOD: a finding without concrete inputs and the wrong output they
+produce is not a finding. File+line, input, wrong output, severity
+(CRITICAL/HIGH/MEDIUM/LOW). End with exactly one line:
+VERDICT: APPROVED   or   VERDICT: FINDINGS

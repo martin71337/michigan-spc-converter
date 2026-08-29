@@ -1,0 +1,11 @@
+{
+  "error": "Error associated with Geoid Height computation",
+  "geoidHeight": "Geoid Height",
+  "geoidModel": "An alphanumeric ID of the model used to compute Geoid Height",
+  "lat": "Latitude, in decimal degrees, positive north of the equator",
+  "latDms": "Latitude in Degrees-Minutes-Seconds with a 'N'orth or 'S'outh hemisphere prefix",
+  "lon": "Longitude in decimal degrees; negative west of the prime meridian",
+  "lonDms": "Longitude in Degrees-Minutes-Seconds with an 'E'ast or 'W'est hemisphere prefix",
+  "station": "An alphanumeric name associated with a given lat-long",
+  "units": "units (m,usft, or ift) of Geoid Height and error"
+}

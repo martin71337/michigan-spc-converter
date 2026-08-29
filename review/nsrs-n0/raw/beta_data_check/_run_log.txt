@@ -1,0 +1,13 @@
+### VERTCON 3.0 orthometric shift, NGVD29 -> NAVD88, 200.000 m
+  beta.ngs.noaa.gov  NAD83(2011) -> NAD83(2011)        srcOrthoht=200.000 destOrthoht=N/A sigOrthoht=N/A vertconVersion=3.0
+  beta.ngs.noaa.gov  NAD83(2011) -> NAD83(NSRS2007)    srcOrthoht=200.000 destOrthoht=N/A sigOrthoht=N/A vertconVersion=3.0
+  geodesy.noaa.gov   NAD83(2011) -> NAD83(2011)        srcOrthoht=200.000 destOrthoht=199.860 sigOrthoht=0.001 vertconVersion=3.0
+  geodesy.noaa.gov   NAD83(2011) -> NAD83(NSRS2007)    srcOrthoht=200.000 destOrthoht=199.860 sigOrthoht=0.001 vertconVersion=3.0
+
+### geoid height, model 14 (GEOID18)
+  beta.ngs.noaa.gov  {}
+  geodesy.noaa.gov   { "geoidModel": "GEOID18", "station": "UserStation", "lat": 43.0, "latDms": "N430000.00000", "lon": -84.5, "lonDms": "W0843000.00000", "units": "m", "geoidHeight": -33.085, "error": 0.031 }
+
+### the meta endpoints, for the digest comparison
+  /api/ncat/meta     beta.ngs.noaa.gov=2fb8bf2dada9da62 geodesy.noaa.gov=2fb8bf2dada9da62   (IDENTICAL)
+  /api/geoid/meta    beta.ngs.noaa.gov=f1f09e4768022f38 geodesy.noaa.gov=f1f09e4768022f38   (IDENTICAL)

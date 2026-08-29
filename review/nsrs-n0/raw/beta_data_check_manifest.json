@@ -1,0 +1,217 @@
+[
+  {
+    "bytes": 1352,
+    "captured": "2026-08-29T02:14:59.253952+00:00",
+    "error": null,
+    "headers": {
+      "Access-Control-Allow-Origin": "*",
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Type": "application/json",
+      "Date": "Sat, 29 Aug 2026 02:15:02 GMT",
+      "Set-Cookie": "SRV=A; path=/; HttpOnly; Secure; SameSite=Strict",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload;",
+      "Transfer-Encoding": "chunked",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "200",
+    "saved": "raw/beta_data_check/beta__ngvd29_navd88__NAD832011.json",
+    "sha256": "c3af1ab5c7bf5736c586ea607627a9bad8e23403c05672672b6633e6f95a2942",
+    "status": 200,
+    "url": "https://beta.ngs.noaa.gov/api/ncat/llh?lat=43.0&lon=-84.5&inDatum=NAD83%282011%29&outDatum=NAD83%282011%29&orthoHt=200.0&inVertDatum=NGVD29&outVertDatum=NAVD88"
+  },
+  {
+    "bytes": 1294,
+    "captured": "2026-08-29T02:14:59.961703+00:00",
+    "error": null,
+    "headers": {
+      "Access-Control-Allow-Origin": "*",
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Type": "application/json",
+      "Date": "Sat, 29 Aug 2026 02:15:03 GMT",
+      "Set-Cookie": "SRV=A; path=/; HttpOnly; Secure; SameSite=Strict",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload;",
+      "Transfer-Encoding": "chunked",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "200",
+    "saved": "raw/beta_data_check/beta__ngvd29_navd88__NAD83NSRS2007.json",
+    "sha256": "798fc181b6153dbcfa4390a7b40d5cd84e7774db3000ec5f8bab0a1983b5ef76",
+    "status": 200,
+    "url": "https://beta.ngs.noaa.gov/api/ncat/llh?lat=43.0&lon=-84.5&inDatum=NAD83%282011%29&outDatum=NAD83%28NSRS2007%29&orthoHt=200.0&inVertDatum=NGVD29&outVertDatum=NAVD88"
+  },
+  {
+    "bytes": 1358,
+    "captured": "2026-08-29T02:15:00.543767+00:00",
+    "error": null,
+    "headers": {
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Type": "application/json",
+      "Date": "Sat, 29 Aug 2026 02:15:04 GMT",
+      "Set-Cookie": "SERVERID=; Expires=Thu, 01-Jan-1970 00:00:01 GMT; path=/",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; ",
+      "Transfer-Encoding": "chunked",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "200",
+    "saved": "raw/beta_data_check/geodesy__ngvd29_navd88__NAD832011.json",
+    "sha256": "9ba7628629a81ee06fd4a7ce5c5088b1b653b991e475b28c7df8eeef7450119a",
+    "status": 200,
+    "url": "https://geodesy.noaa.gov/api/ncat/llh?lat=43.0&lon=-84.5&inDatum=NAD83%282011%29&outDatum=NAD83%282011%29&orthoHt=200.0&inVertDatum=NGVD29&outVertDatum=NAVD88"
+  },
+  {
+    "bytes": 1363,
+    "captured": "2026-08-29T02:15:01.076781+00:00",
+    "error": null,
+    "headers": {
+      "cache-control": "private",
+      "connection": "close",
+      "content-type": "application/json",
+      "date": "Sat, 29 Aug 2026 02:15:04 GMT",
+      "set-cookie": "SERVERID=; Expires=Thu, 01-Jan-1970 00:00:01 GMT; path=/",
+      "strict-transport-security": "max-age=31536000; includeSubDomains;",
+      "transfer-encoding": "chunked",
+      "x-frame-options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "200",
+    "saved": "raw/beta_data_check/geodesy__ngvd29_navd88__NAD83NSRS2007.json",
+    "sha256": "5aec1c8171b31e8b6ee35e2eb4fc59b54fe9f237c63a5dd371c6a75698645183",
+    "status": 200,
+    "url": "https://geodesy.noaa.gov/api/ncat/llh?lat=43.0&lon=-84.5&inDatum=NAD83%282011%29&outDatum=NAD83%28NSRS2007%29&orthoHt=200.0&inVertDatum=NGVD29&outVertDatum=NAVD88"
+  },
+  {
+    "bytes": 2,
+    "captured": "2026-08-29T02:15:01.711615+00:00",
+    "error": null,
+    "headers": {
+      "Access-Control-Allow-Origin": "*",
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Type": "application/json",
+      "Date": "Sat, 29 Aug 2026 02:15:05 GMT",
+      "Set-Cookie": "SRV=A; path=/; HttpOnly; Secure; SameSite=Strict",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload;",
+      "Transfer-Encoding": "chunked",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "200",
+    "saved": "raw/beta_data_check/beta__geoid_model14.json",
+    "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "status": 200,
+    "url": "https://beta.ngs.noaa.gov/api/geoid/ght?lat=43.0&lon=-84.5&model=14"
+  },
+  {
+    "bytes": 207,
+    "captured": "2026-08-29T02:15:02.381626+00:00",
+    "error": null,
+    "headers": {
+      "cache-control": "private",
+      "connection": "close",
+      "content-type": "application/json",
+      "date": "Sat, 29 Aug 2026 02:15:05 GMT",
+      "set-cookie": "SERVERID=; Expires=Thu, 01-Jan-1970 00:00:01 GMT; path=/",
+      "strict-transport-security": "max-age=31536000; includeSubDomains;",
+      "transfer-encoding": "chunked",
+      "x-frame-options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "200",
+    "saved": "raw/beta_data_check/geodesy__geoid_model14.json",
+    "sha256": "8a6befa8e66eb33a40bccc61225a4dd2258581019aeb23e3e34db2de3ead0892",
+    "status": 200,
+    "url": "https://geodesy.noaa.gov/api/geoid/ght?lat=43.0&lon=-84.5&model=14"
+  },
+  {
+    "bytes": 3867,
+    "captured": "2026-08-29T02:15:02.771896+00:00",
+    "error": null,
+    "headers": {
+      "Access-Control-Allow-Origin": "*",
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Type": "application/json",
+      "Date": "Sat, 29 Aug 2026 02:15:06 GMT",
+      "Set-Cookie": "SRV=A; path=/; HttpOnly; Secure; SameSite=Strict",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload;",
+      "Transfer-Encoding": "chunked",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "200",
+    "saved": "raw/beta_data_check/beta__api_ncat_meta.json",
+    "sha256": "2fb8bf2dada9da620cbcdb7c41ca81f9499ef60b951fca3c56696b3ffaf099c5",
+    "status": 200,
+    "url": "https://beta.ngs.noaa.gov/api/ncat/meta"
+  },
+  {
+    "bytes": 649,
+    "captured": "2026-08-29T02:15:03.186474+00:00",
+    "error": null,
+    "headers": {
+      "Access-Control-Allow-Origin": "*",
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Type": "application/json",
+      "Date": "Sat, 29 Aug 2026 02:15:06 GMT",
+      "Set-Cookie": "SRV=A; path=/; HttpOnly; Secure; SameSite=Strict",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload;",
+      "Transfer-Encoding": "chunked",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "200",
+    "saved": "raw/beta_data_check/beta__api_geoid_meta.json",
+    "sha256": "f1f09e4768022f3891b81a611c956bea7e09452e770e5656e6963bd3a7ff079e",
+    "status": 200,
+    "url": "https://beta.ngs.noaa.gov/api/geoid/meta"
+  },
+  {
+    "bytes": 3867,
+    "captured": "2026-08-29T02:15:03.561628+00:00",
+    "error": null,
+    "headers": {
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Type": "application/json",
+      "Date": "Sat, 29 Aug 2026 02:15:06 GMT",
+      "Set-Cookie": "SERVERID=; Expires=Thu, 01-Jan-1970 00:00:01 GMT; path=/",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; ",
+      "Transfer-Encoding": "chunked",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "200",
+    "saved": "raw/beta_data_check/geodesy__api_ncat_meta.json",
+    "sha256": "2fb8bf2dada9da620cbcdb7c41ca81f9499ef60b951fca3c56696b3ffaf099c5",
+    "status": 200,
+    "url": "https://geodesy.noaa.gov/api/ncat/meta"
+  },
+  {
+    "bytes": 649,
+    "captured": "2026-08-29T02:15:03.901595+00:00",
+    "error": null,
+    "headers": {
+      "cache-control": "private",
+      "connection": "close",
+      "content-type": "application/json",
+      "date": "Sat, 29 Aug 2026 02:15:07 GMT",
+      "set-cookie": "SERVERID=; Expires=Thu, 01-Jan-1970 00:00:01 GMT; path=/",
+      "strict-transport-security": "max-age=31536000; includeSubDomains;",
+      "transfer-encoding": "chunked",
+      "x-frame-options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "200",
+    "saved": "raw/beta_data_check/geodesy__api_geoid_meta.json",
+    "sha256": "f1f09e4768022f3891b81a611c956bea7e09452e770e5656e6963bd3a7ff079e",
+    "status": 200,
+    "url": "https://geodesy.noaa.gov/api/geoid/meta"
+  }
+]

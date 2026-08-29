@@ -1,0 +1,142 @@
+[
+  {
+    "bytes": 632927,
+    "captured": "2026-08-29T02:12:24.446663+00:00",
+    "error": null,
+    "headers": {
+      "Accept-Ranges": "bytes",
+      "Access-Control-Allow-Origin": "*",
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Length": "632927",
+      "Content-Type": "application/json",
+      "Date": "Sat, 29 Aug 2026 02:12:27 GMT",
+      "ETag": "\"9a85f-653376ae7d270\"",
+      "Last-Modified": "Mon, 01 Jun 2026 20:55:42 GMT",
+      "Set-Cookie": "SRV=A; path=/; HttpOnly; Secure; SameSite=Strict",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload;",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "OK",
+    "saved": "raw/spcs/zoneDefinitions.json",
+    "sha256": "f222dac669503c8e25eb41d477bbb129b813b894b43e7d012effb9dc00bbc06a",
+    "status": 200,
+    "url": "https://beta.ngs.noaa.gov/SPCS/json_data/zoneDefinitions.json"
+  },
+  {
+    "bytes": 15649,
+    "captured": "2026-08-29T02:12:25.289764+00:00",
+    "error": null,
+    "headers": {
+      "Accept-Ranges": "bytes",
+      "Access-Control-Allow-Origin": "*",
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Length": "15649",
+      "Content-Type": "text/html; charset=UTF-8",
+      "Date": "Sat, 29 Aug 2026 02:12:28 GMT",
+      "Set-Cookie": "SRV=A; path=/; HttpOnly; Secure; SameSite=Strict",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload;",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "OK",
+    "saved": "raw/spcs/zone-definitions.shtml",
+    "sha256": "842524f9803025c7242360ff0253a9c8367f8d22fb9e356c5f3de9102b83aeca",
+    "status": 200,
+    "url": "https://beta.ngs.noaa.gov/SPCS/zone-definitions.shtml"
+  },
+  {
+    "bytes": 17219,
+    "captured": "2026-08-29T02:12:25.758435+00:00",
+    "error": null,
+    "headers": {
+      "Accept-Ranges": "bytes",
+      "Access-Control-Allow-Origin": "*",
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Length": "17219",
+      "Content-Type": "text/html; charset=UTF-8",
+      "Date": "Sat, 29 Aug 2026 02:12:29 GMT",
+      "Set-Cookie": "SRV=A; path=/; HttpOnly; Secure; SameSite=Strict",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload;",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "OK",
+    "saved": "raw/spcs/zone-information.html",
+    "sha256": "e69a2504db479d25a7c7a72f3a6f2fb7804e63c69ec08a61a1dacab7a5fe2ae4",
+    "status": 200,
+    "url": "https://beta.ngs.noaa.gov/SPCS/zone-information.html"
+  },
+  {
+    "bytes": 15772,
+    "captured": "2026-08-29T02:12:26.303991+00:00",
+    "error": null,
+    "headers": {
+      "Accept-Ranges": "bytes",
+      "Access-Control-Allow-Origin": "*",
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Length": "15772",
+      "Content-Type": "text/html; charset=UTF-8",
+      "Date": "Sat, 29 Aug 2026 02:12:29 GMT",
+      "Set-Cookie": "SRV=A; path=/; HttpOnly; Secure; SameSite=Strict",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload;",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "OK",
+    "saved": "raw/spcs/coordinates.shtml",
+    "sha256": "8317d50a00c8697c1506d95b19e084b7a6619409ee88e64d2d51b421adbcad4b",
+    "status": 200,
+    "url": "https://beta.ngs.noaa.gov/SPCS/coordinates.shtml"
+  },
+  {
+    "bytes": 15708,
+    "captured": "2026-08-29T02:12:26.778736+00:00",
+    "error": null,
+    "headers": {
+      "Accept-Ranges": "bytes",
+      "Access-Control-Allow-Origin": "*",
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Length": "15708",
+      "Content-Type": "text/html; charset=UTF-8",
+      "Date": "Sat, 29 Aug 2026 02:12:30 GMT",
+      "Set-Cookie": "SRV=A; path=/; HttpOnly; Secure; SameSite=Strict",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload;",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "OK",
+    "saved": "raw/spcs/zone-bounds.shtml",
+    "sha256": "ff79587d2bfdd1b66b6eb63304ddd6bc3804658f7283ae5ff27cd0b902cdde90",
+    "status": 200,
+    "url": "https://beta.ngs.noaa.gov/SPCS/zone-bounds.shtml"
+  },
+  {
+    "bytes": 19793,
+    "captured": "2026-08-29T02:12:27.254428+00:00",
+    "error": null,
+    "headers": {
+      "Accept-Ranges": "bytes",
+      "Access-Control-Allow-Origin": "*",
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Length": "19793",
+      "Content-Type": "text/html; charset=UTF-8",
+      "Date": "Sat, 29 Aug 2026 02:12:30 GMT",
+      "Set-Cookie": "SRV=A; path=/; HttpOnly; Secure; SameSite=Strict",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload;",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "OK",
+    "saved": "raw/spcs/learn-more.html",
+    "sha256": "6dbdd2c1906950b30a910643d34e314611451e8e96a4dcf52fa7f0e95505f6f2",
+    "status": 200,
+    "url": "https://beta.ngs.noaa.gov/SPCS/learn-more.html"
+  }
+]

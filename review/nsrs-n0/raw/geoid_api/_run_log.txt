@@ -1,0 +1,76 @@
+GET https://beta.ngs.noaa.gov/api/geoid/meta
+  status=200 200
+  bytes=649 sha256=f1f09e4768022f3891b81a611c956bea7e09452e770e5656e6963bd3a7ff079e
+  Content-Type=application/json
+  saved=raw\geoid_api\beta__meta.json
+  beta.ngs.noaa.gov  model=0           { "error": "No suitable Geoid model found for model 0" }
+  beta.ngs.noaa.gov  model=1           {}
+  beta.ngs.noaa.gov  model=2           {}
+  beta.ngs.noaa.gov  model=3           {}
+  beta.ngs.noaa.gov  model=4           {}
+  beta.ngs.noaa.gov  model=5           {}
+  beta.ngs.noaa.gov  model=6           {}
+  beta.ngs.noaa.gov  model=7           {}
+  beta.ngs.noaa.gov  model=8           { "error": "No suitable Geoid model found for model 8" }
+  beta.ngs.noaa.gov  model=9           {}
+  beta.ngs.noaa.gov  model=10          { "error": "No suitable Geoid model found for model 10" }
+  beta.ngs.noaa.gov  model=11          {}
+  beta.ngs.noaa.gov  model=12          {}
+  beta.ngs.noaa.gov  model=13          {}
+  beta.ngs.noaa.gov  model=14          {}
+  beta.ngs.noaa.gov  model=15          { "error": "No suitable Geoid model found for model 15" }
+  beta.ngs.noaa.gov  model=16          { "error": "No suitable Geoid model found for model 16" }
+  beta.ngs.noaa.gov  model=17          { "error": "No suitable Geoid model found for model 17" }
+  beta.ngs.noaa.gov  model=18          { "error": "No suitable Geoid model found for model 18" }
+  beta.ngs.noaa.gov  model=19          { "error": "No suitable Geoid model found for model 19" }
+  beta.ngs.noaa.gov  model=20          { "error": "No suitable Geoid model found for model 20" }
+  beta.ngs.noaa.gov  model=21          { "error": "No suitable Geoid model found for model 21" }
+  beta.ngs.noaa.gov  model=22          { "error": "No suitable Geoid model found for model 22" }
+  beta.ngs.noaa.gov  model=23          { "error": "No suitable Geoid model found for model 23" }
+  beta.ngs.noaa.gov  model=24          { "error": "No suitable Geoid model found for model 24" }
+  beta.ngs.noaa.gov  model=25          { "error": "No suitable Geoid model found for model 25" }
+  beta.ngs.noaa.gov  model=2022        { "error": "No suitable Geoid model found for model 2022" }
+  beta.ngs.noaa.gov  model=GEOID2022   { "error": "Invalid model" }
+  beta.ngs.noaa.gov  model=geoid2022   { "error": "Invalid model" }
+  beta.ngs.noaa.gov  model=G2022       { "error": "Invalid model" }
+  beta.ngs.noaa.gov  model=SGEOID2022  { "error": "Invalid model" }
+  beta.ngs.noaa.gov  model=NAPGD2022   { "error": "Invalid model" }
+
+GET https://geodesy.noaa.gov/api/geoid/meta
+  status=200 200
+  bytes=649 sha256=f1f09e4768022f3891b81a611c956bea7e09452e770e5656e6963bd3a7ff079e
+  Content-Type=application/json
+  saved=raw\geoid_api\geodesy__meta.json
+  geodesy.noaa.gov   model=0           { "error": "No suitable Geoid model found for model 0" }
+  geodesy.noaa.gov   model=1           { "geoidModel": "GEOID99", "station": "UserStation", "lat": 43.0, "latDms": "N430000.00000", "lon": -84.5, "lonDms": "W0843000.000
+  geodesy.noaa.gov   model=2           { "geoidModel": "G99SSS", "station": "UserStation", "lat": 43.0, "latDms": "N430000.00000", "lon": -84.5, "lonDms": "W0843000.0000
+  geodesy.noaa.gov   model=3           { "geoidModel": "GEOID03", "station": "UserStation", "lat": 43.0, "latDms": "N430000.00000", "lon": -84.5, "lonDms": "W0843000.000
+  geodesy.noaa.gov   model=4           { "geoidModel": "USGG2003", "station": "UserStation", "lat": 43.0, "latDms": "N430000.00000", "lon": -84.5, "lonDms": "W0843000.00
+  geodesy.noaa.gov   model=5           { "geoidModel": "GEOID06", "station": "UserStation", "lat": 43.0, "latDms": "N430000.00000", "lon": -84.5, "lonDms": "W0843000.000
+  geodesy.noaa.gov   model=6           { "geoidModel": "USGG2009", "station": "UserStation", "lat": 43.0, "latDms": "N430000.00000", "lon": -84.5, "lonDms": "W0843000.00
+  geodesy.noaa.gov   model=7           { "geoidModel": "GEOID09", "station": "UserStation", "lat": 43.0, "latDms": "N430000.00000", "lon": -84.5, "lonDms": "W0843000.000
+  geodesy.noaa.gov   model=8           { "error": "No suitable Geoid model found for model 8" }
+  geodesy.noaa.gov   model=9           {}
+  geodesy.noaa.gov   model=10          { "error": "No suitable Geoid model found for model 10" }
+  geodesy.noaa.gov   model=11          { "geoidModel": "USGG2012", "station": "UserStation", "lat": 43.0, "latDms": "N430000.00000", "lon": -84.5, "lonDms": "W0843000.00
+  geodesy.noaa.gov   model=12          { "geoidModel": "GEOID12A", "station": "UserStation", "lat": 43.0, "latDms": "N430000.00000", "lon": -84.5, "lonDms": "W0843000.00
+  geodesy.noaa.gov   model=13          { "geoidModel": "GEOID12B", "station": "UserStation", "lat": 43.0, "latDms": "N430000.00000", "lon": -84.5, "lonDms": "W0843000.00
+  geodesy.noaa.gov   model=14          { "geoidModel": "GEOID18", "station": "UserStation", "lat": 43.0, "latDms": "N430000.00000", "lon": -84.5, "lonDms": "W0843000.000
+  geodesy.noaa.gov   model=15          { "error": "No suitable Geoid model found for model 15" }
+  geodesy.noaa.gov   model=16          { "error": "No suitable Geoid model found for model 16" }
+  geodesy.noaa.gov   model=17          { "error": "No suitable Geoid model found for model 17" }
+  geodesy.noaa.gov   model=18          { "error": "No suitable Geoid model found for model 18" }
+  geodesy.noaa.gov   model=19          { "error": "No suitable Geoid model found for model 19" }
+  geodesy.noaa.gov   model=20          { "error": "No suitable Geoid model found for model 20" }
+  geodesy.noaa.gov   model=21          { "error": "No suitable Geoid model found for model 21" }
+  geodesy.noaa.gov   model=22          { "error": "No suitable Geoid model found for model 22" }
+  geodesy.noaa.gov   model=23          { "error": "No suitable Geoid model found for model 23" }
+  geodesy.noaa.gov   model=24          { "error": "No suitable Geoid model found for model 24" }
+  geodesy.noaa.gov   model=25          { "error": "No suitable Geoid model found for model 25" }
+  geodesy.noaa.gov   model=2022        { "error": "No suitable Geoid model found for model 2022" }
+  geodesy.noaa.gov   model=GEOID2022   { "error": "Invalid model" }
+  geodesy.noaa.gov   model=geoid2022   { "error": "Invalid model" }
+  geodesy.noaa.gov   model=G2022       { "error": "Invalid model" }
+  geodesy.noaa.gov   model=SGEOID2022  { "error": "Invalid model" }
+  geodesy.noaa.gov   model=NAPGD2022   { "error": "Invalid model" }
+

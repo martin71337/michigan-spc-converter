@@ -1,0 +1,482 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="DC.title" content="API for NGS’s Coordinate Conversion and Transformation Tool (NCAT) " />
+<meta name="DC.description" content="NGS’s Coordinate Conversion and Transformation Tool (NCAT) allows users to easily convert between different coordinate systems as well as different datums, in a single step." />
+<meta name="DC.creator" content="US Department of Commerce, NOAA, NOS, National Geodetic Survey" />
+<meta name="DC.date.created" scheme="ISO8601" content="2018-03-12" />
+<meta name="DC.date.reviewed" scheme="ISO8601" content="2018-03-12" />
+<meta name="DC.language" scheme="DCTERMS.RFC1766" content="EN-US" />
+<title>API for NCAT | Web Services | National Geodetic Survey</title>
+
+
+
+
+<link href="/ngsstandard/css/main.css" rel="stylesheet" type="text/css" media="screen"/>
+<link href="/ngsstandard/css/main-layout.css" rel="stylesheet" type="text/css" media="screen" />
+<link rel="stylesheet" type="text/css" href="/ngsstandard/css/superfish/superfish.css" media="screen" />
+<link rel="stylesheet" type="text/css" href="/ngsstandard/css/menus.css" media="screen" />
+<!-- In its simplest form: -->
+<link rel="apple-touch-icon" href="/ngsstandard/images/apple-touch-icon.png" />
+<!-- For non-Retina iPhone, iPod Touch, and Android 2.1+ devices: -->
+<link rel="apple-touch-icon-precomposed" href="/ngsstandard/images/apple-touch-icon-precomposed.png" />
+<script src="/ngsstandard/js/superfish/jquery.min.js"></script>
+<!-- DAP tag -->
+<script src="//dap.digitalgov.gov/Universal-Federated-Analytics-Min.js?agency=DOC&amp;subagency=NOAA" id="_fed_an_ua_tag"></script>
+<!-- DAP tag -->
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-7PDTL9NJYZ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-7PDTL9NJYZ');
+</script>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="DC.creator" content=
+      "US Department of Commerce, NOAA, National Geodetic Survey" />
+<meta name="DC.language" scheme="DCTERMS.RFC1766" content="EN-US" />
+
+<!-- Anchor Button --> 
+        <link rel="stylesheet" type="text/css" href="/ngsstandard/css/anchor.css" media="screen" /> 
+        <script type="text/javascript" src="/ngsstandard/js/anchor.js"></script> 
+<!-- / Anchor Button --> 
+
+<link rel="stylesheet" type="text/css" href="/web_services/css/web-services.css" media="screen">
+<link rel="stylesheet" type="text/css" href="/web_services/css/ncat.css" media="screen">
+</head>
+
+<body>
+<div id="layout_page_wrapper"> 
+  <!-- Begin Wrapper -->
+  
+  <div id="layout_header_wrapper">
+    <div id="layout_home_banner"> 
+      <div id="layout_banner_common">
+  <a class="NOAA_LINK" title="NOAA Home Page" href="https://www.noaa.gov/"></a>
+  <a class="NGS_LINK" title="National Geodetic Survey Home Page" href="http://www.ngs.noaa.gov"></a>
+</div>
+	 
+      
+    </div>
+    <div id="layout_main_menu"> 
+      
+<!--<script type="text/javascript" src="/ngsstandard/js/superfish/jquery-1.2.6.min.js"></script>-->
+<script type="text/javascript" src="/ngsstandard/js/superfish/hoverIntent.js"></script>
+<script type="text/javascript" src="/ngsstandard/js/superfish/superfish.js"></script>
+
+<script type="text/javascript">
+    var j = jQuery.noConflict();
+    j(document).ready(function() {
+        j('ul.sf-menu').superfish({
+            delay:       100,                            // one second delay on mouseout 
+            animation:   {opacity:'show',height:'show'},  // fade-in and slide-down animation 
+            speed:       'medium',                          // faster animation speed 
+            autoArrows:  false,                           // disable generation of arrow mark-up 
+            dropShadows: true
+        }); 
+    }); 
+</script>
+
+<script type="text/javascript">
+function submit_mysearch (form) {
+    // Prepend NGS to query
+    form.query.value = "NGS " + form.query.value;
+    form.submit();
+    
+}
+</script>
+
+
+<ul class="sf-menu">
+<li> <a href="/">NGS Home</a> </li>
+<li> <a href="#">About NGS</a>
+  <ul>
+    <li> <a href="/INFO/WhatWeDo.shtml">What We Do</a> </li>
+    <li> <a href="/web/about_ngs/info/mission-strategic-planning.shtml">Mission and Strategic Plan</a> </li>
+    <li> <a href="/INFO/leadership.shtml">NGS Leadership</a> </li>
+    <li> <a href="/INFO/programs-products.shtml">Programs and Products</a> </li>
+    <li> <a href="/ADVISORS/index.shtml">Geodetic Advisors</a> </li>
+    <li> <a href="/INFO/history/">NGS History</a> </li>
+    <li> <a href="/INFO/Policy/">Policies</a> </li>
+    <li> <a href="/INFO/activities.shtml">Activities in My Area</a> </li>
+    <li> <a href="/grant-opportunities/index.shtml">Grant Opportunities</a> </li>
+    <li> <a href="/ContractingOpportunities/">Contracting Opportunities</a> </li>
+    <li> <a href="/student-opportunities/index.shtml">Student Opportunities</a> </li>
+    <li> <a href="/faq.shtml">FAQ</a> </li>
+    <li> <a href="/INFO/NGSinfo.shtml">Contact Us</a> </li>
+  </ul>
+</li>
+<li> <a href="#">Data &amp; Imagery</a>
+  <ul>
+    <li> <a href="/OPUS/view.jsp">OPUS Share</a> </li>
+    <!--<li> <a href="/NGSDataExplorer/">NGS Data Explorer</a> </li>-->
+    <li> <a href="/datasheets/">Survey Mark Datasheets</a> </li>
+    <li> <a href="/datasheets/ngs_map/">NGS Web Map</a> </li>
+    <li> <a href="/CORS/">NOAA CORS Network (NCN)</a> </li>
+    <li> <a href="/ANTCAL/">Antenna Calibration Data</a> </li>
+    <li> <a href="/RSD/rsd_home.shtml">Remote Sensing</a></li>
+    <li> <a href="https://storms.ngs.noaa.gov/">Storm Imagery</a> </li>
+    <li> <a href="/web/APOS2/APOS.shtml">Coastal Imagery</a> </li>
+    <li> <a href="/RSD/cmp_data.shtml">Shoreline Data Explorer</a> </li>
+    <li> <a href="https://coast.noaa.gov/dataviewer/#/imagery/search/where:projectid=1020">Orthomosaics</a> </li>
+    <li> <a href="https://coast.noaa.gov/dataviewer/#/lidar/search/where:projectid=24">Lidar</a> </li>
+    <li> <a href="/AERO/aero.shtml">Aeronautical Data</a> </li>
+    <li> <a href="/GRAV-D/data_products.shtml">Gravity Data</a> </li>
+    <!--<li> <a href="/orbits/">Orbit Data</a> </li>-->
+  </ul>
+</li>
+<li> <a href="#">Tools</a>
+  <ul>
+    <li> <a href="/OPUS/">Process GPS Data (OPUS)</a> </li>
+    <li> <a href="/NCAT/">Coordinate Conversion and Transformation Tool (NCAT)</a> </li>
+    <li> <a href="/TOOLS/">Geodetic Tool Kit</a> </li>
+    <li> <a href="/PC_PROD/">Geodetic Software</a> </li>
+    <li> <a href="/web_services/">Web Services</a> </li>
+    <li> <a href="http://vdatum.noaa.gov">Vertical Datum Conversions (VDATUM)</a> </li>
+    <!--<li> <a href="/PC_PROD/VERTCON/">VERTCON</a> </li>-->
+    <li> <a href="/gps-toolbox/">GPS Toolbox</a> </li>
+    <li> <a href="/GEOID/GEOID18/computation.html">GEOID18 Computation</a> </li>
+    <li> <a href="/locus/">Adjust Leveling (LOCUS)</a> </li>
+    <li> <a href="/TOOLS/Htdp/Htdp.shtml">Horizontal Time-Dependent Positioning (HTDP)</a> </li>
+  </ul>
+</li>
+<li> <a href="#">Surveys</a>
+  <ul>
+    <li> <a href="/SurveyProposal/">Survey Project Proposal Form</a> </li>
+    <li> <a href="/OPUS/about.jsp#sharing">OPUS Share</a> </li>
+    <li> <a href="/surveys/mark-recovery/index.shtml">Mark Recovery</a> </li>
+    <li> <a href="/FGCS/BlueBook/">User-submitted Survey Projects (Bluebooking)</a> </li>
+    <li> <a href="/GEOID/GSVS/">Geoid Slope Validation Survey (GSVS)</a> </li>
+    <li> <a href="/CBLINES/calibration.shtml">Calibration Base Lines (CBLs)</a> </li>
+    <li> <a href="/GPSonBM/">GPS on Bench Marks</a> </li>
+    <li> <a href="/GRAV-D/">GRAV-D</a> </li>
+    <li> <a href="/heightmod/">Height Modernization</a> </li>
+    <li> <a href="/leveling/">Leveling</a> </li>
+    <!--<li> <a href="/web/surveys/NA2011/">National Adjustment of 2011</a> </li>-->
+  </ul>
+</li>
+<li> <a href="#">Science &amp; Education</a>
+  <ul>
+    <li> <a href="/datums/index.shtml">Datums and Reference Frames</a> </li>
+    <li> <a href="/datums/newdatums/index.shtml">New Datums</a> </li>
+    <li> <a href="/research/index.shtml">Research</a> </li>
+    <li> <a href="/GEOID/">Geoid Models</a> </li>
+    <li> <a href="/web/science_edu/training/">Conferences/Training</a> </li>
+    <li> <a href="/INFO/conferences.shtml">Upcoming and Recent NGS Presentations</a> </li>
+    <li> <a href="/corbin/class_description/NGS_Video_Library.shtml">Educational Videos</a> </li>
+    <li> <a href="/web/science_edu/online_lessons/index.shtml">Online Lessons</a> </li>
+    <li> <a href="/web/science_edu/webinar_series/">Webinar Series</a></li>
+    <li> <a href="/web/science_edu/presentations_library/">Presentation Library</a> </li>
+    <li> <a href="/library/">Publication Library</a> </li>
+    <li> <a href="/commemorative/index.shtml">Commemorative Marks</a> </li>
+    <li> <a href="/INFO/applications-of-geodesy.shtml">Applications of Geodesy</a> </li>
+  </ul>
+</li>
+		
+</ul>
+<div id="menus_ngs_main_search">
+      <form   method="get" action="//search.usa.gov/search" id="myform" >
+        <div>
+        <input  name="affiliate" value="nationalgeodeticsurvey" type="hidden" /> 
+        <input size="10" name="query" class="searchbox" type="text" aria-label="Search"/>
+        
+        <input  name="Submit" value="Search" class="searchbtn" type="submit" />
+        </div>
+      </form>
+</div>
+ 
+    </div>
+  </div>
+  <div class="layout_colmask layout_standard">
+    <div class="layout_colmid">
+      <div class="layout_colleft">
+        <div class="layout_col1wrap">
+          <div class="layout_col1"> 
+            <!-- Begin Content -->
+            
+            <h1>API for NGS’s Coordinate Conversion and Transformation Tool (NCAT)</h1>
+            <p>NGS Coordinate Conversion and Transformation Tool (NCAT) allows users to easily convert between different coordinate systems and/or transform between different reference frames and/or datums, in a single step. For coordinate conversion, NCAT allows conversion between lat/long/height, SPC, UTM, XYZ, and USNG systems. NCAT currently uses NADCON 5.0 to perform three-dimensional (latitude, longitude, ellipsoid height) coordinate transformations and VERTCON 3.0 to perform orthometric height transformations. Transformations are provided for a wide range of frames/datums and regions in the National Spatial Reference System. NADCON and VERTCON provide local error estimates for each transformation, and do not support transformations which are outside the boundaries of the supported areas (generally, CONUS, Alaska, Hawaii, Puerto Rico and the US Virgin Islands, American Samoa, and Guam and Northern Mariana Islands).</p>
+				<p>Please note that, although either orthometric or ellipsoidal heights can be used as inputs to NCAT, at this time NCAT does not convert between orthometric and ellipsoidal heights. Only orthometric-to-orthometric and ellipsoidal-to-ellipsoidal height transformations are currently possible in NCAT.</p>
+			  			  <h2>Metadata</h2>
+          <p>The following URL provides metadata for various parameters used in the JSON response:
+			  <a href="https://geodesy.noaa.gov/api/ncat/meta">https://geodesy.noaa.gov/api/ncat/meta</a></p>
+			  
+            <h2>Reference Frames (historically called “horizontal datum”) Supported for Transformation</h2>
+            <div class="divTable">
+              <div class="divTableBody">
+                <div class="divTableRow">
+                  <div class="divTableHeading">
+                    <h3>Region</h3>
+                  </div>
+                  <div class="divTableHeading">
+                    <h3>Valid Reference Frames</h3>
+                  </div>
+                </div>
+                <div class="divTableRow">
+                  <div class="divTableCell"> <strong>StGeorge</strong> </div>
+                  <div class="divTableCell">
+                    <p>SG1897, SG1952, NAD83(1986)</p>
+                  </div>
+                </div>
+                <div class="divTableRow2">
+                  <div class="divTableCell"> <strong>StPaul</strong></div>
+                  <div class="divTableCell">
+                    <p>SP1897, SP1952, NAD83(1986)</p>
+                  </div>
+                </div>
+                <div class="divTableRow">
+                  <div class="divTableCell"> <strong>StLawrence</strong></div>
+                  <div class="divTableCell">
+                    <p>SL1952, NAD83(1986)</p>
+                  </div>
+                </div>
+                <div class="divTableRow2">
+                  <div class="divTableCell"> <strong>Alaska</strong></div>
+                  <div class="divTableCell">
+                    <p>NAD27, NAD83(1986), NAD83(1992), NAD83(NSRS2007),
+                      NAD83(2011) 
+                  </p></div>
+                </div>
+                <div class="divTableRow">
+                  <div class="divTableCell"> <strong>Conus</strong></div>
+                  <div class="divTableCell">
+                    <p>USSD, NAD27, NAD83(1986), NAD83(HARN), NAD83(FBN),
+                      NAD83(NSRS2007), NAD83(2011) </p>
+                  </div>
+                </div>
+                <div class="divTableRow2">
+                  <div class="divTableCell"> <strong>Hawaii</strong></div>
+                  <div class="divTableCell">
+                    <p>OHD, NAD83(1986), NAD83(1993), NAD83(PA11) 
+                  </p></div>
+                </div>
+                <div class="divTableRow">
+                  <div class="divTableCell"> <strong>PRVI</strong></div>
+                  <div class="divTableCell">
+                    <p>PR40, NAD83(1986), NAD83(1993), NAD83(1997), NAD83(2002),
+                      NAD83(NSRS2007), NAD83(2011) </p>
+                  </div>
+                </div>
+                <div class="divTableRow2">
+                  <div class="divTableCell"> <strong>AS</strong></div>
+                  <div class="divTableCell">
+                    <p>AS62, NAD83(1993), NAD83(2002), NAD83(PA11) 
+                  </p></div>
+                </div>
+                <div class="divTableRow">
+                  <div class="divTableCell"> <strong>GuamCNMI</strong></div>
+                  <div class="divTableCell">
+                    <p>GU63, NAD83(1993), NAD83(2002), NAD83(MA11)</p>
+                  </div>
+                </div>
+              </div>
+            </div><br/>
+			  
+			  <h2>Geopotential Datums (historically called “vertical datum”) Supported for Transformation</h2>
+			  <div class="divTable">
+              <div class="divTableBody">
+                <div class="divTableRow">
+                  <div class="divTableHeading">
+                    <h3>Region</h3>
+                  </div>
+                  <div class="divTableHeading">
+                    <h3>Valid Geopotential Datums</h3>
+                  </div>
+                </div>
+                
+                <div class="divTableRow">
+                  <div class="divTableCell"> <strong>Conus</strong></div>
+                  <div class="divTableCell">
+                    <p>NGVD29, NAVD88</p>
+                  </div>
+                </div>
+                <di v="" class="divTableRow2">
+                  <div class="divTableCell"> <strong>Alaska</strong></div>
+                  <div class="divTableCell">
+					  <p>NGVD29, NAVD88</p> 
+                  </div>
+                </di></div>
+                <div class="divTableRow">
+                  <div class="divTableCell"> <strong>Guam</strong></div>
+                  <div class="divTableCell">
+                    <p>GUVD63, GUVD04</p>
+                  </div>
+                </div>
+                <div class="divTableRow2">
+                  <div class="divTableCell"> <strong>CNMI</strong></div>
+                  <div class="divTableCell">
+					  <p>LT, NMVD03 </p>
+                  </div>
+                </div>
+                <div class="divTableRow">
+                  <div class="divTableCell"> <strong>VI</strong></div>
+                  <div class="divTableCell">
+                    <p>LT, VIVD09</p>
+                  </div>
+                </div>
+				                  <div class="divTableRow2">
+                  <div class="divTableCell"> <strong>PR</strong></div>
+                  <div class="divTableCell">
+                    <p>LT, PRVD02</p>
+                  </div>
+                </div>
+				  				                  <div class="divTableRow">
+                  <div class="divTableCell"> <strong>AS</strong></div>
+                  <div class="divTableCell">
+                    <p>LT, ASVD02</p>
+                  </div>
+                </div>
+              </div>
+
+            
+            <!-- End Content --> 
+          </div>
+        </div>
+        <div class="layout_col2"> 
+          <!-- Begin Left Page Menu --> 
+          <!--<script type="text/javascript" src="/ngsstandard/js/accordion.js"></script>-->
+<!-- Begin Left Side Menu -->
+
+<!--<script type="text/javascript" src="/ngsstandard/js/accordion.js"></script>-->
+<!-- Begin Left Side Menu -->
+
+<ul class="menus_page_vert">
+  <h2>Web Services</h2>
+  <li><a href="/web_services/">Home</a></li>
+  <li><a href="/web_services/geoid.shtml">Geoid Height Service API</a></li>
+  <li><a href="/web_services/grav-d.shtml">Gravity Predictor using GRAV-D API</a></li>
+  <li><a href="/web_services/data-explorer.shtml">NGS Data Explorer API</a></li>
+  <li class="dropmenu"><a href="/web_services/ncat/index.shtml">NGS Coordinate Conversion and Transformation Tool (NCAT) API</a>
+  <ul>
+    <li><a href="/web_services/ncat/lat-long-height-service.shtml">Latitude-longitude-height Service</a></li>
+    <li><a href="/web_services/ncat/spc-service.shtml">SPC Service</a></li>
+    <li><a href="/web_services/ncat/utm-service.shtml">UTM Service</a></li>
+    <li><a href="/web_services/ncat/xyz-service.shtml">XYZ Service</a></li>
+    <li><a href="/web_services/ncat/usng-service.shtml">USNG Service</a></li>
+	  
+  </ul></li>
+	<li><a href="https://vdatum.noaa.gov/docs/services.html">VDatum Tidal API</a></li>
+	<li><a href="/web_services/opus-api.shtml">OPUS API</a></li>
+	<li><a href="/web_services/ncn-api.shtml">NCN API</a></li>
+    
+  <br />
+
+
+<script type="text/javascript" src="/ngsstandard/js/accordion.js"></script>
+<!-- Begin Left Side Menu -->
+<ul class="menus_page_vert">
+    <h2>Tools & Software</h2>
+    <li>
+        <a href="/PC_PROD/pc_prod.shtml">PC Products</a>
+    </li>
+    <li>
+        <a href="/TOOLS/index.shtml">Geodetic Tool Kit</a>
+    </li>
+	    <li>
+        <a href="/web_services/index.shtml">Web Services</a>
+    </li>
+		    <li>
+        <a href="/PC_PROD/PARTNERS/index.shtml">User-Contributed Software</a>
+    </li>
+	
+    <li>
+        <a href="/INFO/programs-products.shtml">Other Products & Programs</a>
+    </li>
+</ul>
+
+<!-- End Left Side Menu -->
+
+ 
+<li> <a href="/INFO/subscribe.shtml" title="Get Email Notifications">
+    <div style="float:left;width:20px;padding-top:7px;" ><img src="/web/images/govdelivery-rsz.png" alt="gov delivery icon" width="20" height="20" alt=""/></div>
+    <div style="float:right;width:125px;">
+      <h2>Subscribe for email notifications</h2>
+    </div>
+    <div style="clear:both;"></div>
+	</a></li>
+</ul>
+
+ 
+          
+          <!-- End Left Page Menu --> 
+        </div>
+        <div class="layout_col3">
+			 
+			 
+            
+        <div class="rTable" style="width:150px;">
+          <div class="rTableBody">
+            <div class="rTableRow">
+              <div class="rTableCell">
+                <h2>NCAT Web Services</a></h2>
+                <p class="rightlink"><a class="rightlink" href="/web_services/ncat/lat-long-height-service.shtml">Latitude-longitude-height Service</a></p>
+                <p class="rightlink"><a class="rightlink" href="/web_services/ncat/spc-service.shtml">SPC Service</a></p>
+                <p class="rightlink"><a class="rightlink" href="/web_services/ncat/utm-service.shtml">UTM Service</a></p>
+                <p class="rightlink"><a class="rightlink" href="/web_services/ncat/xyz-service.shtml">XYZ Service</a></p>
+                <p class="rightlink"><a class="rightlink" href="/web_services/ncat/usng-service.shtml">USNG Service</a></p>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+ 
+      </div>
+    </div>
+  </div>
+  <div id="layout_footer"> 
+    <!-- Begin Footer --> 
+    <div id="layout_footer_notes">
+<!-- SSI will add a default e-mail u=USER and d=DOMAIN if none are provided. -->
+
+  
+
+
+
+
+
+Website Owner: National Geodetic Survey&nbsp;&nbsp;/&nbsp;&nbsp;Last modified by 
+<a href="/cgi-bin/redirectM.prl?u=ngs.infocenter&amp;d=noaa.gov&amp;s=Web%20Comments%20/web_services/ncat/index.shtml
+&amp;b=Re:%20/web_services/ncat/index.shtml">ngs.infocenter</a>
+
+Jan 29 2020</div><!-- End Author Section -->
+
+<div> <!-- Begin Footer Links -->
+  <a href="https://oceanservice.noaa.gov/">NOS Home</a>
+  <img src="/ngsstandard/images/redbullet.gif" alt="bullet" />
+  <a href="/privacy.shtml">Privacy </a>
+  <img src="/ngsstandard/images/redbullet.gif" alt="bullet" />  
+  <a href="/survey.shtml">Feedback</a>
+  <img src="/ngsstandard/images/redbullet.gif" alt="bullet" />  
+  <a href="https://geodesy.noaa.gov/disclaimer.html">Disclaimer</a>
+  <img src="/ngsstandard/images/redbullet.gif" alt="bullet" />
+  <a href="https://www.usa.gov/">USA.gov</a>
+  <img src="/ngsstandard/images/redbullet.gif" alt="bullet" />
+  <a href="https://www.ready.gov/">Ready.gov</a>
+	  <img src="/ngsstandard/images/redbullet.gif" alt="bullet" />
+  <a href="https://www.noaa.gov/organization/information-technology/policy-oversight/information-quality">Information Quality</a>
+  <img src="/ngsstandard/images/redbullet.gif" alt="bullet" />
+  <a href="/sitemap.xml">Site Map</a>
+  <img src="/ngsstandard/images/redbullet.gif" alt="bullet" />
+  <a href="https://geodesy.noaa.gov/cgi-bin/redirectNOAA.prl?u=ngs.infocenter">Contact Us</a>
+</div> 
+<script type="text/javascript">
+  //<![CDATA[
+    var aid = "nationalgeodeticsurvey";
+  //]]>
+</script>
+<!--script src="//search.usa.gov/javascripts/stats.js" type="text/javascript"></script-->
+
+<!-- END Footer Links -->
+<div id="backtotop"><a href="#"><img src="/ngsstandard/images/back_to_top_btn.png" border="0" title="Return to Top" alt="Return to Top" /></a></div> 
+ 
+    <!-- End Footer --> 
+  </div>
+  
+  <!-- End Wrapper --> 
+</div>
+</body>
+</html>

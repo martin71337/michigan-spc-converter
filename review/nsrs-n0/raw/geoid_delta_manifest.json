@@ -1,0 +1,44 @@
+[
+  {
+    "bytes": 215,
+    "captured": "2026-08-29T02:16:31.172974+00:00",
+    "error": null,
+    "headers": {
+      "cache-control": "private",
+      "connection": "close",
+      "content-type": "application/json",
+      "date": "Sat, 29 Aug 2026 02:16:34 GMT",
+      "set-cookie": "SERVERID=; Expires=Thu, 01-Jan-1970 00:00:01 GMT; path=/",
+      "strict-transport-security": "max-age=31536000; includeSubDomains;",
+      "transfer-encoding": "chunked",
+      "x-frame-options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "200",
+    "saved": "raw/geoid_delta/geoid18_chicago.json",
+    "sha256": "1de5bad3ea3ffd86aacb2d32f9ed6c6ba79cbeac36e068a9ce5bc9fc2049b230",
+    "status": 200,
+    "url": "https://geodesy.noaa.gov/api/geoid/ght?lat=41.88194400&lon=-87.62777800&model=14"
+  },
+  {
+    "bytes": 220,
+    "captured": "2026-08-29T02:16:31.607761+00:00",
+    "error": null,
+    "headers": {
+      "Cache-control": "private",
+      "Connection": "close",
+      "Content-Type": "application/json",
+      "Date": "Sat, 29 Aug 2026 02:16:35 GMT",
+      "Set-Cookie": "SERVERID=; Expires=Thu, 01-Jan-1970 00:00:01 GMT; path=/",
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains; ",
+      "Transfer-Encoding": "chunked",
+      "X-Frame-Options": "SAMEORIGIN, SAMEORIGIN, SAMEORIGIN"
+    },
+    "method": "GET",
+    "reason": "200",
+    "saved": "raw/geoid_delta/geoid18_detroit.json",
+    "sha256": "2ce9eb979b77e043eb7c513374d3545abed51e10969ecbad45b84d6c6f19c9b7",
+    "status": 200,
+    "url": "https://geodesy.noaa.gov/api/geoid/ght?lat=42.33687333&lon=-83.04910534&model=14"
+  }
+]

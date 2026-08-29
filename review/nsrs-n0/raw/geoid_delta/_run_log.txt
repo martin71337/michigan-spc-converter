@@ -1,0 +1,4 @@
+test cases file sha256 d475435f9223fc5c336326c50f80f73dca8cc6d0aff826379a881e51438e68b3
+point                                 GEOID18 SGEOID2022   diff(m) Ndot mm/yr
+Chicago                              -33.6000   -34.0343   -0.4343       0.21
+Detroit                              -34.5370   -35.1126   -0.5756       0.27

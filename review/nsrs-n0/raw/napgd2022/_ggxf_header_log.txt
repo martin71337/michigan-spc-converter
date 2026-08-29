@@ -1,0 +1,118 @@
+GET(Range) https://beta.ngs.noaa.gov/NAPGD2022/data/geoid2022/GEOID2022.beta_v0a.ggxf
+  status=206 Content-Range=bytes 0-262143/757778288
+  slice bytes=262144 sha256=890d599f515189a87053b0fc795ced5a00c8fbac616e4aef081db04d62af7133
+  saved=raw\napgd2022\GEOID2022.beta_v0a.ggxf.head256k
+
+  --- printable attribute strings in the header ---
+          ELLIPSOID["GRS 1980",6378137.0,298.2572221,LENGTHUNIT["metre",1]]],
+        ANGLEUNIT["degree",0.0174532925199433]],
+      ANGLEUNIT["degree",0.0174532925199433]]
+      AXIS["Ellipsoidal height (h)",up,LENGTHUNIT["metre",1]]]
+      AXIS["Geodetic latitude (Lat)",north,
+      AXIS["Geodetic latitude (Lat)",north],
+      AXIS["Geodetic longitude (Lon)",east,
+      AXIS["Geodetic longitude (Lon)",east],
+      AXIS["Gravity-related height (H)",up],
+      CS[ellipsoidal,2],
+      CS[ellipsoidal,3],
+      CS[vertical,1],
+      DATUM["International Terrestrial Reference Frame 2020",
+      GEOID = SGEOID + DGEOID*(mjdn-58849)/365.25
+      GEOID_uncertainty = sqrt(SGEOID_uncertainty**2 + (DGEOID_uncertainty*(mjdn-58849)/365.25)**2)
+      January 1st, 2020 or the 2020.0 epoch of the static geoid.
+      LENGTHUNIT["metre",1]]
+      The // symbol denotes integer division, e.g. 4//3 = 1 and 2//3 = 0. MJD 58849 corresponds to midnight, 
+      The modified Julian day is determined from the year, month, and day of the date of interest 
+      To compute the time-dependent geoid undulation, both the SGEOID and DGEOID grids must be 
+      Uncertainty at a specific epoch can be calculated as follows:
+      VDATUM["North American-Pacific Geopotential Datum of 2022"],
+      a = (14 - month)//12
+      according to the following algorithm:
+      geoidHeight: static geoid undulation (m)
+      geoidHeightUncertainty: uncertainty in geoidHeight (m)
+      geoidQuasigeoidSeparation: Subtract this from geoidHeight to obtain the quasigeoid undulation (m)
+      geoidVelocity: change in geoid undulation surface in m/yr
+      geoidVelocityUncertainty: uncertainty in geoidVelocity (m/yr)
+      interpolated to a user-specified latitude and longitude and then combined according to 
+      jdn = day + (153*m+2)//5 + 365*y + y//4 - y//100 + y//400 - 32045
+      m = month + 12*a - 3
+      mjdn = jdn - 2400001
+      the integer modified Julian day (mjdn) of the computation time:
+      y = year + 4800 - a
+    1315 East West Hwy
+    Combining the static and dynamic fields
+    Conventions
+    DGEOID2022
+    DIMENSION_LIST
+    DIMENSION_SCALE
+    GEOGCRS["ITRF2020",
+    GEOID2022
+    GEOID2022.beta_v0a.ggxf
+    GGXF-1.0, ACDD-1.3
+    Gravimetric geoid model for the North American-Pacific region.
+    National Geodetic Survey, National Oceanic and Atmospheric Administration.
+    North American-Pacific Region
+    REFERENCE_LIST
+    SGEOID2022
+    Silver Spring
+    This file contains the GEOID2022 model which consists of 5 layers/parameters:
+    This is a netCDF dimension but not a netCDF variable.      5401
+    This is a netCDF dimension but not a netCDF variable.     10801
+    United States of America
+    VERTCRS["NAPGD2022",
+    _NCProperties
+    _Netcdf4Coordinates
+    _Netcdf4Dimid
+    beta_v0a
+    deliveryPoint
+    dimension
+    extent_description
+    geoidHeight
+    geoidHeightUncertainty
+    geoidQuasigeoidSeparation
+    geoidVelocity
+    geoidVelocityUncertainty
+    geoidVelocityUncertainty 
+    geospatial_lat_max
+    geospatial_lat_min
+    geospatial_lon_max
+    geospatial_lon_min
+    gridParameters
+    iNodeCount
+    institution
+    interpolationCrsWkt
+    interpolationMethod
+    parameters.0.parameterName
+    parameters.0.sourceCrsAxis
+    parameters.0.unitName
+    parameters.0.unitSiRatio
+    parameters.1.parameterName
+    parameters.1.sourceCrsAxis
+    parameters.1.uncertaintyMeasure
+    parameters.1.unitName
+    parameters.1.unitSiRatio
+    parameters.2.parameterName
+    parameters.2.sourceCrsAxis
+    parameters.2.unitName
+    parameters.2.unitSiRatio
+    parameters.3.parameterName
+    parameters.3.sourceCrsAxis
+    parameters.3.unitName
+    parameters.3.unitSiRatio
+    parameters.4.parameterName
+    parameters.4.sourceCrsAxis
+    parameters.4.uncertaintyMeasure
+    parameters.4.unitName
+    parameters.4.unitSiRatio
+    parameters.count
+    postalCode
+    producerDefinedContent
+    producerDefinedContentCitation
+    product_version
+    publisher_url
+    sourceCrsWkt
+    source_file
+    targetCrsWkt
+    version=2,netcdf=4.9.3,hdf5=1.14.6
+
+  interpolationMethod declared IN THE FILE: bicubic

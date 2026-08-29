@@ -1,0 +1,96 @@
+beta NCAT app opened; action=https://beta.ngs.noaa.gov/NCAT/index.xhtml;jsessionid=<REDACTED>
+
+### A. statewide OM zone 260001 -- 9 points, pure projection
+  z260001_p1.html  MI-260001 (Statewide)    N 443768.217     E 1755596.782    sf 0.999858230 conv +01° 54′ 40.49″
+  z260001_p2.html  MI-260001 (Statewide)    N 417769.740     E 1474269.524    sf 1.000270716 conv -00° 22′ 23.36″
+  z260001_p3.html  MI-260001 (Statewide)    N 608056.647     E 1669305.544    sf 0.999849004 conv +01° 14′ 53.92″
+  z260001_p4.html  MI-260001 (Statewide)    N 740734.526     E 1413252.847    sf 0.999945690 conv -00° 59′ 25.81″
+  z260001_p5.html  MI-260001 (Statewide)    N 862829.994     E 1624868.041    sf 1.000023585 conv +00° 55′ 51.20″
+  z260001_p6.html  MI-260001 (Statewide)    N 929914.111     E 1401203.127    sf 0.999816572 conv -01° 09′ 05.48″
+  z260001_p7.html  MI-260001 (Statewide)    N 998601.613     E 1326671.208    sf 0.999866553 conv -01° 53′ 16.29″
+  z260001_p8.html  MI-260001 (Statewide)    N 1109582.833    E 1334062.199    sf 0.999803779 conv -01° 51′ 25.87″
+  z260001_p9.html  MI-260001 (Statewide)    N 762000.000     E 1524000.000    sf 0.999800000 conv -00° 00′ 00.00″
+
+### B. the 18 LDP zones -- origin and two offsets, pure projection
+  z261001_p1.html  MI L11A-261001 (Multizon N 0.000          E 381000.000     sf 1.000022000 conv +00° 00′ 00.00″
+  z261001_p2.html  MI L11A-261001 (Multizon N 16689.711      E 401890.558     sf 1.000027368 conv +00° 09′ 55.77″
+  z261001_p3.html  MI L11A-261001 (Multizon N -16628.977     E 360013.491     sf 1.000027418 conv -00° 09′ 52.23″
+  z261002_p1.html  MI L15D-261002 (Multizon N 0.000          E 495300.000     sf 1.000024000 conv +00° 00′ 00.00″
+  z261002_p2.html  MI L15D-261002 (Multizon N 16686.390      E 516539.589     sf 1.000029551 conv +00° 09′ 42.71″
+  z261002_p3.html  MI L15D-261002 (Multizon N -16626.007     E 473966.591     sf 1.000029600 conv -00° 09′ 39.11″
+  z261003_p1.html  MI L21F-261003 (Multizon N 76200.000      E 685800.000     sf 1.000026000 conv +00° 00′ 00.00″
+  z261003_p2.html  MI L21F-261003 (Multizon N 92894.540      E 706169.274     sf 1.000029418 conv +00° 10′ 12.65″
+  z261003_p3.html  MI L21F-261003 (Multizon N 59566.546      E 665331.735     sf 1.000029412 conv -00° 10′ 12.65″
+  z261004_p1.html  MI L25S-261004 (Multizon N 228600.000     E 723900.000     sf 1.000012000 conv +00° 00′ 00.00″
+  z261004_p2.html  MI L25S-261004 (Multizon N 245296.398     E 744035.832     sf 1.000015418 conv +00° 10′ 20.66″
+  z261004_p3.html  MI L25S-261004 (Multizon N 211964.781     E 703663.872     sf 1.000015412 conv -00° 10′ 20.66″
+  z261005_p1.html  MI L31R-261005 (Multizon N 76200.000      E 990600.000     sf 1.000029000 conv +00° 00′ 00.00″
+  z261005_p2.html  MI L31R-261005 (Multizon N 92898.611      E 1010516.959    sf 1.000032418 conv +00° 10′ 28.01″
+  z261005_p3.html  MI L31R-261005 (Multizon N 59562.624      E 970581.543     sf 1.000032412 conv -00° 10′ 28.01″
+  z261006_p1.html  MI L35T-261006 (Multizon N 190500.000     E 1028700.000    sf 1.000031000 conv +00° 00′ 00.00″
+  z261006_p2.html  MI L35T-261006 (Multizon N 207200.412     E 1048412.356    sf 1.000034419 conv +00° 10′ 34.73″
+  z261006_p3.html  MI L35T-261006 (Multizon N 173860.845     E 1008885.049    sf 1.000034412 conv -00° 10′ 34.73″
+  z261007_p1.html  MI L41Z-261007 (Multizon N 76200.000      E 1333500.000    sf 1.000024000 conv +00° 00′ 00.00″
+  z261007_p2.html  MI L41Z-261007 (Multizon N 92892.099      E 1354131.955    sf 1.000027417 conv +00° 10′ 03.38″
+  z261007_p3.html  MI L41Z-261007 (Multizon N 59568.836      E 1312770.564    sf 1.000027412 conv -00° 10′ 03.38″
+  z261008_p1.html  MI L45G-261008 (Multizon N 228600.000     E 1409700.000    sf 1.000018000 conv +00° 00′ 00.00″
+  z261008_p2.html  MI L45G-261008 (Multizon N 245294.106     E 1430102.171    sf 1.000021417 conv +00° 10′ 11.50″
+  z261008_p3.html  MI L45G-261008 (Multizon N 211966.963     E 1389199.027    sf 1.000021412 conv -00° 10′ 11.50″
+  z261009_p1.html  MI L51N-261009 (Multizon N 76200.000      E 1638300.000    sf 1.000025000 conv +00° 00′ 00.00″
+  z261009_p2.html  MI L51N-261009 (Multizon N 92896.168      E 1658486.312    sf 1.000028418 conv +00° 10′ 18.95″
+  z261009_p3.html  MI L51N-261009 (Multizon N 59564.995      E 1618013.669    sf 1.000028412 conv -00° 10′ 18.95″
+  z261010_p1.html  MI L55W-261010 (Multizon N 190500.000     E 1638300.000    sf 1.000034000 conv +00° 00′ 00.00″
+  z261010_p2.html  MI L55W-261010 (Multizon N 207198.399     E 1658250.953    sf 1.000037418 conv +00° 10′ 26.89″
+  z261010_p3.html  MI L55W-261010 (Multizon N 173862.830     E 1618247.732    sf 1.000037412 conv -00° 10′ 26.89″
+  z261011_p1.html  MI L61L-261011 (Multizon N 76200.000      E 1905000.000    sf 1.000025000 conv +00° 00′ 00.00″
+  z261011_p2.html  MI L61L-261011 (Multizon N 92900.459      E 1924695.086    sf 1.000028419 conv +00° 10′ 35.28″
+  z261011_p3.html  MI L61L-261011 (Multizon N 59560.799      E 1885202.229    sf 1.000028412 conv -00° 10′ 35.28″
+  z261012_p1.html  MI L65C-261012 (Multizon N 190500.000     E 2019300.000    sf 1.000025000 conv +00° 00′ 00.00″
+  z261012_p2.html  MI L65C-261012 (Multizon N 207202.067     E 2038805.420    sf 1.000028419 conv +00° 10′ 41.37″
+  z261012_p3.html  MI L65C-261012 (Multizon N 173859.185     E 1999690.901    sf 1.000028413 conv -00° 10′ 41.37″
+  z261013_p1.html  MI U11M-261013 (Multizon N 76200.000      E 381000.000     sf 1.000011000 conv +00° 00′ 00.00″
+  z261013_p2.html  MI U11M-261013 (Multizon N 92904.008      E 400243.602     sf 1.000014419 conv +00° 10′ 49.58″
+  z261013_p3.html  MI U11M-261013 (Multizon N 59557.201      E 361651.379     sf 1.000014413 conv -00° 10′ 49.58″
+  z261014_p1.html  MI U21E-261014 (Multizon N 0.000          E 685800.000     sf 1.000012000 conv +00° 00′ 00.00″
+  z261014_p2.html  MI U21E-261014 (Multizon N 16701.034      E 705408.808     sf 1.000016726 conv +00° 10′ 39.72″
+  z261014_p3.html  MI U21E-261014 (Multizon N -16639.777     E 666088.055     sf 1.000016776 conv -00° 10′ 36.40″
+  z261015_p1.html  MI U31Q-261015 (Multizon N 0.000          E 952500.000     sf 1.000038000 conv +00° 00′ 00.00″
+  z261015_p2.html  MI U31Q-261015 (Multizon N 16700.150      E 972263.824     sf 1.000042801 conv +00° 10′ 34.73″
+  z261015_p3.html  MI U31Q-261015 (Multizon N -16638.896     E 932633.853     sf 1.000042851 conv -00° 10′ 31.38″
+  z261016_p1.html  MI U41H-261016 (Multizon N 0.000          E 1295400.000    sf 1.000042000 conv +00° 00′ 00.00″
+  z261016_p2.html  MI U41H-261016 (Multizon N 16702.556      E 1314888.382    sf 1.000046667 conv +00° 10′ 43.58″
+  z261016_p3.html  MI U41H-261016 (Multizon N -16641.304     E 1275807.846    sf 1.000046717 conv -00° 10′ 40.27″
+  z261017_p1.html  MI U51B-261017 (Multizon N 114300.000     E 1600200.000    sf 1.000036000 conv +00° 00′ 00.00″
+  z261017_p2.html  MI U51B-261017 (Multizon N 131005.862     E 1619267.868    sf 1.000039419 conv +00° 10′ 55.00″
+  z261017_p3.html  MI U51B-261017 (Multizon N 97655.295      E 1581026.227    sf 1.000039413 conv -00° 10′ 55.00″
+  z261018_p1.html  MI U61K-261018 (Multizon N 76200.000      E 1866900.000    sf 1.000026000 conv +00° 00′ 00.00″
+  z261018_p2.html  MI U61K-261018 (Multizon N 92909.380      E 1885502.707    sf 1.000029420 conv +00° 11′ 08.83″
+  z261018_p3.html  MI U61K-261018 (Multizon N 59551.554      E 1848189.127    sf 1.000029413 conv -00° 11′ 08.83″
+
+### C. frame transformation -- no zone forced
+  frame_p01.html     41.800000,-83.500000 -> 41.8000083785,-83.5000091465
+  frame_p02.html     42.300000,-83.100000 -> 42.3000086001,-83.1000091723
+  frame_p03.html     42.300000,-86.200000 -> 42.3000081805,-86.2000100882
+  frame_p04.html     43.000000,-84.500000 -> 43.0000084850,-84.5000097815
+  frame_p05.html     43.800000,-86.400000 -> 43.8000088707,-86.4000119439
+  frame_p06.html     44.300000,-84.700000 -> 44.3000086056,-84.7000102166
+  frame_p07.html     45.100000,-83.500000 -> 45.1000089100,-83.5000100071
+  frame_p08.html     45.800000,-84.700000 -> 45.8000088046,-84.7000105885
+  frame_p09.html     46.300000,-85.500000 -> 46.3000087631,-85.5000109414
+  frame_p10.html     46.600000,-87.400000 -> 46.6000085741,-87.4000116056
+  frame_p11.html     47.200000,-88.500000 -> 47.2000084744,-88.5000122141
+  frame_p12.html     48.100000,-88.600000 -> 48.1000086310,-88.6000124563
+  framerev_p01.html  43.000000,-84.500000 -> 42.9999915150,-84.4999902185
+  framerev_p02.html  42.300000,-83.100000 -> 42.2999913999,-83.0999908277
+  framerev_p03.html  47.200000,-88.500000 -> 47.1999915256,-88.4999877859
+
+### D. inverse -- SPC northing/easting/zone as INPUT
+  REFUSED inv_p1.html: no result block in response
+  inv_p2.html  z261007_p1.html -> 0.0000000000,0.0000000000 (expected 42.100000,-85.650000)
+  REFUSED inv_p3.html: no result block in response
+  inv_p4.html  z261013_p1.html -> 0.0000000000,0.0000000000 (expected 46.200000,-84.850000)
+  REFUSED inv_p5.html: no result block in response
+
+manifest: C:\claude-projects\coord-convert\review\nsrs-h1-anchors\raw\manifest.json  sha256 73f3ff1b816dffb2d1c1c7b5620f2386f6dd895241ddfa565b66afce504652b1
+anchors : C:\claude-projects\coord-convert\review\nsrs-h1-anchors\anchors.json  sha256 332ed7a61132bc1b4847a71a3e16924ab23fcbf9b921fedeaf735f84ab5ae799
+counts  : {'projection_anchors': 63, 'frame_anchors': 15, 'inverse_anchors': 2, 'failures': 3, 'http_requests': 84}

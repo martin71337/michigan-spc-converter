@@ -17,11 +17,20 @@ from michspc.spc.convert import (
     to_geodetic,
 )
 from michspc.spc.frames import (
+    ALL_FRAMES,
+    FRAME_TRANSFORMATIONS,
     NAD83_2011,
     NATRF2022,
+    REQUIRED_FRAME_PAIRS,
+    WGS84,
     FrameMismatchError,
+    FrameNotUsableError,
+    FrameStatus,
+    FrameTransformation,
+    FrameTransformationUnavailableError,
     ReferenceFrame,
-    require_same_frame,
+    frame_by_code,
+    require_frame_path,
 )
 from michspc.spc.units import INTERNATIONAL_FEET
 from michspc.spc.zones import (
@@ -33,6 +42,10 @@ from michspc.spc.zones import (
     MI_SOUTH,
 )
 from tests.fixtures.ncat_anchors import NCAT_ANCHORS
+from tests.fixtures.spcs2022_engine_anchors import (
+    SPCS2022_PRINTED,
+    SPCS2022_PROJECTION_ANCHORS,
+)
 
 
 def _ordered_pairs(zones):
@@ -72,23 +85,69 @@ change is a deliberate edit to a test that says what it is.
 # --------------------------------------------------------------------------
 
 
-def test_same_frame_is_allowed():
-    require_same_frame(NAD83_2011, NAD83_2011)  # must not raise
+def test_same_frame_returns_that_frames_identity_record():
+    """SUPERSEDES ``test_same_frame_is_allowed`` (docs/DESIGN.md #62).
+
+    Same call, one gate later: ``require_same_frame`` returned nothing and is
+    deleted, and ``require_frame_path`` returns the registry record that says
+    what was done. The property being pinned is unchanged - a job within one
+    frame must not be refused - and the record is now checked as well, because
+    a gate that returns a path can be asked which path it returned.
+
+    Both usable frames are pinned, not only NAD 83: NATRF2022 became usable at
+    #62, and a job entirely within it (the nineteen SPCS2022 zones) must run.
+    """
+    for frame in (NAD83_2011, NATRF2022):
+        path = require_frame_path(frame, frame)
+        assert path.is_identity
+        assert path.source is frame and path.target is frame
+        assert frame.code in path.direction_statement
 
 
 def test_crossing_frames_is_refused_loudly():
     """The single most important safety property (docs/DESIGN.md section 6).
 
-    The refusal must name both frames and say why, not merely fail.
+    SUPERSEDES the ``require_same_frame`` version of this test (#62). The same
+    concrete call, now expecting the narrower
+    ``FrameTransformationUnavailableError`` - which is a ``FrameMismatchError``,
+    so every existing catch site still catches it.
+
+    The refusal must name both frames and say why, not merely fail, and the
+    "why" is now a fact about NGS rather than about this program's schedule:
+    NGS has not published the transformation
+    (docs/DEFERRED-NATRF2022-BRIDGE.md). Both facts are pinned because both are
+    what a surveyor needs in order to decide what to do next.
     """
-    with pytest.raises(FrameMismatchError) as caught:
-        require_same_frame(NAD83_2011, NATRF2022)
+    with pytest.raises(FrameTransformationUnavailableError) as caught:
+        require_frame_path(NAD83_2011, NATRF2022)
 
     message = str(caught.value)
     assert "NAD83(2011)" in message
     assert "NATRF2022" in message
-    assert "no datum transformation" in message
-    assert "one to two meters" in message
+    assert "no transformation between these two" in message
+    # The stake, in the units the record uses. A metre-scale error that looks
+    # ordinary is the whole reason this refusal exists.
+    assert "one to two metres" in message
+    # Whose gap this is. Without this sentence a reader would reasonably read
+    # the refusal as "MCX has not got round to it".
+    assert "NGS has not published" in message
+    assert "DEFERRED-NATRF2022-BRIDGE.md" in message
+    # And the exits, both of them.
+    assert "Convert within a single frame" in message
+    assert "when NGS publishes" in message
+
+
+def test_the_refusal_is_still_catchable_as_the_base_class():
+    """Narrowing the exception must not break any existing catch site.
+
+    ``FrameMismatchError`` is what ``job.run``'s callers, the GUI and the older
+    pins name. The two new subclasses are refinements of it, not replacements,
+    and a caller that catches the base must keep catching both.
+    """
+    with pytest.raises(FrameMismatchError):
+        require_frame_path(NAD83_2011, NATRF2022)
+    with pytest.raises(FrameMismatchError):
+        require_frame_path(WGS84, NAD83_2011)
 
 
 def test_frames_are_compared_by_code_not_identity():
@@ -96,14 +155,232 @@ def test_frames_are_compared_by_code_not_identity():
 
     Otherwise a future registry that rebuilds frame records on load would start
     refusing perfectly ordinary same-frame conversions.
+
+    SUPERSEDED CONSTRUCTION (#62): the synthetic record now has to state a
+    status, because ``status`` is a required field with no default. It states
+    the WRONG one deliberately - a rebuilt record claiming NAD 83 is unusable -
+    and the call must still succeed, because ``_canonical`` resolves by code to
+    the registry's own record. A rebuilt record may not grant itself a status,
+    and it may not take one away either.
     """
     duplicate = ReferenceFrame(
         code="NAD83(2011)",
         name="rebuilt from data",
         ellipsoid_name="GRS 80",
         citation="synthetic",
+        status=FrameStatus.DECLARED_NOT_USABLE,
     )
-    require_same_frame(NAD83_2011, duplicate)  # must not raise
+    path = require_frame_path(NAD83_2011, duplicate)  # must not raise
+
+    assert path is FRAME_TRANSFORMATIONS[(NAD83_2011, NAD83_2011)]
+
+
+def test_a_frame_that_is_not_usable_is_refused_before_the_pair_is_looked_up():
+    """WGS 84: the live counterexample for ``FrameNotUsableError`` (#62).
+
+    The ORDER is the point, and it is pinned rather than left to reading the
+    function. A frame this program cannot carry must be named as such - "WGS 84
+    is not a frame this program can carry" - and not reported as a missing
+    transformation, which would tell a user that one might be published for it
+    one day. Nothing in this program produces a WGS 84 coordinate, and no
+    transformation from it is registered.
+
+    Why WGS 84 at all: docs/DESIGN.md amendment #58. A handheld receiver's
+    WGS 84 position pastes into a latitude/longitude field cleanly and converts
+    to something plausible and wrong, and the frames are a metre or more apart
+    in CONUS.
+    """
+    with pytest.raises(FrameNotUsableError) as caught:
+        require_frame_path(WGS84, NAD83_2011)
+
+    message = str(caught.value)
+    assert "WGS84" in message
+    assert "not usable" in message
+    # #58's reason, carried on the record's own citation and quoted here.
+    assert "metre or more apart in CONUS" in message
+    # It names what CAN be used, rather than leaving the user to guess.
+    assert "NAD83(2011)" in message and "NATRF2022" in message
+
+    # The other end, and both ends at once: same class, same ordering.
+    with pytest.raises(FrameNotUsableError):
+        require_frame_path(NATRF2022, WGS84)
+    with pytest.raises(FrameNotUsableError):
+        require_frame_path(WGS84, WGS84)
+
+
+def test_an_unusable_frame_has_no_identity_of_its_own():
+    """The second lock on WGS 84, behind the usability check.
+
+    Deliberate registry design: an unusable frame gets NO registered path, not
+    even an identity. If the usability check above were ever deleted, a WGS 84
+    to WGS 84 job would still have to get past a missing registry entry rather
+    than quietly succeeding as an identity - which would let a WGS 84
+    coordinate through this program labelled as converted.
+    """
+    assert ("WGS84", "WGS84") not in {
+        (source.code, target.code) for source, target in FRAME_TRANSFORMATIONS
+    }
+    assert not WGS84.is_usable
+
+
+def test_every_usable_frame_has_its_identity_and_nothing_else_is_registered():
+    """Completeness in both directions - the pin that says what H3 shipped.
+
+    Every USABLE frame must carry its own identity, or a legitimate job within
+    that frame would be refused. And NO non-identity path may exist, which is
+    the half that matters for the tier: this package deliberately ships the
+    frames restructure WITHOUT the NAD83(2011) <-> NATRF2022 bridge
+    (docs/DESIGN.md #62, docs/DEFERRED-NATRF2022-BRIDGE.md), and a
+    transformation added without its anchors, its gate and its amendment would
+    move boundaries. It cannot arrive here silently.
+    """
+    usable = [frame for frame in ALL_FRAMES if frame.is_usable]
+    assert usable == [NAD83_2011, NATRF2022]
+
+    for frame in usable:
+        assert (frame, frame) in FRAME_TRANSFORMATIONS
+
+    for (source, target), path in FRAME_TRANSFORMATIONS.items():
+        assert source.code == target.code, (
+            f"{source.code} -> {target.code} is a non-identity path. Adding "
+            f"one is DESIGN.md #62's deferred work and needs its own amendment."
+        )
+        assert path.is_identity
+
+
+def test_the_registry_keeps_every_pair_it_is_required_to_keep():
+    """DESIGN.md #32's append-only guarantee, driven directly.
+
+    The import-time check runs the same comparison; this drives it as data so
+    that a dropped record is a named failure rather than an import error whose
+    traceback points at the module.
+    """
+    registered = {
+        (source.code, target.code) for source, target in FRAME_TRANSFORMATIONS
+    }
+    missing = REQUIRED_FRAME_PAIRS - registered
+    assert not missing, f"the registry lost required pairs: {sorted(missing)}"
+
+
+def test_the_import_time_check_refuses_a_registry_that_lost_a_pair():
+    """The guard itself, exercised rather than trusted.
+
+    Called with the module's own private check after removing a pair from what
+    it compares against is not possible from outside, so the pair set is what
+    is perturbed: a required pair the registry does not carry must raise, with
+    the pair named and #32 cited.
+    """
+    from michspc.spc import frames as frames_module
+
+    original = frames_module.REQUIRED_FRAME_PAIRS
+    try:
+        frames_module.REQUIRED_FRAME_PAIRS = frozenset(
+            original | {("NAD83(2011)", "NATRF2022")}
+        )
+        with pytest.raises(FrameMismatchError) as caught:
+            frames_module._check_registry_keeps_every_required_pair()
+    finally:
+        frames_module.REQUIRED_FRAME_PAIRS = original
+
+    message = str(caught.value)
+    assert "NAD83(2011) -> NATRF2022" in message
+    assert "#32" in message
+
+    # And the real registry still passes it.
+    frames_module._check_registry_keeps_every_required_pair()
+
+
+def test_require_frame_path_refuses_a_record_that_is_not_a_frame():
+    """The #11-finding-1 class, closed on this gate too.
+
+    Every record in this core carries ``code``, ``name`` and ``citation``, so a
+    ``Zone``, a ``VerticalDatum`` and a ``LinearUnit`` all duck-type through
+    the code lookup and would only fail later on ``is_usable`` - as an
+    ``AttributeError``, which walks straight through the
+    ``except FrameMismatchError`` callers write. Passing ``source_zone`` where
+    ``source_zone.frame`` was meant is one character.
+    """
+    from michspc.spc.vertical import NAVD88
+
+    impostors = [
+        (MI_SOUTH, "a zone"),
+        (NAVD88, "a vertical datum"),
+        (INTERNATIONAL_FEET, "a linear unit"),
+    ]
+    for impostor, what in impostors:
+        with pytest.raises(TypeError, match="ReferenceFrame") as caught:
+            require_frame_path(impostor, NAD83_2011)  # type: ignore[arg-type]
+        assert type(impostor).__name__ in str(caught.value), what
+
+        with pytest.raises(TypeError, match="ReferenceFrame"):
+            require_frame_path(NAD83_2011, impostor)  # type: ignore[arg-type]
+
+
+def test_a_frame_transformation_between_two_different_frames_will_not_construct():
+    """The registry cannot grow a silent pass-through.
+
+    A record with no parameters whose two frames differ would leave a position
+    untouched while relabelling its frame - one to two metres, invisible in the
+    numbers. It refuses at construction, so the mistake cannot reach the
+    registry at all.
+    """
+    with pytest.raises(ValueError, match="one to two metres"):
+        FrameTransformation(
+            source=NAD83_2011, target=NATRF2022, citation="wishful thinking"
+        )
+
+
+def test_a_frame_transformation_must_carry_a_citation():
+    """Every record must be able to say on whose authority it acts."""
+    with pytest.raises(ValueError, match="citation"):
+        FrameTransformation(source=NAD83_2011, target=NAD83_2011, citation="   ")
+
+
+def test_all_frames_is_in_declaration_order():
+    """The order an interface offers (H6's dropdown source), pinned as a fact.
+
+    ``ALL_FRAMES`` is the source the geodetic selections are built from, so its
+    order is user-visible rather than an accident of iteration - the property
+    ``Zone.allowed_units`` and ``ALL_GEOID_MODELS`` already carry. The unusable
+    member is IN the tuple, as NAPGD2022 is in ``ALL_VERTICAL_DATUMS``;
+    consumers that offer a choice filter on ``is_usable``.
+    """
+    assert ALL_FRAMES == (NAD83_2011, NATRF2022, WGS84)
+    assert [frame.code for frame in ALL_FRAMES] == [
+        "NAD83(2011)",
+        "NATRF2022",
+        "WGS84",
+    ]
+    assert [frame.is_usable for frame in ALL_FRAMES] == [True, True, False]
+
+
+def test_frames_are_looked_up_by_code_and_an_unknown_one_is_refused():
+    """The contract ``zone_by_code`` and ``vertical_datum_by_code`` share."""
+    for frame in ALL_FRAMES:
+        assert frame_by_code(frame.code) is frame
+    assert frame_by_code("  NAD83(2011)  ") is NAD83_2011
+
+    with pytest.raises(KeyError) as caught:
+        frame_by_code("NAD27")
+    assert "NAD83(2011)" in str(caught.value)
+
+
+def test_natrf2022s_citation_carries_its_authority_and_its_beta_provenance():
+    """The frame that became usable at #62 must say what it is and where from.
+
+    Two independent things, both required: the DEFINITIONAL authority (NOAA
+    Technical Report NOS NGS 62, digest-pinned in the repository), and the
+    fact that everything this program carries FOR the frame is pre-release -
+    the ``NGS beta`` token the re-freeze mechanism looks for, with its capture
+    date, exactly as every 2022 zone's citation carries it.
+    """
+    citation = NATRF2022.citation
+    assert "NOAA Technical Report NOS NGS 62" in citation
+    assert "b0d25a26d827daf6ff01c8ba8d96ee66b12ca200be335f72732f10794d2ae72a" in citation
+    assert "NGS beta" in citation
+    assert "2026-08-28" in citation
+    # And it states, on the record itself, that the bridge is not registered.
+    assert "NGS has not published one" in citation
 
 
 def test_convert_point_refuses_to_cross_frames():
@@ -159,6 +436,46 @@ def test_the_same_position_in_the_zones_own_frame_still_converts():
     assert result.warnings == ()
     assert 3_900_000 < result.target_easting < 4_100_000
     assert math.isfinite(result.target_northing)
+
+
+def test_a_natrf2022_position_projects_into_a_2022_zone_and_matches_ngs():
+    """The other half of #62, and the half that is easy to lose.
+
+    NATRF2022 is USABLE now: a geodetic position stated in it, projected into a
+    zone defined on it, must CONVERT - and must land where NGS's own tool put
+    it. If the frames restructure had made NATRF2022 unusable, or had failed to
+    register its identity, this would refuse and nineteen zones would be
+    unreachable from a latitude and longitude.
+
+    The oracle is the frozen beta NCAT capture, not a number retyped here: the
+    anchor is looked up from ``tests.fixtures.spcs2022_engine_anchors``, whose
+    values came from NGS's own printed output (capture record:
+    review/nsrs-h1-anchors/CAPTURE.md). Held to half of NCAT's printed
+    quantization, ``SPCS2022_PRINTED["linear_m"]``, which is what the
+    projection suite holds every anchor to.
+
+    Zone 261008 (Michigan Grand Rapids), all three of its captured points,
+    including the two off-origin ones - the origin alone would pass on a
+    projection that only reproduced the false origin.
+    """
+    from michspc.spc.zones import zone_by_code
+
+    zone = zone_by_code("261008")
+    assert zone.frame is NATRF2022
+
+    anchors = [a for a in SPCS2022_PROJECTION_ANCHORS if a.zone_code == "261008"]
+    assert len(anchors) == 3
+
+    for anchor in anchors:
+        result = project_point(anchor.latitude, anchor.longitude, NATRF2022, zone)
+
+        assert result.frame is NATRF2022
+        assert result.target_northing == pytest.approx(
+            anchor.northing_m, abs=SPCS2022_PRINTED["linear_m"]
+        ), anchor.capture
+        assert result.target_easting == pytest.approx(
+            anchor.easting_m, abs=SPCS2022_PRINTED["linear_m"]
+        ), anchor.capture
 
 
 def test_project_point_will_not_accept_a_position_with_no_frame():

@@ -35,7 +35,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from michspc.spc.frames import ReferenceFrame, require_same_frame
+from michspc.spc.frames import ReferenceFrame, require_frame_path
 from michspc.spc.projection import forward as project_forward
 from michspc.spc.projection import inverse as project_inverse
 from michspc.spc.zones import Zone
@@ -310,7 +310,13 @@ def convert_point(
     (docs/DESIGN.md amendment #11 finding 5). ``constants_for`` is cached, so
     the speed that seam bought is now free.
     """
-    require_same_frame(source_zone.frame, target_zone.frame)
+    # The returned record is bound and not used: every registered path is an
+    # identity today, so there is nothing to apply between the inverse and the
+    # forward projection below. The NON-identity branch arrives with the
+    # NAD83(2011) <-> NATRF2022 bridge (docs/DEFERRED-NATRF2022-BRIDGE.md,
+    # DESIGN.md #62), which is where the pivot position is transformed between
+    # the two half-conversions.
+    _ = require_frame_path(source_zone.frame, target_zone.frame)
 
     latitude, longitude, source_convergence, source_scale, warnings_in = to_geodetic(
         northing, easting, source_zone, context
@@ -378,7 +384,9 @@ def project_point(
             f"NAD 83 position."
         )
 
-    require_same_frame(source_frame, target_zone.frame)
+    # Bound and unused for the reason given in ``convert_point``: identities
+    # only, until the bridge lands.
+    _ = require_frame_path(source_frame, target_zone.frame)
 
     (
         northing,

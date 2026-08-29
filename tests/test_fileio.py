@@ -43,7 +43,12 @@ from michspc.job import (
     file_sha256,
     run,
 )
-from michspc.spc.frames import NAD83_2011, NATRF2022, FrameMismatchError
+from michspc.spc.frames import (
+    NAD83_2011,
+    NATRF2022,
+    FrameMismatchError,
+    FrameTransformationUnavailableError,
+)
 from michspc.spc.convert import ConversionWarning, WarningCode
 from michspc.spc.units import INTERNATIONAL_FEET, METERS, US_SURVEY_FEET
 from michspc.spc.zones import MI_CENTRAL, MI_SOUTH
@@ -2935,17 +2940,306 @@ def test_a_geodetic_job_states_the_frame_it_reads_the_file_in(tmp_path):
 def test_a_geodetic_job_declared_natrf2022_is_refused_end_to_end(tmp_path):
     """The application layer's default cannot be used to sneak past the core.
 
-    Setting the frame to NATRF2022 is the only way to reach a mismatch today,
-    and it must fail loudly at the point of conversion rather than producing
-    Michigan South coordinates computed as though the file were NAD 83. The
-    reviewer measured that untransformed answer at N = 136920.027586723 m,
-    E = 3984537.119005890 m, which is exactly what a NAD 83 reading gives - the
-    frames differ by one to two metres and nothing in the numbers shows it.
+    Declaring the file's positions NATRF2022 while targeting an SPCS 83 zone
+    must fail loudly rather than producing Michigan South coordinates computed
+    as though the file were NAD 83. The interim reviewer measured that
+    untransformed answer at N = 136920.027586723 m, E = 3984537.119005890 m,
+    which is exactly what a NAD 83 reading gives - the frames differ by one to
+    two metres and nothing in the numbers shows it.
+
+    SUPERSEDED, not deleted (docs/DESIGN.md #62). Same job, same call; three
+    things are now pinned that were not:
+
+    * the narrower ``FrameTransformationUnavailableError``, which is a
+      ``FrameMismatchError`` - so the class this test used to name still
+      catches it;
+    * the message facts a user acts on: the metre-scale stake, and that the
+      gap is NGS's unpublished transformation rather than this program's
+      schedule;
+    * that the refusal happens BEFORE the file is read. It is a fact about the
+      settings, so it must not depend on the file existing, let alone on which
+      row the loop reaches.
     """
     settings = _geodetic_job(tmp_path, geodetic_frame=NATRF2022)
 
-    with pytest.raises(FrameMismatchError, match="NATRF2022"):
+    with pytest.raises(FrameTransformationUnavailableError) as caught:
         run(settings)
+
+    message = str(caught.value)
+    assert "NATRF2022" in message
+    assert "NAD83(2011)" in message
+    assert "one to two metres" in message
+    assert "NGS has not published" in message
+
+    # Before the file is read: delete it and the same refusal arrives. A
+    # per-row check would raise FileNotFoundError here instead.
+    settings.input_path.unlink()
+    with pytest.raises(FrameTransformationUnavailableError):
+        run(settings)
+
+
+def test_a_2022_zone_geodetic_job_on_the_default_frame_is_refused(tmp_path):
+    """The default's new failure mode, pinned rather than discovered (#62).
+
+    ``geodetic_frame`` defaults to NAD83(2011), which is right for every
+    SPCS 83 job and wrong for every 2022-zone one. Wrong here must mean
+    REFUSED: projecting NAD 83 latitudes and longitudes with a NATRF2022 zone's
+    constants is amendment #11 finding 1 with a new zone list, one to two
+    metres, invisible in the numbers.
+    """
+    from michspc.spc.zones import zone_by_code
+
+    path = tmp_path / "geo.csv"
+    path.write_text("101,42.80000000,-85.15000000,300.00,P\n", encoding="utf-8")
+    settings = JobSettings(
+        input_path=path,
+        output_directory=tmp_path / "out",
+        direction=Direction.GEODETIC_TO_ZONE,
+        source_zone=None,
+        target_zone=zone_by_code("261008"),
+        input_unit=METERS,
+        output_unit=METERS,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+    )
+    assert settings.geodetic_frame is NAD83_2011
+
+    with pytest.raises(FrameTransformationUnavailableError) as caught:
+        run(settings)
+    assert "NATRF2022" in str(caught.value)
+
+
+def test_a_2022_zone_geodetic_job_on_its_own_frame_runs(tmp_path):
+    """And the same job, stated honestly, converts (#62).
+
+    The half that proves the refusal above is about the PAIR and not about the
+    2022 zones: NATRF2022 is usable, so a job entirely within it runs end to
+    end through ``job.run``, file and all. Without this, making the frames
+    gate stricter could quietly make nineteen zones unreachable from a
+    latitude and longitude and every test would still pass.
+    """
+    from michspc.spc.zones import zone_by_code
+
+    zone = zone_by_code("261008")
+    path = tmp_path / "natrf.csv"
+    # Zone 261008's captured origin (tests/fixtures/spcs2022_engine_anchors.py,
+    # raw/z261008_p1.html): 42.8 N, -85.15 W, which beta NCAT put at exactly
+    # the zone's published false origin, N 228,600.000 m E 1,409,700.000 m.
+    path.write_text("101,42.80000000,-85.15000000,300.00,ORIGIN\n", encoding="utf-8")
+
+    settings = JobSettings(
+        input_path=path,
+        output_directory=tmp_path / "out",
+        direction=Direction.GEODETIC_TO_ZONE,
+        source_zone=None,
+        target_zone=zone,
+        input_unit=METERS,
+        output_unit=METERS,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        geodetic_frame=NATRF2022,
+    )
+
+    result = run(settings)
+
+    assert result.points[0].conversion.frame is NATRF2022
+    assert result.points[0].output_northing == pytest.approx(228600.0, abs=0.0005)
+    assert result.points[0].output_easting == pytest.approx(1409700.0, abs=0.0005)
+
+
+def test_a_zone_to_geodetic_job_must_name_the_frame_its_output_is_in(tmp_path):
+    """The other direction of the settings gate (#62).
+
+    ``ZONE_TO_GEODETIC`` writes latitudes and longitudes in the SOURCE ZONE's
+    frame - there is no choice about it - so ``geodetic_frame`` must name that
+    frame. A 2022-zone job left on the NAD83(2011) default would write
+    NATRF2022 positions under a job record that says NAD83(2011): one to two
+    metres, and the numbers look ordinary.
+
+    Both halves pinned: the mismatch refuses, and the honest statement runs.
+    """
+    from michspc.spc.zones import zone_by_code
+
+    zone = zone_by_code("261008")
+    path = tmp_path / "grid.csv"
+    path.write_text("101,228600.000,1409700.000,300.00,ORIGIN\n", encoding="utf-8")
+
+    def settings_with(frame):
+        return JobSettings(
+            input_path=path,
+            output_directory=tmp_path / "out",
+            direction=Direction.ZONE_TO_GEODETIC,
+            source_zone=zone,
+            target_zone=None,
+            input_unit=METERS,
+            output_unit=METERS,
+            longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+            geodetic_frame=frame,
+        )
+
+    with pytest.raises(FrameTransformationUnavailableError) as caught:
+        run(settings_with(NAD83_2011))
+    assert "NATRF2022" in str(caught.value)
+
+    result = run(settings_with(NATRF2022))
+    assert result.points[0].output_northing == pytest.approx(42.8, abs=5e-8)
+    # Negative west, the convention the job states, so the longitude is
+    # written with its sign exactly as it was read.
+    assert result.points[0].output_easting == pytest.approx(-85.15, abs=5e-8)
+
+
+def test_a_job_may_not_use_a_unit_the_zone_does_not_publish(tmp_path):
+    """The per-zone unit gate, the authoritative half of the owner's decision.
+
+    ``Zone.allowed_units`` says what a coordinate in that zone may be written
+    in. NGS publishes every SPCS2022 false origin in metres and international
+    feet ONLY, and beta NCAT prints ``N/A`` for the US survey foot on every
+    2022 zone; the survey foot is 2 ppm from the international foot, about 26
+    feet at a four-million-metre easting, so a survey-foot 2022 coordinate
+    could be checked against no published figure. The GUI will filter the
+    selector (H6), but a filter a caller can bypass is not a rule, so the rule
+    lives here, before the file is read.
+
+    Each direction is pinned at the end the unit actually governs:
+
+    * ``GEODETIC_TO_ZONE`` - the OUTPUT unit governs the target zone;
+    * ``ZONE_TO_GEODETIC`` - the INPUT unit governs the source zone;
+    * ``ZONE_TO_ZONE`` - both ends.
+    """
+    from michspc.spc.zones import zone_by_code
+
+    zone = zone_by_code("261008")
+    assert US_SURVEY_FEET not in zone.allowed_units
+
+    geodetic = tmp_path / "geo.csv"
+    geodetic.write_text("101,42.80000000,-85.15000000,300.00,P\n", encoding="utf-8")
+    grid = tmp_path / "grid.csv"
+    grid.write_text("101,228600.000,1409700.000,300.00,P\n", encoding="utf-8")
+
+    into_the_zone = JobSettings(
+        input_path=geodetic,
+        output_directory=tmp_path / "out",
+        direction=Direction.GEODETIC_TO_ZONE,
+        source_zone=None,
+        target_zone=zone,
+        input_unit=METERS,
+        output_unit=US_SURVEY_FEET,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        geodetic_frame=NATRF2022,
+    )
+    with pytest.raises(ValueError) as caught:
+        run(into_the_zone)
+    message = str(caught.value)
+    assert zone.name in message
+    assert US_SURVEY_FEET.code in message
+    # It names what the zone DOES publish, in the zone's own declared order,
+    # and why - the citation basis rather than a bare "not allowed".
+    assert "ift (International feet), m (meters)" in message
+    assert "NCAT prints N/A for the" in message
+    assert "2 ppm" in message
+
+    out_of_the_zone = JobSettings(
+        input_path=grid,
+        output_directory=tmp_path / "out",
+        direction=Direction.ZONE_TO_GEODETIC,
+        source_zone=zone,
+        target_zone=None,
+        input_unit=US_SURVEY_FEET,
+        output_unit=METERS,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        geodetic_frame=NATRF2022,
+    )
+    with pytest.raises(ValueError, match=US_SURVEY_FEET.code):
+        run(out_of_the_zone)
+
+    zone_to_zone = JobSettings(
+        input_path=grid,
+        output_directory=tmp_path / "out",
+        direction=Direction.ZONE_TO_ZONE,
+        source_zone=zone,
+        target_zone=zone_by_code("261009"),
+        input_unit=METERS,
+        output_unit=US_SURVEY_FEET,
+        longitude_convention=None,
+    )
+    with pytest.raises(ValueError, match=US_SURVEY_FEET.code):
+        run(zone_to_zone)
+
+
+def test_the_unit_gate_leaves_every_unit_an_spcs83_zone_publishes_alone(tmp_path):
+    """The gate must refuse only what the authority does not publish.
+
+    All three units are legitimate on an SPCS 83 zone, including the US survey
+    foot that a 2022 zone refuses, and every one of them must still run. A gate
+    that refused a legitimate unit would break jobs that have been running
+    since 0.1.0.
+    """
+    for unit in (INTERNATIONAL_FEET, US_SURVEY_FEET, METERS):
+        assert unit in MI_SOUTH.allowed_units
+
+    for index, unit in enumerate((INTERNATIONAL_FEET, US_SURVEY_FEET, METERS)):
+        workspace = tmp_path / f"unit{index}"
+        workspace.mkdir()
+        path = workspace / "pts.csv"
+        path.write_text("101,42.73250000,-84.55550000,812.40,P\n", encoding="utf-8")
+        settings = JobSettings(
+            input_path=path,
+            output_directory=workspace / "out",
+            direction=Direction.GEODETIC_TO_ZONE,
+            source_zone=None,
+            target_zone=MI_SOUTH,
+            input_unit=unit,
+            output_unit=unit,
+            longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        )
+        assert run(settings).points[0].output_northing is not None
+
+
+def test_the_unit_gate_does_not_read_a_unit_the_direction_never_applies(tmp_path):
+    """The per-side rule, at the end it deliberately does NOT check.
+
+    On ``GEODETIC_TO_ZONE`` the input unit governs only the Z column - there is
+    no input zone whose grid it could be in - so a unit the TARGET zone does
+    not publish must not be refused on the input side. Refusing it would block
+    a legitimate job: a 2022-zone job whose elevations arrived in survey feet.
+    The mirror holds on ``ZONE_TO_GEODETIC``, where the output unit governs
+    only the Z column.
+    """
+    from michspc.spc.zones import zone_by_code
+
+    zone = zone_by_code("261008")
+
+    geodetic = tmp_path / "geo.csv"
+    geodetic.write_text("101,42.80000000,-85.15000000,984.25,P\n", encoding="utf-8")
+    into_the_zone = JobSettings(
+        input_path=geodetic,
+        output_directory=tmp_path / "out_in",
+        direction=Direction.GEODETIC_TO_ZONE,
+        source_zone=None,
+        target_zone=zone,
+        input_unit=US_SURVEY_FEET,
+        output_unit=METERS,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        geodetic_frame=NATRF2022,
+    )
+    assert run(into_the_zone).points[0].output_northing == pytest.approx(
+        228600.0, abs=0.0005
+    )
+
+    grid = tmp_path / "grid.csv"
+    grid.write_text("101,228600.000,1409700.000,300.00,P\n", encoding="utf-8")
+    out_of_the_zone = JobSettings(
+        input_path=grid,
+        output_directory=tmp_path / "out_out",
+        direction=Direction.ZONE_TO_GEODETIC,
+        source_zone=zone,
+        target_zone=None,
+        input_unit=METERS,
+        output_unit=US_SURVEY_FEET,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        geodetic_frame=NATRF2022,
+    )
+    assert run(out_of_the_zone).points[0].output_northing == pytest.approx(
+        42.8, abs=5e-8
+    )
 
 
 def test_a_geodetic_job_record_states_the_frame_it_read_the_file_as(tmp_path):

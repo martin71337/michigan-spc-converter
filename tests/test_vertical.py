@@ -323,7 +323,7 @@ def test_an_unpublished_pair_refuses_and_names_the_pair():
     IGLD 85 stands in for the general case - a datum record exists and its pair
     has not been published. The refusal must name the offending pair, list what
     is registered, and say what ignoring it would cost, in the style of
-    ``frames.require_same_frame``.
+    ``frames.require_frame_path``.
     """
     with pytest.raises(VerticalTransformationUnavailableError) as caught:
         require_vertical_pair(IGLD85, NAVD88)
@@ -415,7 +415,7 @@ def test_a_rebuilt_datum_record_cannot_grant_itself_a_status():
 def test_datums_are_matched_by_code_not_by_object_identity():
     """A datum rebuilt from a saved job must still find its transformation.
 
-    Same property ``frames.require_same_frame`` has, and the mechanism by which
+    Same property ``frames.require_frame_path`` has, and the mechanism by which
     a job converted in 2026 still converts once records are reloaded rather than
     imported.
     """
@@ -833,7 +833,8 @@ def test_a_record_that_is_not_a_vertical_datum_is_refused_by_name(impostor, what
     module's docstring tells callers to write.
 
     This is the pattern DESIGN.md amendment #11 finding 1 recorded against
-    ``frames.require_same_frame`` ("a Zone duck-types straight through; both
+    the frames gate (``require_same_frame`` then, ``frames.require_frame_path``
+    since #62) ("a Zone duck-types straight through; both
     carry .code"), whose fix is the isinstance guard at
     ``michspc/spc/convert.py`` in ``project_point``. The guard here is that one.
 

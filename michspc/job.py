@@ -33,7 +33,7 @@ from michspc.spc.convert import (
     project_point,
 )
 from michspc.spc.factors import Factors, factors_at
-from michspc.spc.frames import NAD83_2011, ReferenceFrame
+from michspc.spc.frames import NAD83_2011, ReferenceFrame, require_frame_path
 from michspc.spc.units import LinearUnit
 from michspc.spc.vertical import (
     HeightKind,
@@ -207,19 +207,38 @@ class JobSettings:
     """
 
     geodetic_frame: ReferenceFrame = NAD83_2011
-    """The reference frame a geodetic INPUT file's latitudes and longitudes are
-    read as. Ignored when the input is State Plane, because a zone carries its
-    own frame.
+    """The reference frame this job's GEODETIC end is expressed in.
 
-    Unlike the longitude convention this one does carry a default, and the
-    reason is that the two risks are not comparable. The longitude sign is a
-    real coin-flip - the manual uses one convention, every GPS and GIS the other
-    - and getting it wrong throws a Michigan point about 340 miles, so
-    docs/DESIGN.md section 7 forbids a default there. The frame is not a
-    coin-flip today: every zone in the registry is NAD83(2011), NATRF2022 has no
-    zones and no transformation (docs/DESIGN.md section 10), so the only way to
-    reach a mismatch is for a caller to set this field to NATRF2022 on purpose -
-    and ``project_point`` then refuses it, which is finding 1's whole point.
+    Read at both geodetic ends, not only the input one: on
+    ``GEODETIC_TO_ZONE`` it is the frame the file's latitudes and longitudes
+    are read as, and on ``ZONE_TO_GEODETIC`` it is the frame the latitudes and
+    longitudes written out are in - which is the source zone's frame, not a
+    choice. Unread by ``ZONE_TO_ZONE``, where both ends are zones carrying
+    their own.
+
+    **NATRF2022 is now a legitimate value** (docs/DESIGN.md amendment #62). It
+    was not when this field was written: NATRF2022 had no zones and setting
+    this field to it was, in the words this docstring used to carry, the only
+    way to reach a mismatch on purpose. Nineteen Michigan SPCS2022 zones are
+    defined on it now, and a geodetic job against one of them states NATRF2022
+    here and converts. What refuses is the pair, not the frame: the
+    NAD83(2011) <-> NATRF2022 bridge is deferred with NGS's own transformation
+    unpublished (docs/DEFERRED-NATRF2022-BRIDGE.md), so a frame that disagrees
+    with the zone at the other end is refused by
+    ``_require_a_registered_frame_path`` before the file is read, and by
+    ``convert.require_frame_path`` again at every point.
+
+    **The default is now load-bearing in a way it was not**, and this is worth
+    stating rather than discovering: it is NAD83(2011), which is right for
+    every SPCS 83 job and WRONG for every 2022-zone geodetic job. Wrong here
+    means refused, never converted - the gate above - so the cost of the
+    default is a refusal a caller must answer, not a coordinate. It stays a
+    default because changing it would silently move every existing caller's
+    job, and because the frame is still not the coin-flip the longitude sign
+    is: the manual uses one longitude convention and every GPS and GIS the
+    other, the two are indistinguishable from the numbers, and choosing wrongly
+    throws a Michigan point about 340 miles, which is why docs/DESIGN.md
+    section 7 forbids a default THERE.
 
     It is a field on the settings rather than a constant inside the loop
     precisely so it is visible: the job record states the frame the input was
@@ -803,6 +822,15 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
     elif settings.source_zone is None:
         raise ValueError("Converting to geodetic needs the zone the file is in.")
 
+    # Two settings-level gates, slotted here - after the zone-presence block
+    # above, before every refusal that follows. Both are facts about the
+    # SETTINGS rather than about a row, so both must fire before the file is
+    # read rather than once per point. The sequence below is EXTENDED at this
+    # point and never reordered: which refusal a doubly-invalid job raises is
+    # a pinned property.
+    _require_a_registered_frame_path(settings)
+    _require_units_the_zones_publish(settings)
+
     # Which jobs consult the longitude sign convention. A vertical-only job
     # reads longitudes from the file ONLY when its input is geodetic; with a
     # zone input the file carries none and none are written, so that job
@@ -1179,6 +1207,122 @@ class _GeoidSwapGrids:
     target_model: geoid.GeoidModel
     source_grid: object
     target_grid: object
+
+
+def _require_a_registered_frame_path(settings: JobSettings) -> None:
+    """Refuse a cross-frame job at its SETTINGS, before the file is read.
+
+    ``convert.project_point`` and ``convert.convert_point`` each pass their own
+    ends through ``frames.require_frame_path``, so a cross-frame job could
+    never produce a wrong coordinate. What it could do before this gate existed
+    is read the file, convert forty rows, and fail on the forty-first only
+    because that is when the loop reached it - a whole-job refusal announced as
+    though it were about one point. It is about the settings, so it fires here.
+
+    The pair this checks is the one the settings alone can put in disagreement:
+    ``geodetic_frame`` names the frame a geodetic END is in, and the zone at
+    the other end carries its own. The two directions differ only in which end
+    is which:
+
+    * ``GEODETIC_TO_ZONE`` - the file's latitudes and longitudes are read as
+      ``geodetic_frame`` and projected into ``target_zone``;
+    * ``ZONE_TO_GEODETIC`` - ``source_zone``'s coordinates are inverted, and
+      the latitudes and longitudes written out are in that ZONE's frame, which
+      is what ``geodetic_frame`` must therefore name. A 2022-zone job left on
+      the NAD83(2011) default would write NATRF2022 positions under a record
+      that says NAD83(2011) - one to two metres, invisible in the numbers.
+
+    ``ZONE_TO_ZONE`` is not checked here: both ends are zones, neither consults
+    ``geodetic_frame``, and ``convert_point`` gates the pair itself.
+    ``VERTICAL_ONLY`` is not checked either: it has no output horizontal system
+    at all, so there is no second frame for the first to disagree with.
+
+    The refusal is ``frames``' own, raised by ``require_frame_path`` and
+    propagated UNTOUCHED - it already names both frames, the metre-scale stake,
+    NGS's unpublished transformation and the ways out, and wrapping it would
+    hide the ``FrameMismatchError`` subclasses callers are told to catch.
+    """
+    if settings.direction is Direction.GEODETIC_TO_ZONE:
+        require_frame_path(settings.geodetic_frame, settings.target_zone.frame)
+    elif settings.direction is Direction.ZONE_TO_GEODETIC:
+        require_frame_path(settings.source_zone.frame, settings.geodetic_frame)
+
+
+def _require_units_the_zones_publish(settings: JobSettings) -> None:
+    """Refuse a unit the zone's own publishing authority does not define.
+
+    ``Zone.allowed_units`` is the authoritative statement of what a coordinate
+    in that zone may be written in, and this is the gate that enforces it on a
+    job. It is the authoritative half of the owner's units decision; the
+    interface's own filtering is a convenience over the same tuple, and a
+    filter that a caller can bypass is not a rule.
+
+    **Which unit governs which end**, decided here and stated rather than left
+    to the reader, because the two units do not both govern coordinates in
+    every direction:
+
+    * ``ZONE_TO_ZONE`` - ``input_unit`` governs the source zone's coordinates
+      and ``output_unit`` the target zone's. Both ends checked.
+    * ``ZONE_TO_GEODETIC`` - ``input_unit`` governs the source zone's
+      coordinates. The output columns are degrees; ``output_unit`` governs only
+      the Z column, and an elevation is not a coordinate in the zone's grid, so
+      there is no zone for it to be checked against. Source end only.
+    * ``GEODETIC_TO_ZONE`` - the mirror: ``output_unit`` governs the target
+      zone's coordinates, ``input_unit`` governs only the input Z column.
+      Target end only. (``source_zone`` is unread by this direction; it is not
+      checked, because checking it would refuse a job over a field that
+      changes no number.)
+    * ``VERTICAL_ONLY`` - the input system is ``source_zone``, or None for
+      geodetic input, and the exports mirror the input columns. The units are
+      already required to be equal by the block in ``run``, so checking
+      ``input_unit`` against the input zone checks both.
+
+    The refusal names the zone, the unit, the units the zone does publish, and
+    the authority - NGS publishes every SPCS2022 false origin in metres and
+    international feet only, and beta NCAT prints ``N/A`` for the US survey
+    foot on every 2022 zone. The survey foot is 2 ppm from the international
+    foot, about 26 feet at a four-million-metre easting, and a coordinate
+    written in it could be checked against no published NGS figure.
+    """
+    ends: list[tuple[str, Zone, LinearUnit]] = []
+
+    if settings.direction is Direction.ZONE_TO_ZONE:
+        ends.append(("source", settings.source_zone, settings.input_unit))
+        ends.append(("target", settings.target_zone, settings.output_unit))
+    elif settings.direction is Direction.ZONE_TO_GEODETIC:
+        ends.append(("source", settings.source_zone, settings.input_unit))
+    elif settings.direction is Direction.GEODETIC_TO_ZONE:
+        ends.append(("target", settings.target_zone, settings.output_unit))
+    elif settings.direction is Direction.VERTICAL_ONLY:
+        if settings.source_zone is not None:
+            ends.append(("source", settings.source_zone, settings.input_unit))
+
+    for label, zone, unit in ends:
+        if unit in zone.allowed_units:
+            continue
+        allowed = ", ".join(f"{u.code} ({u.name})" for u in zone.allowed_units)
+        # The SPCS2022 sentence is stated only for an SPCS2022 zone. Every
+        # refusal this gate can raise today IS one - the SPCS 83 zones carry
+        # all three units - but a message that explained a 2022 restriction on
+        # some other system's zone would be a false sentence in a refusal, the
+        # class this project has repeatedly had to go back and delete.
+        if zone.system == "SPCS2022":
+            authority = (
+                " NGS publishes every SPCS2022 zone's false origin in metres "
+                "and international feet only, and NCAT prints N/A for the US "
+                "survey foot on every one of them; the survey foot is 2 ppm "
+                "from the international foot, about 26 feet at a "
+                "four-million-metre easting, so a coordinate written in it "
+                "could be checked against no published figure."
+            )
+        else:
+            authority = ""
+        raise ValueError(
+            f"{zone.name} ({zone.system}) does not publish coordinates in "
+            f"{unit.name} ({unit.code}), so this job's {label} unit cannot be "
+            f"used for it. {zone.system} zones may be read and written in: "
+            f"{allowed}.{authority} The zone's authority: {zone.citation}."
+        )
 
 
 def _require_vertical_settings(

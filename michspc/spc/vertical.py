@@ -527,7 +527,7 @@ entry out of at runtime.
 
 # Resolution is by code, not by object identity, so a datum record rebuilt from
 # a saved job still finds its transformation - the property
-# ``frames.require_same_frame`` already has, and the reason a 2026 job still
+# ``frames.require_frame_path`` already has, and the reason a 2026 job still
 # converts in 2030. Derived from the registry above, never maintained beside it.
 _TRANSFORMATIONS_BY_CODE: Mapping[tuple[str, str], VerticalTransformation] = (
     MappingProxyType(
@@ -607,8 +607,9 @@ def require_vertical_pair(
     converted is a boundary-relevant error that looks entirely ordinary.
 
     Refuses a non-``VerticalDatum`` argument by name, for the reason
-    docs/DESIGN.md amendment #11 finding 1 records against
-    ``frames.require_same_frame``: this program's core records all carry
+    docs/DESIGN.md amendment #11 finding 1 records against the frames gate
+    (``require_same_frame`` then, ``frames.require_frame_path`` since #62): this
+    program's core records all carry
     ``code``, ``name`` and ``citation``, so a ``Zone``, a ``ReferenceFrame`` and
     a ``LinearUnit`` all duck-type through ``_canonical`` below and only fail
     several lines later on ``is_usable`` - as an ``AttributeError``, which walks

@@ -40,7 +40,8 @@ from michspc.spc.lambert import LambertConstants
 from michspc.spc.projection import ProjectionUnavailableError
 from michspc.spc.units import INTERNATIONAL_FEET
 from michspc.spc.zones import (
-    ALL_ZONES,
+    SPCS2022_ZONES,
+    SPCS83_ZONES,
     MI_SOUTH,
     LambertOneParallelDef,
     LambertTwoParallelDef,
@@ -62,17 +63,19 @@ from tests.fixtures.spcs2022_engine_anchors import (
 # --------------------------------------------------------------------------
 # Turning the frozen zone parameters into definition records.
 #
-# H1 builds the ENGINES, not the registry: no SPCS2022 Zone record is added to
-# michspc.spc.zones here, and these throwaway zones exist only so the anchors
-# run through the real public entry points - projection.forward and
-# projection.inverse, which take a Zone - rather than through a private seam a
-# job would never use.
+# H1 built the ENGINES and ran the anchors through throwaway Zone records,
+# because no SPCS2022 zone was in the registry yet. **H2 added the nineteen
+# real records, and the anchors now run through those** - so these tests prove
+# something they could not prove before: that the registry's transcription and
+# the fixture's transcription are the same numbers, all the way through the
+# engines to a coordinate beta NCAT computed independently.
+#
+# ``definition_for`` survives the change and earns its keep twice over: it is
+# the second, independent transcription that
+# ``test_the_registry_definitions_are_the_frozen_parameters`` compares the
+# registry against, and it is what makes NGS's ``Proj type`` string decide
+# which record type a zone gets.
 # --------------------------------------------------------------------------
-
-_TEST_ZONE_CITATION = (
-    "NGS beta zoneDefinitions.json, captured 2026-08-28 - test fixture only; "
-    "the shipped registry is built at H2"
-)
 
 
 def definition_for(parameters: Spcs2022ZoneParameters) -> ProjectionDef:
@@ -113,25 +116,46 @@ def definition_for(parameters: Spcs2022ZoneParameters) -> ProjectionDef:
     )
 
 
-def throwaway_zone(parameters: Spcs2022ZoneParameters) -> Zone:
-    """A Zone record built for a test, never added to the registry."""
-    return Zone(
-        code=parameters.code,
-        abbrev=parameters.abbrev,
-        name=parameters.name,
-        system="SPCS2022",
-        frame=NATRF2022,
-        definition=definition_for(parameters),
-        citation=_TEST_ZONE_CITATION,
-        lat_min=-90.0,
-        lat_max=90.0,
-        lon_min=-180.0,
-        lon_max=180.0,
-    )
+ZONES_BY_CODE = {zone.code: zone for zone in SPCS2022_ZONES}
+"""**The shipped registry records**, not test-local copies of them.
 
+Every anchor below therefore checks the zone a job would actually use. A
+transcription error in michspc/spc/zones.py now fails against beta NCAT's own
+coordinate, on top of failing the field-by-field cross-check against NGS's
+frozen file in tests/test_zone_registry.py.
+"""
 
-ZONES_BY_CODE = {p.code: throwaway_zone(p) for p in SPCS2022_ZONE_PARAMETERS}
 PARAMETERS_BY_CODE = {p.code: p for p in SPCS2022_ZONE_PARAMETERS}
+
+
+@pytest.mark.parametrize(
+    "zone", SPCS2022_ZONES, ids=[z.code for z in SPCS2022_ZONES]
+)
+def test_the_registry_definitions_are_the_frozen_parameters(zone):
+    """The shipped record and the fixture say the same thing, record for record.
+
+    Two independent transcriptions of NGS's file meet here: the one in
+    michspc/spc/zones.py, written as ``dms(45, 27)`` with the arithmetic in a
+    comment, and the one in tests/fixtures/spcs2022_engine_anchors.py, written
+    as decimal degrees. They were made separately, in different work packages,
+    and a disagreement between them is a transcription error in one or the
+    other.
+
+    This is a check on the two COPIES agreeing. What checks either of them
+    against the authority is tests/test_zone_registry.py, which parses NGS's
+    own digest-pinned file - and what checks the resulting mathematics is the
+    63 beta NCAT anchors below.
+    """
+    parameters = PARAMETERS_BY_CODE[zone.code]
+
+    assert zone.definition == definition_for(parameters)
+    assert zone.abbrev == parameters.abbrev
+    assert zone.name == parameters.name
+    assert zone.projection_kind is {
+        "OMC": ProjectionKind.OBLIQUE_MERCATOR,
+        "LC1": ProjectionKind.LAMBERT_CONIC_1SP,
+        "TM": ProjectionKind.TRANSVERSE_MERCATOR,
+    }[parameters.projection_type]
 
 ANCHOR_IDS = [
     f"{a.zone_code}@{a.latitude}/{a.longitude}" for a in SPCS2022_PROJECTION_ANCHORS
@@ -763,6 +787,93 @@ def test_forward_and_inverse_are_true_inverses_across_the_zone(zone):
             assert position.longitude == pytest.approx(longitude, abs=1e-9)
 
 
+TM_CLOSURE_BY_OFFSET = (
+    # (degrees from the central meridian, bound on the round-trip error, m)
+    #
+    # Measured on zone 261002 (Detroit) at 45 N, and the bound at each offset is
+    # the next round number above the measurement, so a change in the series
+    # shows here rather than being absorbed:
+    #
+    #     1.0 deg -> 5.0e-7 m     4.0 deg -> 5.4e-5 m
+    #     2.0 deg -> 7.0e-7 m     6.0 deg -> 1.4e-3 m
+    #     3.0 deg -> 5.8e-6 m     7.8 deg -> 1.14e-2 m
+    (1.0, 1e-6),
+    (2.0, 1e-6),
+    (3.0, 1e-5),
+    (4.0, 1e-4),
+    (6.0, 1e-2),
+    (7.8, 2e-2),
+)
+"""How far the transverse Mercator series' closure degrades off its meridian.
+
+**This is a property of the method, not a defect**: NOAA Manual NOS NGS 5's
+section 3.2 series is truncated, and michspc.spc.tm keeps every term the manual
+publishes (its docstring says why it keeps even the ones the manual calls
+negligible). Within a zone's own area the closure is at the floating-point
+floor; a zone width away it is still micrometres; seven degrees out it is
+eleven millimetres.
+
+It is measured here because something downstream depends on it:
+tests/test_convert.py converts between all 342 ordered pairs of Michigan's
+nineteen 2022 zones, and the widest of those pairs evaluates this series 7.8
+degrees from its central meridian. That test holds two different bounds for
+that reason, and this is the evidence they rest on rather than on a number
+chosen to make it pass.
+
+Michigan's own SPCS 83 zones never reach this regime - the three zones overlap,
+and the widest of them spans about 4.6 degrees of longitude - and no SPCS 83
+Michigan zone is a transverse Mercator at all.
+"""
+
+
+@pytest.mark.parametrize("offset,bound", TM_CLOSURE_BY_OFFSET)
+def test_the_transverse_mercator_series_closes_less_well_far_from_its_meridian(
+    offset, bound
+):
+    """The measurement above, run in both longitude directions.
+
+    Asserted as a bound at each offset AND as monotone growth across them, so
+    the test states the shape of the degradation and not just its size.
+    """
+    zone = ZONES_BY_CODE["261002"]
+    meridian = zone.definition.lon_origin
+
+    worst = 0.0
+    for signed in (offset, -offset):
+        longitude = meridian + signed
+        point = projection.forward(45.0, longitude, zone)
+        back = projection.inverse(point.northing, point.easting, zone)
+        worst = max(
+            worst,
+            abs(back.latitude - 45.0) * 111320.0,
+            abs(back.longitude - longitude) * 111320.0,
+        )
+
+    assert worst < bound, f"{offset} deg off the meridian closed to {worst:.3e} m"
+
+
+def test_the_transverse_mercator_closure_degrades_monotonically():
+    """Anti-vacuousness for the bounds above: they are not all one loose number.
+
+    If the closure were flat, every bound in the table would be satisfied by
+    the same measurement and the table would say nothing. It is not flat: the
+    error at 7.8 degrees is more than four orders of magnitude above the error
+    at 1 degree.
+    """
+    zone = ZONES_BY_CODE["261002"]
+    meridian = zone.definition.lon_origin
+
+    errors = []
+    for offset, _bound in TM_CLOSURE_BY_OFFSET:
+        longitude = meridian - offset
+        point = projection.forward(45.0, longitude, zone)
+        back = projection.inverse(point.northing, point.easting, zone)
+        errors.append(abs(back.longitude - longitude) + abs(back.latitude - 45.0))
+
+    assert errors == sorted(errors)
+    assert errors[-1] > errors[0] * 1e4
+
+
 @pytest.mark.parametrize("zone", LDP_ZONES)
 def test_the_two_directions_agree_about_convergence_and_scale(zone):
     """Each engine computes gamma and k by two independent routes.
@@ -892,7 +1003,7 @@ def test_the_statewide_lattice_is_asymmetric_about_the_centre():
 # --------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("zone", ALL_ZONES, ids=[z.abbrev for z in ALL_ZONES])
+@pytest.mark.parametrize("zone", SPCS83_ZONES, ids=[z.abbrev for z in SPCS83_ZONES])
 def test_the_two_lambert_constructors_agree_on_the_same_cone(zone):
     """Feed a two-parallel zone's DERIVED phi_0 and k_0 to the one-parallel form.
 
@@ -1075,6 +1186,8 @@ def test_an_unregistered_definition_type_refuses_by_name():
         frame=NATRF2022,
         definition=_UnregisteredDef(),
         citation="test",
+        allowed_units=(INTERNATIONAL_FEET,),
+        easting_range_m=None,
         lat_min=0.0,
         lat_max=90.0,
         lon_min=-180.0,
@@ -1097,7 +1210,7 @@ def test_an_unregistered_definition_type_refuses_by_name():
         zone.projection_kind
 
 
-@pytest.mark.parametrize("zone", ALL_ZONES, ids=[z.abbrev for z in ALL_ZONES])
+@pytest.mark.parametrize("zone", SPCS83_ZONES, ids=[z.abbrev for z in SPCS83_ZONES])
 def test_the_shipped_zones_are_two_parallel_lambert(zone):
     """Zone.projection_kind, derived from the dispatch table rather than stored."""
     assert zone.projection_kind is ProjectionKind.LAMBERT_CONIC_2SP
@@ -1175,8 +1288,13 @@ def test_every_definition_record_is_frozen_and_hashable(record):
 
 
 def test_constants_for_stamps_the_zone_code_on_every_engines_record():
-    """Constants can never be silently paired with another zone's identity."""
-    for zone in list(ZONES_BY_CODE.values()) + list(ALL_ZONES):
+    """Constants can never be silently paired with another zone's identity.
+
+    All twenty-two registry zones, both eras, so every engine's constants
+    record is covered - a stamp added to one engine and forgotten in another
+    fails here.
+    """
+    for zone in SPCS83_ZONES + SPCS2022_ZONES:
         assert projection.constants_for(zone).zone_code == zone.code
 
 
@@ -1194,13 +1312,25 @@ def test_constants_for_is_cached_without_a_bound():
     second = projection.constants_for(MI_SOUTH)
     assert first is second
 
+    # And on a registry zone from the other era, whose Zone record carries the
+    # ``allowed_units`` tuple H2 added. A list there would raise TypeError on
+    # the first lookup; a set would make the record unorderable but still
+    # hashable, so this checks the identity of the cached object rather than
+    # merely that the call succeeded.
+    for zone in SPCS2022_ZONES:
+        assert projection.constants_for(zone) is projection.constants_for(zone)
+
+    before = projection.constants_for.cache_info().hits
+    projection.constants_for(SPCS2022_ZONES[0])
+    assert projection.constants_for.cache_info().hits == before + 1
+
 
 # --------------------------------------------------------------------------
 # The dispatcher must not have changed the three shipped zones by a bit.
 # --------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("zone", ALL_ZONES, ids=[z.abbrev for z in ALL_ZONES])
+@pytest.mark.parametrize("zone", SPCS83_ZONES, ids=[z.abbrev for z in SPCS83_ZONES])
 def test_the_dispatcher_returns_the_lambert_engines_own_constants(zone):
     """Bit-identical to what ``from_two_parallels`` produces on its own.
 
@@ -1218,7 +1348,7 @@ def test_the_dispatcher_returns_the_lambert_engines_own_constants(zone):
     assert isinstance(dispatched, LambertConstants)
 
 
-@pytest.mark.parametrize("zone", ALL_ZONES, ids=[z.abbrev for z in ALL_ZONES])
+@pytest.mark.parametrize("zone", SPCS83_ZONES, ids=[z.abbrev for z in SPCS83_ZONES])
 @pytest.mark.parametrize(
     "latitude,longitude",
     [(42.7325, -84.5555), (45.3, -87.0), (44.15, -82.5), (46.75, -90.1)],

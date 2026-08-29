@@ -55,7 +55,12 @@ from michspc.spc.units import (  # noqa: E402
     INTERNATIONAL_FEET,
     METERS,
 )
-from michspc.spc.zones import ALL_ZONES, MI_CENTRAL, MI_NORTH, MI_SOUTH  # noqa: E402
+from michspc.spc.zones import (  # noqa: E402
+    SPCS83_ZONES,
+    MI_CENTRAL,
+    MI_NORTH,
+    MI_SOUTH,
+)
 
 
 # --------------------------------------------------------------------------
@@ -188,20 +193,25 @@ def test_the_table_has_the_seven_approved_columns(window):
 
 
 def test_zone_dropdowns_are_built_from_the_registry(window):
-    """Every registered zone appears, and no zone name is typed into the GUI.
+    """Every SPCS 83 zone appears, and no zone name is typed into the GUI.
 
-    Derived from the registry, not from a list here: adding a zone to
-    michspc.spc.zones.ALL_ZONES must make it selectable with no interface
+    Derived from the era tuple, not from a list here: adding a zone to
+    michspc.spc.zones.SPCS83_ZONES must make it selectable with no interface
     change (docs/DESIGN.md section 6).
+
+    ``SPCS83_ZONES`` rather than ``ALL_ZONES`` because that is what
+    ``controls.zone_combo`` reads until H5 and H6 land - see its docstring for
+    the reason and the flip condition, and tests/test_gui_tabs.py for the pin
+    that the 2022 zones are absent on purpose rather than by accident.
     """
     for combo in (window.from_zone, window.to_zone):
         offered = [combo.itemData(i) for i in range(combo.count())]
         # Two non-zone entries (the unanswered placeholder and the geodetic
-        # option) plus one per registered zone.
-        assert len(offered) == 2 + len(ALL_ZONES)
+        # option) plus one per offered zone.
+        assert len(offered) == 2 + len(SPCS83_ZONES)
         assert offered[0] == UNCHOSEN
         assert offered[1] == GEODETIC
-        for zone in ALL_ZONES:
+        for zone in SPCS83_ZONES:
             position = combo.findData(zone)
             assert position >= 0, f"{zone.name} is not selectable"
             # The label is assembled from the registry record itself.
@@ -866,7 +876,7 @@ def test_the_input_label_is_static_and_never_says_pnezd(window):
     From selection the program offers, because the whole point of the amendment
     is that the label does NOT move between two spellings.
     """
-    selections = [UNCHOSEN, GEODETIC] + list(ALL_ZONES)
+    selections = [UNCHOSEN, GEODETIC] + list(SPCS83_ZONES)
     for selection in selections:
         window.from_zone.setCurrentIndex(window.from_zone.findData(selection))
         assert window.input_label.text() == INPUT_LABEL

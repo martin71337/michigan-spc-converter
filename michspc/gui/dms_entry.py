@@ -29,9 +29,11 @@ numbers — nothing on screen tells you which one is in force. A hemisphere lett
 is a visible token beside the angle it belongs to, and it reads back in the
 result panel as well. It is a starting value, not a hidden assumption.
 
-It is also right for every point this program can convert: MCX carries the three
-Michigan zones and nothing else (``michspc.spc.zones.ALL_ZONES``), and Michigan
-lies wholly north of the equator and west of Greenwich. ``DEFAULT_HEMISPHERE``
+It is also right for every point this program can convert: MCX carries Michigan
+zones and nothing else — three on SPCS 83 and nineteen on SPCS2022
+(``michspc.spc.zones.ALL_ZONES``) — and Michigan lies wholly north of the
+equator and west of Greenwich. That stayed true when the 2022 zones arrived,
+which is the case this paragraph was written against. ``DEFAULT_HEMISPHERE``
 below is the one place that assumption is written down, so a program that ever
 grew a zone outside that quadrant has one line to revisit rather than a habit to
 find.

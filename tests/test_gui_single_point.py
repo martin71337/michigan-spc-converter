@@ -56,7 +56,12 @@ from michspc.gui.results_model import (  # noqa: E402
 from michspc.gui.window import GEODETIC, UNCHOSEN, MainWindow  # noqa: E402
 from michspc.job import Direction, LongitudeConvention  # noqa: E402
 from michspc.spc.units import INTERNATIONAL_FEET, METERS  # noqa: E402
-from michspc.spc.zones import ALL_ZONES, MI_CENTRAL, MI_NORTH, MI_SOUTH  # noqa: E402
+from michspc.spc.zones import (  # noqa: E402
+    SPCS83_ZONES,
+    MI_CENTRAL,
+    MI_NORTH,
+    MI_SOUTH,
+)
 
 
 # --------------------------------------------------------------------------
@@ -499,10 +504,10 @@ def test_the_convention_is_irrelevant_for_a_zone_to_zone_job(tab):
                 ),
                 True,
             )
-            for zone in ALL_ZONES
+            for zone in SPCS83_ZONES
         ],
     ],
-    ids=["unchosen", "geodetic", *[zone.abbrev for zone in ALL_ZONES]],
+    ids=["unchosen", "geodetic", *[zone.abbrev for zone in SPCS83_ZONES]],
 )
 def test_the_entry_labels_follow_the_from_selection(
     tab, source, expected, fields_enabled

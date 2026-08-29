@@ -24,16 +24,47 @@ from michspc.spc.frames import (
     require_same_frame,
 )
 from michspc.spc.units import INTERNATIONAL_FEET
-from michspc.spc.zones import ALL_ZONES, MI_CENTRAL, MI_NORTH, MI_SOUTH
+from michspc.spc.zones import (
+    ALL_ZONES,
+    SPCS2022_ZONES,
+    SPCS83_ZONES,
+    MI_CENTRAL,
+    MI_NORTH,
+    MI_SOUTH,
+)
 from tests.fixtures.ncat_anchors import NCAT_ANCHORS
 
-ZONE_PAIRS = [
+
+def _ordered_pairs(zones):
+    return [
+        (source, target)
+        for source in zones
+        for target in zones
+        if source is not target
+    ]
+
+
+ZONE_PAIRS = _ordered_pairs(SPCS83_ZONES)
+PAIR_IDS = [f"{s.abbrev}->{t.abbrev}" for s, t in ZONE_PAIRS]
+
+SPCS2022_PAIRS = _ordered_pairs(SPCS2022_ZONES)
+SPCS2022_PAIR_IDS = [f"{s.abbrev}->{t.abbrev}" for s, t in SPCS2022_PAIRS]
+
+CROSS_ERA_PAIRS = [
     (source, target)
     for source in ALL_ZONES
     for target in ALL_ZONES
-    if source is not target
+    if source.frame is not target.frame
 ]
-PAIR_IDS = [f"{s.abbrev}->{t.abbrev}" for s, t in ZONE_PAIRS]
+"""Every ordered pair whose two zones are in different reference frames.
+
+Six of the twenty-two zones' 462 ordered pairs are within SPCS 83, 342 within
+SPCS2022, and the remaining 114 cross the eras. Those 114 must REFUSE today:
+NAD83(2011) and NATRF2022 differ by one to two metres over North America, and
+no transformation between them is implemented (H3). This is honest behaviour,
+not a gap being papered over, and it is pinned below so that when H3 lands the
+change is a deliberate edit to a test that says what it is.
+"""
 
 
 # --------------------------------------------------------------------------
@@ -234,6 +265,181 @@ def test_zone_to_zone_preserves_the_geodetic_position(source, target):
     assert checked.longitude == pytest.approx(longitude, abs=1e-9)
 
 
+# --------------------------------------------------------------------------
+# SPCS2022, and the one thing that behaves differently from SPCS 83 here.
+#
+# Michigan's three SPCS 83 zones overlap, so any pair of them describes very
+# nearly the same piece of ground and the round trip closes to floating-point
+# noise everywhere. The nineteen 2022 zones do not: Bessemer's low-distortion
+# zone and Detroit's are 7.8 degrees of longitude apart, and converting a
+# Bessemer coordinate into Detroit's transverse Mercator evaluates the manual's
+# section 3.2 series that far from its own central meridian.
+#
+# **That series is truncated, so its closure degrades with distance from the
+# central meridian, and it does so steeply.** Measured on tm.py directly
+# (tests/test_projection_engines.py has the table): a forward-and-back through
+# one TM zone closes to 5e-7 m at 1 degree off the central meridian, 5.4e-5 m
+# at 4 degrees, and 1.14e-2 m at 7.8 degrees. It is not a defect - every series
+# term the manual publishes is kept - it is what the method is.
+#
+# So these two tests hold each POINT to one of two bounds, decided by whether
+# the point lies inside the TARGET zone's own longitude extent. No constant is
+# invented for the split: the zone's extent is the extent already on the record.
+# Both regimes are exercised on every pair, and both bounds are measurements.
+# --------------------------------------------------------------------------
+
+SPCS2022_ROUND_TRIP_IN_ZONE_M = 1e-4
+"""0.1 mm, the same bound the SPCS 83 pairs are held to, for a point inside the
+target zone's own longitude extent. Measured worst across the whole matrix in
+that regime: 3.08e-6 m - thirty times inside it."""
+
+SPCS2022_ROUND_TRIP_OUT_OF_ZONE_M = 0.02
+"""20 mm for a point OUTSIDE the target zone's extent, where the transverse
+Mercator series truncation dominates. Measured worst across the whole matrix:
+1.149e-2 m, at Bessemer's north-west corner converted into Detroit's zone, 7.8
+degrees from that zone's central meridian.
+
+This bound is deliberately looser than anything this program writes (0.001 ft
+is 0.3 mm), and it is recorded rather than tuned: it is a **fact about
+converting a coordinate into a low-distortion zone designed for somewhere
+else**, and a surveyor doing that is outside every zone's design intent. What
+protects a real job is the extent warning, which fires on exactly these points.
+"""
+
+
+def _lattice(zone, steps=5):
+    """A steps x steps lattice over a zone's extent, corners included."""
+    for i in range(steps):
+        latitude = zone.lat_min + (zone.lat_max - zone.lat_min) * i / (steps - 1)
+        for j in range(steps):
+            longitude = zone.lon_min + (zone.lon_max - zone.lon_min) * j / (steps - 1)
+            yield latitude, longitude
+
+
+@pytest.mark.parametrize("source,target", SPCS2022_PAIRS, ids=SPCS2022_PAIR_IDS)
+def test_spcs2022_zone_to_zone_round_trips(source, target):
+    """A -> B -> A over all 342 ordered SPCS2022 pairs.
+
+    Both ends are NATRF2022, so ``convert_point`` runs the whole pipeline -
+    inverse in the source zone's projection, forward in the target's - across
+    every combination of the oblique Mercator, the thirteen one-parallel
+    Lamberts and the five transverse Mercators. Mixed-projection pairs are the
+    point: an error in one engine's inverse that its own forward happens to
+    undo would survive a same-projection round trip and die here.
+
+    Tolerances per the two regimes above.
+    """
+    for latitude, longitude in _lattice(source):
+        start = project_point(latitude, longitude, NATRF2022, source)
+
+        there = convert_point(
+            start.target_northing, start.target_easting, source, target
+        )
+        back = convert_point(
+            there.target_northing, there.target_easting, target, source
+        )
+
+        error = max(
+            abs(back.target_northing - start.target_northing),
+            abs(back.target_easting - start.target_easting),
+        )
+
+        in_zone = target.lon_min <= longitude <= target.lon_max
+        bound = (
+            SPCS2022_ROUND_TRIP_IN_ZONE_M
+            if in_zone
+            else SPCS2022_ROUND_TRIP_OUT_OF_ZONE_M
+        )
+        assert error < bound, (
+            f"{source.abbrev}->{target.abbrev} at {latitude}, {longitude} "
+            f"({'inside' if in_zone else 'outside'} the target's extent) "
+            f"round-trips off by {error:.3e} m"
+        )
+
+
+def test_the_strict_round_trip_regime_is_actually_reached():
+    """Anti-vacuousness: the tight bound is not applied to nothing.
+
+    If every 2022 pair fell outside the target's extent at every lattice point,
+    the test above would be 342 applications of the loose bound and would say
+    almost nothing. Count the points that land in the strict regime, and assert
+    both regimes are populated.
+    """
+    strict = loose = 0
+    for source, target in SPCS2022_PAIRS:
+        for _latitude, longitude in _lattice(source):
+            if target.lon_min <= longitude <= target.lon_max:
+                strict += 1
+            else:
+                loose += 1
+
+    assert strict > 0 and loose > 0
+    # 342 pairs x 25 lattice points = 8,550 checks in all.
+    assert strict + loose == 342 * 25
+
+
+@pytest.mark.parametrize("source,target", SPCS2022_PAIRS, ids=SPCS2022_PAIR_IDS)
+def test_spcs2022_zone_to_zone_preserves_the_geodetic_position(source, target):
+    """Converting between 2022 zones must not move the point on the earth.
+
+    One point per pair - the centre of the source zone's extent - recovered
+    from the target coordinates. Same two regimes; measured worst 2.6e-11 deg
+    inside the target's extent and 2.5e-8 deg (2.8 mm) outside it.
+    """
+    latitude = (source.lat_min + source.lat_max) / 2.0
+    longitude = (source.lon_min + source.lon_max) / 2.0
+
+    start = project_point(latitude, longitude, NATRF2022, source)
+    moved = convert_point(start.target_northing, start.target_easting, source, target)
+    checked = convert_point(
+        moved.target_northing, moved.target_easting, target, target
+    )
+
+    in_zone = target.lon_min <= longitude <= target.lon_max
+    bound = 1e-9 if in_zone else 1e-7
+
+    assert checked.latitude == pytest.approx(latitude, abs=bound)
+    assert checked.longitude == pytest.approx(longitude, abs=bound)
+
+
+def test_every_cross_era_pair_refuses():
+    """SPCS 83 to SPCS2022, and back, in either direction: refused, all 114.
+
+    Not a limitation being hidden - it is the frame refusal doing exactly what
+    DESIGN.md section 6 says it is for, and the alternative is a coordinate
+    that looks entirely ordinary and is one to two metres out. The refusal
+    names both frames.
+
+    The count is asserted so this cannot pass by iterating an empty list, and
+    so the arithmetic is on the record: 22 zones give 462 ordered pairs, of
+    which 3x2 = 6 are SPCS 83 internal and 19x18 = 342 are SPCS2022 internal,
+    leaving 2 x 3 x 19 = 114 crossing.
+    """
+    assert len(CROSS_ERA_PAIRS) == 114
+    assert len(ZONE_PAIRS) == 6
+    assert len(SPCS2022_PAIRS) == 342
+
+    for source, target in CROSS_ERA_PAIRS:
+        with pytest.raises(FrameMismatchError) as caught:
+            convert_point(200000.0, source.definition.easting_origin, source, target)
+        message = str(caught.value)
+        assert source.frame.code in message
+        assert target.frame.code in message
+
+
+def test_a_geodetic_position_cannot_be_projected_into_the_other_era_s_zone():
+    """The same rule on the geodetic-input door (``project_point``).
+
+    An NAD 83 latitude and longitude projected with a 2022 zone's constants is
+    the amendment #11 finding-1 error with a new zone list; and a NATRF2022
+    position projected into an SPCS 83 zone is the same error reversed.
+    """
+    with pytest.raises(FrameMismatchError):
+        project_point(43.0, -84.5, NAD83_2011, SPCS2022_ZONES[0])
+    with pytest.raises(FrameMismatchError):
+        project_point(43.0, -84.5, NATRF2022, MI_SOUTH)
+
+
 def test_converting_a_zone_to_itself_is_the_identity():
     """The degenerate case must not drift."""
     northing, easting = 160000.0, 4010000.0
@@ -340,7 +546,11 @@ def test_a_point_well_inside_its_zone_raises_no_warnings():
 
 
 def test_easting_guard_accepts_coordinates_from_the_right_zone():
-    for zone in ALL_ZONES:
+    # SPCS 83 only, because +/- 150,000 m about the false easting is a
+    # statement about the 1983 design's own 400 km window. The 2022 zones carry
+    # NGS's published per-zone easting range instead, and are checked against
+    # that file in tests/test_zone_registry.py.
+    for zone in SPCS83_ZONES:
         easting = zone.definition.easting_origin + 150000.0
         assert not easting_looks_wrong_for_zone(easting, zone)
         assert not easting_looks_wrong_for_zone(

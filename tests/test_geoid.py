@@ -165,7 +165,19 @@ def test_the_header_matches_the_documented_format(grid):
 
 
 def test_the_grid_covers_all_of_michigan(grid):
-    """Every corner of every zone's extent must be inside the tile."""
+    """Every corner of every zone's extent must be inside the tile.
+
+    Both eras, all twenty-two zones. The 2022 extents are NGS's own published
+    bounding boxes (``zoneBounds.json``, computed outward from each zone's
+    polygon), and every corner of all nineteen is inside the shipped GEOID18
+    tile - the closest approach is Ann Arbor's southern edge at 41.69 N against
+    the tile's 40.0 N, so 1.69 degrees of margin.
+
+    H2 briefly had this test carrying two named exceptions, because the extents
+    were then a disclosed envelope built outward from each zone's ORIGIN, and
+    Detroit's origin is in Ohio at 40 deg 12' N. NGS's polygons put no zone
+    below 41.69 N, so the exceptions are gone and the plain claim holds again.
+    """
     from michspc.spc.zones import ALL_ZONES
 
     for zone in ALL_ZONES:

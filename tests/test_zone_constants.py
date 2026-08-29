@@ -24,7 +24,7 @@ import pytest
 
 from michspc.spc.ellipsoid import GRS80, Ellipsoid
 from michspc.spc.lambert import LambertConstants, constants_for, forward
-from michspc.spc.zones import MI_CENTRAL, MI_NORTH, MI_SOUTH, ALL_ZONES
+from michspc.spc.zones import MI_CENTRAL, MI_NORTH, MI_SOUTH, SPCS83_ZONES
 from tests.fixtures.appendix_c import (
     ALL_PUBLISHED,
     MI_CENTRAL_PUBLISHED,
@@ -113,7 +113,7 @@ def test_the_ellipsoid_rounding_choice_cannot_move_a_coordinate():
     )
 
     worst = 0.0
-    for zone in ALL_ZONES:
+    for zone in SPCS83_ZONES:
         manual_constants = constants_for(zone)
         exact_constants = constants_for(zone, exact)
         latitudes = (zone.lat_min, (zone.lat_min + zone.lat_max) / 2.0, zone.lat_max)
@@ -227,10 +227,20 @@ def test_geometric_mean_radius_at_origin_matches_published(zone, published):
 
 # --------------------------------------------------------------------------
 # Internal consistency checks the manual's own redundancy makes available.
+#
+# SPCS83_ZONES, not the whole registry: every check below is a statement about
+# the TWO-STANDARD-PARALLEL form - K derived twice, one from each standard
+# parallel; the scale factor exactly 1 where the cone cuts; the central
+# parallel between the two. A one-parallel zone has no standard parallels to
+# check against and its k_0 is published at or above 1 rather than below it,
+# so these are not weaker statements about the 2022 zones - they are not
+# statements about them at all. What checks those is the frozen-capture
+# cross-check in tests/test_zone_registry.py and the beta NCAT anchors in
+# tests/test_projection_engines.py.
 # --------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("zone", ALL_ZONES, ids=lambda z: z.abbrev)
+@pytest.mark.parametrize("zone", SPCS83_ZONES, ids=lambda z: z.abbrev)
 def test_K_agrees_from_both_standard_parallels(zone):
     """The manual gives K twice, in terms of each standard parallel.
 
@@ -263,7 +273,7 @@ def test_K_agrees_from_both_standard_parallels(zone):
     assert K_from_north == pytest.approx(constants.K, rel=1e-14)
 
 
-@pytest.mark.parametrize("zone", ALL_ZONES, ids=lambda z: z.abbrev)
+@pytest.mark.parametrize("zone", SPCS83_ZONES, ids=lambda z: z.abbrev)
 def test_scale_factor_is_unity_at_both_standard_parallels(zone):
     """The defining property of the two standard parallels.
 
@@ -286,7 +296,7 @@ def test_scale_factor_is_unity_at_both_standard_parallels(zone):
         )
 
 
-@pytest.mark.parametrize("zone", ALL_ZONES, ids=lambda z: z.abbrev)
+@pytest.mark.parametrize("zone", SPCS83_ZONES, ids=lambda z: z.abbrev)
 def test_scale_factor_at_central_parallel_is_below_unity(zone):
     """Between the standard parallels the cone lies inside the ellipsoid.
 
@@ -298,7 +308,7 @@ def test_scale_factor_at_central_parallel_is_below_unity(zone):
     assert 0.9998 < constants.k_origin < 1.0
 
 
-@pytest.mark.parametrize("zone", ALL_ZONES, ids=lambda z: z.abbrev)
+@pytest.mark.parametrize("zone", SPCS83_ZONES, ids=lambda z: z.abbrev)
 def test_central_parallel_lies_between_the_standard_parallels(zone):
     """A structural sanity check on sin(phi_0).
 

@@ -32,7 +32,7 @@ from michspc.spc.vertical import (
     HeightKind,
     VerticalDatum,
 )
-from michspc.spc.zones import ALL_ZONES, Zone
+from michspc.spc.zones import SPCS83_ZONES, Zone
 
 UNCHOSEN = "unchosen"
 """Sentinel for a dropdown the user has not answered yet.
@@ -117,9 +117,28 @@ realization is the thing that will change next.
 def zone_combo(parent, on_change) -> QComboBox:
     """A zone dropdown, built from the registry.
 
-    Zone names are never typed out here — a zone added to
-    ``michspc.spc.zones.ALL_ZONES`` appears in this list with no interface
-    change (docs/DESIGN.md section 6).
+    Zone names are never typed out here — a zone added to the era tuple this
+    reads appears in the list with no interface change (docs/DESIGN.md
+    section 6).
+
+    **It reads ``SPCS83_ZONES``, not ``ALL_ZONES``, and that is deliberate.**
+    Michigan's nineteen SPCS2022 zones are in the registry as of H2 and convert
+    correctly through the engines, but the surfaces downstream of a job do not
+    speak 2022 yet: ``michspc.fileio.report``'s zone block writes the
+    two-standard-parallel wording unconditionally and reads
+    ``definition.lat_south``, so a 2022 job would convert every point and then
+    die with an ``AttributeError`` while writing its record — after the work,
+    before the archive. Offering a zone the program cannot finish a job in is
+    worse than not offering it.
+
+    **The flip condition, so this is a gate and not an oversight:** H5 rewrites
+    the record's zone block per projection kind and the era-dependent
+    verification prose; H6 then changes this one line to ``ALL_ZONES`` and adds
+    the separator and the frame-derived labels. Until both have landed, a 2022
+    zone is reachable from the registry and from the test suite, and from no
+    interface. Pinned in tests/test_gui_tabs.py, which also checks that
+    ``SPCS2022_ZONES`` is not empty — otherwise the pin would pass by having
+    nothing to exclude.
 
     The change handler is passed in rather than hard-wired, so each tab connects
     its own — the tabs share no state (docs/DESIGN.md amendment #26).
@@ -127,7 +146,7 @@ def zone_combo(parent, on_change) -> QComboBox:
     combo = QComboBox(parent)
     combo.addItem("— choose —", UNCHOSEN)
     combo.addItem(GEODETIC_LABEL, GEODETIC)
-    for zone in ALL_ZONES:
+    for zone in SPCS83_ZONES:
         combo.addItem(zone_label(zone), zone)
     combo.currentIndexChanged.connect(on_change)
     return combo

@@ -42,7 +42,7 @@ from michspc.gui.window import (  # noqa: E402
     UNCHOSEN,
     MainWindow,
 )
-from michspc.spc.zones import ALL_ZONES  # noqa: E402
+from michspc.spc.zones import SPCS2022_ZONES, SPCS83_ZONES  # noqa: E402
 
 
 # --------------------------------------------------------------------------
@@ -186,7 +186,7 @@ def test_the_window_asks_controls_for_the_direction_in_every_combination(window)
     conversion), the two geodetic directions, and a zone to ITSELF, which IS a
     conversion and must not be guarded away.
     """
-    choices = [UNCHOSEN, GEODETIC, *ALL_ZONES]
+    choices = [UNCHOSEN, GEODETIC, *SPCS83_ZONES]
     # 3 zones ship today; the sweep below is 25 pairs.
     assert len(choices) == 5
 
@@ -213,6 +213,63 @@ def test_the_window_asks_controls_for_the_direction_in_every_combination(window)
     # The two cases the rule singles out, stated outright rather than left
     # implicit in the sweep. A zone to itself is a real job (the units are
     # chosen independently of the zones); geodetic to geodetic is not one.
-    zone = ALL_ZONES[0]
+    zone = SPCS83_ZONES[0]
     assert controls.direction_for(zone, zone) is not None
     assert controls.direction_for(GEODETIC, GEODETIC) is None
+
+
+# --------------------------------------------------------------------------
+# The H2 gate: the 2022 zones are in the registry and out of the interface.
+# --------------------------------------------------------------------------
+
+
+def test_no_spcs2022_zone_is_offered_in_any_of_the_four_zone_dropdowns(window):
+    """Michigan's nineteen SPCS2022 zones convert, and are not selectable yet.
+
+    **This is a gate, not an omission**, and the reason is downstream of the
+    conversion rather than in it: ``michspc.fileio.report``'s zone block writes
+    the two-standard-parallel wording unconditionally and reads
+    ``definition.lat_south``, which no 2022 definition record has. A 2022 job
+    would convert every point correctly and then raise ``AttributeError`` while
+    writing its record — after the work and before the archive. H5 rewrites
+    that block per projection kind; H6 then opens the dropdowns.
+
+    All four dropdowns are checked — both tabs, both directions — because they
+    are four separate ``QComboBox`` instances and a change to one is not a
+    change to the others.
+    """
+    combos = (
+        window.from_zone,
+        window.to_zone,
+        window.single_point.from_zone,
+        window.single_point.to_zone,
+    )
+    assert len({id(combo) for combo in combos}) == 4
+
+    for combo in combos:
+        offered = [combo.itemData(index) for index in range(combo.count())]
+        labels = [combo.itemText(index) for index in range(combo.count())]
+        for zone in SPCS2022_ZONES:
+            assert combo.findData(zone) == -1, f"{zone.name} is selectable"
+            assert zone not in offered
+            assert zone.name not in labels
+            assert zone.code not in "".join(labels)
+        # And every SPCS 83 zone still is.
+        for zone in SPCS83_ZONES:
+            assert combo.findData(zone) >= 0, f"{zone.name} is not selectable"
+
+
+def test_the_dropdown_gate_has_something_to_exclude():
+    """Anti-vacuousness for the pin above.
+
+    If ``SPCS2022_ZONES`` were empty the test above would pass by iterating
+    nothing, and would keep passing on the day the registry lost every 2022
+    record. Nineteen zones, all absent from the interface, all present in the
+    registry.
+    """
+    assert len(SPCS2022_ZONES) == 19
+    assert len(SPCS83_ZONES) == 3
+
+    from michspc.spc.zones import ALL_ZONES
+
+    assert len(ALL_ZONES) == 22

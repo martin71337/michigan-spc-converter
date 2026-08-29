@@ -40,14 +40,6 @@ from michspc.spc.projection import forward as project_forward
 from michspc.spc.projection import inverse as project_inverse
 from michspc.spc.zones import Zone
 
-# Half-width of the easting window used to notice that a file's coordinates do
-# not belong to the zone the user selected. Michigan's three false eastings are
-# 2,000,000 m apart, and no point in a zone lies more than about 200 km from its
-# central meridian, so 400 km flags a mismatched zone without ever flagging a
-# legitimate point.
-_EASTING_WINDOW_M = 400000.0
-
-
 class WarningCode(Enum):
     """Machine-readable warning kinds, so the report can group them."""
 
@@ -221,15 +213,33 @@ def _check_extent(zone: Zone, latitude: float, longitude: float, context: str):
 def easting_looks_wrong_for_zone(easting: float, zone: Zone) -> bool:
     """Does this easting plausibly belong to this zone at all?
 
-    Michigan's three zones have false eastings 2,000,000 m apart precisely so a
-    coordinate reveals its own zone (manual PDF p. 18: "Selecting different grid
-    origins ... so the coordinate user could determine the zone from the
-    magnitude of the coordinate"). Selecting the wrong source zone is the most
-    likely real-world mistake with this program, and it is cheap to notice.
+    Michigan's three SPCS 83 zones have false eastings 2,000,000 m apart
+    precisely so a coordinate reveals its own zone (manual PDF p. 18: "Selecting
+    different grid origins ... so the coordinate user could determine the zone
+    from the magnitude of the coordinate"). Selecting the wrong source zone is
+    the most likely real-world mistake with this program, and it is cheap to
+    notice.
 
-    Takes meters.
+    **The range is the zone's own** (``Zone.easting_range_m``), because it is a
+    property of the coordinate system and not of this function. SPCS 83 derives
+    it, +/- 400 km about the false easting; SPCS2022 does not have to, because
+    NGS publishes each zone's easting bounds outright, projected outward from
+    the zone polygon. The registry record carries the source for each.
+
+    A zone whose range is ``None`` has no usable bounds recorded, and this
+    returns False for it rather than inventing a threshold. No zone in the
+    registry is in that state today; the branch exists because the next
+    authority to publish a zone may not publish bounds for it, and a missing
+    range must switch the warning off rather than produce a wrong one.
+
+    Takes meters. Never a refusal: it raises a warning, never blocks a job
+    (docs/DESIGN.md amendment #1).
     """
-    return abs(easting - zone.definition.easting_origin) > _EASTING_WINDOW_M
+    bounds = zone.easting_range_m
+    if bounds is None:
+        return False
+    lowest, highest = bounds
+    return not (lowest <= easting <= highest)
 
 
 def to_geodetic(

@@ -28,7 +28,13 @@ from michspc.spc.lambert import (
     inverse,
 )
 from michspc.spc.units import INTERNATIONAL_FEET, METERS, US_SURVEY_FEET
-from michspc.spc.zones import ALL_ZONES, MI_CENTRAL, MI_NORTH, MI_SOUTH, zone_by_code
+from michspc.spc.zones import (
+    SPCS83_ZONES,
+    MI_CENTRAL,
+    MI_NORTH,
+    MI_SOUTH,
+    zone_by_code,
+)
 from tests.fixtures.ncat_anchors import NCAT_ANCHORS
 
 # NCAT prints linear values to 0.001 m, so a published figure carries +/-0.0005 m
@@ -138,10 +144,20 @@ def test_unit_conversions_match_ncat(anchor):
 
 # --------------------------------------------------------------------------
 # Structural properties - true at every point, not just the 27 anchored ones.
+#
+# Parametrized over SPCS83_ZONES rather than the whole registry, and that is a
+# scope statement rather than a narrowing: these read
+# ``zone.definition.lat_south`` / ``lat_north`` and hand LambertConstants
+# straight to ``lambert.forward``, so they are about the two-standard-parallel
+# form specifically. The one-parallel Lambert the 2022 zones use runs through
+# the same engine and has its own structural tests, over its own zones, in
+# tests/test_projection_engines.py; the transverse and oblique Mercator zones
+# are not this module's subject at all. Before H2 there was only one era and
+# ``ALL_ZONES`` said the same thing; now it does not.
 # --------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("zone", ALL_ZONES, ids=lambda z: z.abbrev)
+@pytest.mark.parametrize("zone", SPCS83_ZONES, ids=lambda z: z.abbrev)
 def test_easting_on_the_central_meridian_is_exactly_the_false_easting(zone):
     """gamma = 0 on the central meridian, so E = E_0 + R sin(0) = E_0.
 
@@ -156,7 +172,7 @@ def test_easting_on_the_central_meridian_is_exactly_the_false_easting(zone):
         assert point.convergence == 0.0
 
 
-@pytest.mark.parametrize("zone", ALL_ZONES, ids=lambda z: z.abbrev)
+@pytest.mark.parametrize("zone", SPCS83_ZONES, ids=lambda z: z.abbrev)
 def test_northing_at_the_projection_origin_matches_the_derived_constant(zone):
     """On the central meridian at the central parallel, N must equal N_0."""
     constants = constants_for(zone)
@@ -166,7 +182,7 @@ def test_northing_at_the_projection_origin_matches_the_derived_constant(zone):
     assert point.northing == pytest.approx(constants.northing_origin, abs=1e-9)
 
 
-@pytest.mark.parametrize("zone", ALL_ZONES, ids=lambda z: z.abbrev)
+@pytest.mark.parametrize("zone", SPCS83_ZONES, ids=lambda z: z.abbrev)
 def test_convergence_is_positive_east_of_the_central_meridian(zone):
     """Sign convention, stated once and checked.
 
@@ -185,7 +201,7 @@ def test_convergence_is_positive_east_of_the_central_meridian(zone):
     assert east.convergence == pytest.approx(-west.convergence, rel=1e-12)
 
 
-@pytest.mark.parametrize("zone", ALL_ZONES, ids=lambda z: z.abbrev)
+@pytest.mark.parametrize("zone", SPCS83_ZONES, ids=lambda z: z.abbrev)
 def test_forward_and_inverse_are_true_inverses(zone):
     """Round-trip over a dense lattice covering the whole zone extent.
 
@@ -212,7 +228,7 @@ def test_forward_and_inverse_are_true_inverses(zone):
     assert worst_lon < 1e-11, f"worst longitude round-trip error {worst_lon:.3e} deg"
 
 
-@pytest.mark.parametrize("zone", ALL_ZONES, ids=lambda z: z.abbrev)
+@pytest.mark.parametrize("zone", SPCS83_ZONES, ids=lambda z: z.abbrev)
 def test_forward_and_inverse_agree_on_convergence_and_scale_factor(zone):
     """The two routes to gamma and k must give the same answer.
 
@@ -232,7 +248,7 @@ def test_forward_and_inverse_agree_on_convergence_and_scale_factor(zone):
     assert back.scale_factor == pytest.approx(point.scale_factor, rel=1e-14)
 
 
-@pytest.mark.parametrize("zone", ALL_ZONES, ids=lambda z: z.abbrev)
+@pytest.mark.parametrize("zone", SPCS83_ZONES, ids=lambda z: z.abbrev)
 def test_scale_factor_is_symmetric_about_the_central_parallel(zone):
     """k depends on distance from the central parallel, not on longitude.
 
@@ -545,7 +561,7 @@ def test_inverse_refuses_a_non_finite_easting(bad):
     assert "apex" not in message
 
 
-@pytest.mark.parametrize("zone", ALL_ZONES, ids=lambda z: z.abbrev)
+@pytest.mark.parametrize("zone", SPCS83_ZONES, ids=lambda z: z.abbrev)
 def test_no_non_finite_value_can_reach_a_result_record(zone):
     """The property the two guards exist to hold, stated once per zone.
 

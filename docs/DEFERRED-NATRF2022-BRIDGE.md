@@ -54,6 +54,18 @@ rankings; and the H3/H4 design in `docs/PLAN-nsrs-modernization.md`
 (helmert.py, the frames-transformation registry, the two-pivot
 PointConversion) — all verified against the code at 0.6.4/H2.
 
+## The tripwire runs itself monthly
+
+`tools/nsrs_tripwire.py` re-runs the frozen probes (the NATRF2022 REST
+token, the NAPGD2022 vertical token, geoid model id 15, the noaa-ngs
+GitHub repo count) on the 1st of each month at 09:07 via the Windows
+scheduled task **"MCX NSRS tripwire"** (registered on the owner's machine
+2026-08-29; `schtasks /Query /TN "MCX NSRS tripwire"` shows it). Quiet
+months write a dated line under `review/tripwire/`; any change writes
+`review/tripwire/REVIEW-NEEDED.txt` and shows a message box. A fired
+tripwire means: re-run the capture harnesses below, then reopen per the
+conditions — never believe the tripwire's own summary without recapture.
+
 ## Conditions to reopen — check these, in order
 
 1. NGS publishes the transformation: the developer test dataset on

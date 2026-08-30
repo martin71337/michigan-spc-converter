@@ -62,6 +62,7 @@ from michspc.gui.controls import (
     height_kind_combo,
     height_kind_for,
     AMBER,
+    FRAME_RESET_STATUS,
     GEOID_MODEL_LABEL,
     INPUT_GEOID_LABEL,
     OUTPUT_GEOID_LABEL,
@@ -81,6 +82,8 @@ from michspc.gui.controls import (
     longitude_relevance,
     refresh_geoid_combo,
     refresh_unit_combo,
+    refresh_zone_graying,
+    selection_is_compatible,
     show_failure_dialog,
     unit_combo,
     unit_for,
@@ -264,8 +267,13 @@ class SinglePointTab(QWidget):
         """The most recent exception surfaced to the user. Kept so the failure
         path is observable to a test without driving a modal dialog."""
 
+        self._reconciling = False
+        """True while this tab is clearing one zone combo because the other
+        moved (``_reconcile_zone_frames``)."""
+
         self._build()
         self._update_entry_labels()
+        self._update_zone_graying()
         self._update_unit_offerings()
         self._update_unit_labels()
         self._update_longitude_relevance()
@@ -316,8 +324,11 @@ class SinglePointTab(QWidget):
         grid.addLayout(mode_row, 0, 1, 1, 3)
 
         # --- from / to --------------------------------------------------
-        self.from_zone = zone_combo(box, self._on_direction_changed)
-        self.to_zone = zone_combo(box, self._on_direction_changed)
+        # One handler per END, not one shared - ``MainWindow``'s reason
+        # exactly: the reconciliation rule has to know which side the user just
+        # moved, because it is the OTHER side that gets cleared.
+        self.from_zone = zone_combo(box, self._on_from_zone_changed)
+        self.to_zone = zone_combo(box, self._on_to_zone_changed)
         self.input_unit = unit_combo(box)
         self.output_unit = unit_combo(box)
 
@@ -860,8 +871,70 @@ class SinglePointTab(QWidget):
     # Enablement and labelling
     # ------------------------------------------------------------------
 
+    def _on_from_zone_changed(self) -> None:
+        """The From end moved, so the To end may no longer be reachable."""
+        self._reconcile_zone_frames(clear=self.to_zone)
+        self._on_direction_changed()
+
+    def _on_to_zone_changed(self) -> None:
+        """The To end moved, so the From end may no longer reach it."""
+        self._reconcile_zone_frames(clear=self.from_zone)
+        self._on_direction_changed()
+
+    def _reconcile_zone_frames(self, clear) -> None:
+        """Clear the side the other end just made unreachable.
+
+        ``MainWindow._reconcile_zone_frames``'s rule exactly, through the same
+        ``controls`` predicate, so the two tabs cannot reconcile differently -
+        and it ends in this tab's own invalidation, because a displayed result
+        computed for a pair that no longer exists is the amendment #26 stale
+        result in its plainest form.
+
+        The status message is set last and deliberately: ``_invalidate_result``
+        writes STATUS_INPUT_CHANGED, which is true but does not say that a
+        selection was cleared for the user.
+        """
+        if self._reconciling:
+            return
+        if self.vertical_mode() is VerticalMode.VERTICAL:
+            return
+
+        other = self.from_zone if clear is self.to_zone else self.to_zone
+        if selection_is_compatible(
+            clear.currentData(),
+            other.currentData(),
+            candidate_is_source=clear is self.from_zone,
+        ):
+            return
+
+        self._reconciling = True
+        try:
+            clear.setCurrentIndex(clear.findData(UNCHOSEN))
+        finally:
+            self._reconciling = False
+        self._invalidate_result()
+        self._set_status(FRAME_RESET_STATUS)
+
+    def _update_zone_graying(self) -> None:
+        """Gray each end's incompatible entries against the other end.
+
+        **The one owner of these two combos' item flags on this tab**, the #57
+        rule, AST-pinned; ``controls.refresh_zone_graying`` owns which items,
+        so this tab and the Multi point tab cannot gray differently.
+
+        Nothing is grayed in vertical-only mode: the To dropdown is hidden
+        there and the From selection is the whole job, so an invisible control
+        must not gray a visible one.
+        """
+        vertical_only = self.vertical_mode() is VerticalMode.VERTICAL
+        source = UNCHOSEN if vertical_only else self.from_zone.currentData()
+        target = UNCHOSEN if vertical_only else self.to_zone.currentData()
+        refresh_zone_graying(self.from_zone, target, is_source=True)
+        refresh_zone_graying(self.to_zone, source, is_source=False)
+
     def _on_direction_changed(self) -> None:
         self._update_entry_labels()
+        self._update_zone_graying()
         self._update_unit_offerings()
         self._update_unit_labels()
         self._update_longitude_relevance()
@@ -934,6 +1007,11 @@ class SinglePointTab(QWidget):
         (amendment #26). The longitude selector's relevance follows the mode
         too: vertical-only mode reads it from the From selection alone."""
         self._update_vertical_rows()
+        # Leaving vertical-only mode brings the To dropdown back, and its
+        # selection is the one the user could not see while the From end moved
+        # (MainWindow says the same, at more length).
+        self._reconcile_zone_frames(clear=self.to_zone)
+        self._update_zone_graying()
         self._update_longitude_relevance()
         self._update_convert_enabled()
         self._invalidate_result()

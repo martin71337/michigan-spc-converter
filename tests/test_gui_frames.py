@@ -44,8 +44,14 @@ import pytest  # noqa: E402
 from michspc.gui import controls  # noqa: E402
 from michspc.gui.app import build_application  # noqa: E402
 from michspc.gui.window import MainWindow, UNITS_SNAPPED_STATUS  # noqa: E402
-from michspc.job import Direction, VerticalMode  # noqa: E402
-from michspc.spc import convert  # noqa: E402
+from michspc.job import (  # noqa: E402
+    Direction,
+    JobSettings,
+    LongitudeConvention,
+    VerticalMode,
+    run,
+)
+from michspc.spc import convert, frames  # noqa: E402
 from michspc.spc.frames import (  # noqa: E402
     ALL_FRAMES,
     NAD83_2011,
@@ -152,6 +158,31 @@ def choose(combo, data) -> None:
 
 def offered_units(combo) -> list:
     return [combo.itemData(i) for i in range(combo.count())]
+
+
+def item_is_enabled(combo, data) -> bool:
+    """Whether the entry carrying ``data`` is choosable in ``combo``."""
+    from PySide6.QtCore import Qt as _Qt
+
+    index = combo.findData(data)
+    if index < 0:
+        raise AssertionError(f"{combo!r} has no entry for {data!r}")
+    flags = combo.model().item(index).flags()
+    return bool(flags & _Qt.ItemFlag.ItemIsEnabled)
+
+
+def grayed(combo) -> list:
+    """Every entry the user cannot choose right now, by data."""
+    from PySide6.QtCore import Qt as _Qt
+
+    out = []
+    for index in range(combo.count()):
+        data = combo.itemData(index)
+        if data is None:  # a separator, never a selection
+            continue
+        if not (combo.model().item(index).flags() & _Qt.ItemFlag.ItemIsEnabled):
+            out.append(data)
+    return out
 
 
 # ==========================================================================
@@ -431,76 +462,101 @@ def test_a_zone_to_zone_job_states_nothing_about_a_geodetic_frame(
 # ==========================================================================
 
 
-def test_a_cross_frame_pair_is_selectable_and_refuses_on_the_single_point_tab(
-    window, tab
-):
-    """Selectable, converted nowhere, and the registry's own words on screen.
+def test_the_convert_time_frame_gate_is_still_the_wall(tmp_path):
+    """The graying did NOT replace the refusal, and this is what says so.
 
-    The interface deliberately does not pre-filter this pair (#33: it informs,
-    it does not decide - which frame a file is in is the one question the
-    surveyor must answer himself). So the refusal has to arrive, in full, at
-    the moment of Convert.
-    """
-    choose(tab.from_zone, NAD)
-    choose(tab.to_zone, STATEWIDE_2022)
-    tab.first_edit.setText("43.0")
-    tab.second_edit.setText("-84.5")
+    The owner's graying round is a courtesy in front of the gate, not the gate:
+    Qt lets a program select a disabled item (measured - see
+    ``test_a_disabled_item_is_unreachable_by_keyboard_but_not_by_code``), a
+    saved job or a later caller never touches this interface at all, and a
+    refusal that only existed in a dropdown would be no refusal.
 
-    # It really is a complete, convertible-looking form: Convert is live.
-    assert tab.settings() is not None
-    assert tab.convert_button.isEnabled()
-
-    assert tab.convert() is False
-    assert isinstance(tab.last_failure, FrameTransformationUnavailableError)
-    message = str(tab.last_failure)
-    assert "NAD83(2011)" in message and "NATRF2022" in message
-    assert "no transformation" in message
-    assert tab.status_label.text().startswith("Refused:")
-    # The dialog was raised, not swallowed, and nothing is displayed.
-    assert tab.shown_failures and tab.sections is None
-
-
-def test_a_cross_frame_pair_is_selectable_and_refuses_on_the_multi_point_tab(
-    window, tmp_path
-):
-    """The same refusal, before the file is read and before anything is written.
-
-    ``job._require_a_registered_frame_path`` is a settings-level gate for this
-    reason: a cross-frame job must not convert forty rows and fail on the
-    forty-first.
+    Built by hand rather than through the tabs, deliberately: that is the shape
+    of every caller the interface does not own.
     """
     source = tmp_path / "in.csv"
     source.write_text("1,43.0,-84.5,200.0,A\n", encoding="utf-8")
-    window.input_edit.setText(str(source))
-    window.output_edit.setText(str(tmp_path))
-    choose(window.from_zone, NAD)
-    choose(window.to_zone, STATEWIDE_2022)
 
-    assert window.settings() is not None
-    assert window.convert_button.isEnabled()
+    settings = JobSettings(
+        input_path=source,
+        output_directory=tmp_path,
+        direction=Direction.GEODETIC_TO_ZONE,
+        source_zone=None,
+        target_zone=STATEWIDE_2022,
+        input_unit=METERS,
+        output_unit=METERS,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        geodetic_frame=NAD83_2011,
+    )
 
-    assert window.convert() is False
-    assert isinstance(window.last_failure, FrameTransformationUnavailableError)
-    assert window.status_label.text().startswith("Refused:")
-    assert window.shown_failures
-    assert window.written_files == {}
-    # Nothing was written at all.
+    with pytest.raises(FrameTransformationUnavailableError) as raised:
+        run(settings)
+    message = str(raised.value)
+    assert "NAD83(2011)" in message and "NATRF2022" in message
+    assert "no transformation" in message
+    # Nothing was written, and the file was never read: the gate is at the
+    # settings, not in the loop.
     assert list(tmp_path.glob("*.zip")) == []
 
+    # The mirror direction, whose consequence is the quietest: the latitudes
+    # and longitudes WRITTEN would carry a frame label the position is not in.
+    with pytest.raises(FrameTransformationUnavailableError):
+        run(
+            JobSettings(
+                input_path=source,
+                output_directory=tmp_path,
+                direction=Direction.ZONE_TO_GEODETIC,
+                source_zone=STATEWIDE_2022,
+                target_zone=None,
+                input_unit=METERS,
+                output_unit=METERS,
+                longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+                geodetic_frame=NAD83_2011,
+            )
+        )
 
-def test_the_other_cross_frame_direction_refuses_too(window, tab):
-    """A 2022 zone out to a NAD83(2011) geodetic entry.
 
-    The mirror case, and the one whose consequence is quietest: the latitudes
-    and longitudes WRITTEN would carry a frame label the position is not in.
+def test_a_disabled_item_is_unreachable_by_keyboard_but_not_by_code(window):
+    """What Qt actually does, measured on the real control and pinned.
+
+    Two facts, and the second is why the gate above has to stay:
+
+    * arrow-key traversal SKIPS a disabled item, as it skips a separator, so a
+      user cannot land on one by keyboard - and the mouse cannot click one;
+    * ``setCurrentIndex`` selects it from code without complaint.
+
+    So the graying is a user-interface courtesy and nothing downstream may be
+    simplified on the strength of it. If a Qt upgrade ever made programmatic
+    selection fail instead, this test fails and says the fact changed.
     """
-    choose(tab.from_zone, STATEWIDE_2022)
-    choose(tab.to_zone, NAD)
-    tab.first_edit.setText("500000.0")
-    tab.second_edit.setText("1500000.0")
+    from PySide6.QtCore import QEvent, Qt as _Qt
+    from PySide6.QtGui import QKeyEvent
 
-    assert tab.convert() is False
-    assert isinstance(tab.last_failure, FrameTransformationUnavailableError)
+    combo = window.from_zone
+    choose(window.to_zone, MI_SOUTH)  # grays every NATRF2022 entry in From
+    grayed = combo.findData(STATEWIDE_2022)
+    assert not (combo.model().item(grayed).flags() & _Qt.ItemFlag.ItemIsEnabled)
+
+    # Keyboard: walk down from the last enabled zone and never arrive.
+    combo.setCurrentIndex(combo.findData(SPCS83_ZONES[-1]))
+    for _ in range(4):
+        combo.keyPressEvent(
+            QKeyEvent(
+                QEvent.Type.KeyPress,
+                _Qt.Key.Key_Down,
+                _Qt.KeyboardModifier.NoModifier,
+            )
+        )
+        assert combo.currentIndex() != grayed
+
+    # Code: lands on it, which is exactly why job.run keeps the wall.
+    combo.blockSignals(True)
+    try:
+        combo.setCurrentIndex(grayed)
+    finally:
+        combo.blockSignals(False)
+    assert combo.currentIndex() == grayed
+    assert combo.currentData() is STATEWIDE_2022
 
 
 @pytest.mark.parametrize("which", ["single", "multi"])
@@ -531,6 +587,267 @@ def test_a_job_inside_the_2022_frame_converts(window, which, tmp_path):
     assert page.last_failure is None
     assert page.result is not None
     assert page.result.settings.geodetic_frame is NATRF2022
+
+
+# ==========================================================================
+# The owner's graying round: incompatible entries are disabled in place.
+#
+# This SUPERSEDES the "informing, not deciding" stance H6 shipped with, on the
+# owner's instruction after his screen review. The Convert-time refusals are
+# untouched and are pinned above as the wall.
+# ==========================================================================
+
+
+@pytest.mark.parametrize("which", ["single", "multi"])
+def test_nothing_is_grayed_while_the_other_end_is_unanswered(window, which):
+    """A placeholder is not an answer, so it disagrees with nothing.
+
+    Both combos open unanswered, so this is also the state the tabs are built
+    in - and a program that grayed something here would be deciding before the
+    user had said anything at all.
+    """
+    page = pages(window)[which]
+    assert page.from_zone.currentData() == controls.UNCHOSEN
+    assert page.to_zone.currentData() == controls.UNCHOSEN
+
+    assert grayed(page.from_zone) == []
+    assert grayed(page.to_zone) == []
+
+
+@pytest.mark.parametrize("which", ["single", "multi"])
+@pytest.mark.parametrize("end", ["from", "to"])
+def test_choosing_one_frame_grays_every_entry_of_the_other(window, which, end):
+    """Symmetric, both tabs, and derived - never an era test.
+
+    Choosing an SPCS 83 zone at one end grays, at the other end, exactly the
+    entries whose frame has no registered path with NAD83(2011): the NATRF2022
+    geodetic entry and all nineteen 2022 zones. Choosing a 2022 zone grays the
+    mirror set. Nothing else is grayed, which is the half that would let an
+    over-broad rule through.
+
+    The expected sets are built from the registries here, so a zone added to
+    either era joins the right set with no change to this test.
+    """
+    page = pages(window)[which]
+    chooser = page.from_zone if end == "from" else page.to_zone
+    other = page.to_zone if end == "from" else page.from_zone
+
+    # An SPCS 83 selection at one end.
+    choose(chooser, MI_SOUTH)
+    assert set(grayed(other)) == {NAT, *SPCS2022_ZONES}
+    assert item_is_enabled(other, NAD)
+    assert item_is_enabled(other, controls.UNCHOSEN)
+    for zone in SPCS83_ZONES:
+        assert item_is_enabled(other, zone)
+
+    # A 2022 selection at the same end grays the mirror set.
+    choose(chooser, STATEWIDE_2022)
+    assert set(grayed(other)) == {NAD, *SPCS83_ZONES}
+    assert item_is_enabled(other, NAT)
+    assert item_is_enabled(other, controls.UNCHOSEN)
+    for zone in SPCS2022_ZONES:
+        assert item_is_enabled(other, zone)
+
+
+@pytest.mark.parametrize("which", ["single", "multi"])
+def test_a_geodetic_entry_grays_the_other_frames_entries_too(window, which):
+    """One mechanism, no special case for the geodetic-to-geodetic pair.
+
+    That pair is not a conversion at all (``direction_for`` returns None), so
+    exempting it would break nothing - and would mean two rules where one does,
+    while offering a NATRF2022 position against a NAD83(2011) one as though the
+    pair meant something.
+    """
+    page = pages(window)[which]
+    choose(page.from_zone, NAD)
+
+    assert set(grayed(page.to_zone)) == {NAT, *SPCS2022_ZONES}
+    assert item_is_enabled(page.to_zone, NAD)
+
+    choose(page.from_zone, NAT)
+    assert set(grayed(page.to_zone)) == {NAD, *SPCS83_ZONES}
+    assert item_is_enabled(page.to_zone, NAT)
+
+
+@pytest.mark.parametrize("which", ["single", "multi"])
+@pytest.mark.parametrize("end", ["from", "to"])
+def test_an_end_made_unreachable_is_cleared_and_said_so(window, which, end):
+    """Graying cannot undo a pair that went bad under the user's hands.
+
+    It stops a user CHOOSING an incompatible entry; it does nothing about the
+    entry already chosen at the OTHER end when this one moves. Left alone, that
+    selection would sit in its combo grayed out - stating two things at once -
+    and would still be what ``settings()`` read.
+
+    So the side that did not move is cleared, the displayed result goes with
+    it, and the status line says why: an empty dropdown that emptied itself is
+    not something a surveyor should have to reason about.
+    """
+    page = pages(window)[which]
+    moved = page.from_zone if end == "from" else page.to_zone
+    cleared = page.to_zone if end == "from" else page.from_zone
+
+    choose(page.from_zone, MI_CENTRAL)
+    choose(page.to_zone, MI_SOUTH)
+    assert cleared.currentData() is not controls.UNCHOSEN
+
+    choose(moved, STATEWIDE_2022)
+
+    assert cleared.currentData() == controls.UNCHOSEN
+    assert moved.currentData() is STATEWIDE_2022
+    assert page.status_label.text() == controls.FRAME_RESET_STATUS
+    assert controls.FRAME_RESET_STATUS.count(".") == 1  # one sentence
+    # The pair no longer describes a job, so Convert is not offered.
+    assert page.settings() is None
+
+
+def test_clearing_the_other_end_discards_a_displayed_single_point_result(tab):
+    """The reset is an invalidation too - amendment #26 at a new control.
+
+    A result on screen was computed for a pair that no longer exists, and one
+    half of that pair has just been emptied by the program.
+    """
+    converted_single_point(tab)
+    assert tab.sections is not None
+
+    choose(tab.from_zone, STATEWIDE_2022)
+
+    assert tab.to_zone.currentData() == controls.UNCHOSEN
+    assert tab.result is None
+    assert tab.sections is None
+    assert tab.copy_all_button.isEnabled() is False
+    assert tab.status_label.text() == controls.FRAME_RESET_STATUS
+
+
+def test_clearing_the_other_end_clears_the_multi_point_table(window, tmp_path):
+    """The same, on the tab whose table describes a written archive.
+
+    The archive stays on disk and stays correct; what cannot stand is a table
+    describing a pair one of whose ends the program has just emptied.
+    """
+    converted_multi_point(window, tmp_path)
+    written = sorted(tmp_path.glob("*.zip"))
+    assert written
+
+    choose(window.from_zone, STATEWIDE_2022)
+
+    assert window.to_zone.currentData() == controls.UNCHOSEN
+    assert window.model.rowCount() == 0
+    assert window.result is None
+    assert window.open_folder_button.isEnabled() is False
+    assert window.status_label.text() == controls.FRAME_RESET_STATUS
+    assert sorted(tmp_path.glob("*.zip")) == written
+
+
+@pytest.mark.parametrize("which", ["single", "multi"])
+def test_the_graying_lifts_when_a_transformation_is_registered(
+    window, which, monkeypatch
+):
+    """**The derivation itself, pinned.** This is the point of the whole rule.
+
+    The graying asks ``frames.require_frame_path``, which reads the registry.
+    So the day NGS publishes the NAD83(2011) <-> NATRF2022 transformation and
+    it is registered, every one of these entries becomes choosable again with
+    no change to a line of interface code - and nobody has to remember that a
+    dropdown was hiding an era.
+
+    A synthetic cross-frame entry stands in for that day. It is the NAD83(2011)
+    identity record placed under the cross key: ``FrameTransformation``'s own
+    ``__post_init__`` refuses to CONSTRUCT a non-identity record (deliberately,
+    #62), and what is being tested here is the lookup the interface performs,
+    not the record's contents.
+
+    A rule written as an era test - "1983 zones do not mix with 2022 zones" -
+    passes every other test in this file and fails this one.
+    """
+    page = pages(window)[which]
+    choose(page.from_zone, MI_SOUTH)
+    assert set(grayed(page.to_zone)) == {NAT, *SPCS2022_ZONES}
+
+    bridged = dict(frames._TRANSFORMATIONS_BY_CODE)
+    identity = bridged[("NAD83(2011)", "NAD83(2011)")]
+    bridged[("NAD83(2011)", "NATRF2022")] = identity
+    bridged[("NATRF2022", "NAD83(2011)")] = identity
+    monkeypatch.setattr(frames, "_TRANSFORMATIONS_BY_CODE", bridged)
+
+    # Nothing about the interface changed - it is asked again, and answers
+    # differently because the registry does.
+    page._update_zone_graying()
+
+    assert grayed(page.to_zone) == []
+    assert item_is_enabled(page.to_zone, NAT)
+    for zone in SPCS2022_ZONES:
+        assert item_is_enabled(page.to_zone, zone)
+
+
+@pytest.mark.parametrize("which", ["single", "multi"])
+def test_vertical_only_mode_grays_nothing_and_clears_nothing(window, which):
+    """The single system dropdown has no pairing, so it has no rule.
+
+    In this mode the To dropdown is hidden and the From selection is the whole
+    job. An invisible control must not gray - or clear - a visible one, which
+    is the same distinction ``_update_vertical_rows`` already draws for the
+    output unit selector.
+    """
+    page = pages(window)[which]
+    choose(page.to_zone, MI_SOUTH)
+    page.mode_vertical_only.setChecked(True)
+
+    assert grayed(page.from_zone) == []
+    # Every zone in both eras is choosable, and choosing one clears nothing.
+    choose(page.from_zone, STATEWIDE_2022)
+    assert page.from_zone.currentData() is STATEWIDE_2022
+    assert page.to_zone.currentData() is MI_SOUTH  # hidden, untouched
+    assert page.status_label.text() != controls.FRAME_RESET_STATUS
+    assert grayed(page.from_zone) == []
+
+    # Coming BACK to horizontal is where the pair is reconciled: the To
+    # selection is the one the user could not see while From moved under it.
+    page.mode_horizontal.setChecked(True)
+    assert page.to_zone.currentData() == controls.UNCHOSEN
+    assert page.status_label.text() == controls.FRAME_RESET_STATUS
+    assert set(grayed(page.from_zone)) == set()  # nothing to disagree with
+
+
+def test_one_owner_per_property_on_both_tabs():
+    """The #57 rule, checked by AST rather than by reading.
+
+    That amendment's defect was two methods driving one property, with the
+    later call winning. Item FLAGS and item LISTS are properties in exactly the
+    same sense, and the graying round added a second one - so each tab is
+    scanned and each helper must be called from exactly one method, named.
+
+    A scanner that found nothing would pass silently, so the counts are
+    asserted rather than the absence of duplicates.
+    """
+    import ast
+
+    expected = {
+        "refresh_zone_graying": "_update_zone_graying",
+        "refresh_unit_combo": "_update_unit_offerings",
+        "refresh_geoid_combo": "_refresh_geoid_sides",
+    }
+
+    for module in ("michspc/gui/window.py", "michspc/gui/single_point.py"):
+        tree = ast.parse(Path(module).read_text(encoding="utf-8"))
+        callers: dict[str, list[str]] = {name: [] for name in expected}
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            for inner in ast.walk(node):
+                if not isinstance(inner, ast.Call):
+                    continue
+                func = inner.func
+                name = getattr(func, "id", None) or getattr(func, "attr", None)
+                if name in callers:
+                    callers[name].append(node.name)
+
+        for helper, owner in expected.items():
+            found = sorted(set(callers[helper]))
+            assert found == [owner], (
+                f"{module}: {helper} is called from {found}, not only from "
+                f"{owner}"
+            )
 
 
 # ==========================================================================
@@ -777,20 +1094,41 @@ def converted_multi_point(window, tmp_path):
 
 
 def test_a_unit_snap_clears_the_multi_point_table(window, tmp_path):
-    """The one case where this tab's table clears for a control.
+    """The table clears when the program swaps a unit out from under it.
 
     It describes an archive that was WRITTEN, so it does not follow the
     controls in general - the files on disk are unchanged and their own record
     states the units they were written in. It clears here because the program
-    itself swapped the unit out from under the numbers on screen, and the
-    status line says all three things that happened.
+    itself changed the unit, and the status line says all three things that
+    happened, the last of them being that nothing on disk was touched.
+
+    **In VERTICAL-ONLY mode, and that is a finding rather than a convenience.**
+    After the owner's graying round a unit snap in either horizontal mode is
+    always accompanied by a frame reset - the unit offering shrinks only when
+    an SPCS2022 zone is chosen, which makes any answered other end unreachable,
+    and the reset's own message then supersedes this one. Vertical-only mode is
+    the one place a snap stands alone, because it has no second end to
+    reconcile. So this message is now reachable exactly there; recorded so the
+    next reader does not conclude the test was contrived.
     """
-    converted_multi_point(window, tmp_path)
+    source = tmp_path / "in.csv"
+    source.write_text("1,176200.000,19685000.000,900.00,A\n", encoding="utf-8")
+    window.input_edit.setText(str(source))
+    window.output_edit.setText(str(tmp_path))
+    window.mode_vertical_only.setChecked(True)
+    choose(window.from_zone, MI_CENTRAL)
+    choose(window.input_unit, US_SURVEY_FEET)
+    choose(window.vertical_source_combo, NGVD29)
+    choose(window.vertical_target_combo, NAVD88)
+    assert window.convert() is True
+    assert window.model.rowCount() == 1
+
     written = sorted(tmp_path.glob("*.zip"))
     assert written
 
     choose(window.from_zone, STATEWIDE_2022)
 
+    assert window.input_unit.currentData() is INTERNATIONAL_FEET
     assert window.model.rowCount() == 0
     assert window.result is None
     assert window.written_files == {}

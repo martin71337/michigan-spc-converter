@@ -65,6 +65,7 @@ from michspc.gui.controls import (
     height_kind_combo,
     height_kind_for,
     AMBER,
+    FRAME_RESET_STATUS,
     GEODETIC_CHOICES,
     GEOID_MODEL_LABEL,
     INPUT_GEOID_LABEL,
@@ -86,6 +87,8 @@ from michspc.gui.controls import (
     longitude_relevance,
     refresh_geoid_combo,
     refresh_unit_combo,
+    refresh_zone_graying,
+    selection_is_compatible,
     show_failure_dialog,
     unit_combo,
     unit_for,
@@ -230,8 +233,14 @@ class MainWindow(QMainWindow):
         """The most recent exception surfaced to the user. Kept so the failure
         path is observable to a test without driving a modal dialog."""
 
+        self._reconciling = False
+        """True while this tab is clearing one zone combo because the other
+        moved. See ``_reconcile_zone_frames``: the clear fires the cleared
+        combo's own handler, and the outer call has to keep the status line."""
+
         self._build()
         self._update_input_hint()
+        self._update_zone_graying()
         self._update_unit_offerings()
         self._update_unit_labels()
         self._update_longitude_relevance()
@@ -327,8 +336,11 @@ class MainWindow(QMainWindow):
         grid.addWidget(self.input_hint, 2, 1, 1, 3)
 
         # --- from / to --------------------------------------------------
-        self.from_zone = zone_combo(box, self._on_direction_changed)
-        self.to_zone = zone_combo(box, self._on_direction_changed)
+        # One handler per END, not one shared: the reconciliation rule has to
+        # know which side the user just moved, because it is the OTHER side
+        # that gets cleared when the pair becomes incompatible.
+        self.from_zone = zone_combo(box, self._on_from_zone_changed)
+        self.to_zone = zone_combo(box, self._on_to_zone_changed)
         self.input_unit = unit_combo(box)
         self.output_unit = unit_combo(box)
 
@@ -737,8 +749,83 @@ class MainWindow(QMainWindow):
     # Enablement
     # ------------------------------------------------------------------
 
+    def _on_from_zone_changed(self) -> None:
+        """The From end moved, so the To end may no longer be reachable."""
+        self._reconcile_zone_frames(clear=self.to_zone)
+        self._on_direction_changed()
+
+    def _on_to_zone_changed(self) -> None:
+        """The To end moved, so the From end may no longer reach it."""
+        self._reconcile_zone_frames(clear=self.from_zone)
+        self._on_direction_changed()
+
+    def _reconcile_zone_frames(self, clear) -> None:
+        """Clear the side that the other end just made unreachable.
+
+        Graying stops a user CHOOSING an incompatible entry; it cannot undo a
+        pair that became incompatible because the other end moved under it. So
+        the side that did not move is reset to the placeholder and the status
+        line says why - the alternative is a selection sitting in a combo where
+        it is now grayed out, which states two things at once.
+
+        **Reentrancy is guarded, not avoided.** Clearing the other combo fires
+        its own handler, which arrives back here; the flag lets that pass
+        through so the outer call keeps ownership of the status line. Without
+        it the inner ``_on_direction_changed`` would overwrite the message that
+        explains what just happened.
+
+        Vertical-only mode is exempt: there is no output system in that mode,
+        the To dropdown is hidden, and a hidden control must not clear a
+        visible one (``_update_zone_graying`` says the same thing about the
+        graying itself).
+        """
+        if self._reconciling:
+            return
+        if self.vertical_mode() is VerticalMode.VERTICAL:
+            return
+
+        other = self.from_zone if clear is self.to_zone else self.to_zone
+        if selection_is_compatible(
+            clear.currentData(),
+            other.currentData(),
+            candidate_is_source=clear is self.from_zone,
+        ):
+            return
+
+        self._reconciling = True
+        try:
+            clear.setCurrentIndex(clear.findData(UNCHOSEN))
+        finally:
+            self._reconciling = False
+        self._clear_table()
+        self._set_status(FRAME_RESET_STATUS)
+
+    def _update_zone_graying(self) -> None:
+        """Gray each end's incompatible entries against the other end.
+
+        **The one owner of these two combos' item flags on this tab** - the
+        #57 rule, and it is pinned by an AST scan rather than by hoping: that
+        amendment's defect was two methods driving one property, with the later
+        call winning, and item flags are a property in exactly the same sense.
+
+        ``controls.refresh_zone_graying`` owns WHICH items, so this tab and the
+        Single point tab cannot gray differently.
+
+        In vertical-only mode nothing is grayed: the To dropdown is hidden and
+        the From selection is the only system in the job, so an invisible
+        control must not gray a visible one. Passing UNCHOSEN is how that is
+        said - it is the same "the other end has answered nothing" state the
+        rule already has, rather than a second branch in the rule.
+        """
+        vertical_only = self.vertical_mode() is VerticalMode.VERTICAL
+        source = UNCHOSEN if vertical_only else self.from_zone.currentData()
+        target = UNCHOSEN if vertical_only else self.to_zone.currentData()
+        refresh_zone_graying(self.from_zone, target, is_source=True)
+        refresh_zone_graying(self.to_zone, source, is_source=False)
+
     def _on_direction_changed(self) -> None:
         self._update_input_hint()
+        self._update_zone_graying()
         self._update_unit_offerings()
         self._update_unit_labels()
         self._update_longitude_relevance()
@@ -771,35 +858,40 @@ class MainWindow(QMainWindow):
         snapped |= refresh_unit_combo(
             self.output_unit, units_for_selection(self.to_zone.currentData())
         )
-        if snapped:
-            self._invalidate_table()
+        if snapped and self._clear_table():
+            self._set_status(UNITS_SNAPPED_STATUS)
 
-    def _invalidate_table(self) -> None:
-        """Empty the results table, and say why.
+    def _clear_table(self) -> bool:
+        """Empty the results table. True if something was on screen.
+
+        The mechanism only; the caller says WHY, because the two reasons this
+        tab clears its table are different sentences - a unit the program
+        swapped, and a selection the program cleared. One clearing, two
+        messages, rather than two clearings that could drift apart.
 
         **Narrower than the Single point tab's ``_invalidate_result``, on
         purpose.** This tab's table describes an archive that was WRITTEN, not
         the current controls, so it does not clear when a control moves - the
         files on disk are unchanged and their own record states the units they
-        were written in. It clears for the one case where leaving it would show
-        numbers under a label that contradicts them: a unit the program itself
-        swapped out from under a displayed result.
+        were written in. It clears for the two cases where leaving it would
+        show numbers the controls above them contradict: a unit the program
+        itself swapped, and a selection the program itself cleared.
 
-        The status line says so rather than going quiet, and "Open folder" is
-        disarmed with the table because it points at the run the table
-        described. Nothing on disk is touched - the archive is still there and
-        still correct - and the message says that too.
+        "Open folder" is disarmed with the table because it points at the run
+        the table described. Nothing on disk is touched - the archive is still
+        there and still correct - and the unit message says that outright.
 
-        Idempotent: costs nothing when there is no result on screen.
+        Idempotent: costs nothing when there is no result on screen, which is
+        what the return value is for.
         """
         if self.result is None and self.model.rowCount() == 0:
-            return
+            return False
         self.result = None
         self.written_files = {}
         self.model.set_result(None)
         self.open_folder_button.setEnabled(False)
         self.status_label.setToolTip("")
-        self._set_status(UNITS_SNAPPED_STATUS)
+        return True
 
     def _update_unit_labels(self) -> None:
         """Say what each unit selector governs, given From and To.
@@ -854,6 +946,14 @@ class MainWindow(QMainWindow):
 
     def _on_vertical_mode_changed(self) -> None:
         self._update_vertical_rows()
+        # Leaving vertical-only mode brings the To dropdown back, and its
+        # selection is the one thing the user could not see while the From end
+        # moved - so the pair is reconciled on the way out, clearing To if the
+        # two ends no longer reach each other, and the graying is reapplied
+        # either way. Entering the mode is the same call and simply grays
+        # nothing, which is what "no pairing in this mode" means.
+        self._reconcile_zone_frames(clear=self.to_zone)
+        self._update_zone_graying()
         self._update_longitude_relevance()
         self._update_convert_enabled()
 

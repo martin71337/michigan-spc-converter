@@ -465,18 +465,118 @@ def test_the_loader_looks_exactly_where_the_generator_writes():
     assert icon.MASTER_PNG in icon.icon_candidates()
 
 
-def test_the_generated_icon_is_preferred_over_the_master(tmp_path, monkeypatch):
-    """The .ico carries six hand-sized renderings; the PNG is one 1024 px image
-    Qt would have to scale. When both exist the derived one wins."""
+def _pair(tmp_path, *, generated_mtime: float, master_mtime: float):
+    """A generated .ico and a master PNG with mtimes set exactly.
+
+    Set rather than inherited from write order: two files written in the same
+    call can land in the same clock tick or in adjacent ones depending on the
+    filesystem, and a staleness rule tested against that is a test that decides
+    what it is asserting at run time.
+    """
     generated = tmp_path / "mcx.ico"
     generated.write_bytes(b"stand-in")
+    os.utime(generated, (generated_mtime, generated_mtime))
     master = tmp_path / "mcx-1024.png"
     master.write_bytes(b"stand-in")
+    os.utime(master, (master_mtime, master_mtime))
+    return generated, master
+
+
+def test_the_generated_icon_is_preferred_over_the_master(tmp_path, monkeypatch):
+    """The .ico carries six hand-sized renderings; the PNG is one 1024 px image
+    Qt would have to scale. When both exist AND the .ico is current, it wins."""
+    generated, master = _pair(
+        tmp_path, generated_mtime=2_000_000, master_mtime=1_000_000
+    )
 
     monkeypatch.setattr(icon, "GENERATED_ICO", generated)
     monkeypatch.setattr(icon, "MASTER_PNG", master)
 
+    assert icon.generated_ico_is_stale() is False
     assert icon.icon_path() == generated
+
+
+def test_an_ico_older_than_the_master_is_skipped(tmp_path, monkeypatch):
+    """The 2026-08-29 incident, pinned.
+
+    ``build/icon/mcx.ico`` was generated 2026-08-11 and the monument artwork
+    (#60) landed on 2026-08-26, so "most-derived first" showed the COMPASS
+    ROSE - the icon replaced two weeks earlier - on every source run, right
+    through the owner's screen review. A derived file is only more derived
+    while it is derived from the current source.
+    """
+    generated, master = _pair(
+        tmp_path, generated_mtime=1_000_000, master_mtime=2_000_000
+    )
+
+    monkeypatch.setattr(icon, "GENERATED_ICO", generated)
+    monkeypatch.setattr(icon, "MASTER_PNG", master)
+
+    assert icon.generated_ico_is_stale() is True
+    assert icon.icon_path() == master
+
+
+def test_an_ico_written_in_the_same_instant_as_the_master_is_current(
+    tmp_path, monkeypatch
+):
+    """Strictly newer, not newer-or-equal, and the difference is real.
+
+    ``tools/make_icon.py`` READS the master and then writes the .ico, so equal
+    timestamps mean the .ico was rendered from exactly that artwork. Treating
+    equality as stale would discard a perfectly current build on any filesystem
+    whose timestamps are coarse - and would make the release build's own output
+    unusable on the machine that produced it.
+    """
+    generated, master = _pair(
+        tmp_path, generated_mtime=1_500_000, master_mtime=1_500_000
+    )
+
+    monkeypatch.setattr(icon, "GENERATED_ICO", generated)
+    monkeypatch.setattr(icon, "MASTER_PNG", master)
+
+    assert icon.generated_ico_is_stale() is False
+    assert icon.icon_path() == generated
+
+
+def test_the_staleness_question_needs_both_files(tmp_path, monkeypatch):
+    """With one of them missing there is nothing to compare, so nothing is
+    skipped - and the fallback chain behaves exactly as it always did."""
+    generated = tmp_path / "mcx.ico"
+    generated.write_bytes(b"stand-in")
+    monkeypatch.setattr(icon, "GENERATED_ICO", generated)
+    monkeypatch.setattr(icon, "MASTER_PNG", tmp_path / "no-master.png")
+    assert icon.generated_ico_is_stale() is False
+    assert icon.icon_path() == generated
+
+    monkeypatch.setattr(icon, "GENERATED_ICO", tmp_path / "not-built.ico")
+    monkeypatch.setattr(icon, "MASTER_PNG", tmp_path / "no-master.png")
+    assert icon.generated_ico_is_stale() is False
+
+
+def test_a_frozen_bundles_icon_is_never_judged_stale(tmp_path, monkeypatch):
+    """The bundle candidate is exempt, deliberately.
+
+    A bundle is assembled in one operation by the release build's own gate,
+    from the artwork present at that moment, and carries no master PNG to
+    compare against. So a stale repository build folder on the machine that
+    happens to be running the bundle must not divert the shipped program to a
+    PNG that is not in it.
+    """
+    monkeypatch.setattr(icon.sys, "_MEIPASS", str(tmp_path), raising=False)
+    bundled = tmp_path / "assets" / "icon" / icon.GENERATED_ICO_NAME
+    bundled.parent.mkdir(parents=True)
+    bundled.write_bytes(b"stand-in")
+    os.utime(bundled, (1_000_000, 1_000_000))
+
+    # A repository build folder that IS stale, sitting beside it.
+    generated, master = _pair(
+        tmp_path, generated_mtime=1_000_000, master_mtime=2_000_000
+    )
+    monkeypatch.setattr(icon, "GENERATED_ICO", generated)
+    monkeypatch.setattr(icon, "MASTER_PNG", master)
+
+    assert icon.generated_ico_is_stale() is True
+    assert icon.icon_path() == bundled
 
 
 def test_the_master_is_the_fallback_when_the_build_step_has_not_run(

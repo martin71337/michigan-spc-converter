@@ -612,6 +612,60 @@ gateless cadence does not apply here). The horizontal work packages H1–H6
 proceed per the plan; the first code lands only after this amendment, which
 is the H0 exit condition.
 
+### #64 — 2026-08-29 — The owner's screen-review round: a second separator, registry-derived graying, and the stale-icon guard
+
+**The owner's instructions, from his review of the H6 screens:** (1) a second
+separator in the zone dropdowns, separating the geodetic entries from the
+SPCS 83 zones — the list now reads placeholder | geodetic | separator |
+SPCS 83 | separator | SPCS2022, 27 items; (2) **gray out incompatible
+selections** — "I can't go from NAD83 to NATRF2022 directly … so I
+shouldn't be able to pick that option." **This supersedes H6's
+selectable-and-refuse stance (#63) for this surface, on his instruction.**
+
+**The graying is derived from the transformation registry, never an era
+test:** an entry is disabled exactly when its frame has no registered path
+with the other combo's committed selection (`frames_have_a_path` over
+`FRAME_TRANSFORMATIONS`), pinned by a test that registers a synthetic
+cross-frame record and watches all twenty grayed entries become choosable
+with no interface change — **the day the NGS bridge lands as data, the
+graying dissolves by itself.** Symmetric, both tabs; nothing grayed while
+the other side is unanswered; the currently-selected item is never grayed;
+an other-side change that strands a selection clears it to the placeholder,
+invalidates the result, and says one sentence in the status line
+("Cleared: no published transformation between those reference frames.").
+Vertical-only mode has no pairing and is exempt, reconciling on mode exit.
+**The Convert-time refusals remain the wall** — measured Qt fact, pinned:
+a disabled combo item is still programmatically selectable, so the graying
+is UX in front of the closing-gate-approved gates, not a replacement; a
+hand-built cross-frame JobSettings still refuses with nothing written.
+One correction from the falsification work, recorded: the previous round's
+report said zone-input vertical-only jobs skip the frame gate — the
+closing-gate fix's third branch gates geodetic vertical-only jobs against
+their own frame, so the newly threaded field is checked there.
+
+**The stale-icon incident, fixed at the root:** during this same review the
+owner asked why the app still showed the compass rose. The repo's
+`build/icon/mcx.ico` had been generated 2026-08-11 — two weeks before
+0.6.4's monument artwork — and `gui/icon.py`'s most-derived-first order
+preferred it on every source run (the installed release was unaffected;
+gate 4 regenerates). `icon_path()` now skips a generated `.ico` strictly
+older than the master PNG (source runs only; the frozen-bundle candidate
+is deliberately untouched and pinned as such; equal mtimes mean current,
+because make_icon reads the PNG before writing the .ico — pinned
+separately). The incident is dated in the module docstring. A
+pre-existing icon test that decided its own premise from filesystem mtimes
+was made deterministic with explicit utime.
+
+Fourteen falsification seeds, all caught; two first-form seeds were
+themselves corrected and the reasons recorded (one revealed a redundant
+guard, now documented as measured; one revealed the third gate branch
+above). Suite 3,733 → **3,755**, both modes; self-test 11/11. One item
+left open for the owner deliberately: `UNITS_SNAPPED_STATUS` is now
+reachable only in vertical-only mode and still three sentences — his
+wording call. **Twenty of twenty-five selectable entries gray when either
+end is answered — correct, and the first thing to look at on a real
+screen.**
+
 ### #63 — 2026-08-29 — H3′ through N8: the modernized system is built, gated per package
 
 **Everything after the interim gate's closure (#62), in four lead-briefed,

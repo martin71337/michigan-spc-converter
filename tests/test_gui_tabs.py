@@ -195,8 +195,17 @@ def test_the_window_asks_controls_for_the_direction_in_every_combination(window)
     The sweep includes every case the rule names by hand: both unanswered
     states, geodetic-to-geodetic (not a conversion, in either frame and across
     the two), the two geodetic directions, a zone to ITSELF - which IS a
-    conversion and must not be guarded away - and, since H6, the cross-frame
-    pairs, which ARE directions here and are refused later by ``job.run``.
+    conversion and must not be guarded away - and the cross-frame pairs, which
+    ARE directions by this rule and which the interface now grays and the job
+    refuses.
+
+    **The two combos' signals are blocked for the sweep, deliberately.** Since
+    the owner's graying round an incompatible pair does not survive being
+    selected - the tab clears the other end and says so - so a sweep with the
+    handlers live would be testing the reconciliation rather than the direction
+    rule, and its cross-frame pairs would silently become placeholder pairs.
+    ``direction()`` reads the combos' data, which the block does not affect;
+    the reconciliation has its own pins in tests/test_gui_frames.py.
     """
     combo = window.from_zone
     choices = [
@@ -210,22 +219,29 @@ def test_the_window_asks_controls_for_the_direction_in_every_combination(window)
     assert len(choices) == 25
 
     checked = 0
-    for source in choices:
-        for target in choices:
-            source_index = window.from_zone.findData(source)
-            target_index = window.to_zone.findData(target)
-            # Every choice must actually be in both dropdowns; findData returns
-            # -1 when it is not, and a -1 here would silently test nothing.
-            assert source_index >= 0, f"from_zone has no entry for {source!r}"
-            assert target_index >= 0, f"to_zone has no entry for {target!r}"
+    window.from_zone.blockSignals(True)
+    window.to_zone.blockSignals(True)
+    try:
+        for source in choices:
+            for target in choices:
+                source_index = window.from_zone.findData(source)
+                target_index = window.to_zone.findData(target)
+                # Every choice must actually be in both dropdowns; findData
+                # returns -1 when it is not, and a -1 here would silently test
+                # nothing.
+                assert source_index >= 0, f"from_zone has no entry for {source!r}"
+                assert target_index >= 0, f"to_zone has no entry for {target!r}"
 
-            window.from_zone.setCurrentIndex(source_index)
-            window.to_zone.setCurrentIndex(target_index)
+                window.from_zone.setCurrentIndex(source_index)
+                window.to_zone.setCurrentIndex(target_index)
 
-            assert window.direction() == controls.direction_for(source, target), (
-                f"window and controls disagree for {source!r} -> {target!r}"
-            )
-            checked += 1
+                assert window.direction() == controls.direction_for(
+                    source, target
+                ), f"window and controls disagree for {source!r} -> {target!r}"
+                checked += 1
+    finally:
+        window.from_zone.blockSignals(False)
+        window.to_zone.blockSignals(False)
 
     assert checked == 625
 
@@ -279,24 +295,37 @@ def test_every_registered_zone_is_offered_in_all_four_zone_dropdowns(window):
     for combo in combos:
         offered = [combo.itemData(index) for index in range(combo.count())]
 
-        # 1 placeholder + one geodetic entry per offered frame + the SPCS 83
-        # block + 1 separator + the SPCS2022 block. Written as the sum so a
+        # 1 placeholder + one geodetic entry per offered frame + a separator +
+        # the SPCS 83 block + a separator + the SPCS2022 block. Written as the
+        # sum, with the two separators counted rather than assumed, so a
         # missing piece names itself.
         assert combo.count() == (
-            1 + len(GEODETIC_CHOICES) + len(SPCS83_ZONES) + 1 + len(SPCS2022_ZONES)
+            1
+            + len(GEODETIC_CHOICES)
+            + 1
+            + len(SPCS83_ZONES)
+            + 1
+            + len(SPCS2022_ZONES)
         )
-        assert combo.count() == 26
+        assert combo.count() == 27
 
         assert offered[0] == UNCHOSEN
-        first_zone = 1 + len(GEODETIC_CHOICES)
-        assert offered[1:first_zone] == list(GEODETIC_CHOICES)
-        separator = first_zone + len(SPCS83_ZONES)
-        assert offered[first_zone:separator] == list(SPCS83_ZONES)
-        # The separator carries no data at all, which is what makes it a
+        first_separator = 1 + len(GEODETIC_CHOICES)
+        assert offered[1:first_separator] == list(GEODETIC_CHOICES)
+        # The owner's second separator, added at his screen review: the
+        # geodetic entries are positions and what follows them are zones, which
+        # are not the same kind of answer.
+        assert offered[first_separator] is None
+        assert combo.itemText(first_separator) == ""
+
+        first_zone = first_separator + 1
+        second_separator = first_zone + len(SPCS83_ZONES)
+        assert offered[first_zone:second_separator] == list(SPCS83_ZONES)
+        # A separator carries no data at all, which is what makes it a
         # separator and not a selection.
-        assert offered[separator] is None
-        assert combo.itemText(separator) == ""
-        assert offered[separator + 1:] == list(SPCS2022_ZONES)
+        assert offered[second_separator] is None
+        assert combo.itemText(second_separator) == ""
+        assert offered[second_separator + 1:] == list(SPCS2022_ZONES)
 
         # And every zone is findable by its own record, in both eras.
         for zone in (*SPCS83_ZONES, *SPCS2022_ZONES):
@@ -307,8 +336,8 @@ def test_every_registered_zone_is_offered_in_all_four_zone_dropdowns(window):
             )
 
 
-def test_the_separator_between_the_eras_cannot_be_chosen(window):
-    """It is a rule in the list, not an item — and a user cannot land on it.
+def test_neither_separator_can_be_chosen(window):
+    """They are rules in the list, not items — a user cannot land on either.
 
     Qt gives a separator no ItemIsEnabled and no ItemIsSelectable flag, so it
     is unreachable by mouse or keyboard. That matters because its data is None,
@@ -316,15 +345,35 @@ def test_the_separator_between_the_eras_cannot_be_chosen(window):
     describe no job at all. ``controls.direction_for`` refuses it by name for
     the case that a later change reaches it programmatically, and that refusal
     is pinned in tests/test_gui_frames.py.
+
+    **Both separators, on all four combos.** The graying round rewrites these
+    items' flags every time a selection changes, and a rule that re-enabled
+    every item it did not gray would turn a separator into a selectable blank
+    line - which is exactly the shape of mistake that makes flags a property
+    with one owner.
     """
     from PySide6.QtCore import Qt as _Qt
 
-    combo = window.from_zone
-    separator = 1 + len(GEODETIC_CHOICES) + len(SPCS83_ZONES)
-    flags = combo.model().item(separator).flags()
+    positions = (
+        1 + len(GEODETIC_CHOICES),
+        1 + len(GEODETIC_CHOICES) + 1 + len(SPCS83_ZONES),
+    )
+    for combo in (
+        window.from_zone,
+        window.to_zone,
+        window.single_point.from_zone,
+        window.single_point.to_zone,
+    ):
+        for separator in positions:
+            flags = combo.model().item(separator).flags()
+            assert not (flags & _Qt.ItemFlag.ItemIsEnabled), separator
+            assert not (flags & _Qt.ItemFlag.ItemIsSelectable), separator
 
-    assert not (flags & _Qt.ItemFlag.ItemIsEnabled)
-    assert not (flags & _Qt.ItemFlag.ItemIsSelectable)
+    # And they stay flagless after a selection has driven the graying.
+    window.from_zone.setCurrentIndex(window.from_zone.findData(SPCS83_ZONES[0]))
+    for separator in positions:
+        flags = window.to_zone.model().item(separator).flags()
+        assert not (flags & _Qt.ItemFlag.ItemIsEnabled), separator
 
 
 def test_the_dropdown_pin_has_something_to_find():

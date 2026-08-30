@@ -219,16 +219,18 @@ def test_zone_dropdowns_are_built_from_the_registry(window):
     for combo in (window.from_zone, window.to_zone):
         offered = [combo.itemData(i) for i in range(combo.count())]
         # The unanswered placeholder, then one geodetic entry per offered
-        # frame, then the SPCS 83 zones. What follows them is the separator and
-        # the 2022 block, checked in tests/test_gui_frames.py.
+        # frame, then a separator, then the SPCS 83 zones. What follows them is
+        # the second separator and the 2022 block, checked in
+        # tests/test_gui_frames.py and tests/test_gui_tabs.py.
         assert offered[0] == UNCHOSEN
         geodetic_count = len(window_module.GEODETIC_CHOICES)
         assert offered[1 : 1 + geodetic_count] == list(
             window_module.GEODETIC_CHOICES
         )
-        assert (
-            offered[1 + geodetic_count : 1 + geodetic_count + len(SPCS83_ZONES)]
-            == list(SPCS83_ZONES)
+        first_zone = 1 + geodetic_count + 1  # + the separator between them
+        assert offered[first_zone - 1] is None
+        assert offered[first_zone : first_zone + len(SPCS83_ZONES)] == list(
+            SPCS83_ZONES
         )
         for zone in SPCS83_ZONES:
             position = combo.findData(zone)

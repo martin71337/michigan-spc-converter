@@ -27,7 +27,12 @@ from PySide6.QtWidgets import QButtonGroup, QComboBox, QMessageBox, QRadioButton
 from michspc.fileio import geoid
 from michspc.job import Direction, LongitudeConvention, VerticalMode
 from michspc.spc.units import ALL_UNITS, INTERNATIONAL_FEET, LinearUnit
-from michspc.spc.frames import ALL_FRAMES, ReferenceFrame
+from michspc.spc.frames import (
+    ALL_FRAMES,
+    FrameMismatchError,
+    ReferenceFrame,
+    require_frame_path,
+)
 from michspc.spc.vertical import (
     ALL_VERTICAL_DATUMS,
     HeightKind,
@@ -253,18 +258,23 @@ def zone_combo(parent, on_change) -> QComboBox:
     1. the unanswered placeholder;
     2. one geodetic entry per offered frame, in ``ALL_FRAMES`` declaration
        order (``frames_offered``), each naming its own datum (#58);
-    3. ``SPCS83_ZONES``, the three zones every Michigan job has used since
+    3. a separator;
+    4. ``SPCS83_ZONES``, the three zones every Michigan job has used since
        0.1.0 — first, because they are today's work;
-    4. a separator;
-    5. ``SPCS2022_ZONES``, the nineteen zones of the modernized design.
+    5. a separator;
+    6. ``SPCS2022_ZONES``, the nineteen zones of the modernized design.
 
-    **The separator is the only thing in this dropdown that carries no
-    meaning**, and it is here because the two blocks below it are not
-    interchangeable: a job cannot cross between them (the NAD83(2011) <->
-    NATRF2022 bridge is unpublished, DESIGN.md #62), so a surveyor scrolling
-    one flat list of twenty-two names needs the boundary to be visible. It
-    holds no data; ``direction_for`` refuses it by name if it is ever reached,
-    which no user action can do — Qt gives a separator no selectable flags.
+    **The separators are the only things in this dropdown that carry no
+    meaning**, and they are here because the three blocks they divide are three
+    different kinds of answer: a position, a 1983 zone, a 2022 zone. The second
+    boundary in particular is not decorative — a job cannot cross it (the
+    NAD83(2011) <-> NATRF2022 bridge is unpublished, DESIGN.md #62) — and the
+    first is the owner's, on his screen review: a flat run of twenty-five
+    entries reads as one list, and the geodetic entries are not zones.
+
+    They hold no data; ``direction_for`` refuses one by name if it is ever
+    reached, which no user action can do — Qt gives a separator neither the
+    enabled nor the selectable flag, and arrow-key traversal skips it.
 
     **The H2 gate that kept the 2022 zones out of here is gone, and this
     package is what its flip condition named.** It required the record to be
@@ -275,20 +285,27 @@ def zone_combo(parent, on_change) -> QComboBox:
     themselves, so an era silently dropping out of this list still fails.
 
     A pair the frame registry has no path for — a NAD83(2011) geodetic entry
-    against a 2022 zone — is SELECTABLE here and refused at Convert by
-    ``job.run``, in the frame registry's own words. That is deliberate and it
-    is #33's standing stance: this interface informs, it does not decide. A
-    pre-filtered dropdown would silently answer the question of which frame the
-    user's file is in, which is the one question a surveyor must answer for
-    himself.
+    against a 2022 zone — is GRAYED, on the owner's instruction after his
+    screen review; ``refresh_zone_graying`` owns that rule.
+
+    **That SUPERSEDES the stance this package shipped with**, and the
+    supersession is recorded here rather than left to be inferred: the pair was
+    selectable and refused at Convert, on #33's "this interface informs, it
+    does not decide". The owner looked at the screens and decided the other way
+    for this surface. The Convert-time refusals are untouched and remain the
+    authoritative gate — the graying is what a user meets before reaching them,
+    and Qt lets a program select a disabled item anyway.
 
     The change handler is passed in rather than hard-wired, so each tab connects
-    its own — the tabs share no state (docs/DESIGN.md amendment #26).
+    its own — the tabs share no state (docs/DESIGN.md amendment #26) — and each
+    tab passes a DIFFERENT handler per end, because the reconciliation rule has
+    to know which side the user just moved to know which side to clear.
     """
     combo = QComboBox(parent)
     combo.addItem("— choose —", UNCHOSEN)
     for choice in GEODETIC_CHOICES:
         combo.addItem(choice.label, choice)
+    combo.insertSeparator(combo.count())
     for zone in SPCS83_ZONES:
         combo.addItem(zone_label(zone), zone)
     combo.insertSeparator(combo.count())
@@ -813,6 +830,133 @@ def direction_for(source_data, target_data) -> Direction | None:
         f"carries no data. Refusing rather than reading it as a zone-to-zone "
         f"job, which would reach job.run with no zone."
     )
+
+
+FRAME_RESET_STATUS = (
+    "Cleared: no published transformation between those reference frames."
+)
+"""Shown when a selection is cleared because the other end moved.
+
+One sentence, the owner's instruction after reading ``UNITS_SNAPPED_STATUS`` on
+screen and finding three too many. It says the two things that cannot be
+guessed from a suddenly-empty dropdown: that the program cleared it, and why.
+
+It lives here rather than on either tab because both tabs say it, and one
+wording in both surfaces is the standing rule (docs/DESIGN.md amendment #17).
+"""
+
+
+def frame_of(data) -> ReferenceFrame | None:
+    """The reference frame a zone dropdown's item is expressed in.
+
+    A zone carries its own; a geodetic entry carries the frame it names. The
+    placeholder and the separators carry none, and ``None`` means exactly that -
+    "this item states no frame" - which is what makes the compatibility rule
+    below able to leave them alone rather than needing to know what they are.
+    """
+    if isinstance(data, Zone):
+        return data.frame
+    if is_geodetic(data):
+        return data.frame
+    return None
+
+
+def frames_have_a_path(source: ReferenceFrame, target: ReferenceFrame) -> bool:
+    """Whether this program can carry a position from one frame to the other.
+
+    **Derived from the frame registry, by asking it.** Not an era test, and
+    that is the whole point of writing it this way: ``require_frame_path`` is
+    the same function ``job.run`` refuses on, so the interface and the gate
+    cannot disagree about which pairs are convertible - and the day NGS
+    publishes the NAD83(2011) <-> NATRF2022 transformation and it is registered
+    in ``FRAME_TRANSFORMATIONS``, this answers True with no change to any line
+    of interface code and the graying dissolves by itself. A hard-coded
+    "1983 zones do not mix with 2022 zones" would still be graying them out
+    that day, and somebody would have to remember it was there.
+
+    Directional, because the registry is keyed by (source, target) and a future
+    transformation need not be registered both ways.
+    """
+    try:
+        require_frame_path(source, target)
+    except FrameMismatchError:
+        return False
+    return True
+
+
+def selection_is_compatible(candidate, other, *, candidate_is_source: bool) -> bool:
+    """Whether ``candidate`` can be chosen while the other end holds ``other``.
+
+    True whenever the question does not arise:
+
+    * the other end is unanswered - nothing is grayed against a placeholder,
+      because the user has not said anything for the candidate to disagree
+      with;
+    * either item states no frame at all (the placeholder itself, a separator).
+
+    The first of those is covered by the second - ``frame_of(UNCHOSEN)`` is
+    already ``None`` - and is written out anyway, measured rather than assumed:
+    a falsification that deleted it changed no behaviour at all. It stays
+    because the rule it states is the one a reader needs first, and because the
+    day ``UNCHOSEN`` stops being frameless by accident is the day the silent
+    version would start graying against a placeholder.
+
+    Otherwise it is the registry's answer for the pair, in the direction the
+    job would run: ``candidate_is_source`` says which end the candidate is, so
+    a one-way transformation would gray the right list.
+
+    **Geodetic-to-geodetic is judged by the same rule**, deliberately. It is
+    not a conversion at all (``direction_for`` returns None), so nothing would
+    break by exempting it - but exempting it would mean two rules where one
+    does, and it would offer a NATRF2022 position against a NAD83(2011) one as
+    though the pair meant something. One mechanism, no special case.
+    """
+    if other == UNCHOSEN:
+        return True
+    candidate_frame = frame_of(candidate)
+    other_frame = frame_of(other)
+    if candidate_frame is None or other_frame is None:
+        return True
+    if candidate_is_source:
+        return frames_have_a_path(candidate_frame, other_frame)
+    return frames_have_a_path(other_frame, candidate_frame)
+
+
+def refresh_zone_graying(combo, other, *, is_source: bool) -> None:
+    """Gray every item in ``combo`` that cannot be paired with ``other``.
+
+    **Grayed - disabled in place - never removed**, the owner's word and the
+    #50 vocabulary: a question that applies and cannot be answered stays
+    visible and gray, where a question that does not apply at all is hidden.
+    A surveyor who cannot find Michigan Grand Rapids in the list learns
+    nothing; one who sees it grayed learns that his other selection is why.
+
+    Both tabs call this through their own one owner method, so all four combos
+    are grayed by one rule. The separators are never touched - they are already
+    flagless, and re-enabling one would make it selectable.
+
+    **What Qt actually does with a disabled item, measured rather than
+    assumed:** the arrow keys skip it and the mouse cannot land on it, but
+    ``setCurrentIndex`` selects it perfectly happily from code. So this is a
+    user-interface courtesy and NOT a safety barrier, and nothing downstream
+    may be simplified on the strength of it: ``job.run``'s frame gate stays the
+    wall, and it is pinned as the wall.
+    """
+    model = combo.model()
+    for index in range(combo.count()):
+        data = combo.itemData(index)
+        if data is None:
+            # A separator. It carries no data, no flags and no meaning.
+            continue
+        item = model.item(index)
+        allowed = selection_is_compatible(
+            data, other, candidate_is_source=is_source
+        )
+        flags = item.flags()
+        if allowed:
+            item.setFlags(flags | Qt.ItemFlag.ItemIsEnabled)
+        else:
+            item.setFlags(flags & ~Qt.ItemFlag.ItemIsEnabled)
 
 
 def geodetic_frame_for(*sides) -> ReferenceFrame | None:

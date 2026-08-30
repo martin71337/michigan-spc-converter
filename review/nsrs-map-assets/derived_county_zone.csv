@@ -1,0 +1,84 @@
+county,state_county_fips,zone_code,zone_abbrev,zone_name,land_sample_points,unanimous
+Alcona,26001,261006,L35T,Thunder Bay,71,yes
+Alger,26003,261014,U21E,Escanaba,27,yes
+Allegan,26005,261008,L45G,Grand Rapids,88,yes
+Alpena,26007,261006,L35T,Thunder Bay,68,yes
+Antrim,26009,261011,L61L,Leelanau,125,yes
+Arenac,26011,261005,L31R,Roscommon,68,yes
+Baraga,26013,261016,U41H,Houghton,129,yes
+Barry,26015,261008,L45G,Grand Rapids,197,yes
+Bay,26017,261004,L25S,Saginaw,110,yes
+Benzie,26019,261011,L61L,Leelanau,78,yes
+Berrien,26021,261007,L41Z,Kalamazoo,68,yes
+Branch,26023,261007,L41Z,Kalamazoo,197,yes
+Calhoun,26025,261007,L41Z,Kalamazoo,197,yes
+Cass,26027,261007,L41Z,Kalamazoo,196,yes
+Charlevoix,26029,261012,L65C,Cheboygan,33,yes
+Cheboygan,26031,261012,L65C,Cheboygan,147,yes
+Chippewa,26033,261013,U11M,Mackinac,44,yes
+Clare,26035,261005,L31R,Roscommon,197,yes
+Clinton,26037,261008,L45G,Grand Rapids,197,yes
+Crawford,26039,261006,L35T,Thunder Bay,197,yes
+Delta,26041,261014,U21E,Escanaba,94,yes
+Dickinson,26043,261015,U31Q,Marquette,168,yes
+Eaton,26045,261008,L45G,Grand Rapids,197,yes
+Emmet,26047,261012,L65C,Cheboygan,82,yes
+Genesee,26049,261003,L21F,Flint,176,yes
+Gladwin,26051,261005,L31R,Roscommon,191,yes
+Gogebic,26053,261017,U51B,Bessemer,46,yes
+Grand Traverse,26055,261011,L61L,Leelanau,96,yes
+Gratiot,26057,261009,L51N,Newaygo,197,yes
+Hillsdale,26059,261001,L11A,Ann Arbor,195,yes
+Houghton,26061,261016,U41H,Houghton,57,yes
+Huron,26063,261004,L25S,Saginaw,62,yes
+Ingham,26065,261008,L45G,Grand Rapids,197,yes
+Ionia,26067,261008,L45G,Grand Rapids,197,yes
+Iosco,26069,261005,L31R,Roscommon,59,yes
+Iron,26071,261016,U41H,Houghton,165,yes
+Isabella,26073,261009,L51N,Newaygo,197,yes
+Jackson,26075,261001,L11A,Ann Arbor,197,yes
+Kalamazoo,26077,261007,L41Z,Kalamazoo,197,yes
+Kalkaska,26079,261011,L61L,Leelanau,196,yes
+Kent,26081,261008,L45G,Grand Rapids,197,yes
+Keweenaw,26083,,,,12,NO
+Lake,26085,261010,L55W,Wexford,197,yes
+Lapeer,26087,261003,L21F,Flint,184,yes
+Leelanau,26089,261011,L61L,Leelanau,21,yes
+Lenawee,26091,261001,L11A,Ann Arbor,194,yes
+Livingston,26093,261001,L11A,Ann Arbor,193,yes
+Luce,26095,261013,U11M,Mackinac,87,yes
+Mackinac,26097,261013,U11M,Mackinac,65,yes
+Macomb,26099,261002,L15D,Detroit,155,yes
+Manistee,26101,261010,L55W,Wexford,79,yes
+Marquette,26103,261015,U31Q,Marquette,89,yes
+Mason,26105,261010,L55W,Wexford,76,yes
+Mecosta,26107,261009,L51N,Newaygo,197,yes
+Menominee,26109,261015,U31Q,Marquette,87,yes
+Midland,26111,261004,L25S,Saginaw,183,yes
+Missaukee,26113,261010,L55W,Wexford,197,yes
+Monroe,26115,261002,L15D,Detroit,131,yes
+Montcalm,26117,261009,L51N,Newaygo,162,yes
+Montmorency,26119,261006,L35T,Thunder Bay,197,yes
+Muskegon,26121,261009,L51N,Newaygo,61,yes
+Newaygo,26123,261009,L51N,Newaygo,197,yes
+Oakland,26125,261002,L15D,Detroit,195,yes
+Oceana,26127,261009,L51N,Newaygo,81,yes
+Ogemaw,26129,261005,L31R,Roscommon,197,yes
+Ontonagon,26131,261017,U51B,Bessemer,46,yes
+Osceola,26133,261010,L55W,Wexford,197,yes
+Oscoda,26135,261006,L35T,Thunder Bay,197,yes
+Otsego,26137,261006,L35T,Thunder Bay,184,yes
+Ottawa,26139,261008,L45G,Grand Rapids,59,yes
+Presque Isle,26141,261012,L65C,Cheboygan,42,yes
+Roscommon,26143,261005,L31R,Roscommon,197,yes
+Saginaw,26145,261004,L25S,Saginaw,157,yes
+Sanilac,26151,261004,L25S,Saginaw,104,yes
+Schoolcraft,26153,261014,U21E,Escanaba,101,yes
+Shiawassee,26155,261003,L21F,Flint,197,yes
+St. Clair,26147,261003,L21F,Flint,97,yes
+St. Joseph,26149,261007,L41Z,Kalamazoo,184,yes
+Tuscola,26157,261004,L25S,Saginaw,130,yes
+Van Buren,26159,261007,L41Z,Kalamazoo,77,yes
+Washtenaw,26161,261001,L11A,Ann Arbor,196,yes
+Wayne,26163,261002,L15D,Detroit,104,yes
+Wexford,26165,261010,L55W,Wexford,197,yes

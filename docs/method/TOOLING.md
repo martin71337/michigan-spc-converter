@@ -42,6 +42,18 @@ quit, release the COM object, `Wait-Job -Timeout`.
 - Bash heredocs with apostrophes inside `$(cat <<'EOF' ...)` command
   substitutions can break quoting — prefer the file-Write tool for long
   content, then reference the file.
+- PowerShell 5.1 native-command argument passing mangles embedded double
+  quotes — a `git commit -m` here-string containing a quoted phrase
+  exploded into pathspecs twice (2026-08-29). Long or quoted commit
+  messages go through a file and `git commit -F`.
+- **`geodesy.noaa.gov/pub` fails open to unfamiliar clients** (found
+  2026-08-29, map-asset recon): a request with a custom User-Agent gets
+  HTTP 200 with a "404 Error" HTML body, and `curl -sI` reports a
+  plausible Content-Length — a HEAD size check does not catch it, and it
+  served three identical 15,905-byte error pages under three different
+  grid filenames. Every download from there must be content-verified
+  (magic bytes or expected structure), never trusted on status + size.
+  Kin to the beta-API fails-open hazard recorded in DESIGN.md #61.
 
 ## Python / Qt
 

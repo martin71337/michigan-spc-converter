@@ -1,0 +1,322 @@
+   HB-5577, As Passed House, April 15, 2026
+
+        HOUSE BILL NO. 5577
+
+   February 24, 2026, Introduced by Reps. Roth, Wozniak, MacDonell, Alexander, Prestin, Outman,
+      Kunse and Cavitt and referred to Committee on Regulatory Reform.
+
+            A bill to amend 1964 PA 9, entitled
+
+   "An act to describe, define, and officially adopt certain systems
+   of coordinates for designating the position of points on or near
+   the surface of the earth within this state,"
+
+   by amending sections 1, 1a, 3, 4, 6, 7, 8, and 9 (MCL 54.231,
+
+   54.231a, 54.233, 54.234, 54.236, 54.237, 54.238, and 54.239),
+
+   sections 1, 3, 4, 6, 7, 8, and 9 as amended and section 1a as added
+
+   by 1988 PA 154; and to repeal acts and parts of acts.
+
+        THE PEOPLE OF THE STATE OF MICHIGAN ENACT:
+
+1       Sec. 1. (1) This act may be cited as the "state plane
+
+2 coordinates act".
+
+   TDR               H04924'25_HB5577_APH_1                       9xms4t
+                                  2
+
+1        (2) (1) The systems of plane coordinates which that are
+
+2 established by the NOAA/NGS for defining and stating the positions
+
+3 of points on or near the surface of the earth within in this state
+
+4 shall be known and are designated as the Michigan plane coordinate
+
+5 system. of 1927, or MCS 27, and the Michigan coordinate system of
+
+6 1983, or MCS 83.
+
+7        (2) For the purpose of the use of these systems, the state is
+
+8 divided into a north zone, a central zone, and a south zone.
+
+9        (3) The area included in the following counties constitutes
+
+10 the north zone: Gogebic, Ontonagon, Houghton, Keweenaw, Baraga,
+
+11 Iron, Marquette, Dickinson, Menominee, Alger, Delta, Schoolcraft,
+
+12 Luce, Chippewa, and Mackinac.
+
+13       (4) The area included in the following counties constitutes
+
+14 the central zone: Emmet, Cheboygan, Presque Isle, Charlevoix,
+
+15 Leelanau, Antrim, Otsego, Montmorency, Alpena, Benzie, Grand
+
+16 Traverse, Kalkaska, Crawford, Oscoda, Alcona, Manistee, Wexford,
+
+17 Missaukee, Roscommon, Ogemaw, Iosco, Mason, Lake, Osceola, Clare,
+
+18 Gladwin, and Arenac.
+
+19       (5) The area included in the following counties constitutes
+
+20 the south zone: Oceana, Newaygo, Mecosta, Isabella, Midland, Bay,
+
+21 Huron, Muskegon, Montcalm, Gratiot, Saginaw, Tuscola, Sanilac,
+
+22 Ottawa, Kent, Ionia, Clinton, Shiawassee, Genesee, Lapeer, St.
+
+23 Clair, Allegan, Barry, Eaton, Ingham, Livingston, Oakland, Macomb,
+
+24 Van Buren, Kalamazoo, Calhoun, Jackson, Washtenaw, Wayne, Berrien,
+
+25 Cass, St. Joseph, Branch, Hillsdale, Lenawee, and Monroe.
+
+26       Sec. 1a. As used in this act:
+
+27       (a) "Coordinates" means the x and y plane rectangular
+
+28 coordinate values computed for a geographic position from a pair of
+
+29 mutually perpendicular axes. These axes are the meridian and
+
+    TDR                  H04924'25_HB5577_APH_1                   9xms4t
+                                  3
+
+1 parallel, defined in sections 5 and 5a, whose intersection defines
+
+2 the origin of each zone.
+
+3        (b) "FGCC" means the federal geodetic control committee of the
+
+4 United States department of commerce or a successor agency to the
+
+5 committee.
+
+6        (b) "Metadata" means data describing other data. Metadata
+
+7 includes, but is not limited to, the geodetic reference system
+
+8 used, applicable epoch, statement of relative accuracy, and date of
+
+9 observation.
+
+10       (c) "Michigan plane coordinate system" means the system of
+
+11 plane coordinates, which has been established by NOAA/NGS, based on
+
+12 the NSRS, and known as the SPCS, for defining and stating the
+
+13 geographic positions or locations of points in this state.
+
+14       (d) (c) "NOAA/NGS" means the national oceanic and atmospheric
+
+15 administration/national geodetic survey National Oceanic and
+
+16 Atmospheric Administration/National Geodetic Survey or a successor
+
+17 agency to the administration.
+
+18       (e) "NSRS" means the National Spatial Reference System or its
+
+19 successors.
+
+20       (f) "Zone" means the geographic areas encompassed by closed
+
+21 contiguous county boundaries or submerged lands, or both.
+
+22       Sec. 3. The coordinates for a point on or near the earth's
+
+23 surface that are used to express the geographic position of that
+
+24 point in the appropriate zone of this the Michigan plane coordinate
+
+25 system shall must consist of 2 distances. Each distance shall be
+
+26 expressed in United States survey feet (1 foot = 12/39.37 meters)
+
+27 and decimals of a survey foot if using the Michigan coordinate
+
+28 system of 1927, or shall must be expressed in meters and decimals
+
+29 of a meter or in international feet (1 foot = 0.3048 meter exactly)
+
+    TDR         H04924'25_HB5577_APH_1                            9xms4t
+                 4
+
+1 and decimals of an international foot. if using the Michigan
+
+2 coordinate system of 1983. One of these distances, to be known as
+
+3 the "x-coordinate", shall must give the position in an east and
+
+4 west direction; the other distance, to be known as the "y-
+
+5 coordinate", shall must give the position in a north and south
+
+6 direction. The coordinates shall must depend upon on and conform to
+
+7 values published by the NOAA/NGS. for the monumented points of the
+
+8 North American horizontal geodetic control network, the coordinates
+
+9 of which monumented points were computed on the systems designated
+
+10 in this act.
+
+11       Sec. 4. If a tract of land is defined by a single description
+
+12 and extends from 1 zone into another of the coordinate zones
+
+13 described in section 1, zone, the positions of all points on the
+
+14 tract's boundaries may be referred to either of the 2 zones. The
+
+15 zone which that is used for reference shall must be specifically
+
+16 named in the description and identified in the metadata.
+
+17       Sec. 6. Coordinates based on either Michigan coordinate system
+
+18 described in this act, purporting to define the position of a point
+
+19 or a land boundary corner, shall must not be presented to be
+
+20 recorded unless the recording document contains an estimate ,
+
+21 expressed as a standard deviation, at the 95% confidence level of
+
+22 the positional tolerance of the coordinates being recorded. The
+
+23 recording document shall also must contain a description of the
+
+24 nearest first or second order horizontal the metadata and geodetic
+
+25 control monument from which the coordinates being recorded were
+
+26 determined and the method of survey for that determination. If the
+
+27 position of the described first or second order geodetic control
+
+28 monument is not published by the NOAA/NGS, the recording document
+
+29 shall contain a certificate signed by a land surveyor licensed
+
+    TDR          H04924'25_HB5577_APH_1                           9xms4t
+                           5
+
+1 under article 20 of the occupational code, Act No. 299 of the
+
+2 Public Acts of 1980, being sections 339.2001 to 339.2014 of the
+
+3 Michigan Compiled Laws, which certificate states that the described
+
+4 control monument and its coordinates have been established and
+
+5 determined in conformance with the specifications given in section
+
+6 5 or 5a.
+
+7        Sec. 7. (1) The use of the term "Michigan plane coordinate
+
+8 system" of 1927 on a map, report of survey, or other document shall
+
+9 must be limited to coordinates based on the Michigan plane
+
+10 coordinate system of 1927 as defined in section 5.in effect on the
+
+11 date of the survey. The document must contain metadata and the
+
+12 geodetic control monument from which the coordinates being reported
+
+13 were determined and the method of survey for that determination.
+
+14       (2) The use of the term Michigan coordinate system of 1983 on
+
+15 a map, report of survey, or other document shall be limited to
+
+16 coordinates based on the Michigan coordinate system of 1983 as
+
+17 defined in section 5a.
+
+18       Sec. 8. (1) For the purpose of describing A description of the
+
+19 location of a survey station or land boundary corner in the state
+
+20 of Michigan, it shall be considered this state by the Michigan
+
+21 plane coordinate system is a complete, legal, and satisfactory
+
+22 description of that location. to give the position of the survey
+
+23 station or land boundary corner by the Michigan coordinate system
+
+24 of 1927 or the Michigan coordinate system of 1983.
+
+25       (2) If the Michigan plane coordinate system of 1927 or the
+
+26 Michigan coordinate system of 1983 is used to describe a tract of
+
+27 land which in the same document that is also described in the same
+
+28 document by reference to a subdivision, line, or corner of the
+
+29 United States public land surveys, or to a subdivision plat duly
+
+    TDR                    H04924'25_HB5577_APH_1                9xms4t
+                    6
+
+1 recorded in accordance with the subdivision control act of 1967,
+
+2 Act No. 288 of the Public Acts of 1967, being sections 560.101 to
+
+3 560.293 of the Michigan Compiled Laws, the under the land division
+
+4 act, 1967 PA 288, MCL 560.101 to 560.293, both of the following
+
+5 apply:
+
+6        (a) The description by coordinates shall be construed as is
+
+7 supplemental to the basic description of the subdivision, line, or
+
+8 corner contained in the official plats and field notes filed of
+
+9 record. , and in
+
+10       (b) In the event of a conflict, the description by reference
+
+11 to the subdivision, line, or corner of the United States public
+
+12 land surveys, or to the recorded subdivision plat, shall prevail
+
+13 prevails over the description by coordinates.
+
+14       Sec. 9. The Michigan coordinate system of 1927 shall not be
+
+15 used after December 31, 1989. The Michigan coordinate system of
+
+16 1983 shall be the sole system used after December 31, 1989.The
+
+17 official geodetic reference system to which geodetic coordinates,
+
+18 including, but not limited to, latitude, longitude, ellipsoid
+
+19 height, orthometric height, or dynamic height, are referenced in
+
+20 this state must be defined by the NSRS.
+
+21       Enacting section 1. Sections 2, 5, and 5a of 1964 PA 9, MCL
+
+22 54.232, 54.235, and 54.235a, are repealed.
+
+                    Final Page
+
+    TDR             H04924'25_HB5577_APH_1                        9xms4t
+

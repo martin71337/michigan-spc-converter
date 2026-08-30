@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>State Plane Coordinate System (SPCS) - Tools - National Geodetic Survey</title>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="DC.title" content="State Plane Coordinate System (SPCS) - Tools - National Geodetic Survey">
+<meta name="DC.description" content="NGS_Description">
+<meta name="DC.creator" content="US Department of Commerce, National Oceanic and Atmospheric Administration, National Ocean Service, National Geodetic Survey">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="DC.language" scheme="DCTERMS.RFC1766" content="EN-US">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-7PDTL9NJYZ"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-7PDTL9NJYZ');
+</script>
+<script src="/ngsstandard/assets/js/jquery.min.js"></script>
+<script src="/ngsstandard/assets/js/bootstrap.min.js"></script>
+<script async="" src="//www.google-analytics.com/analytics.js"></script>
+<!-- DAP tag -->
+<script src="//dap.digitalgov.gov/Universal-Federated-Analytics-Min.js?agency=DOC&amp;subagency=NOAA" id="_fed_an_ua_tag"></script>
+<!-- DAP tag -->
+<link rel="apple-touch-icon" href="/ngsstandard/images/apple-touch-icon.png">
+<!-- For non-Retina iPhone, iPod Touch, and Android 2.1+ devices: -->
+<link rel="apple-touch-icon-precomposed" href="/ngsstandard/images/apple-touch-icon-precomposed.png">
+<script type="text/javascript">
+$(document).ready(function(){
+	$(".dropdown, .btn-group").hover(function(){
+		var dropdownMenu = $(this).children(".dropdown-menu");
+		if(dropdownMenu.is(":visible")){
+			dropdownMenu.parent().toggleClass("open");
+		}
+	});
+});		
+</script>
+<link rel="stylesheet" href="/ngsstandard/assets/css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="/ngsstandard/assets/css/ngs-theme-lite.css">
+<link rel="stylesheet" type="text/css" href="/ngsstandard/assets/css/media-queries.css">
+<link rel="stylesheet" href="/ngsstandard/assets/css/font-awesome/4.5.0/css/font-awesome.min.css" >
+
+<script>
+//var j = jQuery.noConflict();
+$.urlParam = function(name){
+    var results = new RegExp('[\?&]' + name + '=([^&#]*)').exec(window.location.href);
+    return results[1] || 0;
+}
+
+$.getJSON( "/wp-json/wp/v2/pages/8473", function( post ) {
+  console.log(post);
+  var html = "";
+  html += post.content.rendered;
+
+  $("#press").html(html);
+});
+</script>
+<script>
+$.getJSON( "/wp-json/wp-rest-api-sidebars/v1/sidebars/avada-custom-sidebar-spcssidebar", function( wpsb ) {
+  console.log(wpsb);
+  var html = "";
+
+  html += wpsb.rendered;
+
+  $("#wpsidebar").html(html);
+});
+</script>
+</head>
+<body>
+
+    <!-- Skip Nav -->
+    <a href="#main-content" class="sr-only sr-only-focusable">Skip to main content</a>
+ 
+<!-- APP CONTENT -->
+<!-- jQuery local fallback -->
+<!--script>window.jQuery || document.write('<script src="/ngsstandard/assets/bootstrap/js/jquery.min.js"><\/script>')</script-->
+<!-- Bootstrap JS local fallback -->
+<!--script>if(typeof($.fn.modal) === 'undefined') {document.write('<script src="/ngsstandard/assets/bootstrap/js/bootstrap.min.js"><\/script>')}</script-->
+<!-- Bootstrap CSS local fallback -->
+
+<script>
+    $(document).ready(function() {
+        var bodyColor = $('body').css('color');
+        if(bodyColor != 'rgb(51, 51, 51)') {
+            $("head").prepend('<link rel="stylesheet" href="/ngsstandard/assets/bootstrap/css/bootstrap.min.css">');}});
+</script>
+ 
+<header>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="noaa"> 
+                    <!--<a href="#" title="NOAA website">noaa.gov</a>-->
+					<a class="NOAA_LINK" title="NOAA Home Page" href="https://www.noaa.gov"></a>
+                </div>
+            </div>
+        </div>
+    </div>
+</header> 
+<div class="container"> 
+  <!--Navbar with dropdown menu-->
+  <nav id="myNavbar" class="navbar navbar-default" role="navigation"> 
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1"> <span class="sr-only">Toggle navigation</span> <span class="icon-bar"></span> <span class="icon-bar"></span> <span class="icon-bar"></span> </button>
+        <a class="navbar-brand" href="/index.shtml">NGS Home</a> </div>
+      
+      <!-- Collect the nav links, forms, and other content for toggling -->
+      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <ul class="nav navbar-nav">
+  <li class="dropdown"> <a href="#" data-toggle="dropdown" class="dropdown-toggle">About NGS </a>
+    <ul class="dropdown-menu">
+      <li> <a href="https://geodesy.noaa.gov/INFO/WhatWeDo.shtml">What We Do</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/web/about_ngs/info/mission-strategic-planning.shtml">Mission and Strategic Plan</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/INFO/leadership.shtml">NGS Leadership</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/INFO/programs-products.shtml">Programs and Products</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/ADVISORS/index.shtml">Geodetic Advisors</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/INFO/history/">NGS History</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/INFO/Policy/">Policies</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/INFO/activities.shtml">Activities in My Area</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/grant-opportunities/index.shtml">Grant Opportunities</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/ContractingOpportunities/">Contracting Opportunities</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/student-opportunities/index.shtml">Student Opportunities</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/faq.shtml">FAQ</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/INFO/NGSinfo.shtml">Contact Us</a> </li>
+    </ul>
+  </li>
+  <li class="dropdown"> <a href="#" data-toggle="dropdown" class="dropdown-toggle">Data & Imagery</a>
+    <ul class="dropdown-menu">
+      <li> <a href="https://geodesy.noaa.gov/OPUS/view.jsp">OPUS Share</a> </li>
+      <!--<li> <a href="https://geodesy.noaa.gov/NGSDataExplorer/">NGS Data Explorer</a> </li>-->
+      <li> <a href="https://geodesy.noaa.gov/datasheets/">Survey Mark Datasheets</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/datasheets/ngs_map/">NGS Web Map</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/CORS/">NOAA CORS Network (NCN)</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/ANTCAL/">Antenna Calibration Data</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/RSD/rsd_home.shtml">Remote Sensing</a></li>
+      <li> <a href="https://storms.ngs.noaa.gov/">Storm Imagery</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/web/APOS2/APOS.shtml">Coastal Imagery</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/RSD/cmp_data.shtml">Shoreline Data Explorer</a> </li>
+      <li> <a href="https://coast.noaa.gov/dataviewer/#/imagery/search/where:projectid=1020">Orthomosaics</a> </li>
+      <li> <a href="https://coast.noaa.gov/dataviewer/#/lidar/search/where:projectid=24">Lidar</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/AERO/aero.html">Aeronautical Data</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/GRAV-D/data_products.shtml">Gravity Data</a> </li>
+      <!--<li> <a href="https://geodesy.noaa.gov/orbits/">Orbit Data</a> </li>-->
+    </ul>
+  </li>
+  <li class="dropdown"> <a href="#" data-toggle="dropdown" class="dropdown-toggle">Tools</a>
+    <ul class="dropdown-menu">
+      <li> <a href="https://geodesy.noaa.gov/OPUS/">Process GPS Data (OPUS)</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/NCAT/">Coordinate Conversion and Transformation Tool (NCAT)</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/TOOLS/">Geodetic Tool Kit</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/PC_PROD/">Geodetic Software</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/web_services/">Web Services</a> </li>
+      <li> <a href="http://vdatum.noaa.gov">Vertical Datum Conversions (VDATUM)</a> </li>
+      <!--<li> <a href="/PC_PROD/VERTCON/">VERTCON</a> </li>-->
+      <li> <a href="https://geodesy.noaa.gov/gps-toolbox/">GPS Toolbox</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/GEOID/GEOID18/computation.html">GEOID18 Computation</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/locus/">Adjust Leveling (LOCUS)</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/TOOLS/Htdp/Htdp.shtml">Horizontal Time-Dependent Positioning (HTDP)</a> </li>
+    </ul>
+  </li>
+  <li class="dropdown"> <a href="#" data-toggle="dropdown" class="dropdown-toggle">Surveys</a>
+    <ul class="dropdown-menu">
+      <li> <a href="https://geodesy.noaa.gov/SurveyProposal/">Survey Project Proposal Form</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/OPUS/about.jsp#sharing">OPUS Share</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/surveys/mark-recovery/index.shtml">Mark Recovery</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/FGCS/BlueBook/">User-submitted Survey Projects (Bluebooking)</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/GEOID/GSVS/">Geoid Slope Validation Survey (GSVS)</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/CBLINES/calibration.shtml">Calibration Base Lines (CBLs)</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/GPSonBM/">GPS on Bench Marks</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/GRAV-D/">GRAV-D</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/heightmod/">Height Modernization</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/leveling/">Leveling</a> </li>
+      <!--<li> <a href="/web/surveys/NA2011/">National Adjustment of 2011</a> </li>-->
+    </ul>
+  </li>
+  <li class="dropdown"> <a href="#" data-toggle="dropdown" class="dropdown-toggle">Science & Education</a>
+    <ul class="dropdown-menu multi-level">
+      <li> <a href="https://geodesy.noaa.gov/datums/index.shtml">Datums and Reference Frames</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/datums/newdatums/index.shtml">New Datums</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/research/index.shtml">Research</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/GEOID/">Geoid Models</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/web/science_edu/training/">Conferences/Training</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/INFO/conferences.shtml">Upcoming and Recent NGS Presentations</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/corbin/class_description/NGS_Video_Library.shtml">Educational Videos</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/web/science_edu/online_lessons/index.shtml">Online Lessons</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/web/science_edu/webinar_series/">Webinar Series</a></li>
+      <li> <a href="https://geodesy.noaa.gov/web/science_edu/presentations_library/">Presentation Library</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/library/">Publication Library</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/commemorative/index.shtml">Commemorative Marks</a> </li>
+      <li> <a href="https://geodesy.noaa.gov/INFO/applications-of-geodesy.shtml">Applications of Geodesy</a> </li>
+    </ul>
+  </li>
+</ul>
+
+        <div id="menus_ngs_main_search">
+          <form method="get" action="//search.usa.gov/search" id="myform">
+            <div>
+              <input name="affiliate" value="nationalgeodeticsurvey" type="hidden">
+              <input size="10" name="query" class="searchbox" type="text" aria-label="Search">
+              <input name="Submit" value="Search" class="searchbtn" type="submit">
+            </div>
+            <input type="hidden" name="dump_app_trace" value="false">
+            <input type="hidden" name="db_debug" value="false">
+            <input type="hidden" name="dump_app_trace" value="false">
+            <input type="hidden" name="db_debug" value="false">
+          </form>
+        </div>
+      </div>
+    </div>
+  </nav>
+  </div>
+
+
+
+<div class="container">
+  <div class="row">
+    <div class="col-sm-3">
+      <div class="popular_resources">
+        <div id="wpsidebar"></div>
+      </div>
+    </div>
+    <div class="col-sm-9">
+      <div id="press"></div>
+    </div>
+  </div>
+</div>
+
+<div id="footer">
+  <div class="container footer_color">
+    <div class="row"> 
+      
+      <!--column 1-->
+      <div class="span12">
+        <div class="pad45"></div>
+        <center>
+          <ul class="footLinks-nav">
+            <a href="https://oceanservice.noaa.gov/"> NOS Home</a> <img src="https://geodesy.noaa.gov/ngsstandard/images/redbullet.gif" alt="bullet"> <a href="/privacy.shtml">Privacy </a> <img src="https://geodesy.noaa.gov/ngsstandard/images/redbullet.gif" alt="bullet"> <a href="/survey.shtml">Feedback</a> <img src="https://geodesy.noaa.gov/ngsstandard/images/redbullet.gif" alt="bullet"> <a href="/disclaimer.html">Disclaimer</a> <img src="https://geodesy.noaa.gov/ngsstandard/images/redbullet.gif" alt="bullet"> <a href="https://www.usa.gov/">USA.gov</a> <img src="https://geodesy.noaa.gov/ngsstandard/images/redbullet.gif" alt="bullet"> <a href="https://www.ready.gov/">Ready.gov</a><img src="https://geodesy.noaa.gov/ngsstandard/images/redbullet.gif" alt="bullet"> <a href="https://www.noaa.gov/organization/information-technology/policy-oversight/information-quality">Information Quality</a> <img src="https://geodesy.noaa.gov/ngsstandard/images/redbullet.gif" alt="bullet"> <a href="/sitemap.xml">Site Map</a> <img src="https://geodesy.noaa.gov/ngsstandard/images/redbullet.gif" alt="bullet"> <a href="https://geodesy.noaa.gov/cgi-bin/redirectNOAA.prl?u=ngs.infocenter">Contact Us</a>
+          </ul>
+        </center>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

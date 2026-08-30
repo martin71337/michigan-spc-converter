@@ -1,0 +1,658 @@
+  
+ 
+ 
+ 
+ 
+ 
+Procedures for Design and 
+Modification of the State Plane 
+Coordinate System of 2022 
+ 
+ 
+Procedures Document 
+National Geodetic Survey 
+National Ocean Service 
+National Oceanic and Atmospheric Administration 
+  
+ 
+AUTHORIZED BY: 
+ 
+ 
+ 
+ 
+_______________________________________       ____________ 
+Chief, Observation and Analysis Division      Date 
+Vicki A. Childers 
+ 
+ 
+Tracking Number: 
+NGS 2023-1214-03-A3 
+Effective Date: 
+July 1, 2023 
+ 
+
+NGS 2023-1214-03-A3 NOAA’s National Geodetic Survey 
+ 
+Page 2 of 16 
+Official Procedure Title:  Procedures for Design and Modification of the State Plane 
+Coordinate System of 2022 
+Tracking Number:  NGS 2023-1214-03-A3 
+Effective Date:  July 1, 2023 
+Internal or External:  External 
+Associated NGS Documents:   
+“State Plane Coordinate System of 2022 Policy” 
+<https://geodesy.noaa.gov/INFO/Policy/files/SPCS2022-Policy.pdf> 
+ “The State Plane Coordinate System: History, Policy, and Future Directions,” NOAA Special 
+Publication NOS NGS 13, National Oceanic and Atmospheric Administration, National 
+Geodetic Survey, Silver Spring, Maryland. 
+<https://geodesy.noaa.gov/library/pdfs/SP_NOS_NGS_13.pdf> 
+Authority/Reference:  As original creator of the State Plane Coordinate System, the National 
+Geodetic Survey (NGS) has sole authority to define and establish these procedures. 
+Supersedes:  There are no prior procedures for the State Plane Coordinate System.  Superseded 
+policies are listed in the policy document associated with these procedures.  However, the 
+superseded policies include information that can be construed as procedures. 
+Review Schedule:  At least once every two years. 
+Responsible Office/Position:  The Observation and Analysis Division (OAD) Chief has the 
+authority to review and approve these procedures.  The OAD chief is responsible for ensuring 
+these procedures are consistent with and reflect any changes made to the associated policy. 
+Purpose/Scope 
+These procedures define the roles and responsibilities for the National Geodetic Survey (NGS) 
+and stakeholders in defining and modifying the State Plane Coordinate System of 2022 
+(SPCS2022), as well as its naming conventions and technical specifications.  The procedures are 
+divided into the following six sections: 
+1. NGS contact information and criteria for stakeholder input.  NGS email and postal 
+addresses for submissions, general submittal requirements, and criteria for “consensus” 
+stakeholder input for submitting requests and proposals, and for submittal of zone designs 
+by stakeholders. 
+2. R equirements for stakeholder requests and proposals of SPCS2022 designs.  Specifies 
+requirements for stakeholders to make requests for SPCS2022 designs by NGS and for 
+proposing designs by stakeholders. 
+3. R equirements for submittal of SPCS2022 designs by stakeholders.  Specifies 
+requirements for stakeholders when submitting their approved SPCS2022 zone designs. 
+4. N GS roles and responsibilities for SPCS2022 reviews and documentation.  Specifies how 
+NGS reviews requests, design proposals, and submitted designs, as well as what is 
+documented by NGS. 
+NGS 2023-1214-03-A3 NOAA’s National Geodetic Survey 
+ 
+Page 3 of 16 
+5. Zone numbers, names, and abbreviations.  Presents the protocols and requirements for 
+numeric codes, zone names, and name abbreviations for SPCS2022 zones. 
+6. T echnical specifications for SPCS2022 design and implementation.  Detailed technical 
+specifications to augment those given in SPCS2022 policy. 
+This procedures document provides supporting information for implementing SPCS2022 policy.  
+It includes additional details to aid in interpreting and fulfilling the policy objectives. 
+The procedures are based on and derived from the SPCS2022 policy.  If any items in these 
+procedures are construed as being in conflict with policy, the policy shall prevail.  Moreover, any 
+information in the policy that is not addressed in these procedures should be considered as 
+complete within the policy itself. 
+SPCS2022 is established for states, the Federal District, and selected insular areas of the United 
+States.  For brevity, the term “state” represents all of these areas throughout this document, as in 
+the policy document. 
+Background 
+The policy associated with these procedures provides the necessary background information.  
+Additional information on SPCS is given in NOAA Special Publication NOS NGS 13, which 
+includes a comprehensive list of references to other NGS SPCS documents.  These documents 
+are a valuable resource for understanding SPCS in the context of its evolution, implementations, 
+and usage since its original creation in the 1930s. 
+Exceptions 
+The NGS Director may exercise discretion to approve or deny special requests regarding initial 
+design or subsequent changes of SPCS2022 that depart from these procedures (and associated 
+policy), either in whole or in part. 
+Definitions of Terms 
+Not all technical terms used in this procedures document are defined below.  Terms not defined 
+in this list are either defined in the body of this document or by reference to NOAA Special 
+Publication NOS NGS 13.  Terms in italics in the definitions are also defined in this list. 
+• Conformal map projection.  A projection where the linear distortion is unique (the same in 
+every direction) at a point and, equivalently, the only angular distortion is the convergence 
+angle.  The three types of conformal projections used for SPCS are the Lambert Conformal 
+Conic (LCC), Transverse Mercator (TM), and Hotine Oblique Mercator (OM). 
+• C
+onvergence angle .  The difference between geodetic and grid north (with sign convention as 
+geodetic minus grid north); also known as mapping or map angle.  Typically computed and 
+used only for conformal map projections. 
+• L
+inear distortion .  For conformal map projections, it is the amount by which a distance or 
+length in a projected coordinate reference system differs from the actual horizontal distance 
+NGS 2023-1214-03-A3 NOAA’s National Geodetic Survey 
+ 
+Page 4 of 16 
+on or near the topographic surface of the Earth.  Expressed as a ratio of distorted distance to 
+true distance, for example as parts per million (ppm) or as a ratio (e.g., 100 ppm = 1:10,000).  
+Also known as “scale error” when evaluated with respect to distances on the reference 
+ellipsoid surface. 
+• Projection axis.  For conformal map projections, it is the line or curve along which linear 
+distortion is minimum and constant (or nearly constant) with respect to the reference 
+ellipsoid.  It is the central parallel of the Lambert Conformal Conic projection, the central 
+meridian of the Transverse Mercator projection, and the skew axis of the Hotine Oblique 
+Mercator projection (also known as the initial or central line). 
+• R eference ellipsoid .  An oblate ellipsoid of revolution that approximates the size and shape 
+of the entire Earth geoid (“mean sea level”) or a large portion of it.  When oriented with 
+respect to a geometric reference frame or datum, it defines the reference surface for projected 
+coordinate reference systems.  Also known as a reference “spheroid.” 
+• Stakeholders.  NGS customers and users of SPCS within a state most involved in the use, 
+collection, and distribution of spatial data, and who have a substantial stake in how 
+SPCS2022 is designed. Stakeholders consist of one or more of the following organizations:  
+o State departments of transportation. 
+o State GIS or cartographer offices. 
+o State professional surveying and engineering societies. 
+o State GIS or other professional geospatial organizations. 
+o Universities, colleges, or other post-secondary educational institutions within a state that 
+perform geospatial education or research. 
+o Other departments, offices, and organizations within a state with roles and functions 
+similar to those of the organizations listed above.   
+National organizations can also provide input on SPCS2022 as stakeholders, but they cannot 
+represent a specific state except in cases where one or more of the aforementioned state 
+groups have granted them that authority, as documented in the required submittals for these 
+procedures. 
+• Zone.  A region on the surface of the Earth that defines the use area of a projected coordinate 
+reference system, with extents usually based on a specified maximum linear distortion 
+magnitude. 
+Procedures for Design and Modification of the State Plane Coordinate System of 2022 
+The initial design of SPCS2022 is nearly complete, and NGS is no longer accepting new requests 
+or proposals for design of SPCS2022 zones.  NGS will begin accepting requests and proposals 
+for modifications of SPCS2022 after it is officially released in 2025 along with all other 
+components of the Modernized National Spatial Reference System (NSRS).  These procedures 
+provide the general process for making requests and proposals, and more details will be provided 
+near the time of the official release of SPCS2022. 
+NGS 2023-1214-03-A3 NOAA’s National Geodetic Survey 
+ 
+Page 5 of 16 
+1. NGS contact information and criteria for stakeholder requests and proposals. 
+Stakeholder may make requests for particular SPCS2022 characteristics or submit proposed 
+SPCS2022 zone designs in accordance with these procedures.  Stakeholders are defined in 
+the “Definitions of Terms” section of this document. 
+a. NGS contact information for SPCS2022 
+i. Questions, comments, requests, proposals, and design submittals can be sent to 
+NGS via email at NGS.SPCS@noaa.gov. 
+ii. Forms for submitting requests and proposals, and for submitting SPCS2022 zone 
+designs will be made available near the time of the official release of SPCS2022 in 
+2025. 
+b. Requirements for submittal of stakeholder requests and proposals. 
+i. Stakeholder requests and proposals for SPCS2022 designs.  The requirements are 
+given in §2 of these procedures, and in the associated form (available in 2025).  A 
+“request” is for NGS to design or modify SPCS2022 zones.  A “proposal” is for 
+SPCS2022 designs created and submitted by stakeholders. 
+ii. S
+takeholder submittal of SPCS2022 zone designs.  The requirements are given in 
+§3 of these procedures, and in the associated form (available in 2025).  Note that 
+the proposed designs must first be approved by NGS per §2. 
+c. Q ualifying criteria for stakeholder input.  To act on requests, proposals, and contributions 
+to SPCS2022, NGS requires consensus input from one or more stakeholder groups, as 
+described below. 
+i. Stakeholder input must be provided through at least one of the organizations listed 
+in the “Definitions of Terms” section of this document.  If more than one 
+stakeholder provides input for a state, they are encouraged to do so collectively, 
+rather than each stakeholder group providing input individually. 
+ii. All requests and proposals for SPCS2022 zones must be submitted using forms 
+provided by NGS, as specified in the §2 of these procedures.  NGS will only act on 
+unanimous agreement of stakeholder groups.  In the absence of unanimity, NGS 
+has sole authority to design SPCS2022 zones for a state. 
+iii. National groups, federal agencies, or regional groups consisting of multiple states, 
+can provide input as stakeholders.  But the input will only be considered as 
+representing that of a state if at least one of the state stakeholder organizations is 
+also listed on the request/proposal or design submittal forms. 
+iv. Requests or proposals for changes to zones that were designed based on previous 
+requests or proposals should include the same stakeholder groups (or their 
+successors or equivalents) as in the previous request or proposal.  In the event that 
+the previous stakeholder groups are not included, NGS will determine whether 
+there is sufficient stakeholder representation in the new request or proposal.   
+v. NGS will not act on input from individuals.  Interested individuals should provide 
+input through stakeholder organizations for their state. 
+NGS 2023-1214-03-A3 NOAA’s National Geodetic Survey 
+ 
+Page 6 of 16 
+d. Special use zones.  Per SPCS2022 policy §III.A.2.b, these zones are in more than one 
+state, or not in any state, and require approval of the NGS Director on a case-by-case 
+basis.  Use the SPCS2022 contact information above to make inquiries for a specific case. 
+2. Requirements for stakeholder requests and proposals of SPCS2022 designs 
+a. The required information will be provided to NGS using an updated version of the NGS 
+SPCS2022 Request and Proposal Form.  This form will be available in 2025.  
+b. Must comply with all SPCS2022 policies and procedures, including all technical 
+specifications. 
+c. Providing all required information is the responsibility of the submitter. 
+d. NGS will review requests/proposals and respond to inquiries as quickly as possible. 
+e. Proposed designs by stakeholders must be approved by NGS before any submitted 
+designs are reviewed by NGS. 
+3. Requirements for submittal of SPCS2022 designs by stakeholders 
+a. The required information will be provided to NGS using the NGS SPCS2022 Zone 
+Design Submittal Form.  This form will be available in 2025.  
+b. Must comply with all SPCS2022 policies and procedures, including all technical 
+specifications. 
+c. The design proposal must be approved by NGS before a submitted design will be 
+reviewed (per §2) for inclusion in SPCS2022. 
+d. Providing all required information is the responsibility of the submitter. 
+e. NGS will review submitted designs and respond to inquiries as quickly as possible. 
+f. Customer technical support requests received by NGS for zones designed by stakeholders 
+will be redirected to the state point of contact designated by the stakeholders. 
+4. NGS role and responsibilities for SPCS2022 reviews and documentation 
+a. For requests, design proposals, and submitted designs, NGS will: 
+i. Confirm receipt of stakeholder requests and of stakeholder designs.  If submittals 
+are incomplete, NGS will notify the submitter. 
+ii. Review requests and proposals for designs submitted by stakeholders.  Only 
+submittals with all required information will be reviewed. 
+iii. Review SPCS2022 zone designs submitted by stakeholders.  Only submittals based 
+on an approved proposal and containing all required information will be reviewed. 
+iv. Notify submitters when a request, proposal, or submitted design is approved or 
+denied.  If denied, the reason(s) will be provided. 
+v. Provide guidance on SPCS2022 zone design via workshops, presentations, 
+webinars, website content, correspondence, and/or technical manuals. 
+vi. Maintain a record of finalized SPCS2022 zones on the NGS web site. 
+NGS 2023-1214-03-A3 NOAA’s National Geodetic Survey 
+ 
+Page 7 of 16 
+b. NGS will document all approved designs and associated parameters.  The documentation 
+will include the following: 
+i. Update of this policy and associated procedures, as necessary. 
+ii. Load SPCS2022 defining parameters for all zones into an NGS database. 
+iii. Publish an official NGS report completely defining SPCS2022, revised as needed 
+to address any changes. 
+iv. Create and maintain a set of SPCS2022 web pages, with links to documents, 
+defining parameters, and to applications and tools that use SPCS2022. 
+5. Zone codes, names, and abbreviations.  NGS assigns codes and adopts names for 
+SPCS2022 zones as described below.  Examples are given in Table 1, including ones based 
+on hypothetical future changes to SPCS2022 zones. 
+a. Zone numeric code.  Assigned by NGS and consists of six digits, where the first two 
+digits correspond to the American National Standard Institute (ANSI) numeric code for 
+the state (including leading zero placeholder), formerly known as Federal Information 
+Processing Standards (FIPS) codes.  State ANSI and U.S. Postal Service codes used for 
+SPCS2022 are available at https://www.census.gov/library/reference/code-
+lists/ansi/ansi-codes-for-states.html. 
+i. There is a one-to-one relationship between the zone code and its defining 
+parameters.  If any parameters (other than the zone name or abbreviation) or the 
+zone extents change, the zone code will also change.  This is not necessarily true 
+for the zone name and abbreviation.  Although zone names and abbreviations are 
+unique in SPCS2022, a change in defining parameters might not include a change 
+in the name or abbreviation.  However, the zone code will change. 
+ii. For a statewide zone, the third through fifth digits are zero (i.e., “000”), and the last 
+(sixth) digit is 1 for the initially adopted design.  This digit will increment from 2 
+through 9 sequentially if later replaced by a new statewide zone. 
+iii. Multiple-zone (multizone) layers are indicated by a third digit that is not zero, and a 
+maximum of two multizone layers can exist simultaneously.  It increments 
+sequentially from 1 through 9 to allow for zone replacement over time.  For 
+multizone layers that provide discontinuous (partial) coverage of a state, zones can 
+be added without incrementing to a new layer number.  In such cases, incrementing 
+the layer number only occurs when parameters or extents of existing zones are 
+changed, or when existing zones are removed or replaced by new zones. 
+iv. For multizone layers (third digit not equal to zero), the last three digits are the 
+sequential number for the zones in that layer (1 through 999). 
+v. For zones consisting of the entirety of more than one state, the ANSI numeric code 
+of the state with the lowest ANSI code is used. 
+vi. For special use zones, the first two digits are zero because these zones are in more 
+than one state (or in no state at all) and thus are not associated with any single state.  
+NGS 2023-1214-03-A3 NOAA’s National Geodetic Survey 
+ 
+Page 8 of 16 
+The third digit is set to 1 for the initial version of a special use zone, which will 
+increment sequentially from 2 through 9 for an existing zone if any of its defining 
+parameters change.  The last digit is 1 for the first special use zone and increases 
+sequentially by one digit as zones are added.  For example, the first special use 
+zone is “001001” (Gulf of Mexico Zone), the second is “001002” (Navajo Nation 
+Zone), etc. 
+b. Zone name.  Begins with the state or territory name, followed by the zone name. 
+i. For statewide zones, the name is the state or territory name followed by the word 
+“Zone” (e.g., “Arizona Zone”).  For combined states or territories, the name is 
+hyphenated.  There are two such zones currently in SPCS2022, the “Puerto Rico-
+Virgin Islands Zone” and the “Guam-Northern Mariana Islands Zone.” 
+ii. Multizone layers begin with the state or territory name followed by an 
+alphanumeric descriptive name, and ending with word “Zone.”  The descriptive 
+zone name cannot exceed 50 characters, including spaces.  Special characters are 
+limited to the hyphen or dash (-) and the underscore (_). 
+iii. For zone layouts that are similar to previous versions of SPCS, a similar naming 
+convention is used, as appropriate (e.g., “Central” for the middle zone of a 3-zone 
+state). 
+iv. For special use zones, the complete name consists only of the zone name, without 
+any preceding state name. 
+v. Abbreviations cannot be used in zone names. 
+c. Zone abbreviation.  The official 2-character U.S. Postal Service code is used for the first 
+two characters of a zone abbreviation corresponding to the state or territory. 
+i. The abbreviation for a statewide zone is the same as the state abbreviation (total of 
+two letters). 
+ii. A subsequent string of 1 to 4 alphanumeric characters is used to abbreviate the 
+name of multiple zones within a state.  The characters used for a zone cannot 
+include a space or underscore, because it is separated from the state code by a space 
+or underscore (e.g., “AZ C” or “AZ_C” for Arizona Central Zone). 
+iii. For zone layouts that are similar to previous versions of SPCS, a similar 
+abbreviation convention is recommended (e.g., “C” for Central Zone). 
+iv. For zones consisting of more than one state, the first and last 2-character state 
+abbreviations are concatenated in alphabetical order.  There are currently two such 
+zones, both consisting of two territories: “PRVI” for Puerto Rico and the U.S. 
+Virgin Islands, and “GUMP” for Guam and the Northern Mariana Islands. 
+v. For special use zones, the 2-character state abbreviation is blank and the zones are 
+assigned a unique 1- to 4-character abbreviation consistent with the zone name, for 
+example “GULF” for the Gulf of Mexico Zone.  This abbreviation is the entire 
+abbreviation for special use zones. 
+NGS 2023-1214-03-A3 NOAA’s National Geodetic Survey 
+ 
+Page 9 of 16 
+Table 1.  Example SPCS2022 zone codes, names, and abbreviations, including hypothetical 
+future changes (spaces in names and/or abbreviations can be replaced with underscores). 
+Description of zone layers Examples for each layer type 
+Code Name Abbreviation 
+Arizona (three zone layers): statewide, multizone complete, and multizone partial coverage layers 
+Initial statewide zone 040001 Arizona AZ 
+Initial multizone layer with complete state coverage 
+(44 zones, 041001-041044) 
+041014 Arizona Camp Verde-
+Cottonwood-Sedona 
+AZ CVCS 
+Initial multizone layer with partial state coverage  
+(18 zones, 042001-042018) 
+042007 Arizona Central 
+Arizona Project 
+AZ CAP 
+Hypothetical change in name and abbreviation of 
+previously existing zone 041014 but no change in 
+parameters or extents (no change to zone code) 
+041014 Arizona Verde Valley AZ VVAL 
+Hypothetical change in name and abbreviation of 
+previously existing zone 041014 and change in 
+parameters; third digit of code increments by one for 
+all zones in layer with zones (optionally) renumbered 
+043042 Arizona Verde Valley AZ VVAL 
+Iowa (two zone layers): statewide zone and multizone layer with complete state coverage 
+Initial statewide zone 190001 Iowa IA 
+Initial multizone layer with complete state coverage 
+(14 zones, 191001-191014) 
+191008 Iowa Ames-Des 
+Moines 
+IA AMES 
+Hypothetical new statewide zone definition to replace 
+previous (only the code changes) 
+190002 Iowa IA 
+Montana (two zone layers): statewide zone and multizone layer with partial state coverage 
+Initial statewide zone 300001 Montana MT 
+Initial multizone layer with partial state coverage  
+(19 zones, 301001-301019) 
+301004 Montana Bobcat MT BC 
+Hypothetical addition of new zones to get complete 
+state coverage but no change to previous zone 
+parameters or extents (no change to previous codes) 
+301004 Montana Bobcat MT BC 
+Washington (two zone layers): statewide zone and multizone layer with complete state coverage 
+Initial statewide zone 530001 Washington WA 
+Initial multizone layer with complete state coverage  
+(2 zones, 531001 and 531002) 
+531001 Washington North WA N 
+Hypothetical replacement of previous 2-zone layer 
+with new complete-coverage multizone layer (with 
+Seattle zone as the 34th zone in the new layer) 
+532034 Washington Seattle WA SEAT 
+Gulf of Mexico and Navajo Nation special use zones 
+Initial Gulf of Mexico (GULF) zone design 001001 Gulf of Mexico GULF 
+Initial Navajo Nation (NAVA) zone design 001002 Navajo Nation NAVA 
+Hypothetical new GULF zone definition to replace 
+previous (only the code changes) 
+002001 Gulf of Mexico GULF 
+NGS 2023-1214-03-A3 NOAA’s National Geodetic Survey 
+ 
+Page 10 of 16 
+vi. The entire zone abbreviation is unique for all SPCS2022 zones.  For multizone 
+layers, the length of the abbreviation ranges from a minimum of 4 to a maximum of 
+9 characters including the space or underscore separating the state from the zone 
+abbreviation. 
+6. Technical specifications for SPCS2022 design and implementation.  This section applies 
+both to NGS and stakeholders.  It provides details to augment general characteristics in §II of 
+SPCS2022 policy. 
+a. Specific conformal projection types used for SPCS2022 
+i. Lambert Conformal Conic (LCC).  Limited to the one-parallel form. 
+ii. Transverse Mercator (TM).  Specifically, the Gauss-Krüger form. 
+iii. Hotine Oblique Mercator (OM).  Specifically, the centered (local) rectified form 
+(also known as “rectified skew orthomorphic”) with specified skew azimuth. 
+b. Geodetic Reference System of 1980 (GRS 80) ellipsoid 
+i. SPCS2022 computations are performed using the following parameters: 
+ Semi-major axis of a = 6,378,137 meters (exact by definition) 
+ Inverse geometric flattening of exactly 1/f = 298.257 222 101 (dimensionless).  
+This exact value of 12 digits is used for SPCS2022 calculations, even though 
+additional digits can be computed from the fundamental defining parameters of 
+the GRS 80 ellipsoid. 
+ii. All other ellipsoid parameters are derived from a and f using at least double-
+precision computations.  For reference, two commonly used derived parameters are 
+given below at double precision (15 significant digits) based on the exact a and 1/f 
+values give above (note that these values will differ slightly if 1/f is computed to 
+more than 12 significant digits): 
+ Semi-minor axis, b = 6,356,752.314 140 36 m 
+ First eccentricity squared, e
+2 = 0.006 694 380 022 900 79 
+iii. “Scaled” or otherwise modified versions of the reference ellipsoid cannot be used.  
+Linear distortion can only be reduced be modifying projection axis scale, location, 
+and/or orientation. 
+c. 2022 Terrestrial Reference Frames.  SPCS2022 zones are assigned as follows:  
+i. North American Terrestrial Reference Frame of 2022 (NATRF2022).  All zones in 
+the conterminous U.S. and Alaska. 
+ii. Caribbean Terrestrial Reference Frame of 2022 (CATRF2022).  All zones in 
+Puerto Rico, the U.S. Virgin Islands, and other areas on the Caribbean plate. 
+iii. Pacific Terrestrial Reference Frame of 2022 (PATRF2022).  All zones in Hawaii, 
+American Samoa, and other islands on the Pacific plate other than those within the 
+jurisdictions of conterminous U.S. states and Alaska. 
+NGS 2023-1214-03-A3 NOAA’s National Geodetic Survey 
+ 
+Page 11 of 16 
+iv. Mariana Terrestrial Reference Frame of 2022 (MATRF2022).  All zones in Guam 
+and the Commonwealth of the Northern Mariana Islands. 
+d. Linear distortion design criteria.  Linear distortion is evaluated at the topographic 
+surface for design, not the ellipsoid surface.  NGS designs are based on both coverage 
+area and population distribution (using data from the U.S. Census Bureau).  Table 1 gives 
+zone width and height ranges corresponding to various linear distortion ranges. 
+i. The linear distortion design criterion is the smallest specific distortion range of 
+±5, ±10, ±20, ±30, ±40, ±50, ±75, ±100, ±150, ±200, ±300, or ±400 ppm that 
+satisfies all three of the following minimum percentages: 
+ 90% of zone population. 
+ 75% of cities and towns (based on location only, irrespective of population). 
+ 50% of total zone area. 
+ii. For a known zone width (in km) perpendicular to the projection axis, an initial 
+value of the linear distortion design criterion (in ±ppm) can be estimated as 
+±0.00154 × (km)
+2.  This equation gives the approximate total range in distortion for 
+the ideal case of a zone with no variation in topographic height and with the 
+projection axis passing through the zone midpoint. 
+iii. Zones designed by NGS will generally have a linear distortion design criterion 
+between ±50 ppm (1:20,000) and ±400 ppm (1:2500).  These criteria correspond to 
+zone widths of approximately 180 and 510 km, respectively, for zones with no 
+variation in topographic height.  Zone layers designed by NGS for a state will 
+provide complete coverage of that state. 
+ Zones with linear distortion design criteria of less than ±50 ppm will not be 
+designed by NGS.  Such zones must instead be designed by stakeholders, per 
+§3.  Zones designed by stakeholders do not require use of the aforementioned 
+90%, 75%, and 50% minimum percentages used by NGS, since it is assumed 
+that the designs are optimized for maximum stakeholder benefit based on local 
+knowledge. 
+ Exceptions where zones designed by NGS have a design criterion of less than 
+±50 ppm are for statewide zones or previously existing SPCS 83 zones where 
+lower distortion is achieved due to the small size of the state or previously 
+existing zone.  
+ Exceptions where zones designed by NGS have a design criterion greater than 
+±400 ppm occur only for the statewide zones of New Mexico, Texas, and 
+Alaska. 
+ For a given distortion design criterion (in ±ppm), the zone width (in km) 
+perpendicular to the projection axis can be estimated as 25.5 × �𝐩𝐩𝐩𝐩𝐩𝐩 .  For the 
+ideal case of no variation in topographic height and the projection axis passing 
+through the zone midpoint, the distortion will be within the design criterion for 
+the entire zone width. 
+NGS 2023-1214-03-A3 NOAA’s National Geodetic Survey 
+ 
+Page 12 of 16 
+ Linear distortion changes at a rate of 15.7 ppm per 100 m change in topographic 
+height (or 4.8 ppm per 100 ft).  It decreases (becomes more negative) with 
+increasing height, and vice versa.  For a given design criterion, the area of zone 
+coverage typically decreases as the range in topographic height increases. 
+Table 2.  Range in map projection linear distortion for various zone widths and 
+ranges in topographic height. 
+Linear distortion range  
+Expressed in  
+parts per million (ppm) 
+and as a ratio 
+Corresponding zone dimension and height limits 
+Zone width perpendicular to 
+projection axis (for no variation 
+in topographic height) 
+Topographic height 
+range (independent  
+of zone width) 
+±1 ppm (1:1,000,000) 25 km (16 miles) 13 m (42 ft) 
+±5 ppm (1:200,000) 57 km (35 miles) 64 m (209 ft) 
+±10 ppm (1:100,000) 81 km (50 miles) 127 m (418 ft) 
+±20 ppm (1:50,000) 114 km (71 miles) 255 m (836 ft) 
+±30 ppm (1:33,333) 140 km (87 miles) 382 m (1,254 ft) 
+±40 ppm (1:25,000) 161 km (100 miles) 510 m (1,672 ft) 
+±50 ppm (1:20,000) 180 km (112 miles) 637 m (2,090 ft) 
+±75 ppm (1:13,333) 221 km (137 miles) 956 m (3,135 ft) 
+±100 ppm (1:10,000) 255 km (158 miles) 1,274 m (4,180 ft) 
+±150 ppm (1:6,667) 312 km (194 miles) 1,911 m (6,271 ft) 
+±200 ppm (1:5,000) 360 km (224 miles) 2,548 m (8,361 ft) 
+±300 ppm (1:3,333) 441 km (274 miles) 3,823 m (12,541 ft) 
+±400 ppm (1:2,500) 510 km (317 miles) 5,097 m (16,722 ft) 
+ 
+e. Minimum zone size.  Applies to zones designed by stakeholders.  The objective is to 
+create the largest zones possible that meet the distortion design criterion and thus avoid 
+creating an excessive number of small SPCS2022 zones within a state. 
+i. The minimum zone width is based on the range in topographic height within the 
+proposed zone: 
+ 50 km (31 miles) for a zone with a topographic height range of 250 m (820 ft) 
+or less. 
+ 10 km (6 miles) for a zone with a topographic height range of more than 250 m 
+(820 ft). 
+ Minimum zone size is evaluated as the short side of a rectangle with the 
+smallest width that completely encloses the zone extents (minimum bounding 
+rectangle by width).  The rectangle must be in the same SPCS2022 projected 
+coordinate reference system as the zone being evaluated and can be at any 
+orientation. 
+NGS 2023-1214-03-A3 NOAA’s National Geodetic Survey 
+ 
+Page 13 of 16 
+ii. Well-defined geographic regions (such as counties, townships, urbanized areas, 
+etc.) that do not meet the minimum size requirement should be aggregated with 
+other areas to create zones that are larger than the minimum size. 
+iii. The presence of multiple zones within a state that are near the minimum size will 
+make it more likely that the zone configurations will not be accepted by NGS for 
+SPCS2022.  NGS has sole authority to make the final determination as to whether 
+zones meet the minimum dimension criterion. 
+f. S pecifications for p rojection defining parameters 
+i. All projections are defined using the following five parameters (plus one additional 
+parameter for the OM projection): 
+ Latitude of grid origin. 
+ Longitude of grid origin (central meridian for LCC and TM projections). 
+ Scale on projection axis (central parallel for LCC, central meridian for TM, and 
+skew axis at the center origin for OM projection). 
+ False northing. 
+ False easting. 
+ OM projection only:  Skew axis azimuth at center (local) origin. 
+ii. The combined set of three geodetic parameters (origin latitude, origin longitude, 
+and projection axis scale) must be unique for all SPCS2022 zones. 
+iii. The 2022 TRF geodetic origin latitude and longitude for all projections are defined 
+in sexagesimal units (degrees-minutes) to a numerical precision of not less than 
+one arc-minute (or the equivalent in decimal degrees).   
+ To avoid infinitely repeating decimal places in decimal degree representations, 
+arc-minutes evenly divisible by 3 are recommended, if doing so does not 
+compromise distortion performance. 
+ The latitude of grid origin for TM projections must have arc-minutes evenly 
+divisible by 3. 
+ If decimal degree representations result in infinitely repeating digits, the 
+parameter must be given to at least 12 decimal places. 
+ Definitions in decimal degrees must not result in fractional arc-minutes. 
+iv. Projection axis scale factors are defined to a numerical precision of 6 decimal 
+places or less, or, equivalently, 1 part per million (ppm) or greater.  Numerical 
+precision of 5 decimal places or less is recommended for zones more than 100 km 
+wide perpendicular to the projection axis. 
+v. Projection grid origins (false northings and eastings) are defined in meters, selected 
+such that SPCS2022 coordinates (northings and eastings) are positive at all 
+locations within a zone. 
+NGS 2023-1214-03-A3 NOAA’s National Geodetic Survey 
+ 
+Page 14 of 16 
+ Recommend origin values that have exact (whole number) equivalents in 
+international feet (ift) by defining them in increments of 38,100 m (125,000 ift 
+exactly).  This approach is used for zones designed by NGS. 
+ Allow using increments of 3810 m (12,500 ift exactly) only in situations where 
+smaller increments are needed to achieve specific requirements, such as small 
+zones where finer coordinate resolution is needed. 
+ If metric grid origins do not have exact ift equivalents, they must be defined in 
+meters using whole numbers evenly divisible by 1000 m. 
+ Recommend that origins be defined such that northing and easting coordinate 
+values are not equal anywhere within a zone polygon.  This approach is 
+generally used for zones designed by NGS. 
+vi. Parameters specific to each projection type: 
+ LCC.  Defined using one central parallel that is also the latitude of grid origin. 
+ TM.  False northing is exactly zero.  In cases where this requirement causes the 
+latitude of origin to fall south of the equator, the latitude of origin is set at the 
+equator and the false northing is greater than zero. 
+ OM.  The false northing and easting are defined at the center (local) origin, not 
+at the natural (true) origin.  The skew axis (initial line) azimuth is defined as 
+positive clockwise to the nearest whole degree, from ±(5° to 85°), at the center 
+origin.  A two-point definition of the skew axis cannot be used. 
+g. Specifications for SPCS2022 distortion output 
+i. Point scale factor, k.  The ratio of the projected distance to the ellipsoidal distance 
+at a point.  The value k – 1 is the scale error with respect to the ellipsoid and can be 
+considered as linear distortion due to curvature, and it is a function of horizontal 
+position only. 
+ii. Height factor.  The ratio of Earth radius to Earth radius plus the height of a point 
+above (or below) the reference ellipsoid surface.  Computed as R / (R + h), where h 
+is the ellipsoidal height and R is the GRS 80 Geometric mean (Gaussian) radius 
+of curvature at the geodetic latitude of the point, 𝜑𝜑, and where R is computed as 
+𝑎𝑎√1 − 𝑒𝑒2/(1 − 𝑒𝑒2 sin2 𝜑𝜑).  The height factor minus 1 can be considered the 
+component of linear distortion due to height.  Historically referred to as the 
+“elevation factor.” 
+iii. Combined factor.  The product of the point scale factor and the height factor, 
+computed as k [R / (R + h)].  The combined factor minus 1 can be considered the 
+total combined effect of linear distortion, due to both curvature and height. 
+iv. Linear distortion.  The combined factor minus 1, normally given in ppm. 
+v. Convergence angle.  Geodetic minus grid north, normally given in sexagesimal 
+units (degrees, minutes, and decimal seconds). 
+ 
+NGS 2023-1214-03-A3 NOAA’s National Geodetic Survey 
+ 
+Page 15 of 16 
+h. Computational accuracy and methods. 
+i. The following accuracies are achieved by NGS for map projection computations 
+within a zone: 
+ Coordinates to ±0.01 mm, or better, for both the direct (geodetic to projected) 
+and inverse (projected to geodetic) calculations. 
+ Point scale factor, height factor, and combined factor to at least 10 decimal 
+places, and thus linear distortion to ±0.0001 ppm, or better. 
+ Convergence angle and arc-to-chord correction to ±0.001 arc-second, or 
+better. 
+ii. To the extent possible, and within the above accuracy requirements, NGS 
+algorithms will conform to accepted and common practice within the geodetic 
+community (both private and government) for performing map projection 
+calculations. 
+  
+NGS 2023-1214-03-A3 NOAA’s National Geodetic Survey 
+ 
+Page 16 of 16 
+RECORD OF REVIEW AND CHANGES 
+ 
+This is a living document that is reviewed at least once every two years.  It will be updated, when 
+appropriate, to reflect changes in controlling federal policies, organizational strategic 
+goals/objectives, technology, or other matters that may have an impact on these procedures.  
+Modifications made to this document are recorded in the below table.  This record will be 
+maintained throughout the life of the document.  
+Version 
+Number Date Section/Page 
+Affected 
+Summary of Change or Annual 
+Review 
+Author / 
+Reviewer 
+1 4/23/2019 All Previous SPCS policy document 
+replaced with a new policy and this new 
+procedures document. 
+Michael Dennis 
+2 10/9/2019 Varies Minor changes of technical details, file 
+names, URLs, and wording. 
+Michael Dennis 
+3 7/1/2023 Most sections Significant edits mainly to account for 
+changes from initial to finalized design, 
+along with various technical 
+refinements and clarifications. 
+Michael Dennis / 
+Vicki Childers 
+     
+     
+     
+     
+     
+     
+     
+     
+     
+     
+ 

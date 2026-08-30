@@ -1,0 +1,112 @@
+                             Michigan State Plane Coordinate System Update
+                                          MSPS 2022 Datum Committee
+
+When the National Geodetic Survey (NGS) undertook the creation of the North American Datum
+of 1983 (NAD83), they used the best science known at the time. Geodetic experts from around
+the world came to the U.S. to share their expertise on that massive undertaking. Early on, NGS
+had decided that the new datum would be a geocentric datum ­ coincident with the center of mass
+of the earth. This was important because of the realization that the future of surveying
+measurements would rely heavily on space positioning techniques. They also assumed the plate
+velocities were fixed. One needs to realize that Global Positioning System (GPS) measurements
+were not utilized in the NAD83 adjustment. Subsequently, we now know that the NAD83 definition
+was over 2 meters off from the best estimate of the center of mass and that the plates are moving
+and causing non-zero changes in the crust. Over the intervening years, NGS has had to rely on
+a few realizations or adjustments to the NAD83 datum. Also, NGS relies on the International
+Terrestrial Reference Framework (ITRF) for a global view of the earth.
+
+The NGS periodically develops long range strategic plans for identifying activities for the future.
+In 2013 they prepared a document outlining goals for the next decade. It was updated in 2019
+with the publication of the National Geodetic Survey Strategic Plan 2019-2023 ­ Positioning
+America for the Future (https://www.ngs.noaa.gov/web/about_ngs/info/mission-strategic-
+planning.shtml).
+
+NGS has since defined a new 2022 datum called, for the conterminous US, the North American
+Terrestrial Reference Frame of 2022 (NATRF2022). Due to this new datum, state plane
+coordinates throughout the country will also change. These will be referred to as the State Plane
+Coordinate System of 2022 (SPCS2022).
+
+After the NGS announcement, MSPS created the 2022 Datum Committee to determine how this
+affects surveying and mapping activities within the state. The committee reviewed the policies
+and procedures established by NGS to see what the Society needed to do to prepare for the
+change. NGS had developed rules that the states had to follow in defining the new state plane
+coordinates. An important rule was that any changes to the SPCS that a state wanted would have
+to be supported by all the stakeholders within the state. Because of this, MSPS and the Michigan
+Department of Transportation (MDOT) created a Stakeholders Committee to provide additional
+input into the new SPCS.
+
+In designing the new state plane coordinates NGS has said that each state will have one single
+state-wide zone. In Michigan, we have the Michigan GeoRef System (see Figure 1) that uses an
+Oblique Mercator projection reportedly modeled after Ralph Moore Berry's Hotine Skew
+Orthomorphic Projection. NGS has designed an Oblique Mercator projection closely aligned with
+the Michigan GeoRef system. One of the benefits here will be that NGS will recognize and
+maintain this new oblique projection whereas they have not done so up until now. This single
+state-wide projection will meet the needs of agencies like the Department of Natural Resources
+and others who have assets distributed throughout the state.
+Figure 1. Michigan GeoRef from "A Primer on Projection Systems Commonly Used in Michigan",
+David Lusch, Fundamentals of GIS Workshop, April 2000.
+
+The NGS design for the Oblique Mercator projection covering the state is shown in Figure 2. One
+can see that the distortions are significantly smaller than those that users of Michigan GeoRef
+have encountered.
+Figure 2. Michigan Oblique Mercator Projection to be developed by NGS. Note that since being
+created by Dr. M. Dennis, a couple of minor modifications have been applied to this graphic.
+
+NGS had said that the existing SPCS from 1983 would be updated by them using the same
+configuration. This meant that Michigan could retain the same 3-zone configuration that we
+currently have. The committee looked at other states like Wisconsin and Indiana and determined
+that it would be beneficial to the surveyors in the state if we were to adopt a Low Distortion
+Projection (LDP) configuration for Michigan. The 2022 Datum Committee looked at a couple of
+possible scenarios and came up with the proposed design shown in Figure 3. The committee
+retained the Lambert Conic Conformal projection and applied this to all zones. The advantage of
+this Lambert projection is that distortions would accumulate north-south allowing for the east-west
+size to be larger. We finalized the design of arranging counties as a series of tiers, each being
+approximately 2 counties north-south and 4 counties east-west. The width was restricted in order
+to hold the convergence angle to a smaller value at the zone extremities. In the Upper Peninsula,
+the configuration is slightly different because of the size and shape of the counties.
+Figure 3. Proposed Low Distortion Projection zones for the State of Michigan. The zone names
+are identified in the boxes.
+
+The zones will encompass the following counties:
+
+Zone Name     Included Counties
+Ann Arbor     Jackson, Washtenaw, Wayne, Hillsdale, Lenawee, Monroe
+Baraga        Ontonagon, Houghton, Baraga
+Cheboygan     Emmet, Charlevoix, Cheboygan, Presque Isle
+Delta         Dickinson, Menominee, Delta
+Grand Rapids  Ottawa, Kent, Ionia, Clinton, Allegan, Barry, Eaton, Ingham
+Iron          Gogebic, Iron
+Kalamazoo     Van Buren, Kalamazoo, Calhoun, Berrien, Cass, St. Joseph, Branch
+Keweenaw   Keweenaw including Isle Royale
+Marquette  Marquette, Alger, Schoolcraft
+Mio        Otsego, Montmorency, Alpena, Crawford, Oscoda, Alcona
+Newaygo    Oceana, Newaygo, Mecosta, Isabella, Muskegon, Montcalm, Gratiot
+           Shiawassee, Genesee, Lapeer, St. Clair, Livingston, Oakland,
+Oakland    Macomb
+           Luce, Chippewa, Mackinac
+Pickford   Roscommon, Ogemaw, Iosco, Gladwin, Arenac
+Roscommon  Midland, Bay, Huron, Saginaw, Tuscola, Sanilac
+Saginaw    Leelanau, Benzie, Grand Traverse, Kalkaska, Antrim
+Traverse   Manistee, Wexford, Missaukee, Mason, Lake, Osceola, Clare
+Wexford
+
+The purpose for embracing a low distortion projection is to create a system where, for most normal
+surveying applications, the combined elevation and scale factors can be ignored. Thus, one
+should expect to see that inverse distances derived from GPS measurements on 2 points should
+be essentially the same as the distance measured between the 2 points with an EDM/total station.
+This will alleviate problems where the combined factor is either presently ignored or applied
+incorrectly. As a reminder, we acknowledge that there are no projections that are completely
+distortion free and, therefore, high precision surveys may still have to account for these
+distortions. This concept of the LDP has been embraced by the Stakeholder Committee. The
+proposal was submitted to NGS and has been approved.
+
+Since we have proposed an LDP, it is now the 2022 Datum Committee's task to come up with the
+zone parameters. Currently that effort is being headed up by Jim Leitch. We also need to
+determine what legislation needs to be changed because of this new datum. Finally, the
+committee will look at what the effects that the vertical component will have on surveying and
+mapping in Michigan.
+
+The committee members include: Karl Brandys, Bob Burtch, Derek Cusimano, Brett Dodge, Larry
+Feindt, Max George, Jim Leitch, Chuck McCready, John Rauser, Brian Reynolds, Jeffrey
+Schepers, and John Ellingson (NGS ­ now retired). If anyone is interested in joining this effort,
+please contact the Central Office.
+

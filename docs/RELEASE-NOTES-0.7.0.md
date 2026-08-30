@@ -1,11 +1,4 @@
-# MCX 0.7.0 — DRAFT
-
-**DRAFT. Not released.** The version literal still carries its `-dev` marker,
-nothing is tagged, and the owner has not seen the new controls on a real
-screen. This file is written so that what the release claims can be checked
-against what was actually verified.
-
----
+# MCX 0.7.0
 
 **MCX now converts on the modernized State Plane system.** It moves survey
 coordinates between Michigan's three State Plane zones and between State Plane

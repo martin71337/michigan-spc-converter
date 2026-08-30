@@ -51,7 +51,27 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.7.0-dev — H1–H6 and N8 are DONE, ON MAIN, UNRELEASED (2026-08-29)
+## Current state: 0.7.0 RELEASED (2026-08-30)
+
+**0.7.0 is built, gated and tagged** — all nine gates including the
+beta-acknowledgement gate (5 `NGS beta` artifacts acknowledged, stamped in
+SHA256SUMS.txt) and the frozen self-test's 11 checks (SPCS2022 zone 261008
+landed 0.0003 m from beta NCAT; the cross-frame refusal alive in the
+bundle both directions). Installer + checksums on the GitHub Release,
+tagged v0.7.0. It ships everything of #61–#64: the 19 SPCS2022 zones,
+native NATRF2022 geodetic, any-to-any within each datum, per-zone units,
+per-kind records, the owner's graying/separators round, the stale-icon
+guard. Suite **3,754** + the release-number skip, both modes. **The two
+deferrals stand with their tripwires**
+(`docs/DEFERRED-NAPGD2022.md`, `docs/DEFERRED-NATRF2022-BRIDGE.md`; the
+monthly Windows task "MCX NSRS tripwire" probes NGS on the 1st, 09:07,
+StartWhenAvailable set). **Still human:** the clean-profile install proof
+(METHOD.md §6) and field validation of the new surfaces before sealed work
+leans on them (the #59 pattern). At NGS's official release:
+`docs/REFREEZE-NSRS.md` governs — re-capture everything, full gate cycle,
+a conscious re-release.
+
+## Superseded status: the modernized-NSRS build in flight — H1–H6 and N8 done, unreleased (2026-08-29)
 
 **Read `docs/PLAN-nsrs-modernization.md` (status block first) and DESIGN.md
 #61 and #62 before touching this work.** The whole horizontal half of the

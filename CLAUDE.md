@@ -51,7 +51,7 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## In flight: drag-and-drop input file on the Multi point tab (2026-09-03, UNRELEASED)
+## Current state: 0.7.1 CUT, release build pending on the owner's machine (2026-09-03)
 
 **Branch `claude/drag-drop-file-multi-point-p7qti6`, DESIGN.md #65.** The
 owner's instruction: a coordinate file dragged from Explorer onto the Multi
@@ -69,7 +69,18 @@ checkout; all reproduce with this work stashed, listed in #65), so the
 owner's `py -m pytest` is the gate that counts. **Still human:** one real
 drag from Explorer on his machine — the headless pins stop at the mime data.
 
-## Current state: 0.7.0 RELEASED (2026-08-30)
+**0.7.1 is cut on the branch, not built:** the version literal is `0.7.1`,
+`docs/RELEASE-NOTES-0.7.1.md` is final (no DRAFT marker), gates 1 and 2 of
+`tools/build_release.py` pass here (no tag carries 0.7.1; the same five
+`NGS beta` artifacts as 0.7.0 are acknowledged). Gates 5–8 are Pillow,
+PyInstaller and Inno Setup, Windows-only, so **the release is finished on
+the owner's machine**: merge the branch to `main`, then
+`py tools/build_release.py --acknowledge-ngs-beta`, then tag `v0.7.1` and
+the GitHub Release with the installer and `SHA256SUMS.txt`. The only shipped
+change since v0.7.0 is `michspc/gui/window.py` (#65); everything else on
+`main` since the tag is `review/`, `tools/` and docs.
+
+## Superseded status: 0.7.0 RELEASED (2026-08-30)
 
 **0.7.0 is built, gated and tagged** — all nine gates including the
 beta-acknowledgement gate (5 `NGS beta` artifacts acknowledged, stamped in

@@ -688,6 +688,11 @@ temporarily CRLF the registry file collected and passed its 169. Those
 five are the container's, recorded here so the next Linux session does
 not chase them; the owner's `py -m pytest` is the gate that counts.
 
+**Release:** 0.7.1, a patch number because nothing computed changed.
+The version literal and `docs/RELEASE-NOTES-0.7.1.md` moved on the branch
+in the same session; the build, tag and GitHub Release are the owner's,
+on Windows, per METHOD.md §6.
+
 **Still human:** dragging a real file from Explorer on the owner's Windows
 machine. The headless pins prove the event path from `DragEnter` to the
 box; they cannot prove what Explorer puts in the mime data, and the

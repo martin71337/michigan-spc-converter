@@ -31,8 +31,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QUrl, Qt
-from PySide6.QtGui import QDesktopServices
+from PySide6.QtCore import QMimeData, QUrl, Qt
+from PySide6.QtGui import QDesktopServices, QDragEnterEvent, QDragMoveEvent, QDropEvent
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -216,6 +216,82 @@ UNITS_TOOLTIP_GEODETIC_OUT = (
 # clobber, still stages and renames, and still verifies the round trip.
 
 
+def dropped_input_file(mime: QMimeData) -> Path | None:
+    """The one local file a drag carries, or None if it carries anything else.
+
+    This is the whole rule for what the Multi point tab accepts from a drag:
+    **exactly one URL, naming a local path, that is an existing file.** Every
+    other payload answers None, and the drag is refused at the border so the
+    cursor says so before the user lets go:
+
+    - two or more files — which one? The program does not guess
+      (docs/DESIGN.md section 7, the longitude rule's reasoning applied to a
+      file);
+    - a folder — it could only be meant for the output box, and routing a
+      drop to a different field than the one a file lands in would be a
+      second convention to learn. Folders are chosen with their own button;
+    - a path that does not exist, or a URL that is not a local file — nothing
+      the reader could open.
+
+    ``is_file`` is a filesystem check, not a domain result: it is the same
+    question the Browse dialog answers by only listing files, asked of a drop.
+    The file's CONTENTS are not read here — the reader is the gate for those,
+    unchanged, when Convert is pressed.
+    """
+    if not mime.hasUrls():
+        return None
+    urls = mime.urls()
+    if len(urls) != 1 or not urls[0].isLocalFile():
+        return None
+    path = Path(urls[0].toLocalFile())
+    return path if path.is_file() else None
+
+
+class MultiPointPage(QWidget):
+    """The Multi point tab's page, which accepts a dropped input file.
+
+    The page is the drop target rather than the Input file box, so a file
+    dropped ANYWHERE on the tab — on the table, the status line, the settings
+    block — reaches the same handler. Qt delivers a drag to the nearest
+    ancestor of the widget under the cursor that accepts drops, which is why
+    ``MainWindow`` switches drops OFF on the two path boxes: a ``QLineEdit``
+    accepts them by default and handles a drop as text to insert, and the
+    text of a ``file://`` URL is not a path.
+
+    The page owns no rule. It asks ``dropped_input_file`` and hands the answer
+    to the callback it was built with, which is the Input file box's own
+    setter — the same one the Browse dialog uses.
+    """
+
+    def __init__(self, on_file_dropped, parent=None) -> None:
+        super().__init__(parent)
+        self._on_file_dropped = on_file_dropped
+        self.setAcceptDrops(True)
+
+    def _consider(self, event: QDragMoveEvent) -> None:
+        if dropped_input_file(event.mimeData()) is None:
+            event.ignore()
+        else:
+            event.acceptProposedAction()
+
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802
+        self._consider(event)
+
+    def dragMoveEvent(self, event: QDragMoveEvent) -> None:  # noqa: N802
+        # Qt pre-accepts moves after an accepted enter, so this is belt and
+        # braces: the rule is asked again rather than trusted to have been
+        # asked once.
+        self._consider(event)
+
+    def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802
+        path = dropped_input_file(event.mimeData())
+        if path is None:
+            event.ignore()
+            return
+        self._on_file_dropped(path)
+        event.acceptProposedAction()
+
+
 class MainWindow(QMainWindow):
     """The application window."""
 
@@ -280,7 +356,10 @@ class MainWindow(QMainWindow):
         with it — every attribute and method is still where it was, so its tests
         describe the same object they always did.
         """
-        page = QWidget(self.tabs)
+        # The page is the tab's drop target for the input file: a file
+        # dropped anywhere on it lands in the Input file box (DESIGN.md #65).
+        page = MultiPointPage(self._accept_dropped_file, self.tabs)
+        self.multi_point_page = page
         layout = QVBoxLayout(page)
 
         layout.addWidget(self._build_settings())
@@ -318,6 +397,9 @@ class MainWindow(QMainWindow):
         # a job number that is not his, in a folder that does not exist, sitting
         # in the field that names the file about to be read.
         self.input_edit.textChanged.connect(self._update_convert_enabled)
+        # Drops are the PAGE's, not the box's (MultiPointPage). Left on, the
+        # box would catch a file dropped on it and treat it as text.
+        self.input_edit.setAcceptDrops(False)
         self.input_browse = QPushButton("...", box)
         self.input_browse.setToolTip("Choose the coordinate file to convert")
         self.input_browse.clicked.connect(self._choose_input_file)
@@ -484,6 +566,10 @@ class MainWindow(QMainWindow):
         # disabled until this is filled, so the empty field is a question the
         # program refuses to answer for him rather than an obstacle.
         self.output_edit.textChanged.connect(self._update_convert_enabled)
+        # Same as the input box: a file dropped here goes to the page, which
+        # routes it to the Input file box. The output folder is chosen with
+        # its own button; a dropped folder is refused (dropped_input_file).
+        self.output_edit.setAcceptDrops(False)
         self.output_browse = QPushButton("...", box)
         self.output_browse.setToolTip("Choose where the output archive goes")
         self.output_browse.clicked.connect(self._choose_output_directory)
@@ -1102,7 +1188,25 @@ class MainWindow(QMainWindow):
             "Coordinate files (*.csv *.txt *.pts);;All files (*)",
         )
         if chosen:
-            self.input_edit.setText(chosen)
+            self._set_input_file(chosen)
+
+    def _accept_dropped_file(self, path: Path) -> None:
+        """The page's drop, routed to the box the Browse dialog fills.
+
+        ``toLocalFile`` spells the path the way ``QFileDialog`` does (forward
+        slashes on Windows), so the box reads the same whichever way the file
+        arrived, and ``input_path`` and ``job.run`` see one convention.
+        """
+        self._set_input_file(QUrl.fromLocalFile(str(path)).toLocalFile())
+
+    def _set_input_file(self, text: str) -> None:
+        """The one setter for the Input file box.
+
+        Browse and drop both end here, so the ``textChanged`` gate that arms
+        Convert fires the same way for both, and this tab's table follows its
+        own policy (``_clear_table``) for both.
+        """
+        self.input_edit.setText(text)
 
     def _choose_output_directory(self) -> None:
         chosen = QFileDialog.getExistingDirectory(

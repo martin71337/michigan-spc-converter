@@ -612,6 +612,88 @@ gateless cadence does not apply here). The horizontal work packages H1–H6
 proceed per the plan; the first code lands only after this amendment, which
 is the H0 exit condition.
 
+### #65 — 2026-09-03 — Owner's instruction: drag and drop the input file onto the Multi point tab
+
+**The instruction:** "allow for drag and drop file in multi point." Interface
+only — no computation, no formatter, no reader touched. The version literal
+stays `0.7.0`; this is unreleased work on a branch until the owner has seen
+it on a real screen and dragged a real file from Explorer.
+
+**Measured before building (offscreen platform):** the unchanged Multi point
+page did not accept drops at all, and a synthetic `file://` drop sent to the
+Input file box left it empty — there was no drop path to fix, only one to
+add. Two Qt facts shaped the design and are pinned: (1) a drag is delivered
+to the nearest ancestor of the widget under the cursor that accepts drops,
+and a `QLineEdit` accepts them by default, handling a drop as text to
+insert — the text of a `file://` URL is not a path; (2) `QApplication.notify`
+delivers a `Drop` only to the widget whose `DragEnter` it last saw accepted,
+so a refused enter is a refused drop, and the test helper sends an enter
+before every drop because the platform does.
+
+**What was built (`michspc/gui/window.py`):**
+
+- `dropped_input_file(mime)` is the whole rule: **exactly one URL, naming a
+  local path, that is an existing file** — else None. Two or more files are
+  refused (which one? the program does not guess — §7's longitude reasoning
+  applied to a file); a folder is refused rather than routed to the output
+  box (a drop landing in a different field depending on what was dragged is
+  a second convention to learn; folders keep their own button); a missing
+  path or a non-local URL is refused. `is_file` is the Browse dialog's
+  own filter asked of a drop, not a domain result; the file's contents are
+  not read until Convert, by the reader, unchanged.
+- `MultiPointPage(QWidget)` is the tab's page and the drop target, so a file
+  dropped ANYWHERE on the tab — settings block, table, status line — reaches
+  one handler. It owns no rule: enter and move ask `dropped_input_file` and
+  refuse at the border (Explorer's no-drop cursor), and the drop hands the
+  path to the callback it was built with.
+- **Drops are switched OFF on both path boxes** (`setAcceptDrops(False)`),
+  so the page is the only target. Cost: a plain-text drag into either box no
+  longer inserts — a capability nothing here used.
+- **One setter.** `_set_input_file` is now what the Browse dialog calls and
+  what the drop calls, so the `textChanged` gate that arms Convert fires the
+  same way for both, and the table follows `_clear_table`'s documented
+  policy for both — it describes a written archive and does not clear when
+  the input box changes, by typing, browsing or dropping. The drop spells
+  the path through `QUrl.toLocalFile`, which is `QFileDialog`'s spelling
+  (forward slashes on Windows), so the box reads the same whichever way the
+  file arrived. **That equivalence pin discriminates on Windows only**: on
+  the POSIX test platform `str(Path)` and `toLocalFile` agree, so a seed
+  that spelled the drop through `str(path)` would pass here and show
+  backslashes on his screen. Recorded, not mitigated — it is a spelling,
+  and `Path` opens either.
+- No on-screen text says drops are accepted. The owner asked for the
+  behaviour and has removed every gloss offered so far (#34, #51, #56);
+  nothing was added for him to remove.
+
+**Verification:** `tests/test_gui_drop.py`, ten tests: the rule's seven
+answers; the page accepts and the two boxes, the table, its viewport, the
+status line and the Single point tab do not; a dropped file lands the same
+string the Browse route lands for the same file (the dialog's static
+function replaced, the real `_choose_input_file` driven); replace, never
+insert; Convert arms on the drop exactly as on the dialog; four refusals
+refused at the enter and unchanged after the drop; a drop after a
+conversion leaves the written result on screen. **Eight falsification seeds,
+all caught**: input box keeps accepting; rule takes the first of several;
+`is_file` dropped; insert instead of replace; page a plain `QWidget`;
+`dropEvent` never calls the setter; enter accepts everything; output box
+keeps accepting. Suite 3,754 → **3,764** passing plus the release-number
+skip. **Measured in a Linux container, not on the owner's machine**, both
+modes: 3,591 passed with four failures and one collection error that
+reproduce identically on the unchanged code with this work stashed —
+three `test_fileio` stage-and-rename refusals that do not fire for root,
+and the N0 capture pins (`zoneDefinitions.json`, `zoneBounds.json`, the
+NCAT page hashes) that record CRLF byte counts and hashes, so they match
+only a Windows checkout under autocrlf; with the two JSON captures
+temporarily CRLF the registry file collected and passed its 169. Those
+five are the container's, recorded here so the next Linux session does
+not chase them; the owner's `py -m pytest` is the gate that counts.
+
+**Still human:** dragging a real file from Explorer on the owner's Windows
+machine. The headless pins prove the event path from `DragEnter` to the
+box; they cannot prove what Explorer puts in the mime data, and the
+Windows clipboard/drag converter is the one layer between him and the pin.
+One drag settles it.
+
 ### #64 — 2026-08-29 — The owner's screen-review round: a second separator, registry-derived graying, and the stale-icon guard
 
 **The owner's instructions, from his review of the H6 screens:** (1) a second

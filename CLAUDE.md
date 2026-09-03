@@ -51,6 +51,24 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
+## In flight: drag-and-drop input file on the Multi point tab (2026-09-03, UNRELEASED)
+
+**Branch `claude/drag-drop-file-multi-point-p7qti6`, DESIGN.md #65.** The
+owner's instruction: a coordinate file dragged from Explorer onto the Multi
+point tab lands in the Input file box. Interface only; no computation,
+reader or formatter touched; the version literal stays `0.7.0`. The rule is
+one function, `dropped_input_file`: exactly one local existing file, else
+the drag is refused at the border (two files, a folder, a missing path, a
+web URL). The tab's page is the target so a drop anywhere on it works;
+drops are switched OFF on both path boxes; Browse and drop share one
+setter, so Convert arms the same way and the table keeps its written
+result the same way. Ten pins in `tests/test_gui_drop.py`, eight seeds all
+caught, suite **3,764** passing both modes — measured in a Linux container
+where five pre-existing pins fail for the container's own reasons (root, LF
+checkout; all reproduce with this work stashed, listed in #65), so the
+owner's `py -m pytest` is the gate that counts. **Still human:** one real
+drag from Explorer on his machine — the headless pins stop at the mime data.
+
 ## Current state: 0.7.0 RELEASED (2026-08-30)
 
 **0.7.0 is built, gated and tagged** — all nine gates including the

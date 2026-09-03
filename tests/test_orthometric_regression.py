@@ -18,11 +18,29 @@ Only the CSVs are pinned, and deliberately so: the job record embeds a
 generation timestamp and the input and output paths, so its digest differs
 between any two runs of identical code. What the record says is pinned by
 content elsewhere, in the disclosure suites.
+
+**The audit CSV is compared with its two DMS columns removed** (docs/DESIGN.md
+amendment #66, the owner's instruction, 2026-09-03). ``Latitude (DMS)`` and
+``Longitude (DMS)`` did not exist when v0.5.0 computed these digests, so the
+raw member can no longer match them - and re-freezing the digests at HEAD
+would have thrown away the cross-version property this file exists for.
+Instead ``_without_columns`` parses the member and re-renders it through the
+writer's own ``_render_csv`` with exactly those two headings dropped, and THAT
+text is digested: every byte v0.5.0 wrote is still pinned to v0.5.0's own
+digest, and the two new columns are pinned separately in
+``tests/test_audit_dms.py``. ``test_the_stripping_is_exact`` establishes the
+parse-and-render round trip reproduces an unmodified member byte for byte, so
+the comparison is not passing through a lossy channel; and
+``test_the_raw_member_no_longer_matches_but_the_stripped_one_does``
+establishes the columns are really there - the stripped comparison would be
+vacuous if nothing were stripped.
 """
 
 from __future__ import annotations
 
+import csv
 import hashlib
+import io
 import zipfile
 from pathlib import Path
 
@@ -129,6 +147,30 @@ def _configurations():
     return configurations
 
 
+DMS_COLUMNS = ("Latitude (DMS)", "Longitude (DMS)")
+"""The two audit columns added after v0.5.0 froze these digests (#66)."""
+
+
+def _without_columns(body: bytes, names: tuple[str, ...]) -> bytes:
+    """The member with the named columns dropped, re-rendered by the writer's
+    own ``_render_csv`` so the remaining bytes are exactly what the writer
+    would have produced without those columns."""
+    text = body.decode("utf-8")
+    rows = list(csv.reader(io.StringIO(text, newline="")))
+    header = rows[0]
+    keep = [index for index, column in enumerate(header) if column not in names]
+    stripped = [[row[index] for index in keep] for row in rows]
+    return exports._render_csv(stripped).encode("utf-8")
+
+
+def _pinned_bytes(member: str, body: bytes) -> bytes:
+    """What is digested for a member: the audit CSV without its post-v0.5.0
+    columns, every other member as written."""
+    if member.endswith("_full.csv"):
+        return _without_columns(body, DMS_COLUMNS)
+    return body
+
+
 def _written_digests(root: Path) -> dict[str, str]:
     digests: dict[str, str] = {}
     for name, configuration in _configurations():
@@ -153,7 +195,7 @@ def _written_digests(root: Path) -> dict[str, str]:
             for member in sorted(archive.namelist()):
                 if member.endswith("_README.txt"):
                     continue  # timestamped and path-bearing; pinned by content
-                body = archive.read(member)
+                body = _pinned_bytes(member, archive.read(member))
                 digests[f"{name}/{member}"] = hashlib.sha256(body).hexdigest()
     return digests
 
@@ -206,5 +248,41 @@ def test_the_comparison_would_notice_a_changed_byte(tmp_path, name):
     with zipfile.ZipFile(archive) as opened:
         body = opened.read(member.split("/", 1)[1])
 
-    altered = hashlib.sha256(body + b"\n").hexdigest()
+    altered = hashlib.sha256(_pinned_bytes(member, body) + b"\n").hexdigest()
     assert altered != written[member]
+
+
+def _audit_members(tmp_path) -> list[tuple[str, bytes]]:
+    _written_digests(tmp_path)
+    members = []
+    for name, _configuration in _configurations():
+        archive = next((tmp_path / name).glob("*.zip"))
+        with zipfile.ZipFile(archive) as opened:
+            for member in opened.namelist():
+                if member.endswith("_full.csv"):
+                    members.append((f"{name}/{member}", opened.read(member)))
+    assert len(members) == 9
+    return members
+
+
+def test_the_stripping_is_exact(tmp_path):
+    """Dropping nothing reproduces every audit member byte for byte, so the
+    parse-and-render channel the comparison passes through is lossless."""
+    for _member, body in _audit_members(tmp_path):
+        assert _without_columns(body, ()) == body
+
+
+def test_the_raw_member_no_longer_matches_but_the_stripped_one_does(tmp_path):
+    """The DMS columns are really in the file (the raw digest differs from
+    v0.5.0's), and removing exactly those two is what restores v0.5.0's
+    bytes - so the comparison above is neither vacuous nor lenient."""
+    frozen = _frozen()
+    for member, body in _audit_members(tmp_path):
+        assert hashlib.sha256(body).hexdigest() != frozen[member]
+        assert (
+            hashlib.sha256(_without_columns(body, DMS_COLUMNS)).hexdigest()
+            == frozen[member]
+        )
+        header = body.decode("utf-8").splitlines()[0].split(",")
+        for column in DMS_COLUMNS:
+            assert column in header

@@ -76,9 +76,17 @@ drag from Explorer on his machine — the headless pins stop at the mime data.
 PyInstaller and Inno Setup, Windows-only, so **the release is finished on
 the owner's machine**: merge the branch to `main`, then
 `py tools/build_release.py --acknowledge-ngs-beta`, then tag `v0.7.1` and
-the GitHub Release with the installer and `SHA256SUMS.txt`. The only shipped
-change since v0.7.0 is `michspc/gui/window.py` (#65); everything else on
-`main` since the tag is `review/`, `tools/` and docs.
+the GitHub Release with the installer and `SHA256SUMS.txt`. The shipped
+changes since v0.7.0 are `michspc/gui/window.py` (#65) and, in the same
+cut, `michspc/fileio/exports.py` + `formatting.py` (**#66**: the audit CSV
+carries `Latitude (DMS)` and `Longitude (DMS)` after `Longitude (neg
+west)`, file notation `42 43 57.00000 N`, one arithmetic shared with the
+Single point panel; every later column moves two places right, and the
+cross-version digest pin is kept by stripping exactly those two columns
+before digesting — read #66 before touching the audit layout again). Suite
+**3,790** passing plus the skip. Everything else on `main` since the tag is
+`review/`, `tools/` and docs. **Still human for #66:** open a real
+`_full.csv` in Excel and check the two cells and the columns to their right.
 
 ## Superseded status: 0.7.0 RELEASED (2026-08-30)
 

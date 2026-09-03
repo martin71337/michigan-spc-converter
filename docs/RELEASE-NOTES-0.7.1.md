@@ -29,8 +29,23 @@ Dropping onto the Input file or Output folder boxes themselves does nothing:
 those boxes take a typed path or a chosen one, never a dropped one, so a drop
 cannot write a stray string into either.
 
-Nothing else on screen changed, and nothing about the way a job is converted,
-written or recorded changed. The Single point tab is untouched.
+Nothing else on screen changed, and nothing about the way a job is converted
+or recorded changed. The Single point tab is untouched.
+
+## The audit CSV states the geodetic position in DMS
+
+`<stem>_full.csv` carries two new columns, **Latitude (DMS)** and
+**Longitude (DMS)**, directly after `Longitude (neg west)`: the same
+geodetic position the two decimal columns before them hold, as degrees,
+minutes and seconds to five places with a hemisphere letter —
+`42 43 57.00000 N`, `84 33 19.80000 W`. The digits are the ones the Single
+point tab shows for the same point; only the punctuation differs, because a
+degree symbol in a CSV does not survive Excel.
+
+**If a spreadsheet of yours reads this file by column position, note that
+every column after `Longitude (neg west)` has moved two places to the
+right.** Readers that go by the heading are unaffected. The clean PNEZD
+export is unchanged: five fields, as always.
 
 ## Built against NGS's beta products
 
@@ -42,10 +57,14 @@ release build refuses to run unless that is acknowledged on the command line.
 
 ## Verified
 
-- **3,764 automated tests**, green in both run modes, including the
+- **3,790 automated tests**, green in both run modes, including the
   cross-version pin that digests what nine ordinary jobs write against what
-  the previous release produced — so an interface release that quietly moved
-  a number would fail a test. It did not.
+  an earlier release produced — so a release that quietly moved a number
+  would fail a test. It did not: the clean exports are byte-identical, and
+  the audit CSV is byte-identical once its two new columns are set aside.
+- **The DMS cells are checked against NGS NCAT's own positions** at every
+  frozen anchor in both geodetic directions, by an independent reading
+  written in the test, to half of the cell's last place.
 - **Ten tests guard the drop itself.** Every one drives a real drag-enter and
   drop through Qt's own event dispatch, so what is pinned is what the tab does
   when Explorer hands it a file: the one-file rule, each refusal, the box

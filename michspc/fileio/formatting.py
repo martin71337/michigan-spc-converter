@@ -134,6 +134,22 @@ def _dms_magnitude(magnitude: float, seconds_decimals: int) -> str:
     boundary can be crossed afterwards. ``angle_dms``'s own docstring records the
     88,612,997-angle sweep that established this.
     """
+    degrees, minutes, seconds = _dms_parts(magnitude, seconds_decimals)
+    return f"{degrees:02d}°{minutes:02d}'{seconds}\""
+
+
+def _dms_parts(magnitude: float, seconds_decimals: int) -> tuple[int, int, str]:
+    """``(42, 43, "57.00000")`` - the one arithmetic behind every DMS
+    latitude or longitude this program writes, on the screen or in a file.
+
+    Split out of ``_dms_magnitude`` when the audit CSV gained its DMS columns
+    (docs/DESIGN.md amendment #66) so the Single point panel and the Multi
+    point audit CSV cannot come to round or carry differently: they share
+    these three values and differ only in the punctuation put around them.
+    The rounding order is ``angle_dms``'s, verbatim, for the reason its
+    docstring records: round the total seconds once, then divmod twice, and
+    neither boundary can be crossed afterwards.
+    """
     total_seconds = round(magnitude * 3600.0, seconds_decimals)
 
     whole_degrees, remainder = divmod(total_seconds, 3600.0)
@@ -141,9 +157,32 @@ def _dms_magnitude(magnitude: float, seconds_decimals: int) -> str:
 
     width = 2 if seconds_decimals == 0 else seconds_decimals + 3
     return (
-        f"{int(whole_degrees):02d}°{int(whole_minutes):02d}'"
-        f"{seconds:0{width}.{seconds_decimals}f}\""
+        int(whole_degrees),
+        int(whole_minutes),
+        f"{seconds:0{width}.{seconds_decimals}f}",
     )
+
+
+def _dms_fields(magnitude: float, seconds_decimals: int) -> str:
+    """``42 43 57.00000`` - the same three values as ``_dms_magnitude``, in
+    the audit CSV's own notation: space-separated fields, no symbols, exactly
+    the shape ``angle_dms`` has written into that file's Convergence columns
+    since 0.1.0. Chosen for the file rather than the symbol form because the
+    audit CSV is UTF-8 with no byte-order mark, and a degree symbol in it
+    opens in Excel as two wrong characters (docs/DESIGN.md amendment #66)."""
+    degrees, minutes, seconds = _dms_parts(magnitude, seconds_decimals)
+    return f"{degrees:02d} {minutes:02d} {seconds}"
+
+
+def _latitude_hemisphere(value: float) -> str:
+    """N or S. Exactly 0.0 is called N (see ``latitude_dms``)."""
+    return "S" if value < 0 else "N"
+
+
+def _longitude_hemisphere(value: float) -> str:
+    """W or E, read from the program's own signed negative-west longitude
+    (see ``longitude_dms``)."""
+    return "W" if value < 0 else "E"
 
 
 def latitude_dms(value: float | None, seconds_decimals: int = 5) -> str:
@@ -161,8 +200,7 @@ def latitude_dms(value: float | None, seconds_decimals: int = 5) -> str:
     if value is None:
         return NOT_AVAILABLE
 
-    hemisphere = "S" if value < 0 else "N"
-    return f"{_dms_magnitude(abs(value), seconds_decimals)}{hemisphere}"
+    return f"{_dms_magnitude(abs(value), seconds_decimals)}{_latitude_hemisphere(value)}"
 
 
 def longitude_dms(value: float | None, seconds_decimals: int = 5) -> str:
@@ -190,8 +228,38 @@ def longitude_dms(value: float | None, seconds_decimals: int = 5) -> str:
     if value is None:
         return NOT_AVAILABLE
 
-    hemisphere = "W" if value < 0 else "E"
-    return f"{_dms_magnitude(abs(value), seconds_decimals)}{hemisphere}"
+    return f"{_dms_magnitude(abs(value), seconds_decimals)}{_longitude_hemisphere(value)}"
+
+
+def latitude_dms_fields(value: float | None, seconds_decimals: int = 5) -> str:
+    """``42 43 57.00000 N`` - the audit CSV's ``Latitude (DMS)`` cell.
+
+    The same degrees, minutes, seconds and letter as ``latitude_dms`` shows on
+    the Single point panel (``42°43'57.00000"N``), from the same
+    ``_dms_parts`` call, in the file notation ``_dms_fields`` records the
+    reason for. Magnitude and a letter, never a sign, for ``latitude_dms``'s
+    reason; the letter is a fourth space-separated field. Owner's
+    instruction, docs/DESIGN.md amendment #66.
+    """
+    if value is None:
+        return NOT_AVAILABLE
+
+    return f"{_dms_fields(abs(value), seconds_decimals)} {_latitude_hemisphere(value)}"
+
+
+def longitude_dms_fields(value: float | None, seconds_decimals: int = 5) -> str:
+    """``84 33 19.80000 W`` - the audit CSV's ``Longitude (DMS)`` cell.
+
+    ``value`` is the program's own signed, negative-west longitude, exactly as
+    ``longitude_dms`` takes it, and for the same reason this cell needs no
+    convention parameter: the letter states the hemisphere, so the cell reads
+    the same whichever way the job's file wrote its signs - which the decimal
+    ``Longitude (neg west)`` cell beside it cannot claim.
+    """
+    if value is None:
+        return NOT_AVAILABLE
+
+    return f"{_dms_fields(abs(value), seconds_decimals)} {_longitude_hemisphere(value)}"
 
 
 DEGREE_SYMBOL = "°"

@@ -202,6 +202,8 @@ AUDIT_COLUMNS = [
     "Units",
     "Latitude",
     "Longitude (neg west)",
+    "Latitude (DMS)",
+    "Longitude (DMS)",
     "Geoid height (m)",
     "Ellipsoid height (m)",
     "Source grid scale factor",
@@ -214,6 +216,25 @@ AUDIT_COLUMNS = [
     "Warnings",
     "Description",
 ]
+
+
+"""The audit CSV's header row, before any per-direction renaming.
+
+``Latitude (DMS)`` and ``Longitude (DMS)`` (owner's instruction,
+docs/DESIGN.md amendment #66) are the same geodetic pivot as the two decimal
+cells before them, in degrees, minutes and seconds with a hemisphere letter -
+``42 43 57.00000 N`` - from ``formatting.latitude_dms_fields`` and
+``longitude_dms_fields``. They sit beside their decimal siblings, and that
+placement is a deliberate choice with a cost: every column after them moves
+two places to the right, in the file whose layout #40 recorded as "the status
+quo since 0.1.0, relied on by downstream spreadsheets". A reader keyed by
+column position rather than by heading breaks at "Geoid height (m)" and
+after; a reader keyed by heading does not. Anything that must survive that
+choice being revisited reads the header (every reader in this repository
+does). Moving the pair to the end of the row would preserve every existing
+position at the price of separating the DMS from the degrees it restates;
+the owner can ask for that, and #66 says so.
+"""
 
 
 ELLIPSOID_ELEVATION_HEADING = "Ellipsoid height"
@@ -394,6 +415,8 @@ def audit_rows(result: JobResult) -> list[list[str]]:
                 f"in {in_unit.code}, out {out_unit.code}",
                 fmt.latitude(conversion.latitude),
                 fmt.longitude(conversion.longitude),
+                fmt.latitude_dms_fields(conversion.latitude),
+                fmt.longitude_dms_fields(conversion.longitude),
                 fmt.geoid_height(factors.geoid_height),
                 fmt.geoid_height(factors.ellipsoid_height),
                 fmt.factor(conversion.source_scale_factor),

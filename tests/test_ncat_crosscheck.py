@@ -512,18 +512,63 @@ def written_jobs(tmp_path_factory):
 
 # Audit CSV column positions, counted from AUDIT_COLUMNS in exports.py:
 # Point(0) Source zone(1) Source N(2) Source E(3) Target zone(4) Target N(5)
-# Target E(6) Elevation(7) Units(8) Latitude(9) Longitude(10) Geoid(11)
-# Ellipsoid height(12) Source k(13) Source convergence(14) k(15)
-# Convergence(16) Elevation factor(17) Combined factor(18) ppm(19)
-# Warnings(20) Description(21).
+# Target E(6) Elevation(7) Units(8) Latitude(9) Longitude(10)
+# Latitude DMS(11) Longitude DMS(12) Geoid(13) Ellipsoid height(14)
+# Source k(15) Source convergence(16) k(17) Convergence(18)
+# Elevation factor(19) Combined factor(20) ppm(21) Warnings(22)
+# Description(23).
+#
+# The two DMS columns arrived with docs/DESIGN.md #66 and moved every later
+# position by two - which this positional table is exactly the kind of reader
+# #66 warns about, so ``test_the_audit_positions_are_the_headers`` below pins
+# each constant to its heading and fails HERE, naming the column, the next
+# time the layout moves.
 AUDIT_TARGET_NORTHING = 5
 AUDIT_TARGET_EASTING = 6
 AUDIT_ELEVATION = 7
 AUDIT_LATITUDE = 9
 AUDIT_LONGITUDE = 10
-AUDIT_GEOID = 11
-AUDIT_SCALE_FACTOR = 15
-AUDIT_CONVERGENCE = 16
+AUDIT_LATITUDE_DMS = 11
+AUDIT_LONGITUDE_DMS = 12
+AUDIT_GEOID = 13
+AUDIT_SCALE_FACTOR = 17
+AUDIT_CONVERGENCE = 18
+
+
+def test_the_audit_positions_are_the_headers():
+    """Every positional constant above names the base-header column it was
+    counted to; the per-direction renamings (columns 2-3 and 5-6) are
+    asserted by heading in the tests that use them."""
+    from michspc.fileio.exports import AUDIT_COLUMNS
+
+    assert AUDIT_COLUMNS[AUDIT_TARGET_NORTHING] == "Target northing"
+    assert AUDIT_COLUMNS[AUDIT_TARGET_EASTING] == "Target easting"
+    assert AUDIT_COLUMNS[AUDIT_ELEVATION] == "Elevation"
+    assert AUDIT_COLUMNS[AUDIT_LATITUDE] == "Latitude"
+    assert AUDIT_COLUMNS[AUDIT_LONGITUDE] == "Longitude (neg west)"
+    assert AUDIT_COLUMNS[AUDIT_LATITUDE_DMS] == "Latitude (DMS)"
+    assert AUDIT_COLUMNS[AUDIT_LONGITUDE_DMS] == "Longitude (DMS)"
+    assert AUDIT_COLUMNS[AUDIT_GEOID] == "Geoid height (m)"
+    assert AUDIT_COLUMNS[AUDIT_SCALE_FACTOR] == "Grid scale factor"
+    assert AUDIT_COLUMNS[AUDIT_CONVERGENCE] == "Convergence"
+
+
+def _lettered_dms_to_degrees(text: str) -> float:
+    """``42 43 57.00000 N`` -> signed decimal degrees, S and W negative.
+
+    An independent reading of the audit CSV's DMS cells (#66), written here
+    rather than imported from ``michspc.fileio.dms`` so the cell is checked
+    against NCAT's degrees by arithmetic the program did not supply.
+    """
+    degrees, minutes, seconds, letter = text.split()
+    assert letter in ("N", "S", "E", "W"), text
+    magnitude = int(degrees) + int(minutes) / 60.0 + float(seconds) / 3600.0
+    return -magnitude if letter in ("S", "W") else magnitude
+
+
+_DMS_CELL_ROUNDING = 0.5 * 1e-5 / 3600.0 + 1e-12
+"""Half of the DMS cell's last place (five decimals of a second) in degrees,
+plus float slack: the cell is NCAT's own position to that resolution."""
 
 ZONE_UNIT_CASES = [
     (zone_code, unit)
@@ -607,6 +652,14 @@ def test_e2e_geodetic_to_zone_audit_csv_matches_ncat(written_jobs, zone_code, un
         )
         assert float(row[AUDIT_LONGITUDE]) == pytest.approx(
             anchor.longitude, abs=_DEGREE_ROUNDING
+        )
+        # The DMS restatement of the same pivot (#66), against NCAT's own
+        # degrees, read by arithmetic independent of the program's.
+        assert _lettered_dms_to_degrees(row[AUDIT_LATITUDE_DMS]) == pytest.approx(
+            anchor.latitude, abs=_DMS_CELL_ROUNDING
+        )
+        assert _lettered_dms_to_degrees(row[AUDIT_LONGITUDE_DMS]) == pytest.approx(
+            anchor.longitude, abs=_DMS_CELL_ROUNDING
         )
         assert float(row[AUDIT_SCALE_FACTOR]) == pytest.approx(
             anchor.scale_factor, abs=SCALE_FACTOR_TOLERANCE
@@ -698,6 +751,15 @@ def test_e2e_zone_to_geodetic_audit_csv_matches_ncat(written_jobs, zone_code, un
         assert float(row[AUDIT_LONGITUDE]) == pytest.approx(
             inverse_anchor.longitude,
             abs=_longitude_tolerance(inverse_anchor.latitude),
+        )
+        # The DMS cells restate the same inverse position (#66); the
+        # tolerance is the inverse anchor's own, since NCAT printed it.
+        assert _lettered_dms_to_degrees(row[AUDIT_LATITUDE_DMS]) == pytest.approx(
+            inverse_anchor.latitude, abs=_latitude_tolerance() + _DMS_CELL_ROUNDING
+        )
+        assert _lettered_dms_to_degrees(row[AUDIT_LONGITUDE_DMS]) == pytest.approx(
+            inverse_anchor.longitude,
+            abs=_longitude_tolerance(inverse_anchor.latitude) + _DMS_CELL_ROUNDING,
         )
         assert float(row[AUDIT_SCALE_FACTOR]) == pytest.approx(
             forward_anchor.scale_factor, abs=SCALE_FACTOR_TOLERANCE

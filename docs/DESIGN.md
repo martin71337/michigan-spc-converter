@@ -612,6 +612,89 @@ gateless cadence does not apply here). The horizontal work packages H1–H6
 proceed per the plan; the first code lands only after this amendment, which
 is the H0 exit condition.
 
+### #66 — 2026-09-03 — Owner's instruction: the audit CSV carries the geodetic position in DMS
+
+**The instruction:** "for the full output from multi point, I want columns
+for the geodetic coordinates in DMS form." Two columns in `<stem>_full.csv`,
+`Latitude (DMS)` and `Longitude (DMS)`, directly after `Longitude (neg
+west)`: the same geodetic pivot the two decimal cells before them carry, as
+degrees, minutes and seconds to five places with a hemisphere letter —
+`42 43 57.00000 N`, `84 33 19.80000 W`. No computation changed; the clean
+PNEZD export, the on-screen table, the job record and the Single point tab
+are untouched. Lands in the 0.7.1 cut (#65), which is not yet built.
+
+**Three decisions, and the one that costs something.**
+
+1. **File notation, not the panel's symbols.** The Single point panel shows
+   `42°43'57.00000"N` (#26, the owner's format). The file cell carries the
+   same four values as space-separated fields with no symbols, which is the
+   shape `angle_dms` has written into this file's two Convergence columns
+   since 0.1.0. The reason is not taste: the audit CSV is UTF-8 with no
+   byte-order mark, and a degree symbol in it opens in Excel on a Windows
+   code page as `Â°` — the one reader the file is for would see two wrong
+   characters in every row. A BOM would fix that and move the first three
+   bytes of every audit CSV ever written; the space form costs nothing. The
+   panel and the file are built from ONE arithmetic — `_dms_parts`, split
+   out of `_dms_magnitude` for this — and differ only in punctuation, and
+   the pin compares them with the punctuation normalised. If the owner wants
+   the symbols in the file, that is `_dms_fields` plus the BOM question, and
+   a re-read of this paragraph.
+2. **Beside the decimal siblings, not at the end of the row.** Every column
+   after the pair moves two places right. `audit_columns`'s docstring (#40)
+   recorded the horizontal layout as "the status quo since 0.1.0, relied on
+   by downstream spreadsheets", which is why the vertical block was kept off
+   horizontal CSVs — and this instruction adds columns to every audit CSV,
+   so the layout moves regardless; the choice is only where. A reader keyed
+   by heading is unaffected; a reader keyed by position breaks at `Geoid
+   height (m)` and after. **One such reader existed in this repository and
+   broke:** `tests/test_ncat_crosscheck.py` counted positions from
+   `AUDIT_COLUMNS` and 36 end-to-end anchor tests failed on `float("45 06
+   18.00000 N")`. Fixed by updating the table, and each constant is now
+   pinned to its heading so the next layout move fails at the table, naming
+   the column. Appending the pair after Description would have preserved
+   every existing position at the price of separating the DMS from the
+   degrees it restates; the owner can ask for that.
+3. **The cross-version digest pin is kept, not re-frozen.** `tests/
+   test_orthometric_regression.py` digests nine jobs' CSVs against digests
+   v0.5.0 itself computed; the audit member can no longer match them
+   raw. Re-freezing at HEAD would have discarded the cross-version
+   property. Instead the audit member is parsed and re-rendered through the
+   writer's own `_render_csv` with exactly the two new headings dropped,
+   and that text is digested: every byte v0.5.0 wrote is still pinned to
+   v0.5.0's digest. Two anti-vacuity pins make that honest — dropping
+   nothing reproduces every member byte for byte (the channel is lossless),
+   and the raw member differs from the frozen digest while the stripped one
+   matches (the columns are really there, and removing exactly those two is
+   what restores the old bytes). The clean-export digests are compared raw
+   and unchanged.
+
+**Pins (26 new tests, `tests/test_audit_dms.py` and additions to the
+regression and cross-check suites):** the formatters at hand-derived values
+(42.7325 → `42 43 57.00000 N`; −84.5555 → `84 33 19.80000 W`; letter never
+sign; N/A without a value; the 59.999996″ carry printing `44 00.00000` on
+both surfaces); across all nine regression configurations, the audit cell
+equals the panel's DMS with punctuation normalised and the pair sits
+directly after `Longitude (neg west)` with every row the header's width;
+and in the NCAT end-to-end suite the DMS cells are read back by an
+independent arithmetic written in the test and compared to NCAT's own
+degrees at half the cell's last place, in both geodetic directions.
+
+**Falsified by seeding, ten defects, all caught:** the two cells swapped;
+the hemisphere letter dropped; four decimals instead of five; the pair at
+the end of the header; the strip removing a third column; the latitude DMS
+built from the northing; rounding after the split (the carry defect
+`angle_dms` records); the strip removed entirely; the letters flipped
+(caught by the NCAT reading, 18 tests); a further column inserted (caught by
+the position pin alone).
+
+**Suite:** 3,764 → **3,790** passing plus the release-number skip, both
+modes, in the same Linux container as #65 with the same five
+container-only failures, reproduced on the unchanged code.
+
+**Still human:** open one real job's `_full.csv` in Excel on the owner's
+machine and confirm the two cells read as intended and the columns to their
+right are where his spreadsheets expect them.
+
 ### #65 — 2026-09-03 — Owner's instruction: drag and drop the input file onto the Multi point tab
 
 **The instruction:** "allow for drag and drop file in multi point." Interface

@@ -501,6 +501,8 @@ VERTICAL_GEODETIC_HEADER = [
     "Units",
     "Latitude",
     "Longitude (neg west)",
+    "Latitude (DMS)",
+    "Longitude (DMS)",
     "Geoid model",
     "Geoid height (m)",
     "Ellipsoid height (m)",

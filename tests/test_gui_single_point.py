@@ -264,7 +264,7 @@ def as_the_file_writes_it(text: str) -> str:
     """A panel string with its display-only punctuation taken back off.
 
     The panel shows ``43.80000000°`` and ``-16°49\'17.78"`` where the audit CSV
-    and the multi-point table show ``43.80000000`` and ``-16 49 17.78``
+    and the multi-point table show ``43.80000000`` and ``-16-49-17.78``
     (docs/DESIGN.md amendment #30). That difference is punctuation and nothing
     else: ``formatting.latitude_display`` and ``convergence_display`` are built
     on the file formatters rather than reimplementing the number.
@@ -273,12 +273,16 @@ def as_the_file_writes_it(text: str) -> str:
     symbols and then demanding equality still catches a digit that differs,
     which is the property those tests exist for; ignoring the rows would not.
     """
-    return (
-        text.replace(fmt.DEGREE_SYMBOL, " ")
-        .replace("'", " ")
-        .replace('"', "")
-        .strip()
-    )
+    if "'" in text:
+        # A DMS angle: the file writes its three fields dash-separated (#68),
+        # ``-16°49'17.78"`` -> ``-16-49-17.78``.
+        return (
+            text.replace(fmt.DEGREE_SYMBOL, fmt.DMS_FIELD_SEPARATOR)
+            .replace("'", fmt.DMS_FIELD_SEPARATOR)
+            .replace('"', "")
+            .strip()
+        )
+    return text.replace(fmt.DEGREE_SYMBOL, "").strip()
 
 
 def fill_single(tab, case):

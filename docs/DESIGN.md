@@ -612,6 +612,49 @@ gateless cadence does not apply here). The horizontal work packages H1–H6
 proceed per the plan; the first code lands only after this amendment, which
 is the H0 exit condition.
 
+### #68 — 2026-09-03 — Owner's instruction: the convergence format matches
+
+**The instruction:** "make convergence format match." #67 had read "all
+DMS in the export files" as the latitude/longitude cells and had kept the
+two Convergence columns in `angle_dms`'s space-separated form, naming what
+changing them would cost. The owner read it and overrode it. So:
+`-16-49-17.76` where every release from 0.1.0 to 0.7.0 wrote
+`-16 49 17.76`, in the audit CSV's `Source convergence` and `Convergence`
+columns and in the job record's convergence line (`describe_convergence`
+is built on `angle_dms`). Same sign, same digits, same rounding; the
+Single point panel's `-16°49'17.76"` is untouched, being the screen.
+
+**What changed in code:** `angle_dms` now takes its three values from
+`_dms_parts` - the arithmetic every DMS string in the program has shared
+since #66, so the 88,612,997-angle sweep that established its carry
+behaviour still describes it - and joins them with
+`formatting.DMS_FIELD_SEPARATOR`. One constant now governs every DMS
+angle written to a file: a seed putting the convergence back to spaces is
+caught by 23 pins across the fileio, Single point and NCAT suites.
+
+**The cross-version digest pin, kept a third time.** Every one of the
+nine frozen audit members has two convergence cells per row, so the raw
+member cannot match v0.5.0's digest. `_without_columns` now also respells
+those two columns exactly as v0.5.0 spelled them - the sign character
+kept, every following dash made the space it replaced - before the #66
+strip and the re-render, so every DIGIT of every convergence v0.5.0 wrote
+is still held to v0.5.0's own digest; only the separator is not. The
+respelling is pinned at hand-derived cells and by a fixed-point check, and
+the lossless-channel test now proves the parse-and-render channel exact
+on the original rows and the respelling confined to the two columns.
+
+**A consequence worth stating plainly:** the digest pin can no longer see
+the convergence separator. Nothing else can either except the literal
+pins, which is why the seed above matters and why the count is recorded.
+
+**Also touched:** the NCAT cross-check's `_dms_to_degrees` reads both
+NCAT's frozen spaces and this program's dashes with one arithmetic; the
+Single point suite's symbol-to-file normaliser writes dashes for a DMS
+angle and nothing for a decimal degree's symbol; eighteen literal pins in
+the fileio suite re-spelled by one regular expression and re-read.
+
+**Suite:** 3,801 → **3,802**, both modes, same container, same five.
+
 ### #67 — 2026-09-03 — Owner's instructions: a DMS sibling of the clean export when geodetic is the target, and a dash between the DMS fields
 
 **The instructions**, two in one session: "when a multi point conversion is
@@ -661,7 +704,9 @@ conversion to geodetic and does not get one.
    a space-separated fourth field, which is what "the separator" was read
    to mean; `42-43-57.00000-N` and `42-43-57.00000N` were the other readings
    and are one line each if the owner wants one. **The Convergence columns
-   are deliberately NOT changed:** they are a rotation in `angle_dms`'s
+   are deliberately NOT changed** *(REVERSED by #68 the same day, on the
+   owner's instruction; the reasoning below is what it cost and is kept as
+   written)*: they are a rotation in `angle_dms`'s
    settled signed notation (#26), read back by the NCAT cross-check and
    printed into the job record, and every audit CSV since 0.1.0 is pinned
    on them byte for byte. "All DMS in the export files" was read as the

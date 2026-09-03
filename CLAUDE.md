@@ -89,8 +89,12 @@ members — `_GEODETIC_DD.csv`, the old clean export renamed, byte-identical;
 `_GEODETIC_DMS.csv`, the same rows in DMS, verified through the DMS parser
 before staging; every other direction unchanged — and the DMS field
 separator is a DASH everywhere, `42-43-57.00000 N`, one constant
-`formatting.DMS_FIELD_SEPARATOR`; the Convergence columns deliberately keep
-`angle_dms`'s signed spaces). Suite **3,801** passing plus the skip.
+`formatting.DMS_FIELD_SEPARATOR`) and **#68** (the owner overrode #67's
+exception: the Convergence columns and the record's convergence line are
+`-16-49-17.76` too, every DMS angle in a file on one constant; the digest
+pin respells the two columns to v0.5.0's spacing before comparing, so it
+holds the digits but can no longer see that separator — 23 literal pins
+do). Suite **3,802** passing plus the skip.
 Everything else on `main` since the tag is `review/`, `tools/` and docs.
 **Still human for #66/#67:** unzip a real geodetic job on his machine, open
 all three CSVs in Excel, check the DMS form and that nothing imports the

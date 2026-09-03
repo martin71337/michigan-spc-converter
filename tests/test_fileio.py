@@ -1096,7 +1096,7 @@ def test_angle_dms_of_zero():
     Field widths from the code: degrees and minutes %02d, seconds %05.2f.
     """
     # Hand-derived: "+" + "00" + " " + "00" + " " + "00.00".
-    assert fmt.angle_dms(0.0) == "+00 00 00.00"
+    assert fmt.angle_dms(0.0) == "+00-00-00.00"
 
 
 def test_angle_dms_of_a_typical_convergence():
@@ -1109,7 +1109,7 @@ def test_angle_dms_of_a_typical_convergence():
         so 0 degrees, 14 minutes, 58.30 seconds, positive.
     """
     # Hand-derived above.
-    assert fmt.angle_dms(0.24952739530106213) == "+00 14 58.30"
+    assert fmt.angle_dms(0.24952739530106213) == "+00-14-58.30"
 
 
 def test_angle_dms_carries_the_sign_on_the_whole_quantity():
@@ -1124,7 +1124,7 @@ def test_angle_dms_carries_the_sign_on_the_whole_quantity():
     "-0 15 00.00" or "00 -15 00.00" would be wrong.
     """
     # Hand-derived above.
-    assert fmt.angle_dms(-0.25) == "-00 15 00.00"
+    assert fmt.angle_dms(-0.25) == "-00-15-00.00"
 
 
 def test_angle_dms_negative_and_positive_differ_only_in_the_sign_character():
@@ -1132,9 +1132,9 @@ def test_angle_dms_negative_and_positive_differ_only_in_the_sign_character():
     positive = fmt.angle_dms(0.25)
     negative = fmt.angle_dms(-0.25)
 
-    # Hand-derived: "+00 15 00.00" and "-00 15 00.00".
-    assert positive == "+00 15 00.00"
-    assert negative == "-00 15 00.00"
+    # Hand-derived: "+00-15-00.00" and "-00-15-00.00".
+    assert positive == "+00-15-00.00"
+    assert negative == "-00-15-00.00"
     assert positive[1:] == negative[1:]
 
 
@@ -1144,7 +1144,7 @@ def test_angle_dms_pads_single_digit_seconds():
     The seconds field is %05.2f, so 9.0 prints as "09.00", not "9.00".
     """
     # Hand-derived above.
-    assert fmt.angle_dms(0.0025) == "+00 00 09.00"
+    assert fmt.angle_dms(0.0025) == "+00-00-09.00"
 
 
 def test_angle_dms_seconds_rounding_carries_into_the_next_minute():
@@ -1157,7 +1157,7 @@ def test_angle_dms_seconds_rounding_carries_into_the_next_minute():
     so 0 degrees, 1 minute, 00.00 seconds.
     """
     # Hand-derived above.
-    assert fmt.angle_dms(59.999 / 3600.0) == "+00 01 00.00"
+    assert fmt.angle_dms(59.999 / 3600.0) == "+00-01-00.00"
     # The failure being guarded against, stated directly.
     assert "60.00" not in fmt.angle_dms(59.999 / 3600.0)
 
@@ -1173,7 +1173,7 @@ def test_angle_dms_minute_rounding_carries_into_the_next_degree():
     result = fmt.angle_dms(3599.999 / 3600.0)
 
     # Hand-derived above.
-    assert result == "+01 00 00.00"
+    assert result == "+01-00-00.00"
     assert "60" not in result
 
 
@@ -1184,8 +1184,8 @@ def test_angle_dms_of_a_whole_degree_and_a_half():
         1800 / 60   = 30 minutes remainder 0
     """
     # Hand-derived above.
-    assert fmt.angle_dms(1.5) == "+01 30 00.00"
-    assert fmt.angle_dms(-1.5) == "-01 30 00.00"
+    assert fmt.angle_dms(1.5) == "+01-30-00.00"
+    assert fmt.angle_dms(-1.5) == "-01-30-00.00"
 
 
 def test_angle_dms_of_none_is_not_available():
@@ -1194,9 +1194,9 @@ def test_angle_dms_of_none_is_not_available():
 
 
 def _dms_parts(text: str) -> tuple[str, int, int, float]:
-    """Split "+00 14 58.30" into sign, degrees, minutes, seconds."""
+    """Split "+00-14-58.30" into sign, degrees, minutes, seconds."""
     sign, rest = text[0], text[1:]
-    degrees, minutes, seconds = rest.split(" ")
+    degrees, minutes, seconds = rest.split(fmt.DMS_FIELD_SEPARATOR)
     return sign, int(degrees), int(minutes), float(seconds)
 
 
@@ -1266,9 +1266,9 @@ def test_angle_dms_still_carries_after_the_guards_were_deleted():
     3600.00 = exactly 1 degree, so divmod(3600.0, 3600.0) gives 1 degree, 0
     minutes, 0.00 seconds.
     """
-    assert fmt.angle_dms(59.999 / 3600.0) == "+00 01 00.00"
-    assert fmt.angle_dms(3599.999 / 3600.0) == "+01 00 00.00"
-    assert fmt.angle_dms(-3599.999 / 3600.0) == "-01 00 00.00"
+    assert fmt.angle_dms(59.999 / 3600.0) == "+00-01-00.00"
+    assert fmt.angle_dms(3599.999 / 3600.0) == "+01-00-00.00"
+    assert fmt.angle_dms(-3599.999 / 3600.0) == "-01-00-00.00"
 
 
 def test_angle_dms_with_whole_seconds_uses_a_two_character_field():
@@ -1276,8 +1276,8 @@ def test_angle_dms_with_whole_seconds_uses_a_two_character_field():
 
     0.0025 degrees = 9.0 seconds exactly, as above.
     """
-    # Hand-derived: "+00 00 09".
-    assert fmt.angle_dms(0.0025, seconds_decimals=0) == "+00 00 09"
+    # Hand-derived: "+00-00-09".
+    assert fmt.angle_dms(0.0025, seconds_decimals=0) == "+00-00-09"
 
 
 def test_factor_of_none_is_not_available():
@@ -1567,7 +1567,7 @@ def test_angle_dms_still_defaults_to_two_decimals_of_a_second():
     # Hand-derived from formatting.py's declaration: seconds_decimals = 2.
     assert signature.parameters["seconds_decimals"].default == 2
     # And the string it produces, which is what the two files actually carry.
-    assert fmt.angle_dms(0.25) == "+00 15 00.00"
+    assert fmt.angle_dms(0.25) == "+00-15-00.00"
 
 
 def test_geoid_height_is_three_decimal_places():
@@ -1583,7 +1583,7 @@ def test_describe_convergence_spells_out_the_direction():
     north, negative means EAST, zero means the point is on the central meridian.
     """
     # Hand-derived: 0.25 deg = 900 s = 15 minutes, positive -> west.
-    assert fmt.describe_convergence(0.25).startswith("+00 15 00.00")
+    assert fmt.describe_convergence(0.25).startswith("+00-15-00.00")
     assert "west" in fmt.describe_convergence(0.25)
     assert "east" in fmt.describe_convergence(-0.25)
     assert "central meridian" in fmt.describe_convergence(0.0)

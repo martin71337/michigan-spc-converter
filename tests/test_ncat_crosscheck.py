@@ -106,7 +106,7 @@ def _linear_tolerance(unit: LinearUnit, metres: float = LINEAR_TOLERANCE_M) -> f
 
 
 def _dms_to_degrees(text: str) -> float:
-    """``"-00 26 14.24"`` -> decimal degrees, sign on the whole quantity.
+    """``"-00 26 14.24"`` or ``"-00-26-14.24"`` -> decimal degrees, sign on the whole quantity.
 
     Accepts the leading ``+`` that ``formatting.angle_dms`` writes and NCAT
     does not, so the same parser reads both the frozen NGS string and the cell
@@ -114,7 +114,9 @@ def _dms_to_degrees(text: str) -> float:
     """
     body = text.strip()
     sign = -1.0 if body.startswith("-") else 1.0
-    degrees, minutes, seconds = body.lstrip("+-").split()
+    # NCAT's frozen strings are space-separated; this program's cells are
+    # dash-separated since #68. Both read here, by one arithmetic.
+    degrees, minutes, seconds = body.lstrip("+-").replace("-", " ").split()
     return sign * (float(degrees) + float(minutes) / 60.0 + float(seconds) / 3600.0)
 
 
@@ -248,7 +250,7 @@ def test_the_frozen_convergence_in_degrees_agrees_with_the_dms_string(anchor):
 
     Hand-derived: a DMS reading of d m s carries its sign on the whole
     quantity, so the decimal form is sign x (d + m/60 + s/3600). For N1's
-    "-00 26 14.24" that is -(0 + 26/60 + 14.24/3600) = -0.4372888... degrees.
+    "-00-26-14.24" that is -(0 + 26/60 + 14.24/3600) = -0.4372888... degrees.
     """
     assert _dms_to_degrees(anchor.convergence_dms) == pytest.approx(
         anchor.convergence_deg, abs=1e-15

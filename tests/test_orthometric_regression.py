@@ -151,15 +151,39 @@ DMS_COLUMNS = ("Latitude (DMS)", "Longitude (DMS)")
 """The two audit columns added after v0.5.0 froze these digests (#66)."""
 
 
+CONVERGENCE_COLUMNS = ("Source convergence", "Convergence")
+"""The two audit columns whose spelling changed after v0.5.0 (#68): the
+fields are dash-separated where v0.5.0 wrote spaces."""
+
+
+def _v0_5_0_convergence(cell: str) -> str:
+    """``-16-49-17.76`` -> ``-16 49 17.76``: the cell as v0.5.0 spelled it.
+
+    The sign character is kept and every remaining dash becomes the space it
+    replaced. A cell that is not of that shape (``N/A``) is returned as is,
+    exactly as v0.5.0 wrote it too."""
+    if not cell or cell[0] not in "+-":
+        return cell
+    return cell[0] + cell[1:].replace("-", " ")
+
+
 def _without_columns(body: bytes, names: tuple[str, ...]) -> bytes:
-    """The member with the named columns dropped, re-rendered by the writer's
-    own ``_render_csv`` so the remaining bytes are exactly what the writer
-    would have produced without those columns."""
+    """The member with the named columns dropped and the convergence cells
+    respelled as v0.5.0 spelled them, re-rendered by the writer's own
+    ``_render_csv`` so the remaining bytes are exactly what the writer would
+    have produced without those columns and with the old separator."""
     text = body.decode("utf-8")
     rows = list(csv.reader(io.StringIO(text, newline="")))
     header = rows[0]
     keep = [index for index, column in enumerate(header) if column not in names]
-    stripped = [[row[index] for index in keep] for row in rows]
+    respell = [index for index, column in enumerate(header) if column in CONVERGENCE_COLUMNS]
+    stripped = []
+    for line, row in enumerate(rows):
+        cells = list(row)
+        if line > 0:
+            for index in respell:
+                cells[index] = _v0_5_0_convergence(cells[index])
+        stripped.append([cells[index] for index in keep])
     return exports._render_csv(stripped).encode("utf-8")
 
 
@@ -292,10 +316,33 @@ def _audit_members(tmp_path) -> list[tuple[str, bytes]]:
 
 
 def test_the_stripping_is_exact(tmp_path):
-    """Dropping nothing reproduces every audit member byte for byte, so the
-    parse-and-render channel the comparison passes through is lossless."""
+    """Dropping nothing reproduces every audit member byte for byte apart
+    from the convergence respelling, so the parse-and-render channel the
+    comparison passes through is lossless: re-rendering the respelled text
+    with the respelling applied again is a fixed point, and re-rendering the
+    ORIGINAL rows through ``_render_csv`` alone reproduces the member."""
     for _member, body in _audit_members(tmp_path):
-        assert _without_columns(body, ()) == body
+        rows = list(csv.reader(io.StringIO(body.decode("utf-8"), newline="")))
+        assert exports._render_csv(rows).encode("utf-8") == body
+        once = _without_columns(body, ())
+        assert _without_columns(once, ()) == once
+        # The respelling touched only the two convergence columns, and only
+        # by turning dashes into spaces: the digits are untouched.
+        header = rows[0]
+        for original, respelled in zip(rows[1:], list(csv.reader(io.StringIO(once.decode("utf-8"), newline="")))[1:]):
+            for index, column in enumerate(header):
+                if column in CONVERGENCE_COLUMNS:
+                    assert respelled[index] == _v0_5_0_convergence(original[index])
+                    assert respelled[index].replace(" ", "") == original[index].replace("-", "").replace(" ", "") or original[index][0] in "+-"
+                else:
+                    assert respelled[index] == original[index]
+
+
+def test_the_v0_5_0_respelling_is_what_it_claims():
+    assert _v0_5_0_convergence("-16-49-17.76") == "-16 49 17.76"
+    assert _v0_5_0_convergence("+00-14-58.30") == "+00 14 58.30"
+    assert _v0_5_0_convergence("N/A") == "N/A"
+    assert _v0_5_0_convergence("") == ""
 
 
 def test_the_raw_member_no_longer_matches_but_the_stripped_one_does(tmp_path):

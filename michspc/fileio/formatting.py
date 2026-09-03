@@ -53,7 +53,18 @@ def angle_dms(degrees: float | None, seconds_decimals: int = 2) -> str:
     Used for the convergence angle, which surveyors read in DMS and which NGS
     publishes the same way. The sign is carried on the whole quantity, not on
     the degrees field alone, so a convergence of -0.25 degrees formats as
-    "-00 15 00.00" rather than "-0 15 00.00" or "00 -15 00.00".
+    "-00-15-00.00" rather than "-0-15-00.00" or "00 -15 00.00".
+
+    **The fields are dash-separated since the 0.7.1 cut** (docs/DESIGN.md
+    amendment #68, the owner's instruction "make convergence format match"):
+    ``-16-49-17.76`` where every release from 0.1.0 to 0.7.0 wrote
+    ``-16 49 17.76``. Same digits, same sign, same rounding - the arithmetic
+    is ``_dms_parts``, shared with every DMS latitude and longitude this
+    program writes - and the one separator constant ``DMS_FIELD_SEPARATOR``,
+    so the convergence and the geodetic DMS cells in the same file cannot
+    separate differently. The cross-version digest pin compares the
+    convergence cells under their v0.5.0 spelling, so every digit is still
+    held to what v0.5.0 wrote.
 
     Rounding is done on the total seconds before splitting, so 59.999 seconds
     carries into the next minute instead of printing "60.00".
@@ -83,15 +94,9 @@ def angle_dms(degrees: float | None, seconds_decimals: int = 2) -> str:
         return NOT_AVAILABLE
 
     sign = "-" if degrees < 0 else "+"
-    total_seconds = round(abs(degrees) * 3600.0, seconds_decimals)
-
-    whole_degrees, remainder = divmod(total_seconds, 3600.0)
-    whole_minutes, seconds = divmod(remainder, 60.0)
-
-    width = 2 if seconds_decimals == 0 else seconds_decimals + 3
-    return (
-        f"{sign}{int(whole_degrees):02d} {int(whole_minutes):02d} "
-        f"{seconds:0{width}.{seconds_decimals}f}"
+    whole_degrees, whole_minutes, seconds = _dms_parts(abs(degrees), seconds_decimals)
+    return sign + DMS_FIELD_SEPARATOR.join(
+        (f"{whole_degrees:02d}", f"{whole_minutes:02d}", seconds)
     )
 
 
@@ -118,20 +123,20 @@ def longitude(value: float | None, positive_west: bool = False) -> str:
 def _dms_magnitude(magnitude: float, seconds_decimals: int) -> str:
     """``DD°MM'SS.sssss"`` for an unsigned quantity in decimal degrees.
 
-    ``angle_dms`` is deliberately NOT reused here, and not because reuse would
-    be wrong to want. Its output is a different shape - a leading sign, three
-    space-separated fields, no symbols - and it is read as text by the audit CSV
-    and the job record. Building this string by taking that one apart would make
-    one display format depend on another display format's characters, and
-    changing either would silently move the other. ``angle_dms`` is left exactly
-    as it is, at its settled default of 2 decimals (docs/DESIGN.md amendment #26).
+    ``angle_dms``'s STRING is deliberately not reused here: its output is a
+    different shape - a leading sign, three separated fields, no symbols - and
+    it is read as text by the audit CSV and the job record. Building this
+    string by taking that one apart would make one display format depend on
+    another display format's characters. ``angle_dms`` keeps its settled
+    default of 2 decimals (docs/DESIGN.md amendment #26).
 
-    What IS reused is its arithmetic, verbatim and in the same order: the total
-    seconds are rounded ONCE, before both divmods. That ordering is the entire
-    carry mechanism and is why there is no carry guard here either - each divmod
-    returns a remainder strictly smaller than its divisor, and the seconds were
-    already rounded to ``seconds_decimals`` places before the split, so neither
-    boundary can be crossed afterwards. ``angle_dms``'s own docstring records the
+    What IS shared is the arithmetic - ``_dms_parts``, since #66 - verbatim
+    and in the same order: the total seconds are rounded ONCE, before both
+    divmods. That ordering is the entire carry mechanism and is why there is
+    no carry guard here either - each divmod returns a remainder strictly
+    smaller than its divisor, and the seconds were already rounded to
+    ``seconds_decimals`` places before the split, so neither boundary can be
+    crossed afterwards. ``angle_dms``'s own docstring records the
     88,612,997-angle sweep that established this.
     """
     degrees, minutes, seconds = _dms_parts(magnitude, seconds_decimals)
@@ -164,11 +169,10 @@ def _dms_parts(magnitude: float, seconds_decimals: int) -> tuple[int, int, str]:
 
 
 DMS_FIELD_SEPARATOR = "-"
-"""What separates degrees, minutes and seconds in every DMS latitude or
-longitude written to an export file - the owner's instruction (docs/DESIGN.md
-amendment #67): ``42-43-57.00000 N``. The hemisphere letter stays a
-space-separated fourth field. The Convergence columns are a different
-quantity in a settled notation (``angle_dms``) and are not this."""
+"""What separates degrees, minutes and seconds in every DMS angle written to
+an export file - the owner's instructions (docs/DESIGN.md amendments #67 and
+#68): ``42-43-57.00000 N`` for a latitude or longitude, ``-16-49-17.76`` for
+a convergence. The hemisphere letter stays a space-separated fourth field."""
 
 
 def _dms_fields(magnitude: float, seconds_decimals: int) -> str:

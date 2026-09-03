@@ -163,15 +163,22 @@ def _dms_parts(magnitude: float, seconds_decimals: int) -> tuple[int, int, str]:
     )
 
 
+DMS_FIELD_SEPARATOR = "-"
+"""What separates degrees, minutes and seconds in every DMS latitude or
+longitude written to an export file - the owner's instruction (docs/DESIGN.md
+amendment #67): ``42-43-57.00000 N``. The hemisphere letter stays a
+space-separated fourth field. The Convergence columns are a different
+quantity in a settled notation (``angle_dms``) and are not this."""
+
+
 def _dms_fields(magnitude: float, seconds_decimals: int) -> str:
-    """``42 43 57.00000`` - the same three values as ``_dms_magnitude``, in
-    the audit CSV's own notation: space-separated fields, no symbols, exactly
-    the shape ``angle_dms`` has written into that file's Convergence columns
-    since 0.1.0. Chosen for the file rather than the symbol form because the
-    audit CSV is UTF-8 with no byte-order mark, and a degree symbol in it
-    opens in Excel as two wrong characters (docs/DESIGN.md amendment #66)."""
+    """``42-43-57.00000`` - the same three values as ``_dms_magnitude``, in
+    the export files' notation: dash-separated fields, no symbols (#66, #67).
+    Chosen for the files rather than the symbol form because the exports are
+    UTF-8 with no byte-order mark, and a degree symbol in them opens in Excel
+    as two wrong characters (docs/DESIGN.md amendment #66)."""
     degrees, minutes, seconds = _dms_parts(magnitude, seconds_decimals)
-    return f"{degrees:02d} {minutes:02d} {seconds}"
+    return DMS_FIELD_SEPARATOR.join((f"{degrees:02d}", f"{minutes:02d}", seconds))
 
 
 def _latitude_hemisphere(value: float) -> str:
@@ -232,7 +239,7 @@ def longitude_dms(value: float | None, seconds_decimals: int = 5) -> str:
 
 
 def latitude_dms_fields(value: float | None, seconds_decimals: int = 5) -> str:
-    """``42 43 57.00000 N`` - the audit CSV's ``Latitude (DMS)`` cell.
+    """``42-43-57.00000 N`` - the audit CSV's ``Latitude (DMS)`` cell.
 
     The same degrees, minutes, seconds and letter as ``latitude_dms`` shows on
     the Single point panel (``42°43'57.00000"N``), from the same
@@ -248,7 +255,7 @@ def latitude_dms_fields(value: float | None, seconds_decimals: int = 5) -> str:
 
 
 def longitude_dms_fields(value: float | None, seconds_decimals: int = 5) -> str:
-    """``84 33 19.80000 W`` - the audit CSV's ``Longitude (DMS)`` cell.
+    """``84-33-19.80000 W`` - the audit CSV's ``Longitude (DMS)`` cell.
 
     ``value`` is the program's own signed, negative-west longitude, exactly as
     ``longitude_dms`` takes it, and for the same reason this cell needs no

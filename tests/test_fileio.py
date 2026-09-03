@@ -3714,7 +3714,7 @@ def test_fix_a_the_written_archive_carries_the_metre_elevation(tmp_path):
     result = run(_zone_to_geodetic_job(tmp_path))
     written = exports.write_all(result)
 
-    text = member_text(written["archive"], "GEODETIC.csv")
+    text = member_text(written["archive"], "GEODETIC_DD.csv")
     # Hand-derived above. The clean export has no header row, so the single
     # data line is the whole file.
     assert text.strip() == "101,42.73250000,-84.55550000,274.3200,IRON PIPE"

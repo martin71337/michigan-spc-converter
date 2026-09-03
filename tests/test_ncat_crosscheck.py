@@ -554,13 +554,14 @@ def test_the_audit_positions_are_the_headers():
 
 
 def _lettered_dms_to_degrees(text: str) -> float:
-    """``42 43 57.00000 N`` -> signed decimal degrees, S and W negative.
+    """``42-43-57.00000 N`` -> signed decimal degrees, S and W negative.
 
     An independent reading of the audit CSV's DMS cells (#66), written here
     rather than imported from ``michspc.fileio.dms`` so the cell is checked
     against NCAT's degrees by arithmetic the program did not supply.
     """
-    degrees, minutes, seconds, letter = text.split()
+    angle, letter = text.split()
+    degrees, minutes, seconds = angle.split("-")
     assert letter in ("N", "S", "E", "W"), text
     magnitude = int(degrees) + int(minutes) / 60.0 + float(seconds) / 3600.0
     return -magnitude if letter in ("S", "W") else magnitude

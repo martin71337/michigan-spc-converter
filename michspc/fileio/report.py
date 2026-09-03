@@ -1797,14 +1797,31 @@ def build_report(result: JobResult) -> str:
 
     add(f"This job wrote ONE file: {stem}.zip")
     add("")
-    add("It contains the three files below, and they are kept together on")
+    count = "four" if "pnezd_dms" in names else "three"
+    add(f"It contains the {count} files below, and they are kept together on")
     add("purpose. A coordinate file that has been moved between zones should not")
     add("circulate without the record explaining how it was derived, so the")
-    add("export is a single archive rather than three loose files.")
+    add(f"export is a single archive rather than {count} loose files.")
     add("")
     add(f"  {names['pnezd']}")
     lines.extend(_clean_export_block(settings))
     add("")
+    if "pnezd_dms" in names:
+        # The DMS sibling (docs/DESIGN.md #67): the same rows, the position
+        # restated. Says what it is for and what it is not, because a file
+        # of angles in a PNEZD layout invites a CAD import it cannot survive.
+        add(f"  {names['pnezd_dms']}")
+        add("    The SAME rows as the file above - point, latitude, longitude,")
+        add("    elevation, description, no header row - with the latitude and")
+        add("    longitude restated as DEGREES MINUTES SECONDS to 5 places of a")
+        add("    second and a hemisphere letter, N or S and E or W:")
+        add("        42-43-57.00000 N   84-33-19.80000 W")
+        add("    A DMS position has no sign convention to state. The elevation")
+        add("    and description columns are identical to the file above.")
+        add("    For reading and transcription. NOT for CAD import, and this")
+        add("    program's own file reader will not read it back: it takes")
+        add("    decimal degrees only. Convert from the _DD file.")
+        add("")
     add(f"  {names['audit']}")
     add("    Every computed quantity for every point, with a header row: both")
     add("    zones' coordinates, the geodetic position the conversion pivoted")

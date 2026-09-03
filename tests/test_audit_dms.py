@@ -35,21 +35,25 @@ from tests import test_orthometric_regression as regression
 def test_latitude_dms_fields_is_the_owners_dms_in_file_notation():
     # 42.7325: 0.7325 deg * 60 = 43.95 min -> 43', 0.95 * 60 = 57.00000".
     # The panel pins the same value as 42°43'57.00000"N (test_fileio).
-    assert fmt.latitude_dms_fields(42.7325) == "42 43 57.00000 N"
+    assert fmt.latitude_dms_fields(42.7325) == "42-43-57.00000 N"
     # 0.5555 deg * 60 = 33.33 min -> 33', 0.33*60 = 19.8 s.
-    assert fmt.longitude_dms_fields(-84.5555) == "84 33 19.80000 W"
+    assert fmt.longitude_dms_fields(-84.5555) == "84-33-19.80000 W"
 
 
 def test_dms_fields_carry_a_letter_and_never_a_sign():
-    assert fmt.latitude_dms_fields(-42.7325) == "42 43 57.00000 S"
-    assert fmt.longitude_dms_fields(84.5555) == "84 33 19.80000 E"
-    assert fmt.latitude_dms_fields(0.0) == "00 00 00.00000 N"
+    assert fmt.latitude_dms_fields(-42.7325) == "42-43-57.00000 S"
+    assert fmt.longitude_dms_fields(84.5555) == "84-33-19.80000 E"
+    assert fmt.latitude_dms_fields(0.0) == "00-00-00.00000 N"
     for text in (
         fmt.latitude_dms_fields(-42.7325),
         fmt.longitude_dms_fields(-84.5555),
     ):
-        assert "-" not in text
+        # No leading sign: the dashes are the field separators (#67), two of
+        # them, and the letter is the only other field.
+        assert not text.startswith("-")
         assert "°" not in text and "'" not in text and '"' not in text
+        assert text.count("-") == 2 and text.count(" ") == 1
+        assert text[-1] in "SW"
 
 
 def test_dms_fields_are_not_available_without_a_value():
@@ -62,7 +66,7 @@ def test_dms_fields_carry_the_seconds_once_rounded_like_the_panel():
     # panel's ``latitude_dms`` prints 42°44'00.00000"N for this value.
     value = 42.0 + 43.0 / 60.0 + 59.999996 / 3600.0
     assert fmt.latitude_dms(value) == "42°44'00.00000\"N"
-    assert fmt.latitude_dms_fields(value) == "42 44 00.00000 N"
+    assert fmt.latitude_dms_fields(value) == "42-44-00.00000 N"
 
 
 # ---------------------------------------------------------------------------
@@ -71,12 +75,13 @@ def test_dms_fields_carry_the_seconds_once_rounded_like_the_panel():
 
 
 def _punctuation_free(text: str) -> str:
-    """``42°43'57.00000"N`` -> ``42 43 57.00000 N``: the panel's string with
+    """``42°43'57.00000"N`` -> ``42-43-57.00000 N``: the panel's string with
     its symbols read as separators, so a comparison against the file's cell
     tests the digits and the letter and nothing else."""
-    return " ".join(
+    degrees, minutes, seconds, letter = (
         text.replace("°", " ").replace("'", " ").replace('"', " ").split()
     )
+    return f"{degrees}-{minutes}-{seconds} {letter}"
 
 
 def _audit_table(tmp_path, name: str):
@@ -123,10 +128,10 @@ def test_the_audit_csv_and_the_single_point_panel_state_the_same_dms(tmp_path, n
         if row["Latitude"] != "N/A":
             assert row["Latitude (DMS)"].endswith(" N")
             assert row["Longitude (DMS)"].endswith(" W")
-            assert int(row["Latitude (DMS)"].split()[0]) == int(
+            assert int(row["Latitude (DMS)"].split("-")[0]) == int(
                 float(row["Latitude"])
             )
-            assert int(row["Longitude (DMS)"].split()[0]) == int(
+            assert int(row["Longitude (DMS)"].split("-")[0]) == int(
                 abs(float(row["Longitude (neg west)"]))
             )
 

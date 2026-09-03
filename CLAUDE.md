@@ -80,13 +80,21 @@ the GitHub Release with the installer and `SHA256SUMS.txt`. The shipped
 changes since v0.7.0 are `michspc/gui/window.py` (#65) and, in the same
 cut, `michspc/fileio/exports.py` + `formatting.py` (**#66**: the audit CSV
 carries `Latitude (DMS)` and `Longitude (DMS)` after `Longitude (neg
-west)`, file notation `42 43 57.00000 N`, one arithmetic shared with the
+west)`, file notation `42-43-57.00000 N`, one arithmetic shared with the
 Single point panel; every later column moves two places right, and the
 cross-version digest pin is kept by stripping exactly those two columns
-before digesting — read #66 before touching the audit layout again). Suite
-**3,790** passing plus the skip. Everything else on `main` since the tag is
-`review/`, `tools/` and docs. **Still human for #66:** open a real
-`_full.csv` in Excel and check the two cells and the columns to their right.
+before digesting — read #66 before touching the audit layout again) and
+`exports.py` + `report.py` (**#67**: a ZONE_TO_GEODETIC job writes FOUR
+members — `_GEODETIC_DD.csv`, the old clean export renamed, byte-identical;
+`_GEODETIC_DMS.csv`, the same rows in DMS, verified through the DMS parser
+before staging; every other direction unchanged — and the DMS field
+separator is a DASH everywhere, `42-43-57.00000 N`, one constant
+`formatting.DMS_FIELD_SEPARATOR`; the Convergence columns deliberately keep
+`angle_dms`'s signed spaces). Suite **3,801** passing plus the skip.
+Everything else on `main` since the tag is `review/`, `tools/` and docs.
+**Still human for #66/#67:** unzip a real geodetic job on his machine, open
+all three CSVs in Excel, check the DMS form and that nothing imports the
+`_DD` file by its old name.
 
 ## Superseded status: 0.7.0 RELEASED (2026-08-30)
 

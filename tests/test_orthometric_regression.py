@@ -163,6 +163,23 @@ def _without_columns(body: bytes, names: tuple[str, ...]) -> bytes:
     return exports._render_csv(stripped).encode("utf-8")
 
 
+DMS_EXPORT_SUFFIX = "_GEODETIC_DMS.csv"
+DD_EXPORT_SUFFIX = "_GEODETIC_DD.csv"
+
+
+def _frozen_name(member: str) -> str | None:
+    """The name v0.5.0 gave this member, or None for a member v0.5.0 never
+    wrote. Converting TO geodetic now names its clean export ``_GEODETIC_DD``
+    and adds ``_GEODETIC_DMS`` (#67): the DD member is compared under its
+    old name, byte for byte, and the DMS member is pinned in
+    ``tests/test_geodetic_dms_export.py`` instead."""
+    if member.endswith(DMS_EXPORT_SUFFIX):
+        return None
+    if member.endswith(DD_EXPORT_SUFFIX):
+        return member[: -len(DD_EXPORT_SUFFIX)] + "_GEODETIC.csv"
+    return member
+
+
 def _pinned_bytes(member: str, body: bytes) -> bytes:
     """What is digested for a member: the audit CSV without its post-v0.5.0
     columns, every other member as written."""
@@ -195,8 +212,11 @@ def _written_digests(root: Path) -> dict[str, str]:
             for member in sorted(archive.namelist()):
                 if member.endswith("_README.txt"):
                     continue  # timestamped and path-bearing; pinned by content
+                frozen_name = _frozen_name(member)
+                if frozen_name is None:
+                    continue  # the DMS export, pinned in its own suite (#67)
                 body = _pinned_bytes(member, archive.read(member))
-                digests[f"{name}/{member}"] = hashlib.sha256(body).hexdigest()
+                digests[f"{name}/{frozen_name}"] = hashlib.sha256(body).hexdigest()
     return digests
 
 
@@ -245,10 +265,16 @@ def test_the_comparison_would_notice_a_changed_byte(tmp_path, name):
 
     path = tmp_path / name
     archive = next(path.glob("*.zip"))
+    frozen_name = member.split("/", 1)[1]
     with zipfile.ZipFile(archive) as opened:
-        body = opened.read(member.split("/", 1)[1])
+        # The written name may differ from the frozen one (#67): find the
+        # member that is compared under this frozen name.
+        written_name = next(
+            name for name in opened.namelist() if _frozen_name(name) == frozen_name
+        )
+        body = opened.read(written_name)
 
-    altered = hashlib.sha256(_pinned_bytes(member, body) + b"\n").hexdigest()
+    altered = hashlib.sha256(_pinned_bytes(written_name, body) + b"\n").hexdigest()
     assert altered != written[member]
 
 

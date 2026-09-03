@@ -612,6 +612,101 @@ gateless cadence does not apply here). The horizontal work packages H1–H6
 proceed per the plan; the first code lands only after this amendment, which
 is the H0 exit condition.
 
+### #67 — 2026-09-03 — Owner's instructions: a DMS sibling of the clean export when geodetic is the target, and a dash between the DMS fields
+
+**The instructions**, two in one session: "when a multi point conversion is
+to geodetic, include a duplicate PNEZD file to the one that is currently
+created, but make it DMS. Add DD and DMS in the file names. This means that
+one extra file gets created when geodetic is the target." Then, mid-build:
+"use a dash for the separator instead of a space, same across all DMS in the
+export files." No computation changed. Lands in the 0.7.1 cut with #65 and
+#66.
+
+**What a ZONE_TO_GEODETIC job now writes.** The archive keeps its name,
+`<input>_GEODETIC.zip`, and holds four members in this order:
+`<input>_GEODETIC_DD.csv` (the clean export, byte-identical to what it was
+under its old name `<input>_GEODETIC.csv`), `<input>_GEODETIC_DMS.csv`,
+`_full.csv` and `_README.txt`. The DMS file is the DD file's rows with
+columns two and three restated - `42-43-57.00000 N`, `84-33-19.80000 W` -
+and the point, elevation and description columns character-identical.
+`member_names` gains a `pnezd_dms` role in that direction only;
+`writes_dms_export` is the one statement of when. Every other direction's
+archive is unchanged by a byte and a name, pinned across the eight other
+regression configurations. A VERTICAL_ONLY job on a geodetic file is not a
+conversion to geodetic and does not get one.
+
+**Three decisions.**
+
+1. **Built from the pivot, not the written longitude.** `output_easting` is
+   re-signed into the job's longitude convention for the DD file; a
+   positive-west job holds +84.5555 there, and a DMS built from it would
+   print `E`. The DMS file is built from `conversion.latitude` and
+   `conversion.longitude`, the program's own negative-west pivot, so it
+   reads `W` under both conventions - the #28 property again, pinned: the
+   two DD files differ in sign, the two DMS files are identical.
+2. **Verified through the other reader.** The DD file is round-tripped
+   through `pnezd` before anything is staged (§5); `pnezd` refuses DMS by
+   design (#28), so the DMS file cannot be. `verify_dms_round_trip` reads
+   each cell back through `dms.decimal_degrees` - the Single point tab's
+   parser - and compares the angle to the pivot at half the cell's last
+   place, and the point, elevation and description character for character
+   against the DD rows the file claims to duplicate. It runs before the
+   archive is staged, so a failure writes nothing (pinned with a
+   monkeypatched corrupt row: refusal, no ZIP). And the DMS file fed back in
+   as an input file is refused by name - the reader's DMS diagnostic matches
+   the dash form, pinned.
+3. **The dash.** `formatting.DMS_FIELD_SEPARATOR = "-"`, one constant behind
+   `_dms_fields`, so the audit CSV's two DMS columns (#66) and the DMS
+   export cannot come to separate differently. The hemisphere letter stays
+   a space-separated fourth field, which is what "the separator" was read
+   to mean; `42-43-57.00000-N` and `42-43-57.00000N` were the other readings
+   and are one line each if the owner wants one. **The Convergence columns
+   are deliberately NOT changed:** they are a rotation in `angle_dms`'s
+   settled signed notation (#26), read back by the NCAT cross-check and
+   printed into the job record, and every audit CSV since 0.1.0 is pinned
+   on them byte for byte. "All DMS in the export files" was read as the
+   latitude/longitude DMS this week's work added; if the owner meant the
+   convergence too, that is a re-freeze of the v0.5.0 digests and a
+   conscious decision, not a find-and-replace.
+
+**The record** (FILES WRITTEN) counts "four files" in this direction and
+"three" in every other, lists the DMS member after the DD member with its
+own block - what it holds, the example line, that it has no sign convention
+to state, that it is for reading and transcription, NOT for CAD import, and
+that this program's reader will not read it back. The zone-to-zone record
+is pinned to still say three and to not mention DMS.
+
+**The cross-version pin** keeps every v0.5.0 digest: the DD member is
+compared under its frozen name (`_GEODETIC_DD.csv` → `_GEODETIC.csv`) and
+the DMS member is excluded there and pinned in its own suite. The audit
+member is still compared with the two #66 columns stripped.
+
+**Pins** (`tests/test_geodetic_dms_export.py`, 11 tests, plus the #66 and
+cross-check suites re-anchored to the dash): names and order of the four
+members; the eight other directions unchanged; the DMS rows against the DD
+rows (position through `dms.decimal_degrees` at half a place, elevation in
+both output units so an input-Z echo cannot pass, description); both
+conventions identical; DMS file equals the audit CSV's DMS cells and the
+panel's text; reader refusal; the verifier refusing each wrong-cell shape
+(hemisphere flipped, minute off, last place off, the symbol form, the old
+space form, elevation, point id, row count); a verification failure
+writing nothing; the record in both directions.
+
+**Falsified by seeding, eight defects, all caught:** longitude from the
+re-signed output (positive-west prints E); `_DD` dropped from the name; the
+DMS written in every direction; the verifier's tolerance widened to a
+degree; the record still saying three; the DMS elevation echoing the input
+Z (caught only by the metres-out case, which is why that case exists); the
+separator put back to a space (35 tests). A ninth seed - the DMS member
+named but not written - is a refusal by `_verify_archive`, not a pin.
+
+**Suite:** 3,790 → **3,801** passing plus the release-number skip, both
+modes, same container, same five container-only failures.
+
+**Still human:** unzip a real geodetic job on the owner's machine and open
+both CSVs; confirm the dash form reads as he intended in Excel, and that
+nothing of his imports the `_DD` file by its old name.
+
 ### #66 — 2026-09-03 — Owner's instruction: the audit CSV carries the geodetic position in DMS
 
 **The instruction:** "for the full output from multi point, I want columns
@@ -619,17 +714,20 @@ for the geodetic coordinates in DMS form." Two columns in `<stem>_full.csv`,
 `Latitude (DMS)` and `Longitude (DMS)`, directly after `Longitude (neg
 west)`: the same geodetic pivot the two decimal cells before them carry, as
 degrees, minutes and seconds to five places with a hemisphere letter —
-`42 43 57.00000 N`, `84 33 19.80000 W`. No computation changed; the clean
+`42-43-57.00000 N`, `84-33-19.80000 W`. No computation changed; the clean
 PNEZD export, the on-screen table, the job record and the Single point tab
 are untouched. Lands in the 0.7.1 cut (#65), which is not yet built.
 
 **Three decisions, and the one that costs something.**
 
-1. **File notation, not the panel's symbols.** The Single point panel shows
+1. **File notation, not the panel's symbols.** *(Annotated by #67, same
+   day: the separator between the three fields is now a DASH, not a space -
+   `42-43-57.00000 N` - on the owner's instruction. Every example below is
+   updated in place; the reasoning is unchanged.)* The Single point panel shows
    `42°43'57.00000"N` (#26, the owner's format). The file cell carries the
-   same four values as space-separated fields with no symbols, which is the
-   shape `angle_dms` has written into this file's two Convergence columns
-   since 0.1.0. The reason is not taste: the audit CSV is UTF-8 with no
+   same four values as separated fields with no symbols - the shape
+   `angle_dms` has written into this file's two Convergence columns since
+   0.1.0, now with dashes between degrees, minutes and seconds (#67). The reason is not taste: the audit CSV is UTF-8 with no
    byte-order mark, and a degree symbol in it opens in Excel on a Windows
    code page as `Â°` — the one reader the file is for would see two wrong
    characters in every row. A BOM would fix that and move the first three
@@ -670,7 +768,7 @@ are untouched. Lands in the 0.7.1 cut (#65), which is not yet built.
 
 **Pins (26 new tests, `tests/test_audit_dms.py` and additions to the
 regression and cross-check suites):** the formatters at hand-derived values
-(42.7325 → `42 43 57.00000 N`; −84.5555 → `84 33 19.80000 W`; letter never
+(42.7325 → `42-43-57.00000 N`; −84.5555 → `84-33-19.80000 W`; letter never
 sign; N/A without a value; the 59.999996″ carry printing `44 00.00000` on
 both surfaces); across all nine regression configurations, the audit cell
 equals the panel's DMS with punctuation normalised and the pair sits
@@ -3251,7 +3349,7 @@ an exception in it.
 
 **4. The input CSV takes decimal degrees only — the owner's question, answered.**
 
-`pnezd._parse_number` calls `float()`, so `43°47'59.8"N`, `43 47 59.8 N` and
+`pnezd._parse_number` calls `float()`, so `43°47'59.8"N`, `43-47-59.8 N` and
 `43-47-59.8` were all refused already, as "not a number". That is the right
 behaviour and the wrong sentence: a surveyor whose data collector exported DMS
 has a *format* problem and would go looking for a corrupt row.

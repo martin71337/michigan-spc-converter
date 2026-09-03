@@ -4,6 +4,11 @@
 2. ``<name>_<zone>_full.csv``  - every computed quantity, for the record
 3. ``<name>_<zone>_README.txt``- the job record explaining both (report.py)
 
+Converting TO geodetic writes one more (docs/DESIGN.md amendment #67, the
+owner's instruction): the clean export is then ``<name>_GEODETIC_DD.csv``
+(decimal degrees, as always) and ``<name>_GEODETIC_DMS.csv`` carries the
+same rows with the latitude and longitude in degrees, minutes and seconds.
+
 **The archive is the only deliverable.** Nothing is written loose beside it
 (docs/DESIGN.md amendment #17). The three files travel together or not at all,
 so a PNEZD export cannot be filed or emailed without the record explaining how
@@ -223,7 +228,7 @@ AUDIT_COLUMNS = [
 ``Latitude (DMS)`` and ``Longitude (DMS)`` (owner's instruction,
 docs/DESIGN.md amendment #66) are the same geodetic pivot as the two decimal
 cells before them, in degrees, minutes and seconds with a hemisphere letter -
-``42 43 57.00000 N`` - from ``formatting.latitude_dms_fields`` and
+``42-43-57.00000 N`` - from ``formatting.latitude_dms_fields`` and
 ``longitude_dms_fields``. They sit beside their decimal siblings, and that
 placement is a deliberate choice with a cost: every column after them moves
 two places to the right, in the file whose layout #40 recorded as "the status
@@ -669,13 +674,137 @@ def verify_round_trip(rows: list[list[str]], result: JobResult) -> None:
 
 
 def member_names(result: JobResult) -> dict[str, str]:
-    """The three file names inside the archive, keyed by role."""
+    """The file names inside the archive, keyed by role.
+
+    Three in every direction. Converting TO geodetic adds a fourth,
+    ``pnezd_dms``, and names the clean export ``_DD`` so the pair reads as
+    what it is - the same positions twice, once in decimal degrees and once
+    in degrees, minutes and seconds (docs/DESIGN.md amendment #67, the
+    owner's instruction: "add DD and DMS in the file names"). Every other
+    direction's names are unchanged by a byte; the archive's own name is
+    unchanged in every direction.
+    """
     stem = output_stem(result)
+    if result.settings.direction is Direction.ZONE_TO_GEODETIC:
+        return {
+            "pnezd": f"{stem}_DD.csv",
+            "pnezd_dms": f"{stem}_DMS.csv",
+            "audit": f"{stem}_full.csv",
+            "report": f"{stem}_README.txt",
+        }
     return {
         "pnezd": f"{stem}.csv",
         "audit": f"{stem}_full.csv",
         "report": f"{stem}_README.txt",
     }
+
+
+def writes_dms_export(result: JobResult) -> bool:
+    """Whether this job writes the DMS sibling of its clean export: exactly
+    when the conversion's TARGET is geodetic. A vertical-only job on a
+    geodetic file reproduces its input unconverted and is not a conversion
+    to geodetic, so it does not (amendment #67)."""
+    return result.settings.direction is Direction.ZONE_TO_GEODETIC
+
+
+def clean_pnezd_dms_rows(result: JobResult) -> list[list[str]]:
+    """The DMS sibling of ``clean_pnezd_rows`` on a job converting TO geodetic.
+
+    Same five fields, same rows, same elevation and description strings;
+    columns two and three are the converted position as degrees, minutes and
+    seconds to five places with a hemisphere letter - ``42-43-57.00000 N``,
+    ``84-33-19.80000 W`` - from the same formatters and the same arithmetic
+    as the audit CSV's DMS columns (#66) and the Single point panel.
+
+    Built from ``conversion.latitude`` and ``conversion.longitude``, the
+    program's own negative-west pivot, NOT from ``output_easting``: that
+    field is re-signed into the job's longitude convention for the decimal
+    file, and a positive-west job would otherwise print a Michigan longitude
+    as E. A DMS position is convention-independent (``longitude_dms``'s
+    docstring), so this file reads the same whichever way the DD file signs
+    its longitudes - pinned under both conventions.
+
+    Not for CAD, and not readable by this program's own file reader, which
+    takes decimal degrees only and refuses a DMS-looking field by name
+    (docs/DESIGN.md #28). The job record says both.
+    """
+    if not writes_dms_export(result):
+        raise WriteError(
+            f"A DMS export exists only when the job converts TO geodetic; this "
+            f"job's direction is {result.settings.direction.value!r}."
+        )
+    settings = result.settings
+    rows: list[list[str]] = []
+    for point in result.points:
+        rows.append(
+            [
+                point.point_id,
+                fmt.latitude_dms_fields(point.conversion.latitude),
+                fmt.longitude_dms_fields(point.conversion.longitude),
+                fmt.coordinate(point.output_elevation, settings.output_unit),
+                point.row.description,
+            ]
+        )
+    return rows
+
+
+_DMS_HALF_PLACE_DEG = 0.5 * 1e-5 / 3600.0
+"""Half of the DMS cell's last place (five decimals of a second), in degrees:
+what a written DMS cell promises about the position it restates."""
+
+
+def verify_dms_round_trip(rows: list[list[str]], result: JobResult) -> None:
+    """Refuse to write a DMS export that does not read back as the job.
+
+    The DD export is verified through ``pnezd`` (``verify_round_trip``); this
+    file cannot be, because that reader refuses DMS by design. So it is read
+    back through the program's other reader of this notation -
+    ``dms.decimal_degrees``, the Single point tab's - and every field is
+    compared: the position to half of the cell's last place against the
+    job's own pivot, and the identifier, elevation and description
+    character for character against the DD rows this file claims to
+    duplicate. A DMS export that could disagree with its DD sibling about
+    any field would be worse than no DMS export.
+    """
+    from michspc.fileio import dms
+
+    dd_rows = clean_pnezd_rows(result)
+    if len(rows) != len(dd_rows) or len(rows) != len(result.points):
+        raise WriteError(
+            f"DMS round-trip check failed: {len(rows)} DMS rows for "
+            f"{len(dd_rows)} decimal rows. Nothing was written."
+        )
+    for row, dd_row, point in zip(rows, dd_rows, result.points):
+        for index, label in ((0, "point"), (3, "elevation"), (4, "description")):
+            if row[index] != dd_row[index]:
+                raise WriteError(
+                    f"DMS round-trip check failed on point {point.point_id!r}: "
+                    f"the DMS export's {label} reads {row[index]!r} where the "
+                    f"decimal export reads {dd_row[index]!r}. Nothing was written."
+                )
+        for index, axis, expected in (
+            (1, dms.LATITUDE, point.conversion.latitude),
+            (2, dms.LONGITUDE, point.conversion.longitude),
+        ):
+            angle, _, letter = row[index].rpartition(" ")
+            parts = angle.split(fmt.DMS_FIELD_SEPARATOR) + [letter]
+            try:
+                if len(parts) != 4 or not letter:
+                    raise dms.DmsError(f"{row[index]!r} is not four fields")
+                actual = dms.decimal_degrees(*parts, axis=axis)
+            except dms.DmsError as error:
+                raise WriteError(
+                    f"DMS round-trip check failed on point {point.point_id!r}: "
+                    f"the DMS export's {axis} {row[index]!r} does not read back "
+                    f"as an angle ({error}). Nothing was written."
+                ) from error
+            if expected is None or abs(actual - expected) > _DMS_HALF_PLACE_DEG:
+                raise WriteError(
+                    f"DMS round-trip check failed on point {point.point_id!r}: "
+                    f"the DMS export's {axis} {row[index]!r} reads back as "
+                    f"{actual!r} where the job computed {expected!r}. Nothing "
+                    f"was written."
+                )
 
 
 def destination_paths(result: JobResult) -> tuple[Path, ...]:
@@ -764,7 +893,7 @@ def _verify_archive(staged: Path, expected_members: tuple[str, ...]) -> None:
             if missing:
                 raise WriteError(
                     f"The archive this program built is missing "
-                    f"{', '.join(repr(name) for name in missing)}. The three "
+                    f"{', '.join(repr(name) for name in missing)}. The "
                     f"files travel together or not at all, so nothing was "
                     f"written."
                 )
@@ -819,9 +948,15 @@ def write_all(result: JobResult, overwrite: bool = False) -> dict[str, Path]:
     names = member_names(result)
     contents = {
         names["pnezd"]: _render_csv(clean),
-        names["audit"]: _render_csv(audit_rows(result)),
-        names["report"]: build_report(result),
     }
+    if writes_dms_export(result):
+        # Directly after the decimal export in the archive's own order, and
+        # verified the same way before anything is staged (#67).
+        dms_rows = clean_pnezd_dms_rows(result)
+        verify_dms_round_trip(dms_rows, result)
+        contents[names["pnezd_dms"]] = _render_csv(dms_rows)
+    contents[names["audit"]] = _render_csv(audit_rows(result))
+    contents[names["report"]] = build_report(result)
 
     destination = archive_path(result)
     with staged_write(destination, overwrite=overwrite) as staged:

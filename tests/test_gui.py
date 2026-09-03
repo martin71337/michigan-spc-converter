@@ -1418,7 +1418,7 @@ def test_fix_a_the_screen_and_the_written_export_agree_on_the_elevation(
     Read out of the archive that was actually written, so a divergence between
     the two surfaces would fail here rather than on a surveyor's disk.
     """
-    exported = member_text(to_geodetic.written_files["archive"], "GEODETIC.csv")
+    exported = member_text(to_geodetic.written_files["archive"], "GEODETIC_DD.csv")
     fields = exported.strip().split(",")
 
     # The clean export has no header row: field 3 of the single data line is

@@ -174,6 +174,14 @@ an export file - the owner's instructions (docs/DESIGN.md amendments #67 and
 #68): ``42-43-57.00000 N`` for a latitude or longitude, ``-16-49-17.76`` for
 a convergence. The hemisphere letter stays a space-separated fourth field."""
 
+DMS_SECONDS_DECIMALS = 5
+"""How many decimals of a second every DMS latitude or longitude carries, on
+the screen and in the files - the owner's format (docs/DESIGN.md amendment
+#26). The one place the precision is written: the four DMS formatters
+default to it, and ``exports.verify_dms_round_trip`` derives its bound from
+it, so the check and the cell cannot come to describe different last
+places (0.7.1 closing gate, LOW 3 and LOW 7)."""
+
 
 def _dms_fields(magnitude: float, seconds_decimals: int) -> str:
     """``42-43-57.00000`` - the same three values as ``_dms_magnitude``, in
@@ -196,7 +204,9 @@ def _longitude_hemisphere(value: float) -> str:
     return "W" if value < 0 else "E"
 
 
-def latitude_dms(value: float | None, seconds_decimals: int = 5) -> str:
+def latitude_dms(
+    value: float | None, seconds_decimals: int = DMS_SECONDS_DECIMALS
+) -> str:
     """``42°43'57.00000"N`` - the owner's format, exactly.
 
     **Magnitude and a letter, never a sign.** The trailing letter is geographic:
@@ -214,7 +224,9 @@ def latitude_dms(value: float | None, seconds_decimals: int = 5) -> str:
     return f"{_dms_magnitude(abs(value), seconds_decimals)}{_latitude_hemisphere(value)}"
 
 
-def longitude_dms(value: float | None, seconds_decimals: int = 5) -> str:
+def longitude_dms(
+    value: float | None, seconds_decimals: int = DMS_SECONDS_DECIMALS
+) -> str:
     """``84°33'19.80000"W`` - the owner's format, exactly.
 
     ``value`` is the program's own signed, negative-west longitude.
@@ -242,7 +254,9 @@ def longitude_dms(value: float | None, seconds_decimals: int = 5) -> str:
     return f"{_dms_magnitude(abs(value), seconds_decimals)}{_longitude_hemisphere(value)}"
 
 
-def latitude_dms_fields(value: float | None, seconds_decimals: int = 5) -> str:
+def latitude_dms_fields(
+    value: float | None, seconds_decimals: int = DMS_SECONDS_DECIMALS
+) -> str:
     """``42-43-57.00000 N`` - the audit CSV's ``Latitude (DMS)`` cell.
 
     The same degrees, minutes, seconds and letter as ``latitude_dms`` shows on
@@ -258,7 +272,9 @@ def latitude_dms_fields(value: float | None, seconds_decimals: int = 5) -> str:
     return f"{_dms_fields(abs(value), seconds_decimals)} {_latitude_hemisphere(value)}"
 
 
-def longitude_dms_fields(value: float | None, seconds_decimals: int = 5) -> str:
+def longitude_dms_fields(
+    value: float | None, seconds_decimals: int = DMS_SECONDS_DECIMALS
+) -> str:
     """``84-33-19.80000 W`` - the audit CSV's ``Longitude (DMS)`` cell.
 
     ``value`` is the program's own signed, negative-west longitude, exactly as
@@ -315,7 +331,7 @@ def longitude_display(value: float | None, positive_west: bool = False) -> str:
 def convergence_display(degrees: float | None, seconds_decimals: int = 2) -> str:
     """``-16°49'17.78"`` — the convergence angle in symbol notation.
 
-    The same angle the audit CSV carries as ``-16 49 17.78``, written the way a
+    The same angle the audit CSV carries as ``-16-49-17.78``, written the way a
     surveyor reads it off an instrument. Built on ``_dms_magnitude``, which is
     the single definition of this symbol notation in the program — the same one
     ``latitude_dms`` and ``longitude_dms`` use — so the convergence and the two

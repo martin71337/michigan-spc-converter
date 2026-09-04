@@ -1,4 +1,5 @@
-"""The job's output: one ZIP archive containing three files.
+"""The job's output: one ZIP archive containing three files - four when
+the target is geodetic.
 
 1. ``<name>_<zone>.csv``       - clean PNEZD, for import straight into CAD
 2. ``<name>_<zone>_full.csv``  - every computed quantity, for the record
@@ -10,8 +11,8 @@ owner's instruction): the clean export is then ``<name>_GEODETIC_DD.csv``
 same rows with the latitude and longitude in degrees, minutes and seconds.
 
 **The archive is the only deliverable.** Nothing is written loose beside it
-(docs/DESIGN.md amendment #17). The three files travel together or not at all,
-so a PNEZD export cannot be filed or emailed without the record explaining how
+(docs/DESIGN.md amendment #17). The files travel together or not at all, so
+a PNEZD export cannot be filed or emailed without the record explaining how
 it was derived - which matters for a file that ends up supporting a sealed
 survey. The cost is that importing into CAD means unzipping first; that was the
 owner's explicit trade.
@@ -221,8 +222,6 @@ AUDIT_COLUMNS = [
     "Warnings",
     "Description",
 ]
-
-
 """The audit CSV's header row, before any per-direction renaming.
 
 ``Latitude (DMS)`` and ``Longitude (DMS)`` (owner's instruction,
@@ -748,26 +747,54 @@ def clean_pnezd_dms_rows(result: JobResult) -> list[list[str]]:
     return rows
 
 
-_DMS_HALF_PLACE_DEG = 0.5 * 1e-5 / 3600.0
-"""Half of the DMS cell's last place (five decimals of a second), in degrees:
-what a written DMS cell promises about the position it restates."""
-
-
 def verify_dms_round_trip(rows: list[list[str]], result: JobResult) -> None:
     """Refuse to write a DMS export that does not read back as the job.
 
     The DD export is verified through ``pnezd`` (``verify_round_trip``); this
-    file cannot be, because that reader refuses DMS by design. So it is read
-    back through the program's other reader of this notation -
-    ``dms.decimal_degrees``, the Single point tab's - and every field is
-    compared: the position to half of the cell's last place against the
-    job's own pivot, and the identifier, elevation and description
-    character for character against the DD rows this file claims to
-    duplicate. A DMS export that could disagree with its DD sibling about
-    any field would be worse than no DMS export.
+    file cannot be, because that reader refuses DMS by design. So every row
+    is held to three things before anything is staged:
+
+    1. The identifier, elevation and description are character-identical to
+       the DD row this file claims to duplicate.
+    2. The DD row's own position is the job's pivot rendered in the job's
+       longitude convention, so the two files are JOINED through one value
+       rather than each checked against the job on its own. With that join
+       absent, a DD latitude 1.7 degrees wrong passed both verifiers (0.7.1
+       closing gate, LOW 1) - not live, since both files are built from the
+       same object, but the archive-level claim is that the two files hold
+       the same positions, and now a production check says so.
+    3. The DMS cell is EXACTLY the text the formatter writes for the pivot,
+       and the Single point tab's parser reads it back to an angle that
+       renders to that same cell again. Compared as TEXT, never within a
+       tolerance. The first cut compared the parsed angle against the pivot
+       within half of the cell's last place, and a correctly rounded cell
+       whose seconds fall on the rounding half-way point - about one point
+       in 250,000 across Michigan, 381151.542 / 12817687.128 ift in MI-S is
+       one - lands a few parts in 1e15 past that threshold and refused the
+       WHOLE archive over its own correct rendering. That is #46's defect
+       class recurring beside the very comment in ``verify_round_trip`` that
+       records it (0.7.1 closing gate, MEDIUM 1). The text comparison is
+       strictly tighter than the tolerance for every defect in the WRITTEN
+       cell - a flipped letter, a wrong minute, a last place off, the
+       symbol or space form - and cannot refuse a cell the writer itself
+       produced. What it cannot see is a defect in the FORMATTER that is
+       its own fixed point, because the cell and the expectation come from
+       the same call (the re-confirmation's LOW 7: a formatter returning a
+       constant, or four places instead of five, passed both conditions).
+    4. So the parsed angle is also held to the pivot within ONE FULL last
+       place of the cell, derived from ``formatting.DMS_SECONDS_DECIMALS``.
+       A correctly rounded cell sits at most HALF a place from the pivot
+       plus float noise around 1e-15 degrees, so the bound has half a
+       place of headroom - 1.4e-9 degrees, six orders of magnitude above
+       the noise - and cannot refuse what the first cut refused (measured
+       by the reviewer over 3.2 million angles including 227,201 built on
+       the half-way point). It is a sanity bound on the formatter, not the
+       comparison: the constant and the four-place seeds above refuse here.
     """
     from michspc.fileio import dms
 
+    one_place_deg = 10.0 ** -fmt.DMS_SECONDS_DECIMALS / 3600.0
+    settings = result.settings
     dd_rows = clean_pnezd_rows(result)
     if len(rows) != len(dd_rows) or len(rows) != len(result.points):
         raise WriteError(
@@ -782,10 +809,41 @@ def verify_dms_round_trip(rows: list[list[str]], result: JobResult) -> None:
                     f"the DMS export's {label} reads {row[index]!r} where the "
                     f"decimal export reads {dd_row[index]!r}. Nothing was written."
                 )
-        for index, axis, expected in (
-            (1, dms.LATITUDE, point.conversion.latitude),
-            (2, dms.LONGITUDE, point.conversion.longitude),
+
+        pivot_latitude = point.conversion.latitude
+        pivot_longitude = point.conversion.longitude
+        if pivot_latitude is None or pivot_longitude is None:
+            raise WriteError(
+                f"DMS round-trip check failed on point {point.point_id!r}: the "
+                f"job carries no geodetic position for it. Nothing was written."
+            )
+
+        # The join: the DD cells are the pivot in the job's own convention.
+        for index, label, expected in (
+            (1, "latitude", fmt.latitude(pivot_latitude)),
+            (
+                2,
+                "longitude",
+                fmt.longitude(settings.longitude_convention.from_signed(pivot_longitude)),
+            ),
         ):
+            if dd_row[index] != expected:
+                raise WriteError(
+                    f"DMS round-trip check failed on point {point.point_id!r}: "
+                    f"the decimal export's {label} reads {dd_row[index]!r} where "
+                    f"the job's position renders as {expected!r}, so the DMS "
+                    f"export would restate a position its decimal sibling does "
+                    f"not hold. Nothing was written."
+                )
+
+        # The DMS cells: the formatter's own text for the pivot, exactly, and
+        # readable by the other reader back to an angle that renders to the
+        # same text - a fixed point, not a tolerance.
+        for index, axis, pivot, render in (
+            (1, dms.LATITUDE, pivot_latitude, fmt.latitude_dms_fields),
+            (2, dms.LONGITUDE, pivot_longitude, fmt.longitude_dms_fields),
+        ):
+            expected_cell = render(pivot)
             angle, _, letter = row[index].rpartition(" ")
             parts = angle.split(fmt.DMS_FIELD_SEPARATOR) + [letter]
             try:
@@ -798,12 +856,16 @@ def verify_dms_round_trip(rows: list[list[str]], result: JobResult) -> None:
                     f"the DMS export's {axis} {row[index]!r} does not read back "
                     f"as an angle ({error}). Nothing was written."
                 ) from error
-            if expected is None or abs(actual - expected) > _DMS_HALF_PLACE_DEG:
+            if (
+                row[index] != expected_cell
+                or render(actual) != row[index]
+                or abs(actual - pivot) > one_place_deg
+            ):
                 raise WriteError(
                     f"DMS round-trip check failed on point {point.point_id!r}: "
                     f"the DMS export's {axis} {row[index]!r} reads back as "
-                    f"{actual!r} where the job computed {expected!r}. Nothing "
-                    f"was written."
+                    f"{actual!r} where the job computed {pivot!r}, written as "
+                    f"{expected_cell!r}. Nothing was written."
                 )
 
 
@@ -914,8 +976,8 @@ def _verify_archive(staged: Path, expected_members: tuple[str, ...]) -> None:
 def write_all(result: JobResult, overwrite: bool = False) -> dict[str, Path]:
     """Write the job's single ZIP deliverable, or nothing at all.
 
-    The three files travel together or not at all (docs/DESIGN.md amendment
-    #17), so a PNEZD export can never be filed or emailed without the record
+    The files travel together or not at all (docs/DESIGN.md amendment #17),
+    so a PNEZD export can never be filed or emailed without the record
     explaining how it was derived.
 
     Order matters here. Every coordinate is checked finite and the PNEZD export

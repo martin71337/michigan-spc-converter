@@ -123,20 +123,29 @@ def test_the_dms_file_is_the_dd_file_with_the_position_restated(tmp_path, output
     dd = _rows(members["job_GEODETIC_DD.csv"])
     dms_rows = _rows(members["job_GEODETIC_DMS.csv"])
     assert len(dd) == len(dms_rows) == 2
-    for dd_row, dms_row in zip(dd, dms_rows):
+    for dd_row, dms_row, point in zip(dd, dms_rows, result.points):
         assert dms_row[0] == dd_row[0]
         assert dms_row[3] == dd_row[3]
         assert dms_row[4] == dd_row[4]
-        # The DMS cell, read by the Single point tab's own parser, is the
-        # DD cell's angle to within half of the DMS cell's last place.
-        for index, axis in ((1, dms.LATITUDE), (2, dms.LONGITUDE)):
+        # Both files are the job's pivot, each in its own notation, compared
+        # as text and never within a tolerance (the gate's MEDIUM 1); and the
+        # DMS cell, read by the Single point tab's own parser, renders back
+        # to itself. Not compared to each other through a float: the DD cell
+        # holds 8 decimals of a degree (3.6e-5 s), COARSER than the DMS
+        # cell's 1e-5 s, so the DMS file is the more precise of the two.
+        conversion = point.conversion
+        for index, axis, render, decimal, pivot in (
+            (1, dms.LATITUDE, fmt.latitude_dms_fields, fmt.latitude, conversion.latitude),
+            (2, dms.LONGITUDE, fmt.longitude_dms_fields, fmt.longitude, conversion.longitude),
+        ):
+            assert dd_row[index] == decimal(pivot)
+            assert dms_row[index] == render(pivot)
             angle, letter = dms_row[index].split(" ")
             parts = angle.split("-") + [letter]
             assert len(parts) == 4
             assert parts[3] in ("N", "W")
-            assert abs(
-                dms.decimal_degrees(*parts, axis=axis) - float(dd_row[index])
-            ) <= 0.5e-5 / 3600.0 + 0.5e-8
+            parsed = dms.decimal_degrees(*parts, axis=axis)
+            assert render(parsed) == dms_row[index]
     # And the first row at the hand-derived anchor this suite has used since
     # 0.1.0: 449212.689 / 13072628.343 ift in MI-S is 42.7325, -84.5555.
     assert dd[0][1:3] == ["42.73250000", "-84.55550000"]
@@ -212,6 +221,110 @@ def test_the_dms_round_trip_refuses_a_wrong_cell(tmp_path):
     with pytest.raises(WriteError, match="rows for"):
         exports.verify_dms_round_trip(rows[:1], result)
     exports.verify_dms_round_trip(rows, result)  # the real rows pass
+
+
+HALF_WAY_ROWS = (
+    "101,381151.542,12817687.128,900.000,LAT TRIPS\n"
+    "102,436327.645,13471551.953,900.000,LON TRIPS\n"
+)
+"""Two MI-S ift points whose converted position falls on the rounding
+half-way point of the DMS cell's last place: the 0.7.1 closing gate's
+counterexample (MEDIUM 1). Parsing the correctly rounded cell back lands a
+few parts in 1e15 PAST half a place from the pivot, so the first cut's
+tolerance refused the whole archive; the comparison is now text."""
+
+
+def test_a_position_on_the_rounding_half_way_point_writes(tmp_path):
+    """The gate's counterexample, end to end: the archive is written and the
+    DMS cells are the correctly rounded ones. The anti-vacuity half proves
+    the anchor still discriminates: the parsed cell really does sit past
+    half a place from the pivot, which is what the tolerance form refused -
+    and inside the one-full-place bound the verifier now keeps."""
+    result = _half_way_job(tmp_path)
+    half_place = 0.5e-5 / 3600.0
+    dms_rows = exports.clean_pnezd_dms_rows(result)
+    for row_index, index, axis, expected in (
+        (0, 1, dms.LATITUDE, "42-32-24.87132 N"),
+        (1, 2, dms.LONGITUDE, "83-04-17.22885 W"),
+    ):
+        cell = dms_rows[row_index][index]
+        assert cell == expected
+        angle, letter = cell.split(" ")
+        parsed = dms.decimal_degrees(*(angle.split("-") + [letter]), axis=axis)
+        conversion = result.points[row_index].conversion
+        pivot = conversion.latitude if axis is dms.LATITUDE else conversion.longitude
+        assert abs(parsed - pivot) > half_place, "the anchor no longer discriminates"
+    written = exports.write_all(result)
+    rows = _rows(_members(written["archive"])["job_GEODETIC_DMS.csv"])
+    assert rows[0][1] == "42-32-24.87132 N"
+    assert rows[1][2] == "83-04-17.22885 W"
+
+
+def _half_way_job(tmp_path):
+    source = tmp_path / "job.csv"
+    source.write_text(HALF_WAY_ROWS, encoding="utf-8")
+    return run(JobSettings(
+        direction=Direction.ZONE_TO_GEODETIC,
+        source_zone=MI_SOUTH,
+        target_zone=None,
+        input_unit=INTERNATIONAL_FEET,
+        output_unit=INTERNATIONAL_FEET,
+        input_path=source,
+        output_directory=tmp_path,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+    ))
+
+
+REAL_LATITUDE_DMS_FIELDS = fmt.latitude_dms_fields
+
+
+@pytest.mark.parametrize(
+    "defect, wrong_cell",
+    [
+        ("a constant", lambda value, seconds_decimals=5: "42-00-00.00000 N"),
+        ("four places", lambda value, seconds_decimals=5: REAL_LATITUDE_DMS_FIELDS(value, 4)),
+    ],
+)
+def test_the_dms_verifier_catches_a_formatter_that_is_its_own_fixed_point(
+    tmp_path, monkeypatch, defect, wrong_cell
+):
+    """The re-confirmation's LOW 7: the cell and the expectation come from
+    one formatter call, so a formatter returning a constant, or four places
+    instead of five, passed the text check AND the parse-and-render fixed
+    point. The one-full-place bound against the pivot is what refuses them.
+    On the half-way rows: the constant is 0.7 degrees out, and four places
+    leave the latitude 2e-5 s from the pivot, twice the bound."""
+    result = _half_way_job(tmp_path)
+    monkeypatch.setattr(fmt, "latitude_dms_fields", wrong_cell)
+    rows = exports.clean_pnezd_dms_rows(result)
+    assert rows[0][1] == wrong_cell(result.points[0].conversion.latitude)
+    with pytest.raises(WriteError, match="reads back as"):
+        exports.verify_dms_round_trip(rows, result)
+    with pytest.raises(WriteError, match="Nothing was written"):
+        exports.write_all(result)
+    assert list(tmp_path.glob("*.zip")) == [], defect
+
+
+def test_the_dms_verifier_joins_the_dd_file_to_the_same_position(tmp_path, monkeypatch):
+    """A DD file whose latitude is 1.7 degrees wrong, with the DMS rows
+    untouched, passed the first cut (the gate's LOW 1): each file was checked
+    against the job and neither against the other. Now the DD cells must be
+    the pivot's own rendering, and a wrong one refuses with nothing written."""
+    result = _job(tmp_path)
+    rows = exports.clean_pnezd_dms_rows(result)
+    original = exports.clean_pnezd_rows
+
+    def wrong_dd(result):
+        dd = original(result)
+        dd[0][1] = "41.00000000"
+        return dd
+
+    monkeypatch.setattr(exports, "clean_pnezd_rows", wrong_dd)
+    with pytest.raises(WriteError, match="decimal export's latitude reads '41.00000000'"):
+        exports.verify_dms_round_trip(rows, result)
+    with pytest.raises(WriteError, match="Nothing was written"):
+        exports.write_all(result)
+    assert list(tmp_path.glob("*.zip")) == []
 
 
 def test_a_dms_verification_failure_writes_nothing(tmp_path, monkeypatch):

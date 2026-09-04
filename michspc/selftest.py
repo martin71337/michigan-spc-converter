@@ -761,7 +761,7 @@ def check_end_to_end_conversion() -> str:
             if missing:
                 raise SelfTestError(
                     f"the archive this bundle wrote is missing {missing}. A "
-                    f"job's three files travel together or not at all "
+                    f"job's files travel together or not at all "
                     f"(docs/DESIGN.md amendment #17)."
                 )
             clean_text = opened.read(names["pnezd"]).decode("utf-8")

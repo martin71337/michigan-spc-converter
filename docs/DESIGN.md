@@ -612,6 +612,175 @@ gateless cadence does not apply here). The horizontal work packages H1–H6
 proceed per the plan; the first code lands only after this amendment, which
 is the H0 exit condition.
 
+### #69 — 2026-09-03 — 0.7.1: the closing gate, its findings fixed, and the release
+
+**The release.** The owner's instruction for this session: cut the release
+for what the cloud session built (#65–#68). The branch was merged onto
+`main` as a linear history, the September tripwire record on top (all four
+probes quiet, so the two deferrals and the beta acknowledgement stand as at
+0.7.0). The suite the cloud session could only measure in a Linux container
+was run on the owner's machine first: 3,802 passed plus the release-number
+skip, both modes, exit codes read unpiped — the five container-only failures
+#65 recorded do not exist here.
+
+**The closing gate ran, under the owner's standing fallback.** The process
+rule (#61: two interim, one closing, none skipped) had not been applied to
+#65–#68 — the cloud session seeded its own pins and recorded no independent
+review — so the gate ran here before anything was tagged. Codex refused on
+quota (until 2026-09-07; `review/gate-0.7.1/codex-refusal.txt`), so an
+independent Opus reviewer ran it blind to this session's own reading of the
+diff, read-only, with the prompt in `review/gate-0.7.1/prompt.txt`.
+**Verdict FINDINGS: two MEDIUM, six LOW, no CRITICAL, no HIGH, no wrong
+number anywhere** (`review/gate-0.7.1/output.md`). All fixed at the root
+before the build, each pinned at the reviewer's own input, each pin
+falsified by seeding the fix back out (five seeds, all caught), then a
+narrowing re-confirmation over the fixed surfaces
+(`review/gate-0.7.1/reconfirm-output.md`) and a second over the one finding
+the first re-confirmation introduced.
+
+**MEDIUM 1 — the DMS verifier refused whole archives on correctly rounded
+cells: #46's defect class, reintroduced beside the comment that records
+it.** `verify_dms_round_trip` (#67) compared the parsed DMS cell against the
+pivot within EXACTLY half of the cell's last place, no float slack. A
+position whose seconds fall on the rounding half-way point produces a
+correct cell whose residual is half a place plus a few parts in 1e15 — over
+the threshold — and the whole archive refused: no DD file, no DMS file, no
+audit CSV, no record, with a message naming this program's reader. The
+reviewer's counterexample, executed end to end: `381151.542 / 12817687.128`
+ift in MI-S converts to 42.54024203472222°, the cell is `42-32-24.87132 N`
+(correct, residual 0.15 mm), and `write_all` raised. Measured rate: 6 of
+3,000,000 real inverse-projected Michigan angles, about one point in
+250,000, plus 232 within 1e-13° of the line — and sticky, the same file
+refusing every time. Fail-closed, so MEDIUM not HIGH. The test that should
+have caught it compared with a LOOSER tolerance than production, so it
+could never fail where production did; #67's own falsification widened the
+tolerance and never narrowed it.
+
+*Fixed the way `verify_round_trip` was fixed at #46:* the comparison is now
+TEXT. Each DMS cell must equal the formatter's own rendering of the pivot,
+and the Single point parser's reading of it must render back to the same
+cell — a fixed point, no tolerance. The reviewer's rows are
+`HALF_WAY_ROWS` in `tests/test_geodetic_dms_export.py`, pinned end to end
+with an anti-vacuity assertion that the parsed cell really sits past half a
+place (re-measured: 1.3888908e-9° against 1.3888889e-9°). Re-confirmation
+measured the replacement: 0 refusals over 3,000,000 real angles in all three
+1983 zones and 227,201 constructions placed deliberately on the half-way
+point — the population that broke the tolerance form is inert.
+
+*Then the re-confirmation's LOW 7, the one defect the fix introduced:* the
+cell and the expectation come from ONE formatter call, so a formatter that
+is its own fixed point — returning a constant, or four places instead of
+five — passed both conditions, where the tolerance form had caught them; and
+the new docstring claimed "strictly tighter for every real defect". Not
+live, and every such seed is caught by the literal pins, but the sentence
+was false. *Fixed as the reviewer proposed:* the parsed angle is also held
+to the pivot within ONE FULL place of the cell. A correctly rounded cell
+sits at most half a place away plus ~1e-15° of noise, so the bound has half
+a place of headroom — 1.4e-9°, six orders of magnitude above the noise —
+and cannot refuse what the first cut refused; it refuses the constant and
+the four-place seeds, which are now a pin through the real verifier
+(seeding the bound out fails both). The precision lives in ONE place,
+`formatting.DMS_SECONDS_DECIMALS = 5`: all four DMS formatters default to
+it and the verifier derives its bound from it, which is also what closes
+**LOW 3** (the first cut hard-coded `1e-5` beside formatters that
+independently defaulted to 5 — two statements of one fact).
+
+**A fact worth keeping from the rejected form of the test:** the DD file
+carries 8 decimals of a degree (3.6e-5 s); the DMS file carries 1e-5 s. The
+DMS file is the MORE precise of the two, so a check that re-rendered the DD
+cell in DMS mismatched 72% of real angles by a unit of the last place. Each
+file is checked against the pivot in its own notation; they are not compared
+to each other through a float.
+
+**LOW 1 — nothing joined the two files.** The DMS cells were checked
+against the pivot and the DD cells against the pivot, never against each
+other; a monkeypatched DD latitude 1.7° wrong with the DMS rows untouched
+passed both verifiers. Not live — `job.py` hands the writer the same
+object for both — but the archive's headline claim is that the two files
+hold the same positions and no production check said so. *Fixed:* the
+verifier requires each DD cell to be the pivot's own rendering in the job's
+longitude convention (`fmt.latitude(pivot)`,
+`fmt.longitude(convention.from_signed(pivot_longitude))`), which is a
+re-derivation of what `job.run` computed, not a second convention. The
+reviewer's 41.0 latitude is the pin; re-confirmation drove 108
+ZONE_TO_GEODETIC configurations (3 zones × 3 in-units × 3 out-units × 2
+conventions × 2 vertical modes) through it: 108 written, 0 refused.
+
+**MEDIUM 2 — the release notes said a drop on either path box "does
+nothing". It does not.** Both boxes have drops switched off, and Qt hands
+the drag to the nearest ancestor that accepts them — the page — so a file
+dropped on the Output folder box lands in the INPUT FILE box, silently
+replacing whatever was there. That is #65's design ("anywhere on the tab")
+and the code's own comments say so; the notes contradicted both, and their
+own opening sentence. The mechanism was pinned (`acceptDrops()` false on
+the boxes); the OUTCOME was not. *Fixed:* the paragraph now says a drop on
+either box lands in the Input file box and, in bold, that a file dropped on
+the Output folder box replaces the input file, not the output folder. The
+outcome pin replicates `QWidgetWindow::findDnDTarget`'s ancestor walk
+(`platform_target`, named as a replication in its docstring because the
+offscreen platform does not run it for a hand-sent event), asserts the
+target is the page for a cursor over each box, drops, and requires the
+Input file box filled and the Output folder box untouched; seeding
+`output_edit.setAcceptDrops(True)` fails it. The reviewer judged the
+replication honest evidence, with the residual gap named: a wrong
+transcription of Qt's rule would go unnoticed headless.
+
+**LOW 4 — two vacuous assertions in `test_the_stripping_is_exact`** (#68's
+respelling pin): one re-applied the function that produced the value under
+test, the other was short-circuited true by every signed cell. The #56
+class again — a pin written after the claim it holds. *Fixed:* the
+convergence branch asserts invertibility (putting the dashes back gives the
+original cell exactly), no dash after the sign, and that the cell changed;
+seeding the respelling to a no-op fails it. *Recorded for the future:* all
+54 convergence cells across the nine frozen members are signed; a tenth
+configuration with an `N/A` convergence would need a guard in that branch.
+
+**LOW 5** — the `AUDIT_COLUMNS` explanation (#66's layout warning) was a
+detached string expression two blank lines below the constant; attached.
+**LOW 6** — four "three files" / `-16 49 17.78` wordings left behind by #67
+and #68, one of them a user-visible self-test message; updated.
+
+**LOW 2 — recorded, not repaired, and the reviewer agreed.**
+`dropped_input_file` stats the filesystem on the GUI thread inside
+dragEnter and dragMove, which fires on every mouse movement. Local paths
+take microseconds; an unreachable UNC host took **21.05 s** and an
+unresolvable one **2.70 s** on this machine, freezing the window mid-drag.
+No data is at risk and the refusal is correct when it returns; moving the
+stat off the drag thread is an asynchronous or cached rule with its own
+failure modes, not a change to make at a release gate. If the owner ever
+reports the window freezing while dragging from a network share, this is
+the cause.
+
+**Two more records from the re-confirmation, neither a defect:** the
+fixed-point condition refuses a latitude within ~1.4e-9° south of the
+equator (the parse loses the sign of a zero, `S` re-renders as `N`) — a
+refusal, never a wrong file, and not reachable from a Michigan job; and a
+VERTICAL_ONLY job on a geodetic file gets the two DMS audit columns but no
+DMS clean export, by #67's design — a product question for the owner, not
+a code question.
+
+**Clean surfaces, the reviewer's negatives worth keeping:** no digit moved
+in any numeric formatter (`angle_dms` against a transcription of v0.7.0's
+over 1,500,000 angles at three precisions, `_dms_magnitude` over 400,000:
+0 mismatches once the separator is normalised); no file in `michspc/spc/`
+touched; the cross-version digest pin still sees every NUMBER in every
+audit column and every heading and row count, blind exactly and only to
+the convergence separator and the two stripped columns; no reader indexes
+a moved column; no surface that was not supposed to change did; no record
+states a false file count in any of six directions; no drop can write a
+non-file string into either box; no dropped file is read before Convert;
+31 Windows path shapes and a UNC path survive the drop unmangled.
+
+**Suite 3,802 → 3,807**, both modes, on the owner's machine. Then the
+release: `py tools/build_release.py --acknowledge-ngs-beta`, all nine
+gates, the frozen self-test 11 of 11, tagged `v0.7.1`, installer and
+`SHA256SUMS.txt` on the GitHub Release with the release notes as the body.
+
+**Still human, carried from #65–#67:** one real drag from Explorer; a real
+geodetic job's three CSVs opened in Excel; and whether anything of the
+owner's imports the `_DD` file by its old name. And the clean-profile
+install proof (METHOD.md §6), as always.
+
 ### #68 — 2026-09-03 — Owner's instruction: the convergence format matches
 
 **The instruction:** "make convergence format match." #67 had read "all

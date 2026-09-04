@@ -25,9 +25,13 @@ before it can land anywhere:
 - **a folder** — folders have their own button;
 - **a path that does not exist**, or **a web address**.
 
-Dropping onto the Input file or Output folder boxes themselves does nothing:
-those boxes take a typed path or a chosen one, never a dropped one, so a drop
-cannot write a stray string into either.
+Dropping onto the Input file or Output folder boxes themselves lands the
+file in the Input file box too. The boxes take a typed path or a chosen one,
+never a dropped one, so the drop passes to the tab and is handled exactly as
+a drop anywhere else on it: **a file dropped on the Output folder box
+replaces the input file, not the output folder.** A dropped folder is
+refused wherever it lands. Nothing a drop carries can be written into either
+box as a stray string.
 
 Nothing else on screen changed, and nothing about the way a job is converted
 or recorded changed. The Single point tab is untouched.
@@ -83,17 +87,20 @@ release build refuses to run unless that is acknowledged on the command line.
 
 ## Verified
 
-- **3,802 automated tests**, green in both run modes, including the
+- **3,807 automated tests**, green in both run modes, including the
   cross-version pin that digests what nine ordinary jobs write against what
   an earlier release produced — so a release that quietly moved a number
   would fail a test. It did not: the clean exports are byte-identical (the
   geodetic one under its new `_DD` name), and the audit CSV is
   byte-identical once its two new columns are set aside and its convergence
   cells are read under their old spacing.
-- **The DMS export is read back before it is written**, through the same
-  parser the Single point tab uses for typed DMS, and every cell is compared
-  against the decimal file it duplicates. A DMS file that could disagree
-  with its decimal sibling is refused, and nothing is written.
+- **The DMS export is checked before it is written.** Every DMS cell must
+  be, character for character, what the program writes for the position it
+  computed; it is read back through the same parser the Single point tab
+  uses for typed DMS and must render to the same cell again; and the
+  decimal file beside it must hold that same position. A DMS file that
+  could disagree with the job or with its decimal sibling is refused, and
+  nothing is written.
 - **The DMS cells are checked against NGS NCAT's own positions** at every
   frozen anchor in both geodetic directions, by an independent reading
   written in the test, to half of the cell's last place.
@@ -102,6 +109,14 @@ release build refuses to run unless that is acknowledged on the command line.
   when Explorer hands it a file: the one-file rule, each refusal, the box
   filled, Convert armed, and a written result kept. Eight defects were seeded
   against them and every one was caught.
+- **An independent closing review over everything since 0.7.0** found no
+  wrong coordinate, elevation, factor or angle on any surface. It found
+  one refusal worth fixing before release: the first cut of the DMS check
+  compared angles within a tolerance so tight that a correctly rounded
+  cell could trip it on about one point in 250,000 and refuse the whole
+  job. That check now compares text, and the reviewer measured the fix
+  over three million Michigan positions with no refusal. Every finding is
+  recorded in the design record, amendment #69.
 - **Nine build gates**, including a **self-test run inside the frozen
   application** against NGS's own figures.
 

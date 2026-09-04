@@ -175,6 +175,41 @@ def test_the_multi_point_page_is_the_drop_target_and_its_children_are_not(window
     assert not window.single_point.acceptDrops()
 
 
+def platform_target(widget):
+    """The widget the platform hands a drag to for a cursor over ``widget``:
+    the nearest ancestor, itself included, that accepts drops. That is
+    ``QWidgetWindow``'s own rule (``findDnDTarget``), replicated because the
+    offscreen platform does not run it for an event sent by hand."""
+    while widget is not None and not widget.acceptDrops():
+        widget = widget.parentWidget()
+    return widget
+
+
+def test_a_file_dropped_on_either_path_box_lands_in_the_input_file_box(
+    window, points_file, tmp_path
+):
+    """The OUTCOME, not the mechanism: a file dropped on the Output folder
+    box - or on the Input file box - fills the Input file box, exactly as a
+    drop anywhere else on the tab does, and leaves the Output folder box
+    alone. The boxes refuse drops, so the platform walks up to the page.
+
+    Pinned because the 0.7.1 release notes first said a drop on either box
+    "does nothing" (the closing gate's MEDIUM 2); the sentence now says what
+    this test says, and neither can drift from the behaviour unnoticed.
+    """
+    earlier = tmp_path / "earlier.csv"
+    earlier.write_text("1,1.0,2.0,3.0,X\n", encoding="utf-8")
+    window.output_edit.setText(str(tmp_path))
+    for box in (window.output_edit, window.input_edit):
+        window.input_edit.setText(str(earlier))
+        target = platform_target(box)
+        assert target is window.multi_point_page
+        dropped = drop(target, mime_for(local(points_file)))
+        assert dropped.isAccepted()
+        assert window.input_path == points_file
+        assert window.output_edit.text() == str(tmp_path)
+
+
 def test_dropping_a_file_on_the_page_lands_its_path_in_the_input_box(
     window, points_file
 ):

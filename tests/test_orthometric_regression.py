@@ -332,8 +332,15 @@ def test_the_stripping_is_exact(tmp_path):
         for original, respelled in zip(rows[1:], list(csv.reader(io.StringIO(once.decode("utf-8"), newline="")))[1:]):
             for index, column in enumerate(header):
                 if column in CONVERGENCE_COLUMNS:
-                    assert respelled[index] == _v0_5_0_convergence(original[index])
-                    assert respelled[index].replace(" ", "") == original[index].replace("-", "").replace(" ", "") or original[index][0] in "+-"
+                    # Invertible, so nothing but the separator moved: putting
+                    # the dashes back gives the original cell exactly, and no
+                    # dash survives after the sign. (The gate's LOW 4: the
+                    # first form of this check re-applied the respelling and
+                    # could not fail.)
+                    assert respelled[index].replace(" ", "-") == original[index]
+                    assert "-" not in respelled[index][1:]
+                    assert respelled[index] != original[index]
+                    assert respelled[index][0] in "+-"
                 else:
                     assert respelled[index] == original[index]
 

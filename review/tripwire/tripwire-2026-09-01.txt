@@ -1,0 +1,5 @@
+NSRS tripwire, 2026-09-01
+  quiet         frame bridge (NATRF2022 token on the REST API)
+  quiet         vertical product (NAPGD2022 vertical-datum token)
+  quiet         geoid service (a model beyond GEOID18's id 14)
+  quiet         github (9 repos)

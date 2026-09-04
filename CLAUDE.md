@@ -51,7 +51,54 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.7.1 CUT, release build pending on the owner's machine (2026-09-03)
+## Current state: 0.7.1 RELEASED (2026-09-03)
+
+**0.7.1 is built, gated and tagged** (DESIGN.md **#69**): the cloud
+session's #65–#68 merged onto `main`, the suite run on the owner's machine
+(the five container-only failures of #65 do not exist here), all nine
+gates including the beta acknowledgement (same five artifacts as 0.7.0),
+the frozen self-test 11 of 11, installer + `SHA256SUMS.txt` on the GitHub
+Release, tagged `v0.7.1`. Interface and output release: **no computation
+changed** — drag and drop onto the Multi point tab, DMS columns in the
+audit CSV, a DMS sibling of the clean export when geodetic is the target,
+dash-separated DMS everywhere in a file including the convergence.
+
+**The closing gate ran here before the tag, because the cloud session had
+recorded none** — under an Opus reviewer, Codex being on quota until
+2026-09-07 (the owner's standing fallback). **FINDINGS: two MEDIUM, seven
+LOW counting the one the fix introduced, no CRITICAL, no HIGH, no wrong
+number anywhere.** All fixed at the root and pinned at the reviewer's own
+inputs, every pin falsified (six seeds), two narrowing re-confirmations,
+the last APPROVED. The one that matters: **`verify_dms_round_trip` refused
+whole archives on correctly rounded cells** — #46's exact-half-place
+tolerance defect reintroduced beside the comment that records it, about
+one point in 250,000, fail-closed and sticky. It now compares TEXT, joins
+the DD file to the same pivot, and holds the parsed angle within one full
+place derived from `formatting.DMS_SECONDS_DECIMALS` (the single
+authority for the DMS precision); the reviewer measured 0 refusals over
+3.2 million angles including 227,201 built on the half-way point. The
+other MEDIUM was a false sentence in the release notes: a file dropped on
+the Output folder box lands in the INPUT FILE box (Qt walks up to the
+page), which is #65's design; the notes now say so and the outcome is
+pinned. Suite **3,807** + the release-number skip, both modes.
+
+**Two facts worth keeping from the round:** the DD file (8 decimals of a
+degree, 3.6e-5 s) is COARSER than the DMS file (1e-5 s), so the two files
+are each checked against the pivot in their own notation and never against
+each other through a float; and `dropped_input_file` stats the path on the
+GUI thread inside dragMove — an unreachable UNC host froze the window for
+21 s on this machine, recorded not mitigated (#69, LOW 2).
+
+**Still human:** one real drag from Explorer; a real geodetic job's three
+CSVs opened in Excel and whether anything imports the `_DD` file by its
+old name; the clean-profile install proof (METHOD.md §6). **A product
+question for the owner (#69):** a VERTICAL_ONLY job on a geodetic file
+gets the two DMS audit columns but no DMS clean export, by #67's design.
+**The two deferrals stand with their tripwires** (September's record: all
+four probes quiet). Codex's quota resets 2026-09-07 if a re-confirmation
+under it is wanted.
+
+## Superseded status: 0.7.1 CUT, release build pending on the owner's machine (2026-09-03)
 
 **Branch `claude/drag-drop-file-multi-point-p7qti6`, DESIGN.md #65.** The
 owner's instruction: a coordinate file dragged from Explorer onto the Multi

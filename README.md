@@ -1,41 +1,35 @@
 # MCX - Martin Coordinate Exchange
 
-Converts survey coordinate files between the three Michigan State Plane
-Coordinate System of 1983 zones — North (2111), Central (2112) and South
-(2113) — and between State Plane and geodetic positions.
+Windows desktop tool for converting survey coordinates in Michigan. It reads a PNEZD file (point, northing, easting, elevation, description; no header row) and converts it between:
 
-All three Michigan zones are Lambert conformal conic. The projection
-mathematics come from **NOAA Manual NOS NGS 5, *State Plane Coordinate System
-of 1983*** (Stem, 1989; reprinted with minor corrections 1990), which is
-committed to this repository at `docs/NOAA_Manual_NOS_NGS_0005.pdf`. No
-third-party geodesy library is used at runtime — every constant and equation
-is traceable to a cited page of that manual.
+- the three Michigan SPCS 83 zones (North 2111, Central 2112, South 2113)
+- the 19 Michigan SPCS2022 zones
+- geodetic latitude/longitude (NAD 83(2011) or NATRF2022)
 
-Michigan SPCS 83 is legislated in **International feet** (manual Table 1.5,
-p. 9), and that is the tool's default unit. US survey feet and meters are
-selectable.
+Conversions go between zones of the same datum, or to and from geodetic. Units are meters, international feet and, on SPCS 83 zones, US survey feet. Elevations can also be converted between NGVD 29 and NAVD 88 and between GEOID12B and GEOID18, and GNSS ellipsoid heights can be entered directly.
 
-## Running from source
+Each job writes a clean PNEZD file for CAD, an audit CSV (scale factor, convergence, elevation factor and combined factor per point) and a plain-text job record.
+
+Not supported: UTM, NAD 83 to NATRF2022 transformation, NAPGD2022 elevations, other states, NAD 27.
+
+## Install
+
+Download `mcx-<version>-setup.exe` from [Releases](https://github.com/martin71337/michigan-spc-converter/releases). Check it against `SHA256SUMS.txt` if you like.
+
+## Accuracy
+
+SPCS 83 math follows NOAA Manual NOS NGS 5 (`docs/NOAA_Manual_NOS_NGS_0005.pdf`). The SPCS2022 zones are built on NGS's pre-release definitions and NCAT v3, so treat them as provisional until NGS finalizes them. Check results against your own control before relying on them for a sealed survey.
+
+## Run from source
+
+Needs Python 3.14 and PySide6.
 
 ```bash
 run.bat
 ```
 
-Requires Python 3.14 and PySide6. See `docs/DESIGN.md` for the design
-authority and `CLAUDE.md` for the working summary.
-
-## Tests
-
 ```bash
 py -m pytest
 ```
 
-The suite must also pass under `-O`, which strips assertions:
-
-```bash
-py -O -m pytest
-```
-
-## Status
-
-Live and verified
+Design notes are in `docs/DESIGN.md`.

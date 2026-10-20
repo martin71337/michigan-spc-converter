@@ -736,6 +736,34 @@ re-derived by the lead):
     print unit (5e-11 deg, 0.5 mm).
   - Transformed jobs refuse to WRITE until W4 (W3's write guard; #41's
     rule, disclosure before reachability).
+- **W4, the outputs** (lead-reviewed):
+  - The job record gains a FRAME TRANSFORMATION block, every value drawn
+    from the records. It includes both Helmert sets, printed from
+    `htdp_data`, and the D6 height bounds and HTDP's round-trip non-closure,
+    stated as facts (#50).
+  - The audit CSV gains frame-named columns on transformed jobs only.
+  - Geodetic targets get #67's DD/DMS pair.
+  - The verifiers check each file against the position it states.
+  - W3's write guard is removed.
+  - Lead's probe: 240 archives of 40 random points each, across every
+    transformed direction, frame, height kind and output unit. All were
+    written, with no verifier refusal.
+- **W4b, an inherited false record sentence, fixed** (found at W4's review,
+  present since 0.4.0). A VERTICAL_ONLY job on GEODETIC input printed the
+  SPCS 83 Lambert METHOD prose, the Appendix C and 27-position NCAT
+  verification paragraphs, "Every point converted cleanly, inside its zone"
+  and "moved between zones", with no zone in the job. The #42 finding-3
+  class, in released output; no number was ever wrong. Zone-less jobs now get
+  zone-less prose through the branch GEODETIC_TO_GEODETIC uses. Their
+  verification prose names exactly the checks for the work that ran: the
+  VERTCON, geoid and benchmark figures, each equal to the tolerance its test
+  enforces (0.5 mm, 1 mm, 1.5 mm), and HTDP's two checks on a transformed
+  job. GEODETIC_TO_GEODETIC now names the geoid check when it reads a geoid.
+  Every other job is byte-identical (47 jobs, 167 members, against HEAD).
+  The pinned vertical-only geodetic record is respelled to its old text
+  before digesting, on #66/#68's precedent, so the old digest still holds
+  every other byte. 14 + 2 seeds caught. **Released 0.7.1 carries the false
+  sentences; the next release's notes must say so.**
 - **Realization dates for D9's warning:** G1762 from 2013-10-16, G2139 from
   2021-01-03, G2296 from 2024-01-07 (NGA, ICG-17 WG-D presentation, 2023;
   EPSG 9756 and 10607; IGSMAIL-8444).

@@ -142,14 +142,145 @@ def _jobs():
 _GENERATED = re.compile(r"^Generated          .*$", re.MULTILINE)
 
 
+# --------------------------------------------------------------------------
+# RECORDED SUPERSESSION - DESIGN.md #70, plan W4b: the frozen text stated a
+# zone the job does not have.
+#
+# The vo_geodetic record (vertical only, geodetic input, no zone anywhere)
+# was frozen at 8201968 with eight passages that describe a State Plane job:
+# the SPCS 83 Lambert METHOD, its Appendix C and 27-position NCAT
+# verification, the "manual section 4.1" and "Combined factor" lines, the
+# grid-scale-factor ELEVATIONS paragraph, "inside its zone", "moved between
+# zones", and "both zones' coordinates". W4b replaced each with zone-less text
+# that is true of this job. The digest is NOT re-frozen - that would discard
+# the cross-version property for every other byte of the record - but, on
+# #66/#68's precedent, the record is RESPELLED back: each W4b passage, which
+# must occur exactly once, is put back to its frozen W3 text before the
+# digest, so the frozen digest still holds every other byte of it. The
+# respelling is pinned to touch only vo_geodetic's record and only these
+# eight passages (``test_the_w4b_respelling_is_exact``), and the new text is
+# pinned present in tests/test_frame_disclosure.py.
+# --------------------------------------------------------------------------
+
+W4B_RESPELLING = (
+    (
+        "Method             No map projection runs in this job: its positions are\n"
+        "                   geodetic, no State Plane zone is involved, and the\n"
+        "                   horizontal coordinates are reproduced unconverted. Each\n"
+        "                   point's elevation is converted at its NAD83(2011) position,\n"
+        "                   which is the input position itself: the GEOID18 geoid\n"
+        "                   height is read there, and the vertical datum transformation\n"
+        "                   stated below is applied.\n",
+        "Authority          NOAA Manual NOS NGS 5, State Plane Coordinate System\n"
+        "                   of 1983 (Stem, January 1989; reprinted with minor\n"
+        "                   corrections March 1990)\n"
+        "\n"
+        "Equations          The rigorous Lambert conformal conic mapping\n"
+        "                   equations of section 3.1 - zone constants (3.12),\n"
+        "                   direct conversion (3.13), inverse conversion (3.14).\n"
+        "                   Exact at any latitude, with no approximation term.\n"
+        "\n"
+        "Ellipsoid          GRS 80, the ellipsoid of NAD 83 (manual section 1.7).\n"
+        "                   Only the semimajor axis and the flattening are stored;\n"
+        "                   every other constant is derived from those two.\n",
+    ),
+    (
+        "The geoid heights are checked against NGS's own geoid height service. Twenty\n"
+        "Michigan positions were computed by NGS for each model this job read\n"
+        "(GEOID18), and those results are held in the test suite as fixed reference\n"
+        "values. This software reproduces them to within 1 mm, the precision NGS\n"
+        "publishes geoid heights to.\n"
+        "\n"
+        "The ellipsoid-height arithmetic is checked at fourteen published NGS\n"
+        "benchmarks whose datasheets carry both an NAVD 88 height and a GEOID18 geoid\n"
+        "height: given h = H + N from those figures, this software returns the\n"
+        "published H to within 1.5 mm.\n",
+        "The zone constants used above are not taken on trust. The manual\n"
+        "publishes, in Appendix C, the constants NGS computed for every Lambert\n"
+        "zone. This software stores only the DEFINING constants - the standard\n"
+        "parallels, the grid origin, the central meridian - and derives the rest.\n"
+        "Its test suite recomputes all of them and requires a match with NGS's\n"
+        "published figures to the last decimal place NGS printed, for all three\n"
+        "Michigan zones.\n"
+        "\n"
+        "The conversion itself is checked against the National Geodetic Survey's\n"
+        "own Coordinate Conversion and Transformation Tool (NCAT). Twenty-seven\n"
+        "positions spanning the three zones were converted by NCAT, and those\n"
+        "results are held in the test suite as fixed reference values. This\n"
+        "software reproduces them to within 0.5 mm - which is the precision NCAT\n"
+        "publishes, so the agreement is as close as the reference permits.\n",
+    ),
+    (
+        "Elevation factor   R / (R + H + N), NOAA Manual NOS NGS 5 section 4.1\n",
+        "Elevation factor   R / (R + H + N), manual section 4.1\n",
+    ),
+    (
+        "                   N = geoid height, interpolated from the grid above\n\n",
+        "                   N = geoid height, interpolated from the grid above\n"
+        "Combined factor    grid scale factor x elevation factor\n\n",
+    ),
+    (
+        "For those points the elevation factor is written as 'N/A' in the exports. It\n"
+        "is NOT set to 1.0. The positions do not use it.\n",
+        "For those points the elevation factor and combined factor are written\n"
+        "as 'N/A' in the exports. They are NOT set to 1.0, and the grid\n"
+        "scale factor is not substituted for the combined factor: there is no\n"
+        "honest combined factor without an elevation, and a plausible-looking\n"
+        "number here would travel onto a drawing. The horizontal conversion is\n"
+        "unaffected - it does not depend on elevation at all.\n",
+    ),
+    (
+        "None. Every point converted cleanly.\n",
+        "None. Every point converted cleanly, inside its zone.\n",
+    ),
+    (
+        "purpose. A coordinate file produced by a conversion should not\n",
+        "purpose. A coordinate file that has been moved between zones should not\n",
+    ),
+    (
+        "    Every computed quantity for every point, with a header row: the\n"
+        "    position the file supplied, geoid and ellipsoid height, the\n"
+        "    elevation factor, and any warnings. No zone is involved, so the\n"
+        "    scale-factor and convergence columns read N/A. This is the file\n"
+        "    that answers 'how was this number derived' without re-running\n",
+        "    Every computed quantity for every point, with a header row: both\n"
+        "    zones' coordinates, the geodetic position the conversion pivoted\n"
+        "    through, geoid and ellipsoid height, both convergence angles, the\n"
+        "    grid, elevation and combined factors, and any warnings. This is the\n"
+        "    file that answers 'how was this number derived' without re-running\n",
+    ),
+)
+"""(W4b text, frozen W3 text) for each passage W4b rewrote on vo_geodetic."""
+
+
+def _respelled_as_w3(text: str) -> tuple[str, int]:
+    """``text`` with every W4b passage put back to its W3 spelling, and how
+    many passages were found. Each passage is replaced only when it occurs
+    exactly once; a passage occurring twice is a test defect, refused."""
+    found = 0
+    for new, old in W4B_RESPELLING:
+        count = text.count(new)
+        if count > 1:
+            raise AssertionError(f"W4b passage occurs {count} times: {new[:60]!r}")
+        if count == 1:
+            text = text.replace(new, old)
+            found += 1
+    return text, found
+
+
 def _normalised(member: str, body: bytes, root: Path) -> bytes:
-    """The record without its timestamp and with the temporary root replaced;
-    every other member exactly as written."""
+    """The record without its timestamp and with the temporary root replaced
+    (and, on the one zone-less record, respelled as W3 wrote it - see
+    W4B_RESPELLING); every other member exactly as written."""
     if not member.endswith("_README.txt"):
         return body
     text = body.decode("utf-8")
     text = _GENERATED.sub("Generated          <normalised>", text)
     text = text.replace(str(root), "<ROOT>")
+    if "\nConversion         vertical only\n" in text and (
+        "No State\nPlane coordinate system is involved in this job." in text
+    ):
+        text, _found = _respelled_as_w3(text)
     return text.encode("utf-8")
 
 
@@ -223,3 +354,45 @@ def test_the_comparison_would_notice_a_changed_byte(tmp_path, member_suffix):
     with zipfile.ZipFile(archive) as opened:
         body = _normalised(member, opened.read(member), tmp_path)
     assert hashlib.sha256(body + b"\n").hexdigest() != written[key]
+
+
+def _records(root: Path) -> dict[str, str]:
+    """``{job: record text}``, timestamp and root normalised, NOT respelled."""
+    _written(root)
+    records = {}
+    for name, _rows, _fields in _jobs():
+        archive = next((root / name).glob("*.zip"))
+        with zipfile.ZipFile(archive) as opened:
+            member = next(m for m in opened.namelist() if m.endswith("_README.txt"))
+            text = opened.read(member).decode("utf-8")
+        text = _GENERATED.sub("Generated          <normalised>", text)
+        records[name] = text.replace(str(root), "<ROOT>")
+    return records
+
+
+def test_the_w4b_respelling_is_exact(tmp_path):
+    """Anti-vacuity and confinement, as #66's and #68's respelling pins are:
+
+    * on vo_geodetic every one of the eight W4b passages is present, so the
+      raw record no longer matches its frozen digest - and respelling exactly
+      those eight passages restores it, byte for byte;
+    * on every other job NOT ONE passage occurs, so the respelling cannot
+      reach any other record: those are compared exactly as written;
+    * respelling the W3 text again changes nothing (no W4b passage survives
+      it), so the comparison is a fixed point, not a loop.
+    """
+    records = _records(tmp_path)
+    vo = records["vo_geodetic"]
+    respelled, found = _respelled_as_w3(vo)
+    assert found == len(W4B_RESPELLING) == 8
+    assert hashlib.sha256(vo.encode("utf-8")).hexdigest() != FROZEN_AT_W3[
+        "vo_geodetic/in_VERTICAL_README.txt"
+    ]
+    assert hashlib.sha256(respelled.encode("utf-8")).hexdigest() == FROZEN_AT_W3[
+        "vo_geodetic/in_VERTICAL_README.txt"
+    ]
+    assert _respelled_as_w3(respelled) == (respelled, 0)
+    for name, text in records.items():
+        if name == "vo_geodetic":
+            continue
+        assert _respelled_as_w3(text) == (text, 0), name

@@ -629,9 +629,14 @@ def test_a_record_naming_zones_from_two_eras_refuses(tmp_path):
 def test_a_job_with_no_zone_at_all_keeps_the_1983_arm(tmp_path):
     """A vertical-only job on geodetic positions involves no zone.
 
-    It printed the 1983 METHOD text before this package and prints it still -
-    part of the byte-identity constraint, and stated here because the era
-    branch has to answer for the empty case rather than fall into it.
+    SUPERSEDED IN PART - DESIGN.md #70, plan W4b: the frozen text stated a
+    zone the job does not have. This pin used to require the 1983 METHOD text
+    here ("Equations          The rigorous Lambert conformal conic mapping"),
+    which described a projection this job never runs. The era branch still
+    answers for the empty case rather than falling into SPCS2022 - that half
+    stands - but the empty case is now the zone-less METHOD
+    (``report._method_without_a_zone``), and the Lambert prose is pinned
+    ABSENT (tests/test_frame_disclosure.py, the W4b section).
     """
     from michspc.job import VerticalMode
     from michspc.spc.vertical import NAVD88
@@ -654,7 +659,8 @@ def test_a_job_with_no_zone_at_all_keeps_the_1983_arm(tmp_path):
 
     text = report.build_report(run(settings))
 
-    assert "Equations          The rigorous Lambert conformal conic mapping" in text
+    assert "Equations          The rigorous Lambert conformal conic mapping" not in text
+    assert "Method             No map projection runs in this job" in text
     assert "SPCS2022" not in _section(text, "METHOD", "SCALE FACTOR SUMMARY")
 
 

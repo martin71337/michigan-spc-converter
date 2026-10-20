@@ -950,7 +950,14 @@ From               ITRF2020 - International Terrestrial Reference Frame 2020,
             + _HELMERT_ITRF2020.format(frame="ITRF2020") + _HELMERT_NAD83 + "\n"
             + _velocity("NAD83(2011)", True)
             + _HEIGHTS_HEAD + ellipsoid + _NOT_RECORDED_LINES
-            + _ROUND_TRIP + _VERIFIED
+            # RECORDED SUPERSESSION - DESIGN.md #70, plan W4b: the frozen
+            # text stated a zone the job does not have. At W4 this block
+            # ended with _VERIFIED, the Verified line a ZONE job carries
+            # because its own HOW THIS SOFTWARE IS VERIFIED is about the
+            # projection; a vertical-only geodetic job has no projection, and
+            # since W4b carries the HTDP checks in its own zone-less METHOD
+            # section (as geodetic to geodetic does), not here.
+            + _ROUND_TRIP
         )
     raise AssertionError(name)
 
@@ -1262,17 +1269,149 @@ Both checks compare this software against NGS. Neither compares it
 against itself.
 
 """
+"""The W4 METHOD section, kept as W4 froze it: since W4b it is exactly what a
+geodetic-to-geodetic job that read NO geoid prints - HTDP's two checks alone
+(``test_g2g_reading_no_geoid_is_byte_identical_to_w4``)."""
+
+_G2G_GEOID_CHECK = """\
+The geoid heights are checked against NGS's own geoid height service. Twenty
+Michigan positions were computed by NGS for each model this job read
+(GEOID18), and those results are held in the test suite as fixed reference
+values. This software reproduces them to within 1 mm, the precision NGS
+publishes geoid heights to.
+
+"""
+
+_G2G_BENCHMARK_CHECK = """\
+The ellipsoid-height arithmetic is checked at fourteen published NGS
+benchmarks whose datasheets carry both an NAVD 88 height and a GEOID18 geoid
+height: given h = H + N from those figures, this software returns the
+published H to within 1.5 mm.
+
+"""
+
+_BOTH_CHECKS = """\
+Both checks compare this software against NGS. Neither compares it
+against itself.
+"""
+_EACH_CHECK = """\
+Each check compares this software against NGS. None compares it
+against itself.
+"""
+
+_G2G_METHOD_WITH_GEOID = _G2G_METHOD.replace(
+    _BOTH_CHECKS, _G2G_GEOID_CHECK + _EACH_CHECK
+)
+"""RECORDED SUPERSESSION - DESIGN.md #70, plan W4b: the record named fewer
+checks than the job ran. The representative g2g_reverse job is horizontal but
+reads GEOID18 for its elevation factor (the default model), and at W4 its
+verification named HTDP's two checks only. It now names the geoid check too,
+and closes "Each check" for three: _G2G_METHOD with exactly that
+replacement, nothing else moved."""
 
 
 def test_g2g_coordinate_systems_and_method_are_exactly_this(written):
     """The FROM and TO frame blocks (the zone block's shape: frame, ellipsoid,
     epoch, the registry record's citation) and the METHOD/verification section
-    in this direction's own words."""
+    in this direction's own words - which name the geoid check, because this
+    job read GEOID18 (superseded at W4b, see _G2G_METHOD_WITH_GEOID)."""
     record = _record(written["g2g_reverse"][1])
     start = record.index("COORDINATE SYSTEMS\n")
     assert record[start:record.index("-" * 78 + "\nMETHOD", start)] == _G2G_COORDINATE_SYSTEMS
     method = record.index("METHOD\n", start)
-    assert record[method:record.index("FRAME TRANSFORMATION", method)] == _G2G_METHOD
+    assert record[method:record.index("FRAME TRANSFORMATION", method)] == _G2G_METHOD_WITH_GEOID
+
+
+def test_the_flagship_g2g_names_every_check_its_work_ran_on(written):
+    """Plan W4b, extended to geodetic to geodetic: the H+V ellipsoid flagship
+    ran HTDP, read GEOID18, and derived H from a GEOID18 h - so HTDP's two
+    checks, the geoid check and the benchmark check, in that order, and no
+    VERTCON check (NAVD 88 to NAVD 88 is an identity)."""
+    record = _record(written["g2g_forward"][1])
+    start = record.index("HOW THIS SOFTWARE IS VERIFIED\n")
+    verified = record[start:record.index("\nFRAME TRANSFORMATION\n", start)]
+    assert _G2G_GEOID_CHECK + _G2G_BENCHMARK_CHECK + _EACH_CHECK in verified
+    assert verified.index("This program's transcription of HTDP") < verified.index(_G2G_GEOID_CHECK)
+    assert "NCAT" not in verified
+
+
+def test_a_g2g_job_with_vertcon_names_the_vertcon_check(tmp_path):
+    """G2G H+V NGVD 29 -> NAVD 88: VERTCON ran, so its NCAT check prints."""
+    _result, archive = _write_job(
+        tmp_path,
+        "1,43.0,84.5,200.000,P\n",
+        direction=Direction.GEODETIC_TO_GEODETIC,
+        target_zone=None,
+        target_geodetic_frame=NAD83_2011,
+        vertical_mode=VerticalMode.HORIZONTAL_AND_VERTICAL,
+        source_vertical_datum=NGVD29,
+        target_vertical_datum=NAVD88,
+    )
+    flat = " ".join(_record(archive).split())
+    assert "converted from NGVD 29 to NAVD 88 by NCAT" in flat
+    assert "for each model this job read (GEOID18)" in flat
+    assert "benchmarks" not in flat
+
+
+# Computed at commit 1210d34 (W4's code; the commit after it changed no code)
+# by tests/test_frame_disclosure.py::_g2g_no_geoid_digests's construction run
+# from a worktree of that commit, before this W4b change existed. Not to be
+# regenerated from later code.
+G2G_NO_GEOID_AT_W4 = {
+    "g2g_no_geoid_reverse/in_GEODETIC_DD.csv": "e40a2cbbf4c87f1e303d9e800cf36fa7512700e52eb985a8d6a94c0f63bd6555",
+    "g2g_no_geoid_reverse/in_GEODETIC_DMS.csv": "6a3c00e49a4f958253fb8e38c0d5db0191b3b1be3e521bcea92a0a76138c016a",
+    "g2g_no_geoid_reverse/in_GEODETIC_README.txt": "390fc4b59467c39e0ca5888622a4cd0c11ba275fe0659ecb423c94cfdd287e05",
+    "g2g_no_geoid_reverse/in_GEODETIC_full.csv": "c040e2da77dd068773e7c09ff290030e1ead37ab2b1851ed8902773a043fb752",
+    "g2g_no_geoid_forward/in_GEODETIC_DD.csv": "bfdd3d435ab214337a0bc4f2cee0b4056fa3a1a69a54f9eedd2e466a68993239",
+    "g2g_no_geoid_forward/in_GEODETIC_DMS.csv": "e06ea1829d94ba5ed3942798c7ed9c7725340922a8c58452da88a97841d59a75",
+    "g2g_no_geoid_forward/in_GEODETIC_README.txt": "411fc85b68aac7695a12299147142869d051f4e34f8161e42ebf3a207d3cc093",
+    "g2g_no_geoid_forward/in_GEODETIC_full.csv": "0f35d1f4052aeddae763870a0a4977b48e27d86c50520046c58dd6f65835bce1",
+}
+
+
+def _g2g_no_geoid_digests(root: Path) -> dict[str, str]:
+    """Two HORIZONTAL geodetic-to-geodetic jobs with geoid_model=None - no
+    geoid read anywhere - every member digested, the record's timestamp and
+    temporary root normalised."""
+    import hashlib
+
+    jobs = {
+        "g2g_no_geoid_reverse": dict(geodetic_frame=NAD83_2011, target_geodetic_frame=WGS84_G1762),
+        "g2g_no_geoid_forward": dict(geodetic_frame=WGS84_G2296, target_geodetic_frame=NAD83_2011),
+    }
+    digests = {}
+    for name, frames_ in jobs.items():
+        folder = root / name
+        folder.mkdir()
+        (folder / "in.csv").write_text("1,43.0,84.5,165.000,P\n2,43.0,84.5,,BLANK\n")
+        settings = JobSettings(
+            input_path=folder / "in.csv", output_directory=folder,
+            direction=Direction.GEODETIC_TO_GEODETIC, source_zone=None, target_zone=None,
+            input_unit=METERS, output_unit=METERS,
+            longitude_convention=LongitudeConvention.POSITIVE_WEST,
+            geoid_model=None, observation_date=L5_DATE, **frames_,
+        )
+        with zipfile.ZipFile(exports.write_all(run(settings))["archive"]) as opened:
+            for member in sorted(opened.namelist()):
+                body = opened.read(member)
+                if member.endswith("README.txt"):
+                    text = re.sub(r"^Generated          .*$", "Generated          <normalised>",
+                                  body.decode(), flags=re.M)
+                    body = text.replace(str(root), "<ROOT>").encode()
+                digests[f"{name}/{member}"] = hashlib.sha256(body).hexdigest()
+    return digests
+
+
+def test_g2g_reading_no_geoid_is_byte_identical_to_w4(tmp_path):
+    """A horizontal G2G job that reads no geoid ran no vertical work, so W4b
+    adds no check to it: all four members of both jobs are W4's bytes, and
+    its METHOD is W4's _G2G_METHOD exactly."""
+    assert _g2g_no_geoid_digests(tmp_path) == G2G_NO_GEOID_AT_W4
+    archive = next((tmp_path / "g2g_no_geoid_reverse").glob("*.zip"))
+    text = _record(archive)
+    method = text.index("METHOD\n")
+    assert text[method:text.index("FRAME TRANSFORMATION", method)] == _G2G_METHOD
+    assert "geoid height service" not in text
 
 
 def test_g2g_record_describes_its_own_files_and_factors(written):
@@ -1555,3 +1694,243 @@ def test_the_dms_sibling_is_written_on_both_geodetic_targets(written):
         assert has_dms is geodetic_target, name
         assert exports.writes_dms_export(result) is geodetic_target
         assert len(members) == (4 if geodetic_target else 3)
+
+
+
+# ==========================================================================
+# 7. Plan W4b: a vertical-only job on GEODETIC positions has no zone, and its
+#    record says so (DESIGN.md #70; the #42 finding-3 class). Until W4b it
+#    printed the SPCS 83 projection prose and "inside its zone" - in
+#    released output since 0.4.0, and on WGS 84 input since W4.
+# ==========================================================================
+
+VO_ZONE_ONLY_SENTENCES = tuple(
+    sentence
+    for sentence in ZONE_ONLY_SENTENCES
+    # True of this job, and VO-specific: its factor summary's own sentence.
+    if sentence != "vertical-only conversion of geodetic positions"
+) + (
+    "Authority          NOAA Manual NOS NGS 5, State Plane Coordinate System",
+    "The zone constants used above are not taken on trust.",
+    "the grid\nscale factor is not substituted for the combined factor",
+    "The horizontal conversion is\nunaffected",
+)
+
+
+def _vo_geodetic(folder, rows="1,43.0,84.5,200.000,P\n2,43.1,84.6,,BLANK\n", **fields):
+    """A vertical-only job on NAD83(2011) positions - the same-frame variant."""
+    base = dict(
+        direction=Direction.VERTICAL_ONLY,
+        target_zone=None,
+        geodetic_frame=NAD83_2011,
+        observation_date=None,
+        vertical_mode=VerticalMode.VERTICAL,
+        source_vertical_datum=NAVD88,
+        target_vertical_datum=NAVD88,
+    )
+    base.update(fields)
+    return _write_job(folder, rows, **base)
+
+
+@pytest.fixture(scope="module")
+def vo_records(tmp_path_factory, written):
+    """Both variants of the defect the lead reproduced: same-frame NAD83(2011)
+    and WGS84(G2296), plus the transformed ITRF2020 representative."""
+    root = tmp_path_factory.mktemp("w4b")
+    same = _record(_vo_geodetic(root / "same")[1])
+    g2296 = _record(_vo_geodetic(
+        root / "g2296", geodetic_frame=WGS84_G2296, observation_date=L5_DATE
+    )[1])
+    return {"same_frame": same, "wgs84_g2296": g2296, "itrf2020": _record(written["vertical_only"][1])}
+
+
+@pytest.mark.parametrize("variant", ["same_frame", "wgs84_g2296", "itrf2020"])
+def test_vo_geodetic_prints_no_zone_only_sentence(vo_records, variant):
+    record = vo_records[variant]
+    for sentence in VO_ZONE_ONLY_SENTENCES:
+        assert sentence not in record, (variant, sentence)
+
+
+def test_the_vo_zone_only_sentences_still_print_on_a_vo_zone_job(tmp_path):
+    """Anti-vacuity and plan W4b item 4: VERTICAL_ONLY with a ZONE input keeps
+    its zone prose, which is true of it - it inverts through the input zone.
+    (Its whole record is byte-pinned against W3 in
+    tests/test_same_frame_outputs_unchanged.py.)"""
+    _result, archive = _write_job(
+        tmp_path,
+        f"1,{_NAD83_SOUTH.target_northing!r},{_NAD83_SOUTH.target_easting!r},200.000,P\n",
+        direction=Direction.VERTICAL_ONLY,
+        source_zone=MI_SOUTH,
+        target_zone=None,
+        geodetic_frame=NAD83_2011,
+        observation_date=None,
+        longitude_convention=None,
+        vertical_mode=VerticalMode.VERTICAL,
+        source_vertical_datum=NAVD88,
+        target_vertical_datum=NAVD88,
+    )
+    record = _record(archive)
+    for sentence in (
+        "Authority          NOAA Manual NOS NGS 5, State Plane Coordinate System",
+        "Lambert conformal conic",
+        "The zone constants used above are not taken on trust.",
+        "Twenty-seven",
+        "Combined factor    grid scale factor x elevation factor",
+        "), manual section 4.1",
+        "inside its zone",
+        "moved between zones",
+        "both\n    zones' coordinates",
+    ):
+        assert sentence in record, sentence
+    assert "No map projection runs in this job" not in record
+
+
+_VO_METHOD_SAME_FRAME = """\
+METHOD
+------------------------------------------------------------------------------
+Method             No map projection runs in this job: its positions are
+                   geodetic, no State Plane zone is involved, and the
+                   horizontal coordinates are reproduced unconverted. Each
+                   point's elevation is converted at its NAD83(2011) position,
+                   which is the input position itself: the GEOID18 geoid
+                   height is read there, and the vertical datum transformation
+                   stated below is applied.
+
+HOW THIS SOFTWARE IS VERIFIED
+
+The geoid heights are checked against NGS's own geoid height service. Twenty
+Michigan positions were computed by NGS for each model this job read
+(GEOID18), and those results are held in the test suite as fixed reference
+values. This software reproduces them to within 1 mm, the precision NGS
+publishes geoid heights to.
+
+The check compares this software against NGS, not against itself.
+
+"""
+"""Orthometric Z, NAVD 88 to NAVD 88 (an identity, so no VERTCON check), the
+default GEOID18, no transformation: the one check this job's arithmetic
+rests on is the geoid one."""
+
+_VO_METHOD_ITRF2020 = """\
+METHOD
+------------------------------------------------------------------------------
+Method             No map projection runs in this job: its positions are
+                   geodetic, no State Plane zone is involved, and the
+                   horizontal coordinates are reproduced unconverted. Each
+                   point's elevation is converted at its NAD83(2011) position,
+                   which is the input position carried from ITRF2020 by the
+                   frame transformation stated below: the GEOID18 geoid height
+                   is read there, and the vertical datum transformation stated
+                   below is applied.
+
+HOW THIS SOFTWARE IS VERIFIED
+
+This program's transcription of HTDP is held by its test suite to NGS's own
+Fortran source, committed unmodified at review/wgs84-w0/htdp-v3.6.0/: every
+constant transcribed must equal the one NGS wrote, number for number.
+
+The transformation itself is checked against HTDP. NGS's source was compiled
+and run, and 1,846 of its printed records - every frame offered, both
+directions and the round trip, across Michigan and its lakes - are held in the
+test suite as fixed reference values. This software reproduces them to the
+digit HTDP prints, 1e-10 degree and 1 mm.
+
+The geoid heights are checked against NGS's own geoid height service. Twenty
+Michigan positions were computed by NGS for each model this job read
+(GEOID18), and those results are held in the test suite as fixed reference
+values. This software reproduces them to within 1 mm, the precision NGS
+publishes geoid heights to.
+
+The ellipsoid-height arithmetic is checked at fourteen published NGS
+benchmarks whose datasheets carry both an NAVD 88 height and a GEOID18 geoid
+height: given h = H + N from those figures, this software returns the
+published H to within 1.5 mm.
+
+Each check compares this software against NGS. None compares it
+against itself.
+
+"""
+"""The ITRF2020 representative: ELLIPSOID Z, so the HTDP step (two checks),
+the geoid read (one), and the GEOID18 h -> H arithmetic (the benchmarks) all
+ran; the datum pair is an identity, so no VERTCON check."""
+
+
+def _method_section(record: str) -> str:
+    start = record.index("METHOD\n")
+    for end_marker in ("FRAME TRANSFORMATION\n", "Geoid model        "):
+        if end_marker in record[start:]:
+            return record[start:record.index(end_marker, start)]
+    raise AssertionError("no end to METHOD")
+
+
+def test_vo_geodetic_method_is_exactly_this(vo_records):
+    assert _method_section(vo_records["same_frame"]) == _VO_METHOD_SAME_FRAME
+    assert _method_section(vo_records["itrf2020"]) == _VO_METHOD_ITRF2020
+
+
+def test_vo_geodetic_states_what_ran_and_its_true_replacements(vo_records):
+    """Plan W4b item 2: no projection; the geoid lookup at the NAD 83 pivot;
+    the HTDP step on a transformed job; and each zone-free replacement."""
+    for variant, record in vo_records.items():
+        flat = " ".join(record.split())
+        assert "No map projection runs in this job" in flat
+        assert "is converted at its NAD83(2011) position" in flat
+        assert "the GEOID18 geoid height is read there" in flat
+        assert "R / (R + H + N), NOAA Manual NOS NGS 5 section 4.1" in record
+        assert "None. Every point converted cleanly.\n" in record
+        assert "A coordinate file produced by a conversion should not" in record
+        assert "scale-factor and convergence columns read N/A" in flat
+        assert (
+            "For those points the elevation factor is written as 'N/A' in the "
+            "exports. It is NOT set to 1.0. The positions do not use it." in flat
+        )
+        transformed = variant != "same_frame"
+        assert ("carried from" in flat) is transformed, variant
+        assert ("This program's transcription of HTDP" in flat) is transformed
+        assert ("position in both frames" in flat) is transformed
+        assert ("position the file supplied" in flat) is not transformed
+    g2296 = " ".join(vo_records["wgs84_g2296"].split())
+    assert "the input position carried from WGS84(G2296) by the frame transformation" in g2296
+    # The transformed variants carry the HTDP checks in METHOD, not a second
+    # time as the block's Verified line.
+    for variant in ("wgs84_g2296", "itrf2020"):
+        assert "\nVerified           " not in vo_records[variant]
+
+
+def test_vo_geodetic_names_the_vertcon_check_only_when_vertcon_ran(tmp_path):
+    """NGVD 29 -> NAVD 88 with GEOID12B: the VERTCON NCAT check and the
+    GEOID12B geoid check, and no benchmark check (orthometric input)."""
+    _result, archive = _vo_geodetic(
+        tmp_path, source_vertical_datum=NGVD29, geoid_model=geoid.GEOID12B_MODEL
+    )
+    flat = " ".join(_method_section(_record(archive)).split())
+    assert "converted from NGVD 29 to NAVD 88 by NCAT" in flat
+    assert "to within 0.5 mm - which is the precision NCAT publishes" in flat
+    assert "for each model this job read (GEOID12B)" in flat
+    assert "benchmarks" not in flat
+    assert "Both checks compare this software against NGS." in flat
+
+
+def test_vo_geodetic_names_both_models_on_a_geoid_change(tmp_path):
+    _result, archive = _vo_geodetic(tmp_path, source_geoid_model=geoid.GEOID12B_MODEL)
+    flat = " ".join(_method_section(_record(archive)).split())
+    assert "the GEOID12B and GEOID18 geoid heights are read there" in flat
+    assert "for each model this job read (GEOID12B and GEOID18)" in flat
+    assert "NCAT" not in flat
+
+
+def test_the_vertical_check_counts_are_the_fixtures():
+    from tests.fixtures.ellipsoid_height_anchors import BENCHMARK_ANCHORS
+    from tests.fixtures.geoid12b_anchors import GEOID12B_ANCHORS
+    from tests.fixtures.geoid_anchors import GEOID_ANCHORS
+    from tests.fixtures.vertcon_anchors import (
+        NAVD88_TO_NGVD29_ANCHORS,
+        NGVD29_TO_NAVD88_ANCHORS,
+    )
+
+    words = {5: "five", 14: "fourteen", 20: "twenty"}
+    assert words[len(NGVD29_TO_NAVD88_ANCHORS)] == report.VERTCON_FORWARD_ANCHOR_COUNT.lower()
+    assert words[len(NAVD88_TO_NGVD29_ANCHORS)] == report.VERTCON_INVERSE_ANCHOR_COUNT
+    assert words[len(GEOID_ANCHORS)] == report.GEOID_ANCHOR_COUNT.lower()
+    assert words[len(GEOID12B_ANCHORS)] == report.GEOID_ANCHOR_COUNT.lower()
+    assert words[len(BENCHMARK_ANCHORS)] == report.BENCHMARK_ANCHOR_COUNT

@@ -1119,43 +1119,174 @@ def _htdp_verification() -> list[str]:
     ]
 
 
-def _method_geodetic_to_geodetic(path) -> list[str]:
-    """The METHOD and verification sections of a geodetic-to-geodetic job.
+VERTCON_FORWARD_ANCHOR_COUNT = "Twenty"
+VERTCON_INVERSE_ANCHOR_COUNT = "five"
+GEOID_ANCHOR_COUNT = "Twenty"
+BENCHMARK_ANCHOR_COUNT = "fourteen"
+"""How many NGS truths the suite holds each vertical-job check to: literals,
+as "Twenty-seven" is in ``_method_spcs83``, each held by the suite to the
+length of the fixture it describes - ``vertcon_anchors``' two directions,
+``geoid_anchors`` and ``geoid12b_anchors`` (twenty positions each), and
+``ellipsoid_height_anchors``' published benchmarks (plan W4b)."""
 
-    The same shape as ``_method_spcs83`` and ``_method_spcs2022`` - an
-    authority, the ellipsoid, and HOW THIS SOFTWARE IS VERIFIED - saying what
-    is true of a job with no zone: no projection ran, so no manual section,
-    no zone constants and no NCAT projection anchors are named. The
-    transformation is the conversion, and HTDP is its authority.
+
+def _vertical_verification(result, transformation, swap_models) -> list[str]:
+    """The checks that hold a zone-less vertical job's arithmetic to NGS.
+
+    Only those that verify work THIS job did (plan W4b, the #42 finding-3
+    class): the geoid anchors for each model it read, the published
+    benchmarks when it derived H from a GEOID18 h, and VERTCON's NCAT anchors
+    when it applied a modeled datum shift. The VERTCON sentence keeps the
+    wording ``_method_spcs83`` gives NCAT ("to within 0.5 mm - which is the
+    precision NCAT publishes"), because it states the same kind of check.
     """
+    settings = result.settings
+    paragraphs: list[str] = []
+    models = (
+        [swap_models[0].name, swap_models[1].name]
+        if swap_models is not None
+        else ([result.geoid_model] if result.geoid_model else [])
+    )
+    if models:
+        named = " and ".join(models)
+        paragraphs.append(
+            f"The geoid heights are checked against NGS's own geoid height "
+            f"service. {GEOID_ANCHOR_COUNT} Michigan positions were computed "
+            f"by NGS for each model this job read ({named}), and those "
+            f"results are held in the test suite as fixed reference values. "
+            f"This software reproduces them to within 1 mm, the precision NGS "
+            f"publishes geoid heights to."
+        )
+    if (
+        settings.input_height_kind is HeightKind.ELLIPSOID
+        and result.geoid_model == "GEOID18"
+    ):
+        paragraphs.append(
+            f"The ellipsoid-height arithmetic is checked at "
+            f"{BENCHMARK_ANCHOR_COUNT} published NGS benchmarks whose "
+            f"datasheets carry both an NAVD 88 height and a GEOID18 geoid "
+            f"height: given h = H + N from those figures, this software "
+            f"returns the published H to within 1.5 mm."
+        )
+    if transformation is not None and not transformation.is_identity:
+        paragraphs.append(
+            f"The vertical datum transformation is checked against the "
+            f"National Geodetic Survey's own Coordinate Conversion and "
+            f"Transformation Tool (NCAT). {VERTCON_FORWARD_ANCHOR_COUNT} "
+            f"Michigan positions converted from NGVD 29 to NAVD 88 by NCAT, "
+            f"and {VERTCON_INVERSE_ANCHOR_COUNT} converted from NAVD 88 to "
+            f"NGVD 29, are held in the test suite as fixed reference values. "
+            f"This software reproduces each shift to within 0.5 mm - which is "
+            f"the precision NCAT publishes, so the agreement is as close as "
+            f"the reference permits."
+        )
+    return paragraphs
+
+
+def _method_without_a_zone(result, path, transformation, swap_models) -> list[str]:
+    """The METHOD and verification sections of a job with no zone at either end.
+
+    Two directions have none: geodetic to geodetic (plan D7), and a
+    vertical-only job on geodetic positions. The same shape as
+    ``_method_spcs83`` and ``_method_spcs2022`` - what ran, and HOW THIS
+    SOFTWARE IS VERIFIED - saying what is true of a job with no zone: no
+    projection ran, so no manual section, no zone constants and no NCAT
+    projection anchors are named.
+
+    * Geodetic to geodetic: the transformation is the conversion, and HTDP is
+      its authority.
+    * Vertical only (plan W4b; DESIGN.md #70): the horizontal coordinates are
+      reproduced unconverted, and what runs is at each point's pivot - the
+      input position itself, or the input carried to NAD83(2011) by HTDP -
+      the geoid lookup and the vertical datum transformation. Until W4b this
+      job printed the SPCS 83 Lambert prose, which described a projection it
+      never ran.
+
+    The verification names what verifies THIS job - HTDP's anchors when a
+    frame transformation ran, and, in both directions, the vertical checks of
+    ``_vertical_verification`` for the vertical work the job did - closing
+    with the line every era's section closes with.
+    """
+    settings = result.settings
     lines: list[str] = []
     add = lines.append
-    lines.extend(
-        _labelled_paragraph(
-            "Authority",
-            f"{_htdp_software()} - the frame transformation, which is the "
-            f"whole of this job's conversion. No State Plane coordinate "
-            f"system and no map projection is involved.",
+    checks: list[str] = []
+    if settings.direction is Direction.GEODETIC_TO_GEODETIC:
+        lines.extend(
+            _labelled_paragraph(
+                "Authority",
+                f"{_htdp_software()} - the frame transformation, which is the "
+                f"whole of this job's conversion. No State Plane coordinate "
+                f"system and no map projection is involved.",
+            )
         )
-    )
-    add("")
-    lines.extend(
-        _labelled_paragraph(
-            "Ellipsoids",
-            f"{path.source.code} on the {path.source.ellipsoid_name} "
-            f"ellipsoid, {path.target.code} on the "
-            f"{path.target.ellipsoid_name} ellipsoid: HTDP takes the "
-            f"ellipsoid from the frame's name (htdp.f:3221-3224).",
+        add("")
+        lines.extend(
+            _labelled_paragraph(
+                "Ellipsoids",
+                f"{path.source.code} on the {path.source.ellipsoid_name} "
+                f"ellipsoid, {path.target.code} on the "
+                f"{path.target.ellipsoid_name} ellipsoid: HTDP takes the "
+                f"ellipsoid from the frame's name (htdp.f:3221-3224).",
+            )
         )
-    )
+        checks.extend(_htdp_verification())
+        # And the vertical checks for whatever vertical work it ran - a geoid
+        # read for the factors or for H, the benchmarks behind a GEOID18
+        # h -> H, VERTCON on a modelled datum shift - exactly as a
+        # vertical-only job names them (plan W4b, DESIGN.md #70: the record
+        # named fewer checks than the job ran). A job that read no geoid
+        # names HTDP's two checks alone, as it did at W4.
+        checks.extend(_vertical_verification(result, transformation, swap_models))
+    else:
+        pivot = settings.geodetic_frame if path is None else _pivot_frame(path)
+        where = (
+            "which is the input position itself"
+            if path is None
+            else f"which is the input position carried from {path.source.code} "
+            f"by the frame transformation stated below"
+        )
+        if swap_models is not None:
+            looked_up = (
+                f"the {swap_models[0].name} and {swap_models[1].name} geoid "
+                f"heights are read there, and "
+            )
+        elif result.geoid_model:
+            looked_up = f"the {result.geoid_model} geoid height is read there, and "
+        else:
+            looked_up = ""
+        lines.extend(
+            _labelled_paragraph(
+                "Method",
+                f"No map projection runs in this job: its positions are "
+                f"geodetic, no State Plane zone is involved, and the "
+                f"horizontal coordinates are reproduced unconverted. Each "
+                f"point's elevation is converted at its {pivot.code} "
+                f"position, {where}: {looked_up}the vertical datum "
+                f"transformation stated below is applied.",
+            )
+        )
+        if path is not None:
+            checks.extend(_htdp_verification())
+        checks.extend(_vertical_verification(result, transformation, swap_models))
     add("")
+    if not checks:
+        # Nothing was computed that NGS publishes a check for - an identity
+        # datum pair with no geoid model - so no check is claimed.
+        return lines
     add("HOW THIS SOFTWARE IS VERIFIED")
     add("")
-    for paragraph in _htdp_verification():
+    for paragraph in checks:
         lines.extend(textwrap.wrap(paragraph, width=78, break_long_words=False))
         add("")
-    add("Both checks compare this software against NGS. Neither compares it")
-    add("against itself.")
+    if len(checks) == 2:
+        add("Both checks compare this software against NGS. Neither compares it")
+        add("against itself.")
+    elif len(checks) == 1:
+        add("The check compares this software against NGS, not against itself.")
+    else:
+        add("Each check compares this software against NGS. None compares it")
+        add("against itself.")
     add("")
     return lines
 
@@ -1240,7 +1371,7 @@ def _frame_transformation_block(result, path, *, verified: bool) -> list[str]:
     ``verified`` adds the HTDP verification as a labelled paragraph - on a
     zone job, whose own HOW THIS SOFTWARE IS VERIFIED is about the
     projection; a geodetic-to-geodetic job carries it in its METHOD section
-    instead (``_method_geodetic_to_geodetic``).
+    instead (``_method_without_a_zone``).
     """
     settings = result.settings
     untransformed = [
@@ -1657,8 +1788,11 @@ def _method_and_verification(settings) -> list[str]:
     by hand and a document that quietly described half a job in the wrong era's
     words would be worse than a refusal.
 
-    A job with NO zone at all - a vertical-only conversion of geodetic
-    positions - takes the 1983 arm, which is what it has always printed.
+    A job with NO zone at all is not described here: since plan W4b
+    (DESIGN.md #70) ``build_report`` gives it ``_method_without_a_zone``,
+    because the 1983 arm it used to take describes a projection such a job
+    never runs. Called with no zone, this still returns the 1983 arm, as it
+    always did - it is only no longer asked.
     """
     zones = _job_zones(settings)
     modern = [zone for zone in zones if zone.code in _SPCS2022_ZONE_CODES]
@@ -1738,6 +1872,16 @@ def build_report(result: JobResult) -> str:
     # HTDP ran. A same-frame record is byte-identical to what it always was.
     frame_path = applied_frame_transformation(settings)
     geodetic_to_geodetic = settings.direction is Direction.GEODETIC_TO_GEODETIC
+    # Every job with no State Plane zone at either end: geodetic to geodetic,
+    # and a vertical-only job on geodetic positions. The one condition every
+    # zone-only sentence below is withheld on (plan W4b, DESIGN.md #70 - the
+    # #42 finding-3 class: until W4b the vertical-only geodetic record printed
+    # the SPCS 83 projection prose, "inside its zone" and "moved between
+    # zones" about a job with no zone).
+    zoneless = geodetic_to_geodetic or (
+        settings.direction is Direction.VERTICAL_ONLY
+        and settings.source_zone is None
+    )
     # The model that derived H from h, or None when the Z column already held
     # elevations. Resolved through the same job-layer rule the computation
     # used, so the record cannot name a model the conversion did not read.
@@ -1903,18 +2047,18 @@ def build_report(result: JobResult) -> str:
     add(_THIN)
     add("METHOD")
     add(_THIN)
-    if geodetic_to_geodetic:
+    if zoneless:
         # No projection ran: the projection era's prose - manual sections,
         # zone constants, NCAT's projection anchors - would describe work
         # this job did not do.
-        lines.extend(_method_geodetic_to_geodetic(frame_path))
+        lines.extend(
+            _method_without_a_zone(result, frame_path, transformation, swap_models)
+        )
     else:
         lines.extend(_method_and_verification(settings))
     if frame_path is not None:
         lines.extend(
-            _frame_transformation_block(
-                result, frame_path, verified=not geodetic_to_geodetic
-            )
+            _frame_transformation_block(result, frame_path, verified=not zoneless)
         )
 
     if result.geoid_model:
@@ -1931,9 +2075,9 @@ def build_report(result: JobResult) -> str:
         add("                   Geoid heights are NEGATIVE throughout Michigan:")
         add("                   the ellipsoid lies above the geoid here.")
         add("")
-        if geodetic_to_geodetic:
-            # This job's METHOD names no manual - its authority is HTDP - so
-            # "manual section 4.1" would point at nothing the record set out.
+        if zoneless:
+            # This job's METHOD names no manual, so "manual section 4.1"
+            # would point at nothing the record set out.
             add("Elevation factor   R / (R + H + N), NOAA Manual NOS NGS 5 section 4.1")
         else:
             add("Elevation factor   R / (R + H + N), manual section 4.1")
@@ -1944,7 +2088,7 @@ def build_report(result: JobResult) -> str:
         # carries per point.
         add("                   H = orthometric height as used for the factors")
         add("                   N = geoid height, interpolated from the grid above")
-        if not geodetic_to_geodetic:
+        if not zoneless:
             # A job with no zone has no grid scale factor to multiply.
             add("Combined factor    grid scale factor x elevation factor")
         add("")
@@ -2123,7 +2267,7 @@ def build_report(result: JobResult) -> str:
                 f"no geoid height was looked up for any of them."
             )
         add("")
-        if frame_path is None:
+        if frame_path is None and not zoneless:
             add("For those points the elevation factor and combined factor are written")
             add(f"as {fmt.NOT_AVAILABLE!r} in the exports. They are NOT set to 1.0, and the grid")
             add("scale factor is not substituted for the combined factor: there is no")
@@ -2135,10 +2279,8 @@ def build_report(result: JobResult) -> str:
             # transformation: HTDP is handed a height for every point, h = 0
             # where none was recorded (plan decision D6), and the result moves
             # with it. What remains true is stated, and the rest is pointed at.
-            zoneless = geodetic_to_geodetic or (
-                settings.direction is Direction.VERTICAL_ONLY
-                and settings.source_zone is None
-            )
+            # A job with no zone has no grid scale factor, no combined factor
+            # and no horizontal conversion to speak of (plan W4b).
             factors = (
                 f"the elevation factor is written as {fmt.NOT_AVAILABLE!r} in "
                 f"the exports. It is NOT set to 1.0. The positions do not use "
@@ -2150,14 +2292,14 @@ def build_report(result: JobResult) -> str:
                 f"combined factor. The horizontal conversion does not use "
                 f"these factors."
             )
-            lines.extend(
-                textwrap.wrap(
-                    f"For those points {factors} The height each point's "
-                    f"frame transformation was handed is stated under FRAME "
-                    f"TRANSFORMATION, and per point in the _full.csv export.",
-                    width=78,
-                )
+            handed = (
+                " The height each point's frame transformation was handed is "
+                "stated under FRAME TRANSFORMATION, and per point in the "
+                "_full.csv export."
+                if frame_path is not None
+                else ""
             )
+            lines.extend(textwrap.wrap(f"For those points {factors}{handed}", width=78))
         add("")
         if absent:
             add("A Z field that is blank, or that holds exactly 0.00, is treated as")
@@ -2309,7 +2451,7 @@ def build_report(result: JobResult) -> str:
     # job, whose WARNINGS section is unchanged by a byte.
     job_warnings = result.job_warnings
     if not all_warnings and not job_warnings:
-        if geodetic_to_geodetic:
+        if zoneless:
             # No zone, so no "inside its zone" to have been.
             add("None. Every point converted cleanly.")
         else:
@@ -2369,6 +2511,12 @@ def build_report(result: JobResult) -> str:
         add("frames should not circulate without the record explaining how it")
         add(f"was derived, so the export is a single archive rather than {count}")
         add("loose files.")
+    elif zoneless:
+        # Vertical only on geodetic positions: nothing moved between zones or
+        # frames; the file is the product of a conversion all the same.
+        add("purpose. A coordinate file produced by a conversion should not")
+        add("circulate without the record explaining how it was derived, so the")
+        add(f"export is a single archive rather than {count} loose files.")
     else:
         add("purpose. A coordinate file that has been moved between zones should not")
         add("circulate without the record explaining how it was derived, so the")
@@ -2394,11 +2542,18 @@ def build_report(result: JobResult) -> str:
         add("    decimal degrees only. Convert from the _DD file.")
         add("")
     add(f"  {names['audit']}")
-    if geodetic_to_geodetic:
+    if zoneless:
         # No zone: "both zones' coordinates" and "both convergence angles"
-        # would describe columns that hold nothing for this job.
+        # would describe columns that hold nothing for this job. A
+        # vertical-only job holds its position in two frames only when HTDP
+        # carried it to NAD83(2011) for the lookups.
         add("    Every computed quantity for every point, with a header row: the")
-        add("    position in both frames, geoid and ellipsoid height, the")
+        position = (
+            "position in both frames"
+            if frame_path is not None
+            else "position the file supplied"
+        )
+        add(f"    {position}, geoid and ellipsoid height, the")
         add("    elevation factor, and any warnings. No zone is involved, so the")
         add("    scale-factor and convergence columns read N/A. This is the file")
         add("    that answers 'how was this number derived' without re-running")

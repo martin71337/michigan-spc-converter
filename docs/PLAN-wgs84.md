@@ -271,6 +271,24 @@ constants module is a transcription the suite verifies, the way
 
 ### 3.5 `job.py`
 
+- **Carried from interim gate 1** (`review/gate-wgs84-1/output.md`):
+  - **L5:** `convert.geodetic_position` gets its own frame gate, so a
+    VERTICAL_ONLY geodetic job has two gates like every other direction.
+    `_require_a_convertible_ellipsoid_height_frame` becomes the path-to-geoid
+    rule of D6. The reviewer's seed is the pin: with the settings branch
+    removed, a WGS84(G2296) ellipsoid job wrote NAVD 88 198.085, about
+    1.07 m low.
+  - **I1:** the stray `geodetic_frame` refusal covers VERTICAL_ONLY with a
+    zone input as well as ZONE_TO_ZONE.
+  - **I2:** `project_point`, `convert_point` and `JobSettings` refuse a
+    non-`Zone` where a zone is expected with a `TypeError` naming it (today
+    an `AttributeError`, pre-existing).
+  - **L6, disposition:** three refusals advise conversions that, in the W2
+    build, reach the W2 guard. They become true when W3 connects the paths,
+    no interface can reach them before then, and interim gate 2 re-checks
+    that every refusal is true for its pair.
+  - **The L4 hazard:** W3 reads `htdp_frame` and the epoch kind only from
+    the CANONICAL registry record, never from a caller's record.
 - **From the lead's W2 probe:** a ZONE_TO_ZONE job given a non-default
   `geodetic_frame` it never reads runs and ignores it. That is correct
   arithmetic, and the record does not print the frame for that direction,

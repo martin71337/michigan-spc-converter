@@ -35,7 +35,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 
-from michspc.spc.frames import ReferenceFrame, require_frame_path
+from michspc.spc.frames import (
+    NAD83_2011,
+    NATRF2022,
+    FrameTransformation,
+    FrameTransformationUnavailableError,
+    ReferenceFrame,
+    require_frame_path,
+)
 from michspc.spc.projection import forward as project_forward
 from michspc.spc.projection import inverse as project_inverse
 from michspc.spc.zones import Zone
@@ -187,6 +194,56 @@ class PointConversion:
     warnings: tuple[ConversionWarning, ...] = field(default_factory=tuple)
 
 
+def require_a_connected_path(path: FrameTransformation) -> FrameTransformation:
+    """Refuse every frame path the conversion pipeline does not yet apply.
+
+    **The WGS 84 build's safety guard (docs/PLAN-wgs84.md, work package W2).**
+    The frame registry now carries NGS HTDP v3.6.0's transformation between
+    NAD83(2011) and five time-dependent frames - WGS84(G1762), (G2139),
+    (G2296), ITRF2014 and ITRF2020 - and ``require_frame_path`` returns those
+    records. Nothing in this pipeline applies one yet: ``convert_point`` and
+    ``project_point`` project the latitude and longitude they are given, and a
+    ``ZONE_TO_GEODETIC`` job writes the NAD 83 pivot. So a path that is
+    registered but not applied would hand a WGS 84 position on as though it
+    were NAD 83 - about a metre in each of north, east and up in Michigan
+    (review/wgs84-w0/RECON.md section 3), wearing the right label. That is a
+    SILENT PASS-THROUGH, the one failure this program exists to refuse, and it
+    is refused here, loudly, until work package W3 connects the arithmetic.
+
+    Called at every site that asks the registry for a path - ``convert_point``,
+    ``project_point``, ``job.run``'s settings gate, and the interface's
+    ``frames_have_a_path`` - so that none of them can treat a registered path
+    as an applied one.
+
+    Fail-closed: anything that is not an identity ``FrameTransformation``
+    refuses. A non-record (a gate that returned nothing) is a defect, not a
+    frame condition, and is a ``TypeError``; a registered non-identity record
+    is ``FrameTransformationUnavailableError``, which every caller already
+    catches as ``FrameMismatchError``.
+    """
+    if not isinstance(path, FrameTransformation):
+        raise TypeError(
+            f"The frame gate returned {type(path).__name__} ({path!r}) where a "
+            f"michspc.spc.frames.FrameTransformation was required. A frame "
+            f"path that cannot say what it does to a position is never treated "
+            f"as an identity."
+        )
+    if not path.is_identity:
+        raise FrameTransformationUnavailableError(
+            f"Cannot convert from {path.source.code} to {path.target.code} "
+            f"yet: the WGS 84 / ITRF transformation between these frames "
+            f"({path.applied_method.value}) is registered but not yet "
+            f"connected to the conversion in this development build "
+            f"(docs/PLAN-wgs84.md, work package W3). Converting without it "
+            f"would pass the {path.source.code} position through unchanged "
+            f"under a {path.target.code} label - about a metre in each of "
+            f"north, east and up in Michigan, with nothing in the numbers to "
+            f"show it. Until it is, work within {NAD83_2011.code} or "
+            f"{NATRF2022.code}, whose conversions are unaffected."
+        )
+    return path
+
+
 def _check_extent(zone: Zone, latitude: float, longitude: float, context: str):
     """Warn when a point falls outside the zone's intended area.
 
@@ -310,13 +367,16 @@ def convert_point(
     (docs/DESIGN.md amendment #11 finding 5). ``constants_for`` is cached, so
     the speed that seam bought is now free.
     """
-    # The returned record is bound and not used: every registered path is an
-    # identity today, so there is nothing to apply between the inverse and the
-    # forward projection below. The NON-identity branch arrives with the
-    # NAD83(2011) <-> NATRF2022 bridge (docs/DEFERRED-NATRF2022-BRIDGE.md,
-    # DESIGN.md #62), which is where the pivot position is transformed between
-    # the two half-conversions.
-    _ = require_frame_path(source_zone.frame, target_zone.frame)
+    # The registry carries non-identity paths now - NGS HTDP v3.6.0 between
+    # NAD83(2011) and the WGS 84 and ITRF frames (DESIGN.md #70) - but this
+    # function applies none: it projects the pivot it computes. So the record
+    # is passed to the guard, which refuses every non-identity path until work
+    # package W3 connects the arithmetic (docs/PLAN-wgs84.md). Every zone sits
+    # on NAD83(2011) or NATRF2022 today, so no zone pair reaches an HTDP record;
+    # the guard is what keeps that from being an assumption.
+    require_a_connected_path(
+        require_frame_path(source_zone.frame, target_zone.frame)
+    )
 
     latitude, longitude, source_convergence, source_scale, warnings_in = to_geodetic(
         northing, easting, source_zone, context
@@ -384,9 +444,12 @@ def project_point(
             f"NAD 83 position."
         )
 
-    # Bound and unused for the reason given in ``convert_point``: identities
-    # only, until the bridge lands.
-    _ = require_frame_path(source_frame, target_zone.frame)
+    # Guarded for the reason given in ``convert_point``. This is the site a
+    # WGS 84 or ITRF position would reach first - WGS84(G2296) into an SPCS 83
+    # zone is a REGISTERED path - and projecting its latitude and longitude
+    # unchanged would put a WGS 84 position on the NAD 83 grid. Refused until
+    # W3 transforms it.
+    require_a_connected_path(require_frame_path(source_frame, target_zone.frame))
 
     (
         northing,

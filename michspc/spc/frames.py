@@ -18,23 +18,33 @@ guessing. The two modules answer the same question about the two halves of a
 coordinate - which surface is this height on, which frame is this position in -
 so they are deliberately the same shape.
 
-**What this registry carries today is identities and nothing else**
-(docs/DESIGN.md amendment #62, and the standing marker
-docs/DEFERRED-NATRF2022-BRIDGE.md). Work WITHIN each frame is complete: the
-three SPCS 83 zones on NAD83(2011), the nineteen SPCS2022 zones on NATRF2022,
-any-to-any within either era, geodetic in and out on either frame. Work ACROSS
-the two frames refuses, because NGS has not published the transformation - its
-NCAT computes one from server-side parameters that are not in any published
-document or shipped file, and the best public candidate set misses NCAT by
-17 cm at one of twelve frozen Michigan anchors. A 17 cm disagreement with the
-national tool is a boundary-moving amount, and shipping it is precisely what
-this program exists to refuse.
+**What this registry carries** (docs/DESIGN.md amendments #62 and #70):
 
-**So a ``FrameTransformation`` here has no parameters yet, only an identity
-shape**, exactly as ``VerticalTransformation``'s identity records carry no
-model, no release and no grid. When the bridge lands (``helmert.py``, deferred
-with it) the parameterized fields arrive as optional fields defaulting to
-``None``, and every record below is unchanged by that addition.
+* **Identities**, one per plate-fixed usable frame. Work WITHIN each frame is
+  complete: the three SPCS 83 zones on NAD83(2011), the nineteen SPCS2022
+  zones on NATRF2022, any-to-any within either era, geodetic in and out on
+  either frame.
+* **NGS HTDP v3.6.0's transformation between NAD83(2011) and five
+  time-dependent frames** - WGS84(G1762), WGS84(G2139), WGS84(G2296), ITRF2014
+  and ITRF2020 - in both directions (docs/PLAN-wgs84.md, work package W2).
+  NGS publishes that whole path as open source, and ``htdp.py`` transcribes
+  it; these records name the path and hold no parameter of it, because the
+  two frames' ``htdp_frame`` records determine it completely and
+  ``htdp_data`` is the one authoritative representation of its numbers.
+  **Registered is not the same as connected**: in this development build the
+  conversion pipeline (``convert.py``, ``job.py``) refuses every non-identity
+  record until work package W3 wires the arithmetic in, so a WGS 84 position
+  can never be handed on as though it were NAD 83.
+
+Work across NAD83(2011) and NATRF2022 refuses, because NGS has not published
+the transformation - its NCAT computes one from server-side parameters that are
+not in any published document or shipped file, and the best public candidate
+set misses NCAT by 17 cm at one of twelve frozen Michigan anchors. A 17 cm
+disagreement with the national tool is a boundary-moving amount, and shipping
+it is precisely what this program exists to refuse
+(docs/DEFERRED-NATRF2022-BRIDGE.md). WGS 84 or ITRF against NATRF2022 refuses
+for the same reason (plan decision D3), and one WGS 84 or ITRF frame against
+another is not offered (plan decision D4).
 
 **Backwards compatibility is a requirement, not an assumption** (DESIGN.md
 amendment #32, stated there for the vertical registry and binding here for the
@@ -47,10 +57,13 @@ startup rather than quietly at the first job that needed it.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from enum import Enum
 from types import MappingProxyType
 from typing import Mapping
+
+from michspc.spc import htdp, htdp_data
 
 
 class FrameMismatchError(Exception):
@@ -72,21 +85,25 @@ class FrameMismatchError(Exception):
 class FrameNotUsableError(FrameMismatchError):
     """Raised when a frame is declared in this module but not usable.
 
-    WGS 84 is declared and not usable. It is not a typo and not a missing
-    feature flag: a WGS 84 position is not a NAD 83 position and is not a
-    NATRF2022 position, no transformation from it is registered here, and the
-    difference is metre-level in CONUS - boundary-moving by this project's own
-    tier sentence (docs/DESIGN.md amendment #58).
+    A bare "WGS 84" is declared and not usable. It is not a typo and not a
+    missing feature flag: the label does not say WHICH realization a position
+    is in, nor when it was observed, and both decide where the position is -
+    while the same label is also what many data collectors print on NAD 83
+    output. The five named realizations and ITRF frames this program does
+    carry are separate records (docs/DESIGN.md amendment #70, plan decision
+    D2), and the refusal names them.
     """
 
 
 class FrameTransformationUnavailableError(FrameMismatchError):
-    """Raised when no published transformation exists for a pair of frames.
+    """Raised when no usable transformation exists for a pair of frames.
 
     Not a warning and not a silent pass-through: leaving a latitude and
     longitude alone while calling it transformed is exactly the failure the
     tier sentence exists to prevent. NAD83(2011) to NATRF2022 raises this
-    today (DESIGN.md #62).
+    today (DESIGN.md #62); so do the pairs plan decisions D3 and D4 do not
+    offer, and - in this development build - every registered non-identity
+    path, at the conversion pipeline, until work package W3 connects it.
     """
 
 
@@ -111,6 +128,47 @@ class FrameStatus(Enum):
     DECLARED_NOT_USABLE = "declared but not usable"
 
 
+class FrameEpochKind(Enum):
+    """Whether a frame's coordinates hold still, or need the date they were observed.
+
+    The question a frame record must answer before a position in it can be
+    moved anywhere, and the reason it is a REQUIRED field (the ``FrameStatus``
+    precedent, DESIGN.md #62): a default would let a frame be added without the
+    question being asked, and the wrong answer is a centimetres-per-year error
+    that grows silently.
+
+    * ``PLATE_FIXED`` - the frame is attached to a tectonic plate and its
+      coordinates are published at one REFERENCE EPOCH (``reference_epoch``):
+      NAD83(2011) at 2010.0, NATRF2022 at 2020.0. A coordinate in it carries no
+      date of its own.
+    * ``TIME_DEPENDENT`` - a global frame (WGS 84, ITRF) in which a Michigan
+      point moves about 17 mm a year against NAD 83 (review/wgs84-w0/RECON.md
+      section 3), so a position in it means nothing until the date it was
+      observed is stated. It has no reference epoch: the observation epoch is
+      supplied per job (docs/PLAN-wgs84.md decision D10).
+    """
+
+    PLATE_FIXED = "plate-fixed, at a published reference epoch"
+    TIME_DEPENDENT = "time-dependent, at the epoch the position was observed"
+
+
+_HTDP_ELLIPSOID_NAMES: Mapping[str, str] = MappingProxyType(
+    {
+        htdp.GRS80.elpsd: "GRS 80",
+        htdp.WGS84_ELLIPSOID.elpsd: "WGS 84",
+    }
+)
+"""How a frame record spells the ellipsoid HTDP loads for it.
+
+HTDP chooses the ellipsoid from the frame's NAME (``htdp.f:3221-3224``), and
+``htdp.HtdpFrame.ellipsoid`` derives it the same way, so for a frame HTDP
+carries the HTDP record is the authority and ``ReferenceFrame.ellipsoid_name``
+must agree with it - checked in ``ReferenceFrame.__post_init__``, never
+trusted as two typed strings. This table is only the spelling: HTDP's
+five-character token against the wording this program's records use.
+"""
+
+
 @dataclass(frozen=True)
 class ReferenceFrame:
     """A geodetic reference frame."""
@@ -128,9 +186,126 @@ class ReferenceFrame:
     the same door from the other side.
     """
 
+    epoch_kind: FrameEpochKind
+    """REQUIRED, with no default, for the reason ``status`` is: see
+    ``FrameEpochKind``. ``__post_init__`` refuses a kind that disagrees with
+    ``reference_epoch`` or with HTDP's own classification of the frame."""
+
+    reference_epoch: float | None
+    """REQUIRED, with no default. The decimal year a PLATE-FIXED frame's
+    coordinates are published at, and ``None`` for a TIME-DEPENDENT one, whose
+    epoch is the observation's, not the frame's. Stated as the published
+    figure (NAD83(2011) 2010.0, NATRF2022 2020.0) rather than a date because
+    that is how the defining documents state it; for NAD83(2011) it is checked
+    against ``htdp.NAD83_2011_EPOCH``, the epoch the arithmetic actually uses,
+    so the record and the computation cannot state two epochs."""
+
+    htdp_frame: htdp.HtdpFrame | None
+    """REQUIRED, with no default. The frame as NGS's HTDP v3.6.0 carries it
+    (``htdp.py``), or ``None`` for a frame HTDP does not carry - NATRF2022,
+    which is in no HTDP menu, and the bare WGS 84 label, which names no
+    realization HTDP could be asked about. Where present it is the authority
+    for the ellipsoid and for whether the frame is time-dependent, and
+    ``__post_init__`` holds this record to it."""
+
+    def __post_init__(self) -> None:
+        # if/raise, never assert: the suite and the shipped program both run
+        # under -O, which strips asserts (DESIGN.md section 7).
+        if not isinstance(self.epoch_kind, FrameEpochKind):
+            raise TypeError(
+                f"Reference frame {self.code!r} states epoch_kind "
+                f"{self.epoch_kind!r}, which is not a FrameEpochKind. Whether "
+                f"the frame is plate-fixed or time-dependent decides whether a "
+                f"position in it needs an observation date; state "
+                f"FrameEpochKind.PLATE_FIXED or FrameEpochKind.TIME_DEPENDENT."
+            )
+
+        if self.epoch_kind is FrameEpochKind.PLATE_FIXED:
+            epoch = self.reference_epoch
+            if (
+                isinstance(epoch, bool)
+                or not isinstance(epoch, (int, float))
+                or not math.isfinite(epoch)
+            ):
+                raise ValueError(
+                    f"Reference frame {self.code!r} is plate-fixed but states "
+                    f"reference_epoch {epoch!r}. A plate-fixed frame's "
+                    f"coordinates are published at one reference epoch, a "
+                    f"decimal year (NAD83(2011) 2010.0, NATRF2022 2020.0), and "
+                    f"the record must state it."
+                )
+        elif self.reference_epoch is not None:
+            raise ValueError(
+                f"Reference frame {self.code!r} is time-dependent but states "
+                f"reference_epoch {self.reference_epoch!r}. A time-dependent "
+                f"frame has no epoch of its own: a position in it is at the "
+                f"date it was observed, which each job states. A reference "
+                f"epoch here would be a second, contradicting answer to that "
+                f"question. Pass reference_epoch=None."
+            )
+
+        carried = self.htdp_frame
+        if carried is None:
+            return
+        if not isinstance(carried, htdp.HtdpFrame) or carried not in (
+            htdp.ALL_HTDP_FRAMES
+        ):
+            offered = ", ".join(frame.name for frame in htdp.ALL_HTDP_FRAMES)
+            raise TypeError(
+                f"Reference frame {self.code!r} states htdp_frame "
+                f"{carried!r}, which is not one of the frames michspc.spc.htdp "
+                f"carries ({offered}). Pass one of htdp's own records, or None "
+                f"for a frame HTDP does not carry."
+            )
+
+        expected_ellipsoid = _HTDP_ELLIPSOID_NAMES.get(carried.ellipsoid.elpsd)
+        if self.ellipsoid_name != expected_ellipsoid:
+            raise ValueError(
+                f"Reference frame {self.code!r} states ellipsoid "
+                f"{self.ellipsoid_name!r}, but HTDP carries it as "
+                f"{carried.name!r} on the {carried.ellipsoid.elpsd} ellipsoid "
+                f"({expected_ellipsoid!r} in this program's records). HTDP "
+                f"chooses the ellipsoid from the frame's name "
+                f"(htdp.f:3221-3224), and an ellipsoid height means a "
+                f"different place on each, so the record must state the one "
+                f"the arithmetic uses."
+            )
+
+        htdp_time_dependent = carried in htdp.TIME_DEPENDENT_FRAMES
+        if htdp_time_dependent is not (
+            self.epoch_kind is FrameEpochKind.TIME_DEPENDENT
+        ):
+            raise ValueError(
+                f"Reference frame {self.code!r} states epoch_kind "
+                f"{self.epoch_kind.name}, but HTDP carries it as "
+                f"{carried.name!r}, which michspc.spc.htdp treats as "
+                f"{'time-dependent' if htdp_time_dependent else 'plate-fixed'}"
+                f". The record must agree with the arithmetic about whether a "
+                f"position in this frame needs an observation date."
+            )
+
+        if (
+            carried is htdp.NAD83_2011
+            and self.reference_epoch != htdp.NAD83_2011_EPOCH.decimal_year
+        ):
+            raise ValueError(
+                f"Reference frame {self.code!r} is carried as HTDP's "
+                f"{carried.name!r} but states reference epoch "
+                f"{self.reference_epoch!r}; the HTDP arithmetic holds every "
+                f"NAD83(2011) position at "
+                f"{htdp.NAD83_2011_EPOCH.decimal_year!r} "
+                f"(htdp.NAD83_2011_EPOCH, docs/PLAN-wgs84.md decision D1). "
+                f"The record and the computation must state one epoch."
+            )
+
     @property
     def is_usable(self) -> bool:
         return self.status is FrameStatus.USABLE
+
+    @property
+    def is_time_dependent(self) -> bool:
+        """True when a position in this frame needs its observation epoch."""
+        return self.epoch_kind is FrameEpochKind.TIME_DEPENDENT
 
     def __str__(self) -> str:
         return f"{self.name} ({self.code})"
@@ -142,13 +317,23 @@ NAD83_2011 = ReferenceFrame(
     ellipsoid_name="GRS 80",
     citation="NOAA Manual NOS NGS 5, section 1.7, PDF p. 23",
     status=FrameStatus.USABLE,
+    epoch_kind=FrameEpochKind.PLATE_FIXED,
+    # Reference epoch 2010.00: NOAA Technical Report NOS NGS 62, Table 1
+    # ("NAD 83(2011/PA11/MA11) epoch 2010.00"), printed p. 20, PDF p. 29 of the
+    # copy frozen at review/nsrs-h3-recon/ifdm/raw/pubs/NOAA_TR_NOS_NGS_0062.pdf.
+    # The epoch NGS, OPUS, NCAT and the CORS network publish it at
+    # (docs/PLAN-wgs84.md decision D1); checked against htdp.NAD83_2011_EPOCH.
+    reference_epoch=2010.0,
+    htdp_frame=htdp.NAD83_2011,  # htdp.f:4676-4677, MENU1 frame 1
 )
 """The frame SPCS 83 coordinates are expressed in.
 
 The mapping equations themselves are realization-independent - NAD83(1986),
 NAD83(HARN) and NAD83(2011) all use the same projection - so this program's
-projection math is unaffected by the realization. The realization matters only
-when a datum transformation is eventually implemented.
+projection math is unaffected by the realization. The realization matters when
+a position is moved between frames, which is why the record names the HTDP
+frame it is carried as - "NAD_83(2011/CORS96/2007)", North America plate
+fixed (``htdp.f:4757``) - and its reference epoch.
 """
 
 
@@ -172,6 +357,15 @@ NATRF2022 = ReferenceFrame(
         "(docs/DEFERRED-NATRF2022-BRIDGE.md, DESIGN.md #62)"
     ),
     status=FrameStatus.USABLE,
+    epoch_kind=FrameEpochKind.PLATE_FIXED,
+    # Reference epoch 2020.00: TR NOS NGS 62 section 6, printed p. 18, PDF
+    # p. 27 ("The epoch t0 will be 2020.00, and will be identical for all four
+    # NSRS TRFs"), and Table 1, printed p. 20, PDF p. 29 ("(N/P/C/M)ATRF2022
+    # epoch 2020.00"), in the frozen copy cited above.
+    reference_epoch=2020.0,
+    # HTDP v3.6.0 does not carry NATRF2022: it is in no line of MENU1
+    # (htdp.f:4757-4778).
+    htdp_frame=None,
 )
 """Usable, and a job may run entirely within it.
 
@@ -187,35 +381,172 @@ and the refusal that remains is the cross-frame one.
 """
 
 
-WGS84 = ReferenceFrame(
-    code="WGS84",
-    name="World Geodetic System 1984",
+# --------------------------------------------------------------------------
+# The time-dependent frames HTDP carries to and from NAD83(2011)
+# (docs/PLAN-wgs84.md section 1, the owner's decisions 1 and 2; DESIGN.md #70).
+#
+# Every one is HTDP v3.6.0, github.com/noaa-ngs/HTDP commit
+# 59fdbe6b7cf5fabf79f901801ecdc33e7ca2095c, as michspc.spc.htdp transcribes it.
+# The ellipsoid follows the frame's name (htdp.f:3221-3224): WGS84(...) frames
+# are on the WGS 84 ellipsoid, the ITRF frames on GRS 80 - and the
+# ReferenceFrame check above holds each record to that.
+# --------------------------------------------------------------------------
+
+_HTDP_SOURCE = (
+    f"NGS HTDP v{htdp_data.HTDP_VERSION} ({htdp_data.HTDP_VERSION_DATE}), "
+    f"github.com/noaa-ngs/HTDP commit {htdp_data.HTDP_COMMIT}, committed "
+    f"unmodified at review/wgs84-w0/htdp-v3.6.0/"
+)
+
+_NGA_IMPLEMENTATION_SOURCES = (
+    "NGA, ICG-17 Working Group D presentation, 2023; EPSG 9756 and 10607; "
+    "IGSMAIL-8444 (docs/PLAN-wgs84.md decision D9)"
+)
+
+
+WGS84_G1762 = ReferenceFrame(
+    code="WGS84(G1762)",
+    name="World Geodetic System 1984, realization G1762",
     ellipsoid_name="WGS 84",
     citation=(
-        "Declared so that this program can say NO to it by name. WGS 84 is not "
-        "NAD 83 and is not NATRF2022: the frames are a metre or more apart in "
-        "CONUS, which is boundary-moving by this program's own standard, and a "
-        "handheld receiver's WGS 84 position pastes into a latitude/longitude "
-        "field cleanly and converts to something plausible and wrong "
-        "(docs/DESIGN.md amendment #58, which is why every geodetic selection "
-        "on screen names its datum). No transformation to or from it is "
-        "registered here, and this program has no data with which to compute "
-        "one. Nothing in the program produces or accepts a coordinate in this "
-        "frame; it exists in the registry because the fact that WGS 84 is a "
-        "different frame is the fact a user most needs stated"
+        f"{_HTDP_SOURCE}: MENU1 frame 10, 'WGS84(G1762)' (htdp.f:4704-4705), "
+        f"carried with ITRF2008's parameters ('WGS84(G1762)  "
+        f"ITRF2008=IGS08=IGb08 used', htdp.f:4767), on the WGS 84 ellipsoid "
+        f"by its name (htdp.f:3221-3224). Implemented by NGA on 2013-10-16 "
+        f"({_NGA_IMPLEMENTATION_SOURCES})"
+    ),
+    status=FrameStatus.USABLE,
+    epoch_kind=FrameEpochKind.TIME_DEPENDENT,
+    reference_epoch=None,
+    htdp_frame=htdp.WGS84_G1762,
+)
+
+WGS84_G2139 = ReferenceFrame(
+    code="WGS84(G2139)",
+    name="World Geodetic System 1984, realization G2139",
+    ellipsoid_name="WGS 84",
+    citation=(
+        f"{_HTDP_SOURCE}: MENU1 frame 11, 'WGS84(G2139)' (htdp.f:4707-4708), "
+        f"carried with ITRF2014's parameters ('WGS84(G2139)  "
+        f"ITRF2014=IGS14=IGb14 used', htdp.f:4768), on the WGS 84 ellipsoid "
+        f"by its name (htdp.f:3221-3224). Implemented by NGA on 2021-01-03 "
+        f"({_NGA_IMPLEMENTATION_SOURCES})"
+    ),
+    status=FrameStatus.USABLE,
+    epoch_kind=FrameEpochKind.TIME_DEPENDENT,
+    reference_epoch=None,
+    htdp_frame=htdp.WGS84_G2139,
+)
+
+WGS84_G2296 = ReferenceFrame(
+    code="WGS84(G2296)",
+    name="World Geodetic System 1984, realization G2296",
+    ellipsoid_name="WGS 84",
+    citation=(
+        f"{_HTDP_SOURCE}: MENU1 frame 12, 'WGS84(G2296)' (htdp.f:4710-4711), "
+        f"carried with ITRF2020's parameters ('WGS84(G2296)  "
+        f"ITRF2020=IGS20=IGb20=ITRF2020-u2023 used', htdp.f:4769), on the "
+        f"WGS 84 ellipsoid by its name (htdp.f:3221-3224). Implemented by NGA "
+        f"on 2024-01-07 ({_NGA_IMPLEMENTATION_SOURCES})"
+    ),
+    status=FrameStatus.USABLE,
+    epoch_kind=FrameEpochKind.TIME_DEPENDENT,
+    reference_epoch=None,
+    htdp_frame=htdp.WGS84_G2296,
+)
+
+ITRF2014 = ReferenceFrame(
+    code="ITRF2014",
+    name="International Terrestrial Reference Frame 2014",
+    ellipsoid_name="GRS 80",
+    citation=(
+        f"{_HTDP_SOURCE}: MENU1 frame 25, 'ITRF2014 or IGS14/IGb14' "
+        f"(htdp.f:4749-4750, menu text htdp.f:4776), on the GRS 80 ellipsoid "
+        f"by its name (htdp.f:3221-3224). Offered by name for precise point "
+        f"positioning output, beside the WGS 84 realization that shares its "
+        f"parameters (docs/PLAN-wgs84.md section 1, the owner's decision 2)"
+    ),
+    status=FrameStatus.USABLE,
+    epoch_kind=FrameEpochKind.TIME_DEPENDENT,
+    reference_epoch=None,
+    htdp_frame=htdp.ITRF2014,
+)
+
+ITRF2020 = ReferenceFrame(
+    code="ITRF2020",
+    name="International Terrestrial Reference Frame 2020",
+    ellipsoid_name="GRS 80",
+    citation=(
+        f"{_HTDP_SOURCE}: MENU1 frame 26, 'ITRF2020 or IGS20/IGb20' "
+        f"(htdp.f:4752-4753, menu text htdp.f:4777-4778), on the GRS 80 "
+        f"ellipsoid by its name (htdp.f:3221-3224). Offered by name for "
+        f"precise point positioning output, beside the WGS 84 realization "
+        f"that shares its parameters (docs/PLAN-wgs84.md section 1, the "
+        f"owner's decision 2)"
+    ),
+    status=FrameStatus.USABLE,
+    epoch_kind=FrameEpochKind.TIME_DEPENDENT,
+    reference_epoch=None,
+    htdp_frame=htdp.ITRF2020,
+)
+
+
+_TIME_DEPENDENT_OFFERED: tuple[ReferenceFrame, ...] = (
+    WGS84_G1762,
+    WGS84_G2139,
+    WGS84_G2296,
+    ITRF2014,
+    ITRF2020,
+)
+"""The five, in the owner's order (plan section 1). Named once so the bare
+WGS 84 refusal and the registry below are built from exactly these, never a
+typed copy."""
+
+
+WGS84 = ReferenceFrame(
+    code="WGS84",
+    name="World Geodetic System 1984, realization not stated",
+    ellipsoid_name="WGS 84",
+    citation=(
+        "Declared so that this program can say NO to a bare 'WGS 84' by name "
+        "(docs/DESIGN.md amendments #58 and #70, docs/PLAN-wgs84.md decision "
+        "D2). A position labelled only 'WGS 84' cannot be converted, because "
+        "the label leaves unstated the two facts that decide where the "
+        "position is: WHICH realization it is in - the realizations from "
+        "G730 on differ from one another by up to about 8 cm in Michigan, and "
+        "the original 1987 realization sits about 1.1 m from them (HTDP "
+        "v3.6.0 at 43.82 N 84.77 W, epoch 2010.0; DESIGN.md #70) - "
+        "and WHEN it was observed, since a position in a global frame moves "
+        "about 17 mm a year against NAD 83 in Michigan "
+        "(review/wgs84-w0/RECON.md section 3). The same label is also what "
+        "many data collectors print on output that is really NAD 83, and "
+        "reading NAD 83 as WGS 84 moves a point by about 1.3 m "
+        "(docs/PLAN-wgs84.md section 6) - a plausible, wrong answer with "
+        "nothing in the numbers to show it. The realizations this program "
+        "carries are separate records, each naming its realization"
     ),
     status=FrameStatus.DECLARED_NOT_USABLE,
+    epoch_kind=FrameEpochKind.TIME_DEPENDENT,
+    reference_epoch=None,
+    # No HTDP frame: the label names no realization HTDP could be asked about.
+    htdp_frame=None,
 )
 """Declared and NOT usable - the live counterexample ``FrameNotUsableError``
 needs, and a statement of fact rather than a placeholder.
 
 It is refused BEFORE the pair lookup, so the message a user gets names the
-frame and says why, rather than reporting a missing transformation and leaving
-them to conclude that one might arrive.
+frame, says why, and names the five realizations to choose from, rather than
+reporting a missing transformation and leaving them to conclude that one might
+arrive for the bare label.
 """
 
 
-ALL_FRAMES: tuple[ReferenceFrame, ...] = (NAD83_2011, NATRF2022, WGS84)
+ALL_FRAMES: tuple[ReferenceFrame, ...] = (
+    NAD83_2011,
+    NATRF2022,
+    WGS84,
+    *_TIME_DEPENDENT_OFFERED,
+)
 """Every frame this program declares, in DECLARATION order.
 
 The order is the order an interface offers, exactly as ``Zone.allowed_units``
@@ -223,11 +554,30 @@ and ``ALL_GEOID_MODELS`` are, so it is a user-visible fact rather than an
 accident of iteration - and it is pinned as one. Consumers that offer a choice
 filter on ``is_usable``; the unusable member is in this tuple for the same
 reason NAPGD2022 is in ``ALL_VERTICAL_DATUMS``.
+
+The five time-dependent frames are APPENDED after the three that were here
+before them (DESIGN.md #70, plan W2) rather than inserted beside the bare
+WGS 84 label: every existing position in the tuple keeps its index, and the
+two frames a zone lives on stay first, as the dropdown has always shown them.
 """
 
 _FRAMES_BY_CODE: Mapping[str, ReferenceFrame] = MappingProxyType(
     {frame.code: frame for frame in ALL_FRAMES}
 )
+
+
+def _check_frame_codes_are_unique() -> None:
+    """Refuse to import if two frames share a code: lookups are by code."""
+    if len(_FRAMES_BY_CODE) != len(ALL_FRAMES):
+        codes = [frame.code for frame in ALL_FRAMES]
+        repeated = sorted({code for code in codes if codes.count(code) > 1})
+        raise FrameMismatchError(
+            f"Reference frame codes must be unique, because every lookup and "
+            f"every registry key is by code; repeated: {', '.join(repeated)}."
+        )
+
+
+_check_frame_codes_are_unique()
 
 
 def frame_by_code(code: str) -> ReferenceFrame:
@@ -250,11 +600,6 @@ def frame_by_code(code: str) -> ReferenceFrame:
 
 # --------------------------------------------------------------------------
 # Transformations.
-#
-# Identities only, today. See this module's docstring and DESIGN.md #62: the
-# NAD83(2011) <-> NATRF2022 bridge is deferred with its evidence recorded in
-# docs/DEFERRED-NATRF2022-BRIDGE.md, and it is deferred because NGS has not
-# published the transformation, not because it was not attempted.
 # --------------------------------------------------------------------------
 
 _IDENTITY_CITATION = (
@@ -264,46 +609,99 @@ _IDENTITY_CITATION = (
 )
 
 
+class FrameTransformationMethod(Enum):
+    """How a registered path moves a position. Stated, never inferred.
+
+    ``IDENTITY`` is never STORED on a record: an identity has no arithmetic to
+    name, and it is the record's own two frames that make it one. It is what
+    ``FrameTransformation.applied_method`` reports for an identity, so a job
+    record can name the method of every path in one vocabulary.
+
+    ``HTDP_V3_6_0`` is NGS's HTDP v3.6.0 as ``michspc.spc.htdp`` transcribes
+    it. The record carries the method and NOTHING of its parameters: HTDP's
+    path is fully determined by the two frames' ``htdp_frame`` records, and
+    ``htdp_data`` is the one authoritative representation of its numbers. A
+    copy of the Helmert set here would be a second representation that could
+    drift from the one the arithmetic reads.
+    """
+
+    IDENTITY = "identity"
+    HTDP_V3_6_0 = f"NGS HTDP v{htdp_data.HTDP_VERSION}"
+
+
 @dataclass(frozen=True)
 class FrameTransformation:
     """One published way to move a position from one reference frame to another.
 
     An identity record - source and target the same frame - carries no
-    parameters at all, and today every record in the registry is one. Identity
-    is an explicit record rather than a ``source is target`` shortcut in the
-    caller, because a NAD83(2011) to NAD83(2011) job is legitimate and the
-    outputs must be able to STATE "both frames NAD83(2011), no transformation
-    applied" rather than have that fall out of an untested branch. That is the
-    contract ``VerticalTransformation``'s identity records already hold.
+    method and no parameters at all. Identity is an explicit record rather than
+    a ``source is target`` shortcut in the caller, because a NAD83(2011) to
+    NAD83(2011) job is legitimate and the outputs must be able to STATE "both
+    frames NAD83(2011), no transformation applied" rather than have that fall
+    out of an untested branch. That is the contract ``VerticalTransformation``'s
+    identity records already hold.
 
-    **The parameterized fields are deliberately absent, not defaulted to
-    nothing.** When the bridge lands they arrive as optional fields defaulting
-    to ``None`` and these records construct unchanged; a half-specified record
-    is then caught the way ``VerticalTransformation.__post_init__`` catches one.
-    Until then ``__post_init__`` below refuses any record that is not an
-    identity, so this module cannot grow a silent pass-through between two
-    different frames - which is the exact shape of the error it exists to
-    prevent.
+    A non-identity record must state its ``method``, and today the only method
+    is HTDP v3.6.0 between NAD83(2011) and one time-dependent frame HTDP
+    carries. ``__post_init__`` refuses every other shape - in particular a
+    non-identity record with no method, which would leave the position
+    unchanged while relabelling its frame: the exact error this module exists
+    to prevent.
     """
 
     source: ReferenceFrame
     target: ReferenceFrame
     citation: str
+    method: FrameTransformationMethod | None = None
+    """``None`` on an identity, and only there; see ``FrameTransformationMethod``.
+
+    Defaulted so the identity records construct exactly as they always have
+    (shape unchanged). A default of ``None`` cannot let a non-identity record
+    through: ``__post_init__`` refuses one that states no method."""
 
     def __post_init__(self) -> None:
         # if/raise, never assert: the suite and the shipped program both run
         # under -O, which strips asserts (DESIGN.md section 7).
-        if self.source.code != self.target.code:
-            raise ValueError(
+        if self.method is not None and not isinstance(
+            self.method, FrameTransformationMethod
+        ):
+            raise TypeError(
                 f"Frame transformation {self.source.code} -> "
-                f"{self.target.code} carries no parameters, which would leave "
-                f"the position unchanged while relabelling its frame. "
-                f"NAD83(2011) and NATRF2022 differ by one to two metres, so "
-                f"that is a boundary-moving error that looks entirely "
-                f"ordinary. Only a frame with itself may be an identity, and "
-                f"an identity is all this registry carries today "
-                f"(docs/DEFERRED-NATRF2022-BRIDGE.md, DESIGN.md #62)."
+                f"{self.target.code} states method {self.method!r}, which is "
+                f"not a FrameTransformationMethod."
             )
+
+        if self.source.code == self.target.code:
+            if self.method is not None:
+                raise ValueError(
+                    f"Frame transformation {self.source.code} -> "
+                    f"{self.target.code} is an identity - the same frame at "
+                    f"both ends - but states method {self.method.name}. An "
+                    f"identity applies no arithmetic and states no method; "
+                    f"that it is one follows from its two frames "
+                    f"(applied_method reports IDENTITY), so a stated method "
+                    f"would be a second answer that could disagree."
+                )
+        else:
+            if self.method is None or self.method is (
+                FrameTransformationMethod.IDENTITY
+            ):
+                raise ValueError(
+                    f"Frame transformation {self.source.code} -> "
+                    f"{self.target.code} states "
+                    f"{'no method' if self.method is None else 'the identity method'}"
+                    f", which would leave the position unchanged while "
+                    f"relabelling its frame. NAD83(2011) and NATRF2022 differ "
+                    f"by one to two metres, and WGS 84 and NAD83(2011) by "
+                    f"about a metre in each of north, east and up in Michigan "
+                    f"(review/wgs84-w0/RECON.md section 3), so that is a "
+                    f"boundary-moving error that looks entirely ordinary. "
+                    f"Only a frame with itself may be an identity; a path "
+                    f"between two frames must state the method that moves "
+                    f"the position."
+                )
+            if self.method is FrameTransformationMethod.HTDP_V3_6_0:
+                self._require_an_htdp_pair()
 
         if not self.citation.strip():
             raise ValueError(
@@ -313,16 +711,54 @@ class FrameTransformation:
                 f"authority; outputs quote these."
             )
 
+    def _require_an_htdp_pair(self) -> None:
+        """An HTDP record: NAD83(2011) at one end, a time-dependent HTDP frame at the other.
+
+        Exactly the paths ``htdp.transform`` carries and nothing wider: HTDP
+        could move a position between two global frames, or carry NATRF2022 if
+        it were in its menu, and this program offers neither (plan decisions
+        D3 and D4).
+        """
+        ends = (self.source, self.target)
+        nad83_ends = [
+            end
+            for end in ends
+            if end.code == NAD83_2011.code and end.htdp_frame is htdp.NAD83_2011
+        ]
+        others = [end for end in ends if end not in nad83_ends]
+        if (
+            len(nad83_ends) != 1
+            or len(others) != 1
+            or not others[0].is_time_dependent
+            or others[0].htdp_frame is None
+        ):
+            raise ValueError(
+                f"Frame transformation {self.source.code} -> "
+                f"{self.target.code} states method "
+                f"{FrameTransformationMethod.HTDP_V3_6_0.name}, but HTDP's "
+                f"path here runs only between {NAD83_2011.code} and one "
+                f"time-dependent frame HTDP carries "
+                f"({', '.join(f.code for f in _TIME_DEPENDENT_OFFERED)}): "
+                f"exactly one end must be {NAD83_2011.code} and the other a "
+                f"time-dependent frame with an htdp_frame "
+                f"(docs/PLAN-wgs84.md decisions D3 and D4)."
+            )
+
     @property
     def is_identity(self) -> bool:
         """True when no transformation is applied and the position is unchanged.
 
         Derived from the record's own frames rather than stored, so it cannot
-        drift from what ``__post_init__`` checked. Every record answers True
-        today; the property is written so that it keeps answering correctly
-        when parameterized records join it.
+        drift from what ``__post_init__`` checked.
         """
         return self.source.code == self.target.code
+
+    @property
+    def applied_method(self) -> FrameTransformationMethod:
+        """The method this record applies: ``IDENTITY``, derived, or the stated one."""
+        if self.is_identity:
+            return FrameTransformationMethod.IDENTITY
+        return self.method
 
     @property
     def direction_statement(self) -> str:
@@ -330,22 +766,65 @@ class FrameTransformation:
 
         Written from the record's own fields for the reason
         ``VerticalTransformation.direction_statement`` is: a record and the
-        sentence describing it must be incapable of disagreeing.
+        sentence describing it must be incapable of disagreeing. Facts only,
+        no caveats (the owner's rule, DESIGN.md #50).
         """
         if self.is_identity:
             return (
                 f"Both positions are in {self.source.name} "
                 f"({self.source.code}); no frame transformation is applied."
             )
-        # Unreachable while the registry carries identities only - and it is
-        # written as a refusal rather than a guess so that a parameterized
-        # record added without its own sentence fails loudly here instead of
-        # printing a blank or a lie into a job record.
-        raise NotImplementedError(
+        if self.method is FrameTransformationMethod.HTDP_V3_6_0:
+            return self._htdp_direction_statement()
+        # Unreachable: __post_init__ admits no other non-identity record. A
+        # refusal rather than a guess, so a method added without its own
+        # sentence fails loudly here instead of printing a blank or a lie into
+        # a job record.
+        raise ValueError(
             f"Frame transformation {self.source.code} -> {self.target.code} "
-            f"is not an identity, so it must state its own arithmetic. Add "
-            f"that statement with the parameters "
-            f"(docs/DEFERRED-NATRF2022-BRIDGE.md)."
+            f"states method {self.method!r}, which has no direction "
+            f"statement. Add one written from the record's fields."
+        )
+
+    def _htdp_direction_statement(self) -> str:
+        """HTDP's direction-specific composition, from the frames' own records.
+
+        HTDP evaluates the Helmert at the INPUT epoch and then propagates the
+        position with the OUTPUT frame's velocity (``htdp.f:3229-3273``;
+        review/wgs84-w0/RECON.md section 1.4) - so the two directions are not
+        mirror images, and each sentence says which it is.
+        """
+        source, target = self.source, self.target
+        if source.is_time_dependent:
+            source_epoch = "at the observation epoch"
+            target_epoch = f"at its reference epoch {target.reference_epoch!r}"
+            helmert_at = "the observation epoch"
+            span = f"from the observation epoch to {target.reference_epoch!r}"
+        else:
+            source_epoch = f"at its reference epoch {source.reference_epoch!r}"
+            target_epoch = "at the observation epoch"
+            helmert_at = f"{source.reference_epoch!r}"
+            span = f"from {source.reference_epoch!r} to the observation epoch"
+        if target.is_time_dependent:
+            velocity = (
+                f"the {target.code} velocity, which includes the full motion "
+                f"of the North American plate"
+            )
+        else:
+            velocity = (
+                f"the {target.code} velocity, which is the small intraplate "
+                f"motion left in a plate-fixed frame"
+            )
+        return (
+            f"The position is transformed from {source.name} ({source.code}) "
+            f"{source_epoch} to {target.name} ({target.code}) {target_epoch} "
+            f"by {_HTDP_SOURCE}. HTDP evaluates the 14-parameter Helmert "
+            f"transformation at the input epoch, {helmert_at}, and then "
+            f"propagates the position {span} with the output frame's velocity: "
+            f"{velocity}, from HTDP's ITRF2008 velocity grid for its region 6, "
+            f"interpolated bilinearly. When the observation date is "
+            f"{htdp.NAD83_2011_EPOCH.date.isoformat()} the span is zero and "
+            f"HTDP applies the Helmert transformation alone."
         )
 
     def __str__(self) -> str:
@@ -368,6 +847,44 @@ _IDENTITY_NATRF2022 = FrameTransformation(
 # registered path of any kind, so that removing the usability check could never
 # leave a WGS 84 job quietly running as an identity - it would still have to
 # get past a missing registry entry. Pinned.
+#
+# And deliberately NO identity for the five time-dependent frames either
+# (plan W2). Every grid this program reads a position against - GEOID18,
+# GEOID12B, VERTCON 3.0 - is published against NAD 83, so even a job that
+# leaves a WGS 84 position in its own frame needs it carried to NAD83(2011)
+# first; until work package W3 decides how such a job runs, a vertical-only job
+# on one of these frames must refuse at the missing identity rather than look
+# its WGS 84 position up in a NAD 83 grid. Pinned.
+
+
+def _htdp_citation(source: ReferenceFrame, target: ReferenceFrame) -> str:
+    other = target if source.code == NAD83_2011.code else source
+    return (
+        f"{_HTDP_SOURCE}, transcribed by michspc.spc.htdp: TRFPOS "
+        f"(htdp.f:3175-3294) between {NAD83_2011.code} at epoch "
+        f"{NAD83_2011.reference_epoch!r} (docs/PLAN-wgs84.md decision D1) and "
+        f"{other.code}. Reproduced to HTDP's printed digit on every frozen "
+        f"anchor in tests/fixtures/htdp_anchors.py (review/wgs84-w0/)"
+    )
+
+
+def _htdp_pair(
+    source: ReferenceFrame, target: ReferenceFrame
+) -> FrameTransformation:
+    return FrameTransformation(
+        source=source,
+        target=target,
+        citation=_htdp_citation(source, target),
+        method=FrameTransformationMethod.HTDP_V3_6_0,
+    )
+
+
+_HTDP_TRANSFORMATIONS: tuple[FrameTransformation, ...] = tuple(
+    record
+    for frame in _TIME_DEPENDENT_OFFERED
+    for record in (_htdp_pair(frame, NAD83_2011), _htdp_pair(NAD83_2011, frame))
+)
+"""Ten records: each time-dependent frame to NAD83(2011), and back."""
 
 
 FRAME_TRANSFORMATIONS: Mapping[
@@ -376,6 +893,10 @@ FRAME_TRANSFORMATIONS: Mapping[
     {
         (NAD83_2011, NAD83_2011): _IDENTITY_NAD83_2011,
         (NATRF2022, NATRF2022): _IDENTITY_NATRF2022,
+        **{
+            (record.source, record.target): record
+            for record in _HTDP_TRANSFORMATIONS
+        },
     }
 )
 """Every path this program carries, keyed by (source, target).
@@ -404,6 +925,18 @@ REQUIRED_FRAME_PAIRS: frozenset[tuple[str, str]] = frozenset(
     {
         ("NAD83(2011)", "NAD83(2011)"),
         ("NATRF2022", "NATRF2022"),
+        # Appended by the WGS 84 build, plan W2 (DESIGN.md #70): HTDP v3.6.0
+        # between NAD83(2011) and each time-dependent frame, both directions.
+        ("WGS84(G1762)", "NAD83(2011)"),
+        ("NAD83(2011)", "WGS84(G1762)"),
+        ("WGS84(G2139)", "NAD83(2011)"),
+        ("NAD83(2011)", "WGS84(G2139)"),
+        ("WGS84(G2296)", "NAD83(2011)"),
+        ("NAD83(2011)", "WGS84(G2296)"),
+        ("ITRF2014", "NAD83(2011)"),
+        ("NAD83(2011)", "ITRF2014"),
+        ("ITRF2020", "NAD83(2011)"),
+        ("NAD83(2011)", "ITRF2020"),
     }
 )
 """Pairs the registry must never lose. APPEND-ONLY: may grow, never shrink.
@@ -413,7 +946,9 @@ than an assumption - a job converted in one year must still convert and still
 reproduce years later. This is that requirement written down where a test, and
 the import check below, can enforce it. Adding the NAD83(2011) <-> NATRF2022
 bridge later means ADDING its two pairs here; removing any line is the change
-#32 forbids.
+#32 forbids. The ten HTDP pairs are typed out as codes rather than derived from
+the registry, deliberately: a list derived from the thing it checks could
+never find that thing incomplete.
 """
 
 
@@ -450,6 +985,101 @@ def _canonical(frame: ReferenceFrame) -> ReferenceFrame:
     return _FRAMES_BY_CODE.get(frame.code, frame)
 
 
+def _realizations_message() -> str:
+    """The sentence that tells a user which named frames to choose from."""
+    offered = [frame for frame in _TIME_DEPENDENT_OFFERED if frame.is_usable]
+    names = ", ".join(frame.code for frame in offered[:-1])
+    return (
+        f"Choose the realization the position is actually in: {names} or "
+        f"{offered[-1].code}."
+    )
+
+
+def _no_path_message(source: ReferenceFrame, target: ReferenceFrame) -> str:
+    """Why this particular pair has no registered path - true for THIS pair.
+
+    Each refusal states only what is true of the pair it is printed for: the
+    unpublished NAD83(2011) <-> NATRF2022 bridge (DESIGN.md #62), HTDP's
+    silence on NATRF2022 (plan decision D3), the global-to-global pairs this
+    program does not offer (plan decision D4), the time-dependent frame with
+    no identity (plan W2), and a generic sentence for anything else - which
+    names no fact it cannot know.
+    """
+    prefix = (
+        f"Cannot convert from {source.code} to {target.code}: no "
+        f"transformation between these two reference frames is implemented."
+    )
+    codes = {source.code, target.code}
+    known_td = {frame.code for frame in _TIME_DEPENDENT_OFFERED}
+
+    if codes == {NAD83_2011.code, NATRF2022.code}:
+        known = ", ".join(f"{s} -> {t}" for s, t in sorted(_TRANSFORMATIONS_BY_CODE))
+        return (
+            f"{prefix} Registered paths are: {known}. "
+            f"Coordinates differ between NAD83(2011) and NATRF2022 by one to "
+            f"two metres - more than the width of a road, and nothing in the "
+            f"numbers shows it - so passing them through unchanged would "
+            f"silently corrupt them. NGS has not published the "
+            f"NAD83(2011) <-> NATRF2022 transformation: its own NCAT computes "
+            f"one from server-side parameters that appear in no published "
+            f"document or shipped file, and the best public candidate set "
+            f"misses NCAT by 17 cm at one of twelve frozen Michigan anchors "
+            f"(docs/DEFERRED-NATRF2022-BRIDGE.md; docs/DESIGN.md amendment "
+            f"#62). Convert within a single frame - every zone in one era, and "
+            f"geodetic in and out of it, works today - or wait: this "
+            f"transformation lands when NGS publishes it."
+        )
+
+    if NATRF2022.code in codes and codes & known_td and len(codes) == 2:
+        (global_code,) = codes & known_td
+        return (
+            f"{prefix} NGS's HTDP v{htdp_data.HTDP_VERSION}, which carries "
+            f"{global_code} to and from {NAD83_2011.code}, does not carry "
+            f"{NATRF2022.code} at all (it is in no line of HTDP's frame menu, "
+            f"htdp.f:4757-4778). Going through {NAD83_2011.code} instead would "
+            f"need the {NAD83_2011.code} <-> {NATRF2022.code} transformation, "
+            f"and NGS has not published one (docs/DEFERRED-NATRF2022-BRIDGE.md; "
+            f"docs/DESIGN.md amendment #62; docs/PLAN-wgs84.md decision D3). "
+            f"Passing the position through unchanged would silently corrupt "
+            f"it. This program's path for a position in {global_code} is to "
+            f"{NAD83_2011.code}, the frame the SPCS 83 zones are defined on; "
+            f"{NATRF2022.code} work needs a position already stated in "
+            f"{NATRF2022.code}."
+        )
+
+    if codes <= known_td and len(codes) == 2:
+        return (
+            f"{prefix} No State Plane zone is defined on {source.code} or on "
+            f"{target.code}, so the only conversion this program offers for a "
+            f"position in either is to or from {NAD83_2011.code} "
+            f"(docs/PLAN-wgs84.md decision D4). Convert via "
+            f"{NAD83_2011.code} instead: {source.code} to {NAD83_2011.code}, "
+            f"then {NAD83_2011.code} to {target.code}."
+        )
+
+    if codes <= known_td and len(codes) == 1:
+        return (
+            f"Cannot keep a position in {source.code}: no identity is "
+            f"registered for it. {source.code} is a time-dependent frame, and "
+            f"every grid this program reads a position against - the GEOID18 "
+            f"and GEOID12B geoid models and the VERTCON 3.0 grids - is "
+            f"published against {NAD83_2011.code}, so even a job that leaves "
+            f"the position in {source.code} needs it carried to "
+            f"{NAD83_2011.code} first. That is not yet connected in this "
+            f"development build (docs/PLAN-wgs84.md decision D8, work package "
+            f"W3). Converting one {source.code} position to another "
+            f"{source.code} position is not a conversion."
+        )
+
+    known = ", ".join(f"{s} -> {t}" for s, t in sorted(_TRANSFORMATIONS_BY_CODE))
+    return (
+        f"Cannot convert from {source.code} to {target.code}: no "
+        f"transformation between these two reference frames is registered. "
+        f"Registered paths are: {known}. Passing a position between two "
+        f"frames unchanged while relabelling it would silently corrupt it."
+    )
+
+
 def require_frame_path(
     source: ReferenceFrame, target: ReferenceFrame
 ) -> FrameTransformation:
@@ -462,17 +1092,21 @@ def require_frame_path(
 
     Within one frame the zone-to-zone conversion is an exact, reversible
     re-projection of the same physical position, and this function returns
-    that frame's identity record.
+    that frame's identity record. Between NAD83(2011) and a time-dependent
+    frame it returns the HTDP record - which, in this development build, the
+    conversion pipeline then REFUSES (``convert.require_a_connected_path``)
+    until work package W3 connects the arithmetic.
 
     Two distinct refusals, because they mean different things to a user:
 
     * ``FrameNotUsableError`` - the frame is declared here but this program
-      cannot carry coordinates in it (WGS 84 today). Checked FIRST, so the
-      message names the frame rather than reporting a missing transformation
-      and implying one might be coming.
+      cannot carry coordinates in it (the bare WGS 84 label). Checked FIRST,
+      so the message names the frame and the realizations to choose instead,
+      rather than reporting a missing transformation and implying one might be
+      coming for the bare label.
     * ``FrameTransformationUnavailableError`` - both frames are usable, but no
-      transformation between them is published or implemented (NAD83(2011) to
-      NATRF2022 today, DESIGN.md #62).
+      transformation between them is registered, with the reason true for
+      that pair (``_no_path_message``).
 
     Never a silent pass-through. An untransformed position labelled as
     transformed is a boundary-relevant error that looks entirely ordinary.
@@ -511,33 +1145,27 @@ def require_frame_path(
         offenders = " and ".join(f.code for f in unusable)
         verb = "are" if len(unusable) > 1 else "is"
         details = " ".join(f"{f.code} ({f.name}): {f.citation}." for f in unusable)
+        # The bare WGS 84 label (plan decision D2): an unusable time-dependent
+        # frame is one whose realization is unstated, and the way on is to
+        # name it. Asked of the record, not of its code.
+        choose = (
+            f" {_realizations_message()}"
+            if any(f.is_time_dependent for f in unusable)
+            else ""
+        )
         usable = ", ".join(f.code for f in ALL_FRAMES if f.is_usable)
         raise FrameNotUsableError(
             f"Cannot convert from {resolved_source.code} to "
             f"{resolved_target.code}: {offenders} {verb} declared in this "
             f"program but not usable. {details} Any coordinate this program "
-            f"reported in that frame would be invented rather than converted. "
-            f"The reference frames this program can carry today are: {usable}."
+            f"reported in that frame would be invented rather than converted."
+            f"{choose} The reference frames this program can carry are: "
+            f"{usable}."
         )
 
     try:
         return _TRANSFORMATIONS_BY_CODE[(resolved_source.code, resolved_target.code)]
     except KeyError:
-        known = ", ".join(f"{s} -> {t}" for s, t in sorted(_TRANSFORMATIONS_BY_CODE))
         raise FrameTransformationUnavailableError(
-            f"Cannot convert from {resolved_source.code} to "
-            f"{resolved_target.code}: no transformation between these two "
-            f"reference frames is implemented. Registered paths are: {known}. "
-            f"Coordinates differ between NAD83(2011) and NATRF2022 by one to "
-            f"two metres - more than the width of a road, and nothing in the "
-            f"numbers shows it - so passing them through unchanged would "
-            f"silently corrupt them. NGS has not published the "
-            f"NAD83(2011) <-> NATRF2022 transformation: its own NCAT computes "
-            f"one from server-side parameters that appear in no published "
-            f"document or shipped file, and the best public candidate set "
-            f"misses NCAT by 17 cm at one of twelve frozen Michigan anchors "
-            f"(docs/DEFERRED-NATRF2022-BRIDGE.md; docs/DESIGN.md amendment "
-            f"#62). Convert within a single frame - every zone in one era, and "
-            f"geodetic in and out of it, works today - or wait: this "
-            f"transformation lands when NGS publishes it."
+            _no_path_message(resolved_source, resolved_target)
         ) from None

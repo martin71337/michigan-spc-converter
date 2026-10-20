@@ -57,6 +57,7 @@ from michspc.spc.frames import (  # noqa: E402
     NAD83_2011,
     NATRF2022,
     WGS84,
+    FrameEpochKind,
     FrameStatus,
     FrameTransformationUnavailableError,
     ReferenceFrame,
@@ -271,12 +272,19 @@ def test_only_usable_frames_that_carry_zones_are_offered():
 
     # A usable frame with no zones on it: offered nothing to convert to or
     # from, so it is not offered at all.
+    # SUPERSEDED CONSTRUCTION (DESIGN.md #70, plan W2): a ReferenceFrame now
+    # states its epoch kind, reference epoch and HTDP frame, all required. The
+    # synthetic frame is plate-fixed and HTDP-less, so the only thing that can
+    # keep it out of the dropdown is the zone condition under test.
     zoneless = ReferenceFrame(
         code="ZONELESS",
         name="A usable frame with no zones",
         ellipsoid_name="GRS 80",
         citation="Constructed by this test; not a registry record.",
         status=FrameStatus.USABLE,
+        epoch_kind=FrameEpochKind.PLATE_FIXED,
+        reference_epoch=2010.0,
+        htdp_frame=None,
     )
     with_it = controls.frames_offered(
         frames=(*ALL_FRAMES, zoneless), zones=ALL_ZONES
@@ -325,6 +333,58 @@ def test_a_not_usable_frame_never_reaches_a_dropdown(window):
             data = combo.itemData(index)
             if controls.is_geodetic(data):
                 assert data.frame.is_usable
+
+
+def test_the_wgs84_and_itrf_frames_reach_no_dropdown_yet(window):
+    """Plan W2 item 8: usable, but carrying no zone, so ``frames_offered`` keeps
+    them out - and the interface must not reach them before W3/W4 apply and
+    disclose the transformation. W5 changes the rule, deliberately.
+
+    Checked three ways: the rule's own answer, every dropdown's labels and
+    data on the real window, and ``frames_have_a_path`` - which now asks the
+    same connected-path guard ``job.run`` refuses on, so it answers False for
+    all ten registered HTDP pairs rather than True from the registry alone.
+    """
+    five = [
+        frame
+        for frame in ALL_FRAMES
+        if frame.is_usable and frame.is_time_dependent
+    ]
+    assert [frame.code for frame in five] == [
+        "WGS84(G1762)",
+        "WGS84(G2139)",
+        "WGS84(G2296)",
+        "ITRF2014",
+        "ITRF2020",
+    ]
+    offered = controls.frames_offered()
+    assert offered == (NAD83_2011, NATRF2022)
+    assert [choice.frame for choice in controls.GEODETIC_CHOICES] == [
+        NAD83_2011,
+        NATRF2022,
+    ]
+    for frame in five:
+        assert frame not in offered
+        with pytest.raises(KeyError):
+            controls.geodetic_choice(frame)
+        # Registered in the core, refused by the guard the interface shares.
+        assert frames.require_frame_path(frame, NAD83_2011) is not None
+        assert controls.frames_have_a_path(frame, NAD83_2011) is False
+        assert controls.frames_have_a_path(NAD83_2011, frame) is False
+
+    for combo in (
+        window.from_zone,
+        window.to_zone,
+        window.single_point.from_zone,
+        window.single_point.to_zone,
+    ):
+        labels = "".join(combo.itemText(i) for i in range(combo.count()))
+        for frame in five:
+            assert frame.code not in labels
+        for index in range(combo.count()):
+            data = combo.itemData(index)
+            if controls.is_geodetic(data):
+                assert data.frame in offered
 
 
 def test_every_zone_label_is_derived_from_its_own_record():

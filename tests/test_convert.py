@@ -19,14 +19,21 @@ from michspc.spc.convert import (
 from michspc.spc.frames import (
     ALL_FRAMES,
     FRAME_TRANSFORMATIONS,
+    ITRF2014,
+    ITRF2020,
     NAD83_2011,
     NATRF2022,
     REQUIRED_FRAME_PAIRS,
     WGS84,
+    WGS84_G1762,
+    WGS84_G2139,
+    WGS84_G2296,
     FrameMismatchError,
     FrameNotUsableError,
+    FrameEpochKind,
     FrameStatus,
     FrameTransformation,
+    FrameTransformationMethod,
     FrameTransformationUnavailableError,
     ReferenceFrame,
     frame_by_code,
@@ -162,6 +169,12 @@ def test_frames_are_compared_by_code_not_identity():
     and the call must still succeed, because ``_canonical`` resolves by code to
     the registry's own record. A rebuilt record may not grant itself a status,
     and it may not take one away either.
+
+    SUPERSEDED CONSTRUCTION AGAIN (DESIGN.md #70, plan W2): ``epoch_kind``,
+    ``reference_epoch`` and ``htdp_frame`` are required too, on the
+    ``FrameStatus`` precedent. The rebuilt record states a self-consistent
+    plate-fixed epoch and NO HTDP frame - a record from data that never heard
+    of HTDP - and must still resolve by code to the registry's own.
     """
     duplicate = ReferenceFrame(
         code="NAD83(2011)",
@@ -169,6 +182,9 @@ def test_frames_are_compared_by_code_not_identity():
         ellipsoid_name="GRS 80",
         citation="synthetic",
         status=FrameStatus.DECLARED_NOT_USABLE,
+        epoch_kind=FrameEpochKind.PLATE_FIXED,
+        reference_epoch=2010.0,
+        htdp_frame=None,
     )
     path = require_frame_path(NAD83_2011, duplicate)  # must not raise
 
@@ -189,6 +205,14 @@ def test_a_frame_that_is_not_usable_is_refused_before_the_pair_is_looked_up():
     WGS 84 position pastes into a latitude/longitude field cleanly and converts
     to something plausible and wrong, and the frames are a metre or more apart
     in CONUS.
+
+    SUPERSEDED MESSAGE (DESIGN.md #70, plan decision D2). The order and the
+    class are unchanged and still pinned. What the message says is not: the
+    WGS 84 build registered five NAMED realizations, so the bare label's
+    refusal no longer says this program has no data - it says why a label
+    without a realization and an epoch cannot be converted, and names the
+    five to choose from. The old assertion on "metre or more apart in CONUS"
+    is replaced by the facts the new citation carries, each pinned below.
     """
     with pytest.raises(FrameNotUsableError) as caught:
         require_frame_path(WGS84, NAD83_2011)
@@ -196,10 +220,28 @@ def test_a_frame_that_is_not_usable_is_refused_before_the_pair_is_looked_up():
     message = str(caught.value)
     assert "WGS84" in message
     assert "not usable" in message
-    # #58's reason, carried on the record's own citation and quoted here.
-    assert "metre or more apart in CONUS" in message
+    # Why a bare label cannot be converted: the two unstated facts.
+    assert "WHICH realization" in message
+    assert "WHEN it was observed" in message
+    # The size of the realization question, measured by the lead with HTDP
+    # v3.6.0 at Clare (43.82 N 84.77 W, h 200 m), NAD83(2011)@2010.0 to each
+    # realization @2010.0 (DESIGN.md #70): G730..G2296 spread 2.9 cm north,
+    # 5.2 cm east, 7.5 cm up, so "up to about 8 cm"; Transit vs G730 is
+    # 9.872e-6 deg north = 1.10 m, so "about 1.1 m".
+    assert "up to about 8 cm" in message
+    assert "about 1.1 m" in message
+    # The mislabelled-NAD 83 case, and its size (plan section 6).
+    assert "really NAD 83" in message and "about 1.3 m" in message
+    # The way on: name the realization - all five, by their own codes.
+    assert (
+        "Choose the realization the position is actually in: WGS84(G1762), "
+        "WGS84(G2139), WGS84(G2296), ITRF2014 or ITRF2020." in message
+    )
     # It names what CAN be used, rather than leaving the user to guess.
     assert "NAD83(2011)" in message and "NATRF2022" in message
+    # And the retired claim is gone: the data to transform a NAMED WGS 84
+    # realization is in this program now (htdp.py).
+    assert "no data" not in message
 
     # The other end, and both ends at once: same class, same ordering.
     with pytest.raises(FrameNotUsableError):
@@ -226,26 +268,69 @@ def test_an_unusable_frame_has_no_identity_of_its_own():
 def test_every_usable_frame_has_its_identity_and_nothing_else_is_registered():
     """Completeness in both directions - the pin that says what H3 shipped.
 
-    Every USABLE frame must carry its own identity, or a legitimate job within
-    that frame would be refused. And NO non-identity path may exist, which is
-    the half that matters for the tier: this package deliberately ships the
-    frames restructure WITHOUT the NAD83(2011) <-> NATRF2022 bridge
-    (docs/DESIGN.md #62, docs/DEFERRED-NATRF2022-BRIDGE.md), and a
-    transformation added without its anchors, its gate and its amendment would
-    move boundaries. It cannot arrive here silently.
+    SUPERSEDED (DESIGN.md #70, plan W2). The original pinned "every usable
+    frame has its identity and NO non-identity path exists". The WGS 84 build
+    adds exactly ten non-identity paths and five usable frames WITHOUT an
+    identity, both deliberately, so the pin now states the registry exactly:
+
+    * every usable PLATE-FIXED frame (NAD83(2011), NATRF2022) has its identity,
+      or a legitimate job within it would be refused;
+    * no time-dependent frame has an identity - a vertical-only job on one
+      must refuse until W3 decides how it runs (plan W2, item 5);
+    * the non-identity paths are EXACTLY HTDP v3.6.0 between NAD83(2011) and
+      each of the five, both ways - ten, derived here by hand from the plan's
+      list, not from the registry. In particular the NAD83(2011) <-> NATRF2022
+      bridge is still absent (DESIGN.md #62, docs/DEFERRED-NATRF2022-BRIDGE.md),
+      and a transformation added without its anchors, its gate and its
+      amendment still cannot arrive here silently.
     """
     usable = [frame for frame in ALL_FRAMES if frame.is_usable]
-    assert usable == [NAD83_2011, NATRF2022]
+    assert usable == [
+        NAD83_2011,
+        NATRF2022,
+        WGS84_G1762,
+        WGS84_G2139,
+        WGS84_G2296,
+        ITRF2014,
+        ITRF2020,
+    ]
 
-    for frame in usable:
+    plate_fixed = [frame for frame in usable if not frame.is_time_dependent]
+    assert plate_fixed == [NAD83_2011, NATRF2022]
+    for frame in plate_fixed:
         assert (frame, frame) in FRAME_TRANSFORMATIONS
 
-    for (source, target), path in FRAME_TRANSFORMATIONS.items():
-        assert source.code == target.code, (
-            f"{source.code} -> {target.code} is a non-identity path. Adding "
-            f"one is DESIGN.md #62's deferred work and needs its own amendment."
+    time_dependent = [frame for frame in usable if frame.is_time_dependent]
+    for frame in time_dependent:
+        assert (frame, frame) not in FRAME_TRANSFORMATIONS, frame.code
+
+    # Five frames x two directions = ten, typed by code from plan section 3.3.
+    expected_htdp_pairs = {
+        (code, "NAD83(2011)")
+        for code in (
+            "WGS84(G1762)", "WGS84(G2139)", "WGS84(G2296)", "ITRF2014", "ITRF2020"
         )
-        assert path.is_identity
+    } | {
+        ("NAD83(2011)", code)
+        for code in (
+            "WGS84(G1762)", "WGS84(G2139)", "WGS84(G2296)", "ITRF2014", "ITRF2020"
+        )
+    }
+    assert len(expected_htdp_pairs) == 10
+
+    non_identity = set()
+    for (source, target), path in FRAME_TRANSFORMATIONS.items():
+        if source.code == target.code:
+            assert path.is_identity
+            assert path.method is None
+            continue
+        non_identity.add((source.code, target.code))
+        assert path.method is FrameTransformationMethod.HTDP_V3_6_0
+        assert path.applied_method is FrameTransformationMethod.HTDP_V3_6_0
+    assert non_identity == expected_htdp_pairs, (
+        "the non-identity paths are not exactly HTDP's ten. Adding any other "
+        "is new work that needs its own amendment (DESIGN.md #62, #70)."
+    )
 
 
 def test_the_registry_keeps_every_pair_it_is_required_to_keep():
@@ -345,13 +430,31 @@ def test_all_frames_is_in_declaration_order():
     member is IN the tuple, as NAPGD2022 is in ``ALL_VERTICAL_DATUMS``;
     consumers that offer a choice filter on ``is_usable``.
     """
-    assert ALL_FRAMES == (NAD83_2011, NATRF2022, WGS84)
+    # SUPERSEDED (DESIGN.md #70, plan W2): the five time-dependent frames are
+    # appended after the three that were here, so every old index holds.
+    assert ALL_FRAMES == (
+        NAD83_2011,
+        NATRF2022,
+        WGS84,
+        WGS84_G1762,
+        WGS84_G2139,
+        WGS84_G2296,
+        ITRF2014,
+        ITRF2020,
+    )
     assert [frame.code for frame in ALL_FRAMES] == [
         "NAD83(2011)",
         "NATRF2022",
         "WGS84",
+        "WGS84(G1762)",
+        "WGS84(G2139)",
+        "WGS84(G2296)",
+        "ITRF2014",
+        "ITRF2020",
     ]
-    assert [frame.is_usable for frame in ALL_FRAMES] == [True, True, False]
+    assert [frame.is_usable for frame in ALL_FRAMES] == [
+        True, True, False, True, True, True, True, True
+    ]
 
 
 def test_frames_are_looked_up_by_code_and_an_unknown_one_is_refused():

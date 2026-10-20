@@ -389,9 +389,12 @@ def test_the_dropdown_pin_has_something_to_find():
     assert len(SPCS83_ZONES) == 3
     assert len(ALL_ZONES) == 22
 
-    # Two of the three declared frames are offered. WGS 84 is declared and NOT
+    # Two of the declared frames are offered. WGS 84 is declared and NOT
     # usable, and its absence from the dropdown is the whole point of #58.
-    assert len(ALL_FRAMES) == 3
+    # SUPERSEDED (DESIGN.md #70, plan W2): eight frames are declared now, not
+    # three - the five WGS 84 / ITRF frames are usable and carry no zone, so
+    # the offered count is still two until W5 changes frames_offered's rule.
+    assert len(ALL_FRAMES) == 8
     assert len(GEODETIC_CHOICES) == 2
     assert [choice.frame.code for choice in GEODETIC_CHOICES] == [
         "NAD83(2011)",

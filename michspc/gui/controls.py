@@ -27,6 +27,7 @@ from PySide6.QtWidgets import QButtonGroup, QComboBox, QMessageBox, QRadioButton
 from michspc.fileio import geoid
 from michspc.job import Direction, LongitudeConvention, VerticalMode
 from michspc.spc.units import ALL_UNITS, INTERNATIONAL_FEET, LinearUnit
+from michspc.spc.convert import require_a_connected_path
 from michspc.spc.frames import (
     ALL_FRAMES,
     FrameMismatchError,
@@ -876,9 +877,18 @@ def frames_have_a_path(source: ReferenceFrame, target: ReferenceFrame) -> bool:
 
     Directional, because the registry is keyed by (source, target) and a future
     transformation need not be registered both ways.
+
+    **And through the same guard ``job.run`` applies** (docs/PLAN-wgs84.md,
+    work package W2): since the WGS 84 build the registry returns NGS HTDP
+    records that the conversion pipeline does not yet apply, and
+    ``convert.require_a_connected_path`` refuses them. Asking only the
+    registry would answer True for a pair ``job.run`` refuses - the
+    disagreement this function exists to rule out. No frame on either end of
+    such a pair is offered in a dropdown yet (``frames_offered``), so this is
+    the rule kept true rather than a visible change.
     """
     try:
-        require_frame_path(source, target)
+        require_a_connected_path(require_frame_path(source, target))
     except FrameMismatchError:
         return False
     return True

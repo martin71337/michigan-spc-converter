@@ -71,8 +71,9 @@ misses by up to 28.5 cm in reverse. **Replicate it, non-closure and all.**
 
 **0.7.1 is still the released version.** W1 is done: `htdp.py` + `htdp_data.py`,
 1,846 anchors, version `0.8.0-dev`, every frozen record and 720 fresh random
-records reproduced at HTDP's printed digit. Next: W2 (frames), then interim
-gate 1. **This container's baseline**: 6 environmental failures, the same with
+records reproduced at HTDP's printed digit. W2 is done: five frames, ten
+HTDP paths, and a guard (`convert.require_a_connected_path`) that refuses
+every one until W3 wires it. Next: interim gate 1 (Opus reviewer), then W3. **This container's baseline**: 6 environmental failures, the same with
 and without the work (DESIGN.md #65's five plus #69's half-way-point anchor,
 a last-ulp libm difference); run with `--continue-on-collection-errors`. In this container,
 `apt-get install gfortran` and `gfortran -O0 -std=legacy -w *.f` in a copy of

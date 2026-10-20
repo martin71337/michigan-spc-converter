@@ -31,6 +31,7 @@ from michspc.spc.convert import (
     easting_looks_wrong_for_zone,
     geodetic_position,
     project_point,
+    require_a_connected_path,
 )
 from michspc.spc.factors import Factors, factors_at
 from michspc.spc.frames import (
@@ -232,7 +233,10 @@ class JobSettings:
     unpublished (docs/DEFERRED-NATRF2022-BRIDGE.md), so a frame that disagrees
     with the zone at the other end is refused by
     ``_require_a_registered_frame_path`` before the file is read, and by
-    ``convert.require_frame_path`` again at every point.
+    ``convert.require_frame_path`` again at every point. The WGS 84 and ITRF
+    frames registered by the WGS 84 build (docs/DESIGN.md #70) refuse at the
+    same gate in this development build: their paths to NAD83(2011) are
+    registered and not yet applied (``convert.require_a_connected_path``).
 
     **The default is now load-bearing in a way it was not**, and this is worth
     stating rather than discovering: it is NAD83(2011), which is right for
@@ -1349,16 +1353,48 @@ def _require_a_registered_frame_path(settings: JobSettings) -> None:
     propagated UNTOUCHED - it already names both frames, the metre-scale stake,
     NGS's unpublished transformation and the ways out, and wrapping it would
     hide the ``FrameMismatchError`` subclasses callers are told to catch.
+
+    **A registered path is not yet an applied one** (docs/DESIGN.md #70,
+    docs/PLAN-wgs84.md work package W2). Since the WGS 84 build the registry
+    carries NGS HTDP v3.6.0 between NAD83(2011) and five time-dependent frames,
+    and ``require_frame_path`` returns those records instead of refusing. So
+    the record it returns is passed to ``convert.require_a_connected_path``,
+    which refuses every non-identity path until work package W3 wires the
+    transformation into the conversion - the same guard ``convert_point`` and
+    ``project_point`` apply, asked here so the job refuses at its settings
+    rather than at its first point, and so the ``ZONE_TO_GEODETIC`` job, whose
+    points never meet a non-identity path, refuses at all. A ``VERTICAL_ONLY``
+    geodetic job on one of the five frames refuses one step earlier, at the
+    missing identity: the registry deliberately registers none for them.
     """
     if settings.direction is Direction.GEODETIC_TO_ZONE:
-        require_frame_path(settings.geodetic_frame, settings.target_zone.frame)
+        path = require_frame_path(
+            settings.geodetic_frame, settings.target_zone.frame
+        )
     elif settings.direction is Direction.ZONE_TO_GEODETIC:
-        require_frame_path(settings.source_zone.frame, settings.geodetic_frame)
+        path = require_frame_path(
+            settings.source_zone.frame, settings.geodetic_frame
+        )
     elif (
         settings.direction is Direction.VERTICAL_ONLY
         and settings.source_zone is None
     ):
-        require_frame_path(settings.geodetic_frame, settings.geodetic_frame)
+        path = require_frame_path(
+            settings.geodetic_frame, settings.geodetic_frame
+        )
+    else:
+        return
+
+    # The WGS 84 build's guard (docs/PLAN-wgs84.md, work package W2). The
+    # registry now returns NGS HTDP records for NAD83(2011) against the WGS 84
+    # and ITRF frames, and nothing downstream applies one yet. This gate is
+    # where that is load-bearing rather than belt-and-braces: a
+    # ZONE_TO_GEODETIC job's points go through ``convert_point`` with the
+    # source zone at BOTH ends - an identity - so with geodetic_frame
+    # WGS84(G2296) every row would write the NAD 83 pivot under a WGS 84
+    # label, and no per-point gate would ever see the frame. Refused here,
+    # before the file is read, until W3 connects the arithmetic.
+    require_a_connected_path(path)
 
 
 def _require_a_convertible_ellipsoid_height_frame(settings: JobSettings) -> None:

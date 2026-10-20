@@ -681,6 +681,15 @@ re-derived by the lead):
 - **Measured for D6:** the height fed to the horizontal transform matters at
   1.2e-5 m per 40 m and 1.8e-4 m per 600 m. Using H for h costs at most
   0.012 mm; a blank Z at h = 0 costs at most 0.18 mm.
+- **How far apart the realizations are, measured for D2's refusal** (lead,
+  HTDP v3.6.0, NAD83(2011)@2010.0 to each realization @2010.0 at 43.82 N
+  84.77 W, h 200 m): the realizations from G730 to G2296 spread 2.9 cm north,
+  5.2 cm east and 7.5 cm up. The original 1987 (Transit) realization sits
+  1.10 m north of G730. So a bare "WGS 84" is uncertain by up to about 8 cm
+  across the modern realizations and about 1.1 m if it is the original one,
+  before the epoch question. The W2 builder's draft said "centimetres to
+  decimetres", which understated the second case; the message now carries
+  these figures.
 - **Realization dates for D9's warning:** G1762 from 2013-10-16, G2139 from
   2021-01-03, G2296 from 2024-01-07 (NGA, ICG-17 WG-D presentation, 2023;
   EPSG 9756 and 10607; IGSMAIL-8444).

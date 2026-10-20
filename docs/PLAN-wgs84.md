@@ -1,6 +1,6 @@
 # PLAN: WGS 84 and ITRF positions, to and from NAD 83(2011)
 
-**Status (2026-10-20): W0 and W1 DONE. W2 onward not built.** W1 (`htdp.py`, `htdp_data.py`, 1,846 anchors) reproduces HTDP on all 19,236 applicable frozen records, and on 720 fresh random records the lead drove through NGS's binary, at every printed digit. Written by the session
+**Status (2026-10-20): W0, W1 and W2 DONE; interim gate 1 next.** W2 registers the five frames and ten HTDP paths, and every one of them REFUSES at `convert.require_a_connected_path` and at the job's settings gate until W3 connects the arithmetic. W1 (`htdp.py`, `htdp_data.py`, 1,846 anchors) reproduces HTDP on all 19,236 applicable frozen records, and on 720 fresh random records the lead drove through NGS's binary, at every printed digit. Written by the session
 lead at the owner's instruction ("get going on it. follow the established
 development method"). DESIGN.md amendment **#70** records the opening of this
 build, the owner's three scope decisions and what W0 measured. This plan is the
@@ -271,6 +271,11 @@ constants module is a transcription the suite verifies, the way
 
 ### 3.5 `job.py`
 
+- **From the lead's W2 probe:** a ZONE_TO_ZONE job given a non-default
+  `geodetic_frame` it never reads runs and ignores it. That is correct
+  arithmetic, and the record does not print the frame for that direction,
+  but it is the stray-field class: refuse it by name, as stray zones are.
+
 - **`JobSettings.observation_date: datetime.date | None = None`.**
   - Required when either end's frame is time-dependent.
   - Refused by name when neither is: a stray field creates a false record, the
@@ -370,7 +375,7 @@ gate.
 |---|---|
 | **W0** | Recon, oracle, transcription experiment, this plan, #70. **DONE.** |
 | **W1** | `htdp.py` + `htdp_data.py` + anchors fixture + transcription pin + falsification seeds. Version → `0.8.0-dev`. **DONE.** |
-| **W2** | `frames.py` records and parameterized paths; refusal successors (the old "WGS 84 is unusable" pins become pins on the bare record, never deleted silently). |
+| **W2** | `frames.py` records and parameterized paths; refusal successors (the old "WGS 84 is unusable" pins become pins on the bare record, never deleted silently). **DONE.** |
 | | **Interim gate 1** over W1–W2: the arithmetic. |
 | **W3** | `convert.py` + `job.py`: D5–D10, `GEODETIC_TO_GEODETIC`, gates, end-to-end pins. |
 | **W4** | Outputs: record block, conditional columns, verifiers, the digest pin untouched. |

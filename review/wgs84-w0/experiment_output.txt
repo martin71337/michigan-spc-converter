@@ -1,0 +1,194 @@
+transcription check: grid nodes 480, mismatches 0, header ok True; EQs 33, mismatches 0, NUMEQ=33 True
+====================================================================================================
+EXPERIMENT vs FROZEN HTDP BINARY (gfortran -O0 -std=legacy -w *.f -o htdp_linux (x86_64, SSE2 double arithmetic), sha256 3738c50c66901c02...)
+printed = experiment formatted 2f16.10,f10.3 then compared; raw = unrounded experiment vs printed HTDP
+units: metres; N/E from 1e-10 deg print digits, U from 1e-3 m print digits
+group (kind, frame, set)               n   same |    prt dN    prt dE    prt dU |    raw dN    raw dE    raw dU
+('calendar_equiv_decimal_forward', 12, 'beyond')    72     72 |  0.00e+00  0.00e+00  0.00e+00 |  5.53e-06  3.44e-06  4.68e-04
+('calendar_equiv_decimal_forward', 12, 'box')  1992   1992 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.13e-06  4.99e-04
+('calendar_equiv_decimal_reverse', 12, 'beyond')    72     72 |  0.00e+00  0.00e+00  0.00e+00 |  5.40e-06  3.50e-06  4.71e-04
+('calendar_equiv_decimal_reverse', 12, 'box')  1992   1992 |  0.00e+00  0.00e+00  0.00e+00 |  5.56e-06  4.17e-06  5.00e-04
+('calendar_forward', 12, 'beyond')    72     72 |  0.00e+00  0.00e+00  0.00e+00 |  5.53e-06  3.58e-06  4.71e-04
+('calendar_forward', 12, 'box')     1992   1992 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.14e-06  5.00e-04
+('calendar_reverse', 12, 'beyond')    72     72 |  0.00e+00  0.00e+00  0.00e+00 |  5.40e-06  3.50e-06  4.71e-04
+('calendar_reverse', 12, 'box')     1992   1992 |  0.00e+00  0.00e+00  0.00e+00 |  5.56e-06  4.17e-06  5.00e-04
+('forward', 10, 'beyond')             54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.51e-06  3.56e-06  4.96e-04
+('forward', 10, 'box')              1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.56e-06  4.14e-06  4.99e-04
+('forward', 11, 'beyond')             54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  3.54e-06  4.98e-04
+('forward', 11, 'box')              1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.56e-06  4.16e-06  5.00e-04
+('forward', 12, 'beyond')             54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.41e-06  3.58e-06  4.96e-04
+('forward', 12, 'box')              1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.56e-06  4.14e-06  4.97e-04
+('forward', 24, 'beyond')             54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.53e-06  3.56e-06  4.95e-04
+('forward', 24, 'box')              1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.56e-06  4.14e-06  4.96e-04
+('forward', 25, 'beyond')             54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.50e-06  3.54e-06  4.41e-04
+('forward', 25, 'box')              1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.16e-06  4.98e-04
+('forward', 26, 'beyond')             54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.41e-06  3.58e-06  4.35e-04
+('forward', 26, 'box')              1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.14e-06  4.97e-04
+('forward', 8, 'beyond')              54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.44e-06  3.55e-06  4.83e-04
+('forward', 8, 'box')               1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.14e-06  5.00e-04
+('forward', 9, 'beyond')              54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.56e-06  3.57e-06  3.80e-04
+('forward', 9, 'box')               1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.16e-06  5.00e-04
+('reverse', 10, 'beyond')             54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.49e-06  3.53e-06  4.92e-04
+('reverse', 10, 'box')              1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.17e-06  4.95e-04
+('reverse', 11, 'beyond')             54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.27e-06  3.52e-06  4.98e-04
+('reverse', 11, 'box')              1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.56e-06  4.15e-06  4.99e-04
+('reverse', 12, 'beyond')             54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.31e-06  3.50e-06  4.71e-04
+('reverse', 12, 'box')              1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.56e-06  4.17e-06  4.99e-04
+('reverse', 24, 'beyond')             54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.46e-06  3.53e-06  4.97e-04
+('reverse', 24, 'box')              1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.56e-06  4.17e-06  4.93e-04
+('reverse', 25, 'beyond')             54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.39e-06  3.52e-06  4.41e-04
+('reverse', 25, 'box')              1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.56e-06  4.15e-06  4.97e-04
+('reverse', 26, 'beyond')             54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.54e-06  3.50e-06  4.09e-04
+('reverse', 26, 'box')              1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.17e-06  4.99e-04
+('reverse', 8, 'beyond')              54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.51e-06  3.58e-06  4.83e-04
+('reverse', 8, 'box')               1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.14e-06  4.99e-04
+('reverse', 9, 'beyond')              54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.56e-06  3.54e-06  3.81e-04
+('reverse', 9, 'box')               1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.16e-06  4.99e-04
+('roundtrip_reverse', 10, 'beyond')    54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.54e-06  3.39e-06  4.92e-04
+('roundtrip_reverse', 10, 'box')    1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.15e-06  4.95e-04
+('roundtrip_reverse', 11, 'beyond')    54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.48e-06  3.55e-06  4.98e-04
+('roundtrip_reverse', 11, 'box')    1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.17e-06  4.99e-04
+('roundtrip_reverse', 12, 'beyond')    54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.40e-06  3.41e-06  4.72e-04
+('roundtrip_reverse', 12, 'box')    1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.56e-06  4.17e-06  5.00e-04
+('roundtrip_reverse', 24, 'beyond')    54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  3.39e-06  4.97e-04
+('roundtrip_reverse', 24, 'box')    1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.15e-06  4.92e-04
+('roundtrip_reverse', 25, 'beyond')    54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.46e-06  3.55e-06  4.41e-04
+('roundtrip_reverse', 25, 'box')    1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.17e-06  4.98e-04
+('roundtrip_reverse', 26, 'beyond')    54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.29e-06  3.41e-06  4.10e-04
+('roundtrip_reverse', 26, 'box')    1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.56e-06  4.17e-06  4.99e-04
+('roundtrip_reverse', 8, 'beyond')    54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.52e-06  3.47e-06  4.83e-04
+('roundtrip_reverse', 8, 'box')     1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.16e-06  5.00e-04
+('roundtrip_reverse', 9, 'beyond')    54     54 |  0.00e+00  0.00e+00  0.00e+00 |  5.42e-06  3.57e-06  3.80e-04
+('roundtrip_reverse', 9, 'box')     1494   1494 |  0.00e+00  0.00e+00  0.00e+00 |  5.55e-06  4.15e-06  4.99e-04
+TOTAL records 45408, printed-identical 45408, differing 0
+velocity-grid nodes actually used: 305 (I 39..58, J 35..53)
+closest approach to any co-seismic radius of influence: 1291 km beyond it
+====================================================================================================
+VELOCITY TERM (in-box points, forward runs, velocity applied in NAD83 frame, mm/yr)
+  NAD83(2011) frame : N -1.869..-0.120  E 1.756..2.505  U -1.253..-1.014
+  ITRF2008 (grid)   : N -2.188..1.710  E -16.938..-15.338  U 0.000..0.000
+  over the velocity clock 2026-10-19 -> 2010-01-01 (-16.796715 yr): N 0.0314..0.0020 E -0.0295..-0.0421 U 0.0211..0.0170 m
+  HTDP VELOC option-2 cross-check (172 site-frames, printed F8.2): worst |d| N 0.00 E 0.00 U 0.00 mm/yr
+====================================================================================================
+HELMERT-ONLY ABLATION (velocity propagation switched off) vs HTDP, in-box, m
+  fwd_f12_1997.0     worst |miss| N 0.0243 E 0.0326 U 0.0166
+  rev_f12_1997.0     worst |miss| N 0.0284 E 0.2202 U 0.0048
+  fwd_f12_2026.8     worst |miss| N 0.0314 E 0.0421 U 0.0210
+  rev_f12_2026.8     worst |miss| N 0.0366 E 0.2845 U 0.0061
+  fwd_f26_1997.0     worst |miss| N 0.0243 E 0.0326 U 0.0165
+  rev_f26_1997.0     worst |miss| N 0.0284 E 0.2202 U 0.0048
+  fwd_f26_2026.8     worst |miss| N 0.0314 E 0.0421 U 0.0210
+  rev_f26_2026.8     worst |miss| N 0.0366 E 0.2845 U 0.0061
+  fwd_f10_1997.0     worst |miss| N 0.0243 E 0.0326 U 0.0166
+  rev_f10_1997.0     worst |miss| N 0.0284 E 0.2202 U 0.0005
+  fwd_f10_2026.8     worst |miss| N 0.0314 E 0.0421 U 0.0209
+  rev_f10_2026.8     worst |miss| N 0.0367 E 0.2845 U 0.0005
+====================================================================================================
+ELLIPSOID CHOICE: same input numbers, WGS84-named frame minus ITRF-named frame (HTDP truth), m
+  fwd f12-f26 @2010.0: dN +0.00010..+0.00011 dE -0.00000..-0.00000 dU +0.0000..+0.0010
+  rev f12-f26 @2010.0: dN -0.00011..-0.00010 dE -0.00000..-0.00000 dU -0.0010..+0.0000
+  fwd f12-f26 @2026.8: dN +0.00010..+0.00011 dE -0.00000..-0.00000 dU +0.0000..+0.0010
+  rev f12-f26 @2026.8: dN -0.00011..-0.00010 dE -0.00000..-0.00000 dU -0.0010..+0.0000
+  fwd f11-f25 @2010.0: dN +0.00010..+0.00011 dE -0.00000..-0.00000 dU +0.0000..+0.0010
+  rev f11-f25 @2010.0: dN -0.00011..-0.00010 dE -0.00000..-0.00000 dU -0.0010..+0.0000
+  fwd f11-f25 @2026.8: dN +0.00010..+0.00011 dE -0.00000..-0.00000 dU +0.0000..+0.0010
+  rev f11-f25 @2026.8: dN -0.00011..-0.00010 dE -0.00000..-0.00000 dU -0.0010..+0.0000
+  fwd f10-f24 @2010.0: dN +0.00010..+0.00011 dE -0.00000..-0.00000 dU +0.0000..+0.0010
+  rev f10-f24 @2010.0: dN -0.00011..-0.00010 dE -0.00000..-0.00000 dU -0.0010..+0.0000
+  fwd f10-f24 @2026.8: dN +0.00010..+0.00011 dE -0.00000..-0.00000 dU +0.0000..+0.0010
+  rev f10-f24 @2026.8: dN -0.00011..-0.00010 dE -0.00000..-0.00000 dU -0.0010..+0.0000
+  experiment: frame 12 forced onto GRS80 reproduces HTDP frame-26 output on 258 of 258 records
+====================================================================================================
+TOTAL OFFSET WGS84(G2296)@2026.8 minus NAD83(2011)@2010.0 (HTDP truth, in-box), m:
+  N +0.8189..+1.0756  E -1.0872..-0.8195  U -1.1700..-0.8610
+====================================================================================================
+ROUND TRIP: forward then reverse
+  HTDP (printed output fed back): worst |res| N 1.11e-05 E 6.91e-05 U 1.00e-03 m
+  experiment, unrounded chain   : worst |res| N 9.24e-06 E 6.35e-05 U 4.28e-06 m
+====================================================================================================
+DATES: GETMDY interpretation (experiment) vs HTDP header
+  fwd_f12_2015.5                     entry "2015.5"               DATE 2015.5000000000  velocity-clock day 07-02-2015  HTDP header 07-02-2015 OK
+  fwd_f12_2026.8                     entry "2026.8"               DATE 2026.8000000000  velocity-clock day 10-19-2026  HTDP header 10-19-2026 OK
+  calfwd_2010-01-01                  entry [1, 1, 2010]           DATE 2010.0000000000  velocity-clock day 01-01-2010  HTDP header 01-01-2010 OK
+  calrev_2010-01-01                  entry [1, 1, 2010]           DATE 2010.0000000000  velocity-clock day 01-01-2010  HTDP header 01-01-2010 OK
+  decfwd_2010-01-01                  entry "2010.0"               DATE 2010.0000000000  velocity-clock day 01-01-2010  HTDP header 01-01-2010 OK
+  decrev_2010-01-01                  entry "2010.0"               DATE 2010.0000000000  velocity-clock day 01-01-2010  HTDP header 01-01-2010 OK
+  calfwd_2024-12-31                  entry [12, 31, 2024]         DATE 2024.9972677596  velocity-clock day 12-31-2024  HTDP header 12-31-2024 OK
+  calrev_2024-12-31                  entry [12, 31, 2024]         DATE 2024.9972677596  velocity-clock day 12-31-2024  HTDP header 12-31-2024 OK
+  decfwd_2024-12-31                  entry "2024.9972677595629"   DATE 2024.9972677596  velocity-clock day 12-31-2024  HTDP header 12-31-2024 OK
+  decrev_2024-12-31                  entry "2024.9972677595629"   DATE 2024.9972677596  velocity-clock day 12-31-2024  HTDP header 12-31-2024 OK
+  calfwd_2024-02-29                  entry [2, 29, 2024]          DATE 2024.1612021858  velocity-clock day 02-29-2024  HTDP header 02-29-2024 OK
+  calrev_2024-02-29                  entry [2, 29, 2024]          DATE 2024.1612021858  velocity-clock day 02-29-2024  HTDP header 02-29-2024 OK
+  decfwd_2024-02-29                  entry "2024.1612021857923"   DATE 2024.1612021858  velocity-clock day 02-28-2024  HTDP header 02-28-2024 OK
+  decrev_2024-02-29                  entry "2024.1612021857923"   DATE 2024.1612021858  velocity-clock day 02-28-2024  HTDP header 02-28-2024 OK
+  calfwd_2025-03-01                  entry [3, 1, 2025]           DATE 2025.1616438356  velocity-clock day 03-01-2025  HTDP header 03-01-2025 OK
+  calrev_2025-03-01                  entry [3, 1, 2025]           DATE 2025.1616438356  velocity-clock day 03-01-2025  HTDP header 03-01-2025 OK
+  decfwd_2025-03-01                  entry "2025.1616438356164"   DATE 2025.1616438356  velocity-clock day 02-28-2025  HTDP header 02-28-2025 OK
+  decrev_2025-03-01                  entry "2025.1616438356164"   DATE 2025.1616438356  velocity-clock day 02-28-2025  HTDP header 02-28-2025 OK
+  calfwd_2026-10-20                  entry [10, 20, 2026]         DATE 2026.8000000000  velocity-clock day 10-20-2026  HTDP header 10-20-2026 OK
+  calrev_2026-10-20                  entry [10, 20, 2026]         DATE 2026.8000000000  velocity-clock day 10-20-2026  HTDP header 10-20-2026 OK
+  decfwd_2026-10-20                  entry "2026.8"               DATE 2026.8000000000  velocity-clock day 10-19-2026  HTDP header 10-19-2026 OK
+  decrev_2026-10-20                  entry "2026.8"               DATE 2026.8000000000  velocity-clock day 10-19-2026  HTDP header 10-19-2026 OK
+  calfwd_2025-01-01                  entry [1, 1, 2025]           DATE 2025.0000000000  velocity-clock day 01-01-2025  HTDP header 01-01-2025 OK
+  calrev_2025-01-01                  entry [1, 1, 2025]           DATE 2025.0000000000  velocity-clock day 01-01-2025  HTDP header 01-01-2025 OK
+  decfwd_2025-01-01                  entry "2025.0"               DATE 2025.0000000000  velocity-clock day 01-01-2025  HTDP header 01-01-2025 OK
+  decrev_2025-01-01                  entry "2025.0"               DATE 2025.0000000000  velocity-clock day 01-01-2025  HTDP header 01-01-2025 OK
+  calfwd_2015-07-02                  entry [7, 2, 2015]           DATE 2015.4986301370  velocity-clock day 07-02-2015  HTDP header 07-02-2015 OK
+  calrev_2015-07-02                  entry [7, 2, 2015]           DATE 2015.4986301370  velocity-clock day 07-02-2015  HTDP header 07-02-2015 OK
+  decfwd_2015-07-02                  entry "2015.4986301369863"   DATE 2015.4986301370  velocity-clock day 07-02-2015  HTDP header 07-02-2015 OK
+  decrev_2015-07-02                  entry "2015.4986301369863"   DATE 2015.4986301370  velocity-clock day 07-02-2015  HTDP header 07-02-2015 OK
+  calfwd_2026-10-19                  entry [10, 19, 2026]         DATE 2026.7972602740  velocity-clock day 10-19-2026  HTDP header 10-19-2026 OK
+  calrev_2026-10-19                  entry [10, 19, 2026]         DATE 2026.7972602740  velocity-clock day 10-19-2026  HTDP header 10-19-2026 OK
+  decfwd_2026-10-19                  entry "2026.7972602739726"   DATE 2026.7972602740  velocity-clock day 10-18-2026  HTDP header 10-18-2026 OK
+  decrev_2026-10-19                  entry "2026.7972602739726"   DATE 2026.7972602740  velocity-clock day 10-18-2026  HTDP header 10-18-2026 OK
+  calendar vs decimal-equivalent outputs (HTDP truth), in-box, worst |d| m:
+    calfwd_2010-01-01      vs decfwd_2010-01-01      N 0.00e+00 E 0.00e+00 U 0.00e+00
+    calrev_2010-01-01      vs decrev_2010-01-01      N 0.00e+00 E 0.00e+00 U 0.00e+00
+    calfwd_2024-12-31      vs decfwd_2024-12-31      N 0.00e+00 E 0.00e+00 U 0.00e+00
+    calrev_2024-12-31      vs decrev_2024-12-31      N 0.00e+00 E 0.00e+00 U 0.00e+00
+    calfwd_2024-02-29      vs decfwd_2024-02-29      N 1.11e-05 E 8.35e-06 U 0.00e+00
+    calrev_2024-02-29      vs decrev_2024-02-29      N 1.11e-05 E 5.27e-05 U 0.00e+00
+    calfwd_2025-03-01      vs decfwd_2025-03-01      N 1.11e-05 E 8.35e-06 U 1.00e-03
+    calrev_2025-03-01      vs decrev_2025-03-01      N 1.11e-05 E 5.27e-05 U 1.00e-03
+    calfwd_2026-10-20      vs decfwd_2026-10-20      N 1.11e-05 E 8.35e-06 U 1.00e-03
+    calrev_2026-10-20      vs decrev_2026-10-20      N 1.11e-05 E 5.27e-05 U 1.00e-03
+    calfwd_2025-01-01      vs decfwd_2025-01-01      N 0.00e+00 E 0.00e+00 U 0.00e+00
+    calrev_2025-01-01      vs decrev_2025-01-01      N 0.00e+00 E 0.00e+00 U 0.00e+00
+    calfwd_2015-07-02      vs decfwd_2015-07-02      N 0.00e+00 E 0.00e+00 U 0.00e+00
+    calrev_2015-07-02      vs decrev_2015-07-02      N 0.00e+00 E 0.00e+00 U 0.00e+00
+    calfwd_2026-10-19      vs decfwd_2026-10-19      N 1.11e-05 E 8.35e-06 U 0.00e+00
+    calrev_2026-10-19      vs decrev_2026-10-19      N 1.11e-05 E 5.31e-05 U 0.00e+00
+====================================================================================================
+SUPPLEMENT A: ellipsoid choice, unrounded (experiment), WGS84(G2296) minus ITRF2020, same input numbers, m
+  fwd: dN +0.000104..+0.000105  dE -1.18e-09..+1.17e-09  dU +0.000046..+0.000059
+  rev: dN -0.000105..-0.000104  dE -0.00e+00..-0.00e+00  dU -0.000059..-0.000046
+SUPPLEMENT B: round-trip residual per epoch entry (experiment, unrounded, frame 12, in-box), m,
+  with the two-clock explanation: dT = (DATE - 2010.0) - (MINS - ITREF)/525960
+  "1997.0"       dT -0.000684 yr  -> ~17 mm/yr x dT = 0.012 mm;  worst |res| N 1.78e-06 E 1.32e-05 U 4.75e-07
+  "2005.0"       dT -0.000684 yr  -> ~17 mm/yr x dT = 0.012 mm;  worst |res| N 1.74e-06 E 1.32e-05 U 4.81e-07
+  "2015.5"       dT +0.002396 yr  -> ~17 mm/yr x dT = 0.041 mm;  worst |res| N 6.55e-06 E 4.63e-05 U 2.36e-06
+  "2020.0"       dT +0.001369 yr  -> ~17 mm/yr x dT = 0.023 mm;  worst |res| N 3.81e-06 E 2.65e-05 U 1.42e-06
+  "2026.8"       dT +0.003285 yr  -> ~17 mm/yr x dT = 0.056 mm;  worst |res| N 8.96e-06 E 6.35e-05 U 3.19e-06
+  [10, 20, 2026] dT +0.000548 yr  -> ~17 mm/yr x dT = 0.009 mm;  worst |res| N 2.63e-06 E 1.99e-05 U 6.64e-07
+  [7, 2, 2015]   dT +0.001026 yr  -> ~17 mm/yr x dT = 0.017 mm;  worst |res| N 2.88e-06 E 1.99e-05 U 1.10e-06
+  [1, 1, 2025]   dT -0.000684 yr  -> ~17 mm/yr x dT = 0.012 mm;  worst |res| N 5.48e-06 E 4.04e-05 U 4.74e-07
+SUPPLEMENT C: velocity applied in the reverse direction (WGS84(G2296) frame), in-box, mm/yr
+  N -2.181..1.701  E -16.939..-15.339  U -0.332..-0.331
+SUPPLEMENT D: the lat-50 region boundary beyond the box (HTDP VELOC truth, mm/yr)
+  frame menu  1  B000  BEYOND box: Ontario 49.9N (region 6 grid)     N  -1.45 E   2.86 U  -1.27
+  frame menu  1  B001  BEYOND box: 50.0N nominal (region 6 edge)     N  -0.05 E   2.49 U  -1.09
+  frame menu  1  B002  BEYOND box: Ontario 50.1N (region 14 plate)   N  -0.05 E   2.50 U  -1.09
+  frame menu 24  B000  BEYOND box: Ontario 49.9N (region 6 grid)     N  -1.35 E -16.81 U   0.00
+  frame menu 24  B001  BEYOND box: 50.0N nominal (region 6 edge)     N  -1.35 E -16.79 U   0.00
+  frame menu 24  B002  BEYOND box: Ontario 50.1N (region 14 plate)   N   0.05 E -17.22 U   0.18
+SUPPLEMENT E: round-trip residual at 2030.0 (dT = 0 exactly: 7305 days = 20 Julian years) vs the
+  RADR8T/RADII height omission (htdp.f:405-419, 976-988): predicted = h/R * (V_W - V_N) * dt
+  lat 41.500000 h    0.000: residual N -1.86e-07 E -8.31e-08  predicted N +0.00e+00 E -0.00e+00  unexplained N -1.9e-07 E -8.3e-08
+  lat 41.500000 h  600.000: residual N +4.86e-06 E -3.27e-05  predicted N +5.05e-06 E -3.26e-05  unexplained N -1.9e-07 E -8.1e-08
+  lat 41.500000 h 1200.000: residual N +9.90e-06 E -6.53e-05  predicted N +1.01e-05 E -6.52e-05  unexplained N -1.9e-07 E -7.0e-08
+  lat 43.820000 h    0.000: residual N -2.34e-07 E -3.09e-08  predicted N +0.00e+00 E -0.00e+00  unexplained N -2.3e-07 E -3.1e-08
+  lat 43.820000 h  600.000: residual N +2.61e-06 E -3.40e-05  predicted N +2.84e-06 E -3.39e-05  unexplained N -2.3e-07 E -2.6e-08
+  lat 43.820000 h 1200.000: residual N +5.45e-06 E -6.79e-05  predicted N +5.68e-06 E -6.79e-05  unexplained N -2.3e-07 E -1.6e-08
+  lat 47.120000 h    0.000: residual N -1.20e-07 E -5.07e-08  predicted N -0.00e+00 E -0.00e+00  unexplained N -1.2e-07 E -5.1e-08
+  lat 47.120000 h  600.000: residual N -3.18e-07 E -3.57e-05  predicted N -1.97e-07 E -3.56e-05  unexplained N -1.2e-07 E -4.7e-08
+  lat 47.120000 h 1200.000: residual N -5.14e-07 E -7.13e-05  predicted N -3.94e-07 E -7.12e-05  unexplained N -1.2e-07 E -3.5e-08

@@ -1,0 +1,4 @@
+# NGS HTDP v3.6.0 source, committed byte-for-byte as the authority the
+# WGS 84 transcription is verified against (docs/PLAN-wgs84.md 3.2). Its files
+# mix LF and CRLF and are SHA-256 pinned, so no line-ending conversion, ever.
+review/wgs84-w0/htdp-v3.6.0/** -text

@@ -612,6 +612,89 @@ gateless cadence does not apply here). The horizontal work packages H1–H6
 proceed per the plan; the first code lands only after this amendment, which
 is the H0 exit condition.
 
+### #70 — 2026-10-20 — The WGS 84 build opens: scope, W0 measurement, and the oracle
+
+**The owner's instruction**, in two steps. He asked whether WGS 84 could be
+converted to and from the other coordinate systems. The answer was yes: unlike
+the NATRF2022 bridge (#62), NGS publishes the whole path as open source. His
+next instruction: *"get going on it. follow the established development
+method."* The design of record is `docs/PLAN-wgs84.md`, and this amendment is
+its opening. DESIGN.md's body (§2 scope, §6, §10) is amended by the work
+packages that make each change true, not here.
+
+**Supersedes in part:** #58's and `frames.py`'s statement that "this program
+has no data with which to compute" a WGS 84 transformation. That was true of
+the data in hand and is no longer true. **What does not change:** a bare
+"WGS 84" stays `DECLARED_NOT_USABLE` and refuses by name. The new records are
+named realizations at a stated epoch, and the bare name now refuses with a
+message telling the user to name one (plan D2).
+
+**The owner's scope decisions (2026-10-20), asked with a recommendation each
+and answered with the recommendation each time:**
+1. Realizations **WGS 84 (G1762), (G2139), (G2296)**.
+2. **ITRF2014 and ITRF2020 named** beside them, for PPP output.
+3. The observation epoch entered as a **calendar date**.
+
+**The lead's decisions D1 to D10** are in plan §1, each with its reason and
+open to the owner's review. Two are flagged for his eye in particular:
+- **D6:** an ellipsoid Z transforms with the frame. This reads #54's
+  "horizontal passes the Z through unchanged" as "is never turned into an
+  elevation", not as "keeps a WGS 84 height in a NAD 83 job".
+- **D7:** a geodetic-to-geodetic direction exists, but only across a
+  registered non-identity path.
+
+**W0, measured** (`review/wgs84-w0/RECON.md`; Opus recon to the lead's brief,
+re-derived by the lead):
+- **The oracle is NGS's own program.** HTDP v3.6.0, `github.com/noaa-ngs/HTDP`
+  commit `59fdbe6b7cf5fabf79f901801ecdc33e7ca2095c`, compiled in the container
+  with gfortran 13.3.0 -O0. -O2 is byte-identical. The source is committed
+  unmodified at `review/wgs84-w0/htdp-v3.6.0/`, SHA-256 pinned, and marked
+  `-text` in `.gitattributes`: its files mix LF and CRLF, and a Windows
+  autocrlf checkout would otherwise break the pins.
+- **A stdlib-Python transcription reproduces it on 45,408 of 45,408 printed
+  records.** That is 8 frames, 6 epochs, 3 heights and 86 Michigan positions,
+  both directions, round trips, and calendar and decimal dates. The unrounded
+  worst residual is exactly half a print unit in every component.
+- **The lead's independent check, from different code:**
+  - the repo's 2026-08-29 Helmert experiment plus HTDP's own printed
+    velocities;
+  - forward WGS84(G2296)@2026.8 → NAD83@2010.0 at Clare, Houghton and Detroit
+    agrees with HTDP to 0.19 mm or better horizontally;
+  - reverse at Clare agrees to 0.10 mm, within the 0.01 mm/yr print
+    resolution of the velocities used.
+- **HTDP's path is not symmetric.** The Helmert is evaluated at the INPUT
+  epoch, then propagation runs in the OUTPUT frame:
+  - forward uses the NAD 83 intraplate velocity, about 2 to 3 mm/yr in
+    Michigan;
+  - reverse uses full plate motion, about 17 mm/yr.
+  - A Helmert-only implementation misses HTDP by up to 4.2 cm forward and
+    28.5 cm reverse at 2026.8, so the velocity model is part of the build.
+  - The non-closure HTDP's own arithmetic leaves, up to 6.4e-5 m, is
+    replicated and stated, not smoothed (#36 and #38: replicate NOAA).
+- **All of Michigan is in HTDP velocity region 6**, a 0.5° bilinear grid in
+  `initvl.f`, with no boundary, earthquake or postseismic term within 1.5° of
+  the state.
+- **The ellipsoid follows the frame name.** WGS84(…) frames use the WGS 84
+  ellipsoid; ITRF uses GRS 80. So ITRF2020 and WGS84(G2296) differ by about
+  0.1 mm from identical inputs, and the records keep them apart.
+- **HTDP accepts 30 February.** MCX validates its own dates (D9).
+- **Measured for D6:** the height fed to the horizontal transform matters at
+  1.2e-5 m per 40 m and 1.8e-4 m per 600 m. Using H for h costs at most
+  0.012 mm; a blank Z at h = 0 costs at most 0.18 mm.
+- **Realization dates for D9's warning:** G1762 from 2013-10-16, G2139 from
+  2021-01-03, G2296 from 2024-01-07 (NGA, ICG-17 WG-D presentation, 2023;
+  EPSG 9756 and 10607; IGSMAIL-8444).
+- **Not verified:** NGS's own 32-bit Windows `htdp.exe` (x87 arithmetic) was
+  not run. An x87 build here flips the last printed digit on 11 of 176 runs.
+  Re-checking frozen anchors with NGS's binary is a still-human item.
+
+**Process.** The #61 rule stands: the lead plans, Opus subagents recon and
+build, the lead reviews every diff and re-derives the load-bearing math, two
+interim gates and a closing gate, none skipped. **Codex is not installed in
+this cloud container**, so every gate runs under an independent Opus reviewer
+per the owner's standing fallback (2026-08-07). A Codex re-confirmation on his
+machine is his option.
+
 ### #69 — 2026-09-03 — 0.7.1: the closing gate, its findings fixed, and the release
 
 **The release.** The owner's instruction for this session: cut the release

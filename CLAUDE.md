@@ -51,7 +51,32 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.7.1 RELEASED (2026-09-03)
+## Current state: the WGS 84 build in flight, W0 done (2026-10-20)
+
+**Read `docs/PLAN-wgs84.md` and DESIGN.md #70 before touching this work.**
+The owner asked for WGS 84 ⇄ the other systems and instructed the build under
+the established method. His scope: **WGS 84 (G1762), (G2139), (G2296)**, plus
+**ITRF2014 and ITRF2020** by name, to and from NAD 83(2011) epoch 2010.0, with
+the **observation epoch entered as a calendar date**. A bare "WGS 84" stays
+refused by name. WGS 84 against NATRF2022 stays refused (#62).
+
+**The oracle is NGS's own HTDP v3.6.0**, compiled from its committed source
+(`review/wgs84-w0/htdp-v3.6.0/`, `-text` in `.gitattributes` because the
+files mix line endings and are SHA-pinned). W0's Python transcription
+reproduces it on **45,408 of 45,408** printed records, and the lead
+re-derived the composition independently to 0.2 mm. **HTDP is asymmetric**:
+Helmert at the input epoch, then velocity in the output frame. A velocity
+model, HTDP's region-6 grid, is therefore part of the build: Helmert-only
+misses by up to 28.5 cm in reverse. **Replicate it, non-closure and all.**
+
+**0.7.1 is still the released version; nothing past W0 is built.** Next: W1
+(`htdp.py` + `htdp_data.py`, anchors, transcription pin, version
+`0.8.0-dev`), then W2 (frames), then interim gate 1. In this container,
+`apt-get install gfortran` and `gfortran -O0 -std=legacy -w *.f` in a copy of
+`review/wgs84-w0/htdp-v3.6.0/` rebuild the oracle. **Codex is not available
+here**, so gates use an independent Opus reviewer (the owner's fallback).
+
+## Superseded status: 0.7.1 RELEASED (2026-09-03)
 
 **0.7.1 is built, gated and tagged** (DESIGN.md **#69**): the cloud
 session's #65–#68 merged onto `main`, the suite run on the owner's machine

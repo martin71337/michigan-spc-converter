@@ -1614,6 +1614,27 @@ def _require_a_registered_frame_path(
     return require_an_applicable_path(path)
 
 
+def applied_frame_transformation(settings: JobSettings) -> FrameTransformation | None:
+    """The frame transformation this job's rows applied, or None when none ran.
+
+    THE one statement, for the outputs, of whether a job is TRANSFORMED - read
+    by every surface W4 of the WGS 84 build made conditional (the job record's
+    FRAME TRANSFORMATION block, the audit CSV's frame columns, the frame-aware
+    sentences), so no surface can decide it differently. It is the record
+    ``_require_a_registered_frame_path`` returns, which is the record ``run``
+    hands every row: a non-identity HTDP path, or None for an identity and for
+    a job with no geodetic end at all. Derived from the SETTINGS, not from the
+    points, so an empty transformed job is still described as one.
+
+    Called on the settings of a job that has run, so it cannot refuse; on
+    settings that never ran it refuses exactly as ``run`` would.
+    """
+    path = _require_a_registered_frame_path(settings)
+    if path is None or path.is_identity:
+        return None
+    return path
+
+
 def today() -> datetime.date:
     """The day this job runs, for the observation date's future-date check.
 
@@ -2274,7 +2295,7 @@ def _transform_height(
     return TransformHeight(HeightConvention.ORTHOMETRIC, elevation_m)
 
 
-def _written_geodetic_position(conversion: PointConversion) -> tuple[float, float]:
+def written_geodetic_position(conversion: PointConversion) -> tuple[float, float]:
     """The latitude and longitude a job with a geodetic OUTPUT writes, signed.
 
     The position in the frame the path ENDS in: the WGS 84 or ITRF position
@@ -2282,6 +2303,12 @@ def _written_geodetic_position(conversion: PointConversion) -> tuple[float, floa
     NAD 83 pivot otherwise - including every same-frame job, whose columns are
     the pivot exactly as before. Writing the pivot under a WGS 84 job's label
     is the silent pass-through the W2 guard existed to stop.
+
+    Public since work package W4, because it is also the position the
+    geodetic exports STATE: ``exports`` builds the DMS sibling from it and
+    every verifier checks the written files against it, so the file layer and
+    the conversion cannot come to mean different positions by "the target"
+    (docs/PLAN-wgs84.md section 3.6, the verifier hazard).
     """
     path = conversion.frame_transformation
     if path is not None and path.target.is_time_dependent:
@@ -2378,7 +2405,7 @@ def _convert_row(
                 context,
                 **transform_arguments,
             )
-            out_latitude, out_longitude = _written_geodetic_position(conversion)
+            out_latitude, out_longitude = written_geodetic_position(conversion)
             output_northing = out_latitude
             output_easting = settings.longitude_convention.from_signed(
                 out_longitude
@@ -2445,7 +2472,7 @@ def _convert_row(
                 context,
                 **transform_arguments,
             )
-            out_latitude, out_longitude = _written_geodetic_position(conversion)
+            out_latitude, out_longitude = written_geodetic_position(conversion)
             output_northing = out_latitude
             output_easting = settings.longitude_convention.from_signed(
                 out_longitude

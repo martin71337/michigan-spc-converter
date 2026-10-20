@@ -9,6 +9,18 @@ Converting TO geodetic writes one more (docs/DESIGN.md amendment #67, the
 owner's instruction): the clean export is then ``<name>_GEODETIC_DD.csv``
 (decimal degrees, as always) and ``<name>_GEODETIC_DMS.csv`` carries the
 same rows with the latitude and longitude in degrees, minutes and seconds.
+That is a State Plane to geodetic job, and since the WGS 84 build a
+geodetic-to-geodetic one (docs/PLAN-wgs84.md decision D7).
+
+**A frame transformation is disclosed, never implied** (docs/PLAN-wgs84.md
+section 3.6, work package W4). On a job whose positions were carried between
+NAD83(2011) and a WGS 84 or ITRF frame by HTDP, the audit CSV names the frame
+of every position and ellipsoid height it holds and carries the transformation's
+per-point facts in columns appended after Description; the job record states
+the transformation in its FRAME TRANSFORMATION block; and each file is
+verified against the position THAT FILE states - the target frame's, which on
+a WGS 84 target is not the NAD 83 pivot. A job with no transformation writes
+exactly what it wrote before, byte for byte.
 
 **The archive is the only deliverable.** Nothing is written loose beside it
 (docs/DESIGN.md amendment #17). The files travel together or not at all, so
@@ -31,7 +43,14 @@ from pathlib import Path
 
 from michspc.fileio import formatting as fmt
 from michspc.fileio.writers import WriteError, staged_write
-from michspc.job import Direction, JobResult
+from michspc.job import (
+    Direction,
+    JobResult,
+    applied_frame_transformation,
+    written_geodetic_position,
+)
+from michspc.spc.convert import HeightConvention
+from michspc.spc.frames import FrameTransformation, ReferenceFrame
 from michspc.spc.vertical import HeightKind
 
 _PNEZD_HEADERLESS = True
@@ -42,69 +61,15 @@ reader, which is the property `verify_round_trip` below exists to guarantee.
 """
 
 
-class UndisclosedTransformationError(WriteError):
-    """Raised for a job whose outputs could not yet state what was done to it.
-
-    The WGS 84 build's write guard (docs/PLAN-wgs84.md, between work packages
-    W3 and W4). W3 connects HTDP's frame transformation to the conversion;
-    W4 builds its disclosure - the job record's FRAME TRANSFORMATION block,
-    the audit CSV's frame-named columns, and verifiers that check each file
-    against the position that file states. Until then nothing written could
-    say which frames, which date, which height convention, or that a
-    transformation ran at all, so a transformed job is not written. The
-    #41 sequencing rule: disclosure before reachability.
-    """
-
-
-def require_a_disclosable_job(result: JobResult) -> None:
-    """Refuse to write a job whose frame transformation no output yet discloses.
-
-    A job is refused when ANY of these holds, each a sufficient sign that a
-    WGS 84 or ITRF position took part:
-
-    * a point carries a frame transformation (``PointConversion
-      .frame_transformation``);
-    * the direction is ``GEODETIC_TO_GEODETIC``, which exists only across one;
-    * the settings state an observation date, which ``job.run`` accepts only
-      for a time-dependent frame - so an empty transformed job is refused too.
-
-    Called first by ``write_all`` and by ``report.build_report``. Every
-    same-frame job passes untouched, and writes byte for byte what it always
-    wrote. Removed by work package W4 when the disclosure exists.
-    """
-    settings = result.settings
-    transformed = [
-        point.point_id
-        for point in result.points
-        if getattr(point.conversion, "frame_transformation", None) is not None
-    ]
-    geodetic_to_geodetic = settings.direction is Direction.GEODETIC_TO_GEODETIC
-    dated = getattr(settings, "observation_date", None) is not None
-    if not (transformed or geodetic_to_geodetic or dated):
-        return
-    reasons = []
-    if transformed:
-        shown = ", ".join(transformed[:5]) + (", ..." if len(transformed) > 5 else "")
-        reasons.append(
-            f"{len(transformed)} point(s) ({shown}) were moved by a frame "
-            f"transformation"
-        )
-    if geodetic_to_geodetic:
-        reasons.append("the job is geodetic to geodetic")
-    if dated:
-        reasons.append(
-            f"the job states the observation date "
-            f"{settings.observation_date.isoformat()} of a WGS 84 or ITRF frame"
-        )
-    raise UndisclosedTransformationError(
-        f"Nothing was written: {'; '.join(reasons)}. The job record and the "
-        f"audit CSV do not yet state a WGS 84 / ITRF frame transformation - "
-        f"which frames, which observation date, which height convention, or "
-        f"that HTDP ran at all - so an archive of this job would read as "
-        f"though no transformation had happened. That disclosure is the next "
-        f"stage of this development build (docs/PLAN-wgs84.md, work package "
-        f"W4); until it exists a transformed job converts but is not written."
-    )
+# UndisclosedTransformationError and require_a_disclosable_job stood here from
+# work package W3 to W4 of the WGS 84 build: a write guard that refused every
+# job a frame transformation had touched, because no output could yet say so
+# (the #41 rule, disclosure before reachability). W4 built that disclosure -
+# the record's FRAME TRANSFORMATION block, the audit CSV's frame columns, and
+# verifiers that check each file against the position it states - and removed
+# the guard. Its pins in tests/test_job_wgs84.py became successors: the jobs
+# that refused now write, and what they write is pinned
+# (tests/test_frame_disclosure.py).
 
 
 def _geodetic_coordinate_columns(settings) -> bool:
@@ -116,7 +81,10 @@ def _geodetic_coordinate_columns(settings) -> bool:
     clean export, the audit CSV and the round-trip verifier must all take
     the same branch or the verifier would check a file that was not written.
     """
-    return settings.direction is Direction.ZONE_TO_GEODETIC or (
+    return settings.direction in (
+        Direction.ZONE_TO_GEODETIC,
+        Direction.GEODETIC_TO_GEODETIC,
+    ) or (
         settings.direction is Direction.VERTICAL_ONLY
         and settings.source_zone is None
     )
@@ -124,10 +92,28 @@ def _geodetic_coordinate_columns(settings) -> bool:
 
 def _geodetic_source_columns(settings) -> bool:
     """Whether this job's INPUT file's columns two and three hold degrees."""
-    return settings.direction is Direction.GEODETIC_TO_ZONE or (
+    return settings.direction in (
+        Direction.GEODETIC_TO_ZONE,
+        Direction.GEODETIC_TO_GEODETIC,
+    ) or (
         settings.direction is Direction.VERTICAL_ONLY
         and settings.source_zone is None
     )
+
+
+def pivot_frame(path: FrameTransformation) -> ReferenceFrame:
+    """The plate-fixed end of an HTDP path: the frame of the NAD 83 pivot.
+
+    Always NAD83(2011) (plan decision D5), and read from the path's own
+    registry records rather than named, so the frame an output prints beside
+    the pivot is the frame the conversion pivoted through.
+    """
+    return path.target if path.source.is_time_dependent else path.source
+
+
+def external_frame(path: FrameTransformation) -> ReferenceFrame:
+    """The time-dependent end of an HTDP path: the WGS 84 or ITRF frame."""
+    return path.source if path.source.is_time_dependent else path.target
 
 
 def output_stem(result: JobResult) -> str:
@@ -146,7 +132,11 @@ def output_stem(result: JobResult) -> str:
             "job with no file, such as a single typed point, is displayed "
             "rather than written."
         )
-    if settings.direction is Direction.ZONE_TO_GEODETIC:
+    if settings.direction in (
+        Direction.ZONE_TO_GEODETIC,
+        Direction.GEODETIC_TO_GEODETIC,
+    ):
+        # Both write latitudes and longitudes; the record names the frame.
         suffix = "GEODETIC"
     elif settings.direction is Direction.VERTICAL_ONLY:
         # No target zone exists in this mode, so no abbreviation could name
@@ -418,7 +408,160 @@ def audit_columns(result: JobResult) -> list[str]:
             # layout does not change by a byte.
             columns.insert(columns.index("Geoid height (m)"), "Source geoid model")
         columns.insert(columns.index("Geoid height (m)"), "Geoid model")
+
+    path = applied_frame_transformation(settings)
+    if path is not None:
+        columns = _frame_named(columns, path, settings)
+        columns.extend(frame_transformation_columns(path, settings))
     return columns
+
+
+def _frame_named(columns: list[str], path: FrameTransformation, settings) -> list[str]:
+    """The headings of a TRANSFORMED job, each naming the frame its values are in.
+
+    On a same-frame job every position and ellipsoid height in this file is in
+    one frame, the record names it once, and no heading moves (the
+    cross-version digest pins hold every byte of them). On a transformed job
+    the file holds positions and heights in TWO frames about a metre apart -
+    NAD83(2011) and a WGS 84 or ITRF frame - so a bare "Latitude" or
+    "Ellipsoid height (m)" would leave a reader to guess which, and a wrong
+    guess is the metre-scale error this build exists to prevent. Renamed in
+    place, so every column keeps its position:
+
+    * the pivot's four position cells and the factors' ellipsoid height -
+      ``Latitude (NAD83(2011))`` and so on: the pivot is always the NAD 83
+      position (plan D5), and N is published against NAD 83, so H + N is a
+      NAD 83 height;
+    * on a HORIZONTAL ellipsoid-input job, the Z column - the ellipsoid height
+      transformed with the position, so in the path's TARGET frame (plan D6);
+    * on a vertical ellipsoid-input job, ``Ellipsoid height in`` - the height
+      exactly as the file supplied it, so in the path's SOURCE frame.
+    """
+    pivot = pivot_frame(path).code
+    renames = {
+        "Latitude": f"Latitude ({pivot})",
+        "Longitude (neg west)": f"Longitude ({pivot}, neg west)",
+        "Latitude (DMS)": f"Latitude ({pivot}, DMS)",
+        "Longitude (DMS)": f"Longitude ({pivot}, DMS)",
+        "Ellipsoid height (m)": f"Ellipsoid height ({pivot}, m)",
+        ELLIPSOID_ELEVATION_HEADING: f"{ELLIPSOID_ELEVATION_HEADING} ({path.target.code})",
+        f"Ellipsoid height in ({settings.input_unit.code})": (
+            f"Ellipsoid height in ({path.source.code}, {settings.input_unit.code})"
+        ),
+    }
+    return [renames.get(column, column) for column in columns]
+
+
+def frame_transformation_columns(path: FrameTransformation, settings) -> list[str]:
+    """The audit CSV's columns for a frame transformation, appended after Description.
+
+    Present ONLY on a transformed job (``job.applied_frame_transformation``),
+    and APPENDED, so every column of every same-frame job keeps its heading and
+    its position, and no column a transformed job shares with them moves
+    either. Per point, for the reason "Source vertical datum" is (#42): a row
+    cut out of this file still states what was done to it.
+
+    * ``Frame transformation`` - the path, ``WGS84(G2296) -> NAD83(2011)``;
+      so the source columns are in its first frame and the target columns in
+      its second.
+    * ``Observation date`` and ``Observation epoch (decimal year)`` - the
+      job's one date (plan D10) and HTDP's decimal year for it, exactly.
+    * ``Height convention`` - which height HTDP was handed (plan D6).
+    * The external position - the WGS 84 or ITRF end, input or output - in
+      decimal degrees and in DMS exactly as the pivot's four cells are (#66),
+      under headings naming its frame.
+    * On an ellipsoid-input job, the ellipsoid height before and after the
+      transformation, each under its own frame, in metres to HTDP's printed
+      millimetre (``formatting.geoid_height``, the formatter the file's other
+      metre heights use) - N/A where no height was recorded.
+    * The velocity HTDP applied, north, east and up in mm/yr, in the path's
+      TARGET frame (HTDP's output frame, ``htdp.HtdpVelocity``) - N/A where
+      the observation date is the NAD 83 reference epoch's day and HTDP
+      applied none.
+    """
+    external = external_frame(path).code
+    target = path.target.code
+    columns = [
+        "Frame transformation",
+        "Observation date",
+        "Observation epoch (decimal year)",
+        "Height convention",
+        f"Latitude ({external})",
+        f"Longitude ({external}, neg west)",
+        f"Latitude ({external}, DMS)",
+        f"Longitude ({external}, DMS)",
+    ]
+    if settings.input_height_kind is HeightKind.ELLIPSOID:
+        columns.extend(
+            [
+                f"Ellipsoid height before transformation ({path.source.code}, m)",
+                f"Ellipsoid height after transformation ({target}, m)",
+            ]
+        )
+    columns.extend(
+        [
+            f"Velocity north ({target}, mm/yr)",
+            f"Velocity east ({target}, mm/yr)",
+            f"Velocity up ({target}, mm/yr)",
+        ]
+    )
+    return columns
+
+
+def _frame_transformation_cells(
+    point, path: FrameTransformation, settings
+) -> list[str]:
+    """One point's cells under ``frame_transformation_columns``, in order.
+
+    Read from the point's OWN evidence (``PointConversion``'s five
+    transformation fields, which its constructor holds to each other), and
+    refused - never filled in - if the point carries none or carries a
+    different path from the job's: an audit row stating a transformation the
+    point did not undergo would be a false record (#41's rule).
+    """
+    conversion = point.conversion
+    if not conversion.is_transformed or conversion.frame_transformation != path:
+        carried = (
+            f"the frame transformation {conversion.frame_transformation}"
+            if conversion.is_transformed
+            else "no frame transformation"
+        )
+        raise WriteError(
+            f"Point {point.point_id} of this job carries {carried}, but the "
+            f"job applied {path} to every point. Nothing was written: an "
+            f"audit row must state the transformation its own point underwent."
+        )
+    external = conversion.external_position
+    epoch = conversion.observation_epoch
+    convention = conversion.transform_height.convention
+    cells = [
+        str(conversion.frame_transformation),
+        epoch.date.isoformat(),
+        fmt.exact_number(epoch.decimal_year),
+        convention.value,
+        fmt.latitude(external.latitude),
+        fmt.longitude(external.longitude),
+        fmt.latitude_dms_fields(external.latitude),
+        fmt.longitude_dms_fields(external.longitude),
+    ]
+    if settings.input_height_kind is HeightKind.ELLIPSOID:
+        before = (
+            conversion.transform_height.value_m
+            if convention is HeightConvention.ELLIPSOID
+            else None
+        )
+        cells.extend(
+            [
+                fmt.geoid_height(before),
+                fmt.geoid_height(conversion.target_frame_ellipsoid_height),
+            ]
+        )
+    velocity = conversion.htdp_result.velocity
+    cells.extend(
+        fmt.velocity(getattr(velocity, name) if velocity is not None else None)
+        for name in ("north_mm_per_yr", "east_mm_per_yr", "up_mm_per_yr")
+    )
+    return cells
 
 
 def audit_rows(result: JobResult) -> list[list[str]]:
@@ -433,6 +576,7 @@ def audit_rows(result: JobResult) -> list[list[str]]:
     geodetic_source = _geodetic_source_columns(settings)
     geodetic_target = _geodetic_coordinate_columns(settings)
     vertical = settings.vertical_mode.converts_elevations
+    path = applied_frame_transformation(settings)
 
     header = audit_columns(result)
     rows: list[list[str]] = [header]
@@ -566,9 +710,28 @@ def audit_rows(result: JobResult) -> list[list[str]]:
                 else fmt.NOT_AVAILABLE,
             )
 
+        if path is not None:
+            # After Description, under the headings audit_columns appended.
+            row.extend(_frame_transformation_cells(point, path, settings))
+
         rows.append(row)
 
     return rows
+
+
+def stated_geodetic_position(point) -> tuple[float, float]:
+    """``(latitude, signed longitude)`` of the position a geodetic-TARGET file states.
+
+    The position in the frame the job writes: on a WGS 84 or ITRF target the
+    external position HTDP produced, NOT the NAD 83 pivot - which is a metre
+    away and would make every such archive either refuse or, worse, state the
+    wrong frame's numbers (docs/PLAN-wgs84.md section 3.6, the verifier hazard;
+    0.7.1's MEDIUM 1 was a verifier refusing whole archives). On every
+    same-frame job it is the pivot, exactly as before. ``job``'s own rule
+    (``written_geodetic_position``), the one the conversion wrote the columns
+    from, so the files and the verifiers name the same position.
+    """
+    return written_geodetic_position(point.conversion)
 
 
 def _expected_coordinates(result: JobResult, point) -> tuple[str, float, str, float]:
@@ -578,8 +741,27 @@ def _expected_coordinates(result: JobResult, point) -> tuple[str, float, str, fl
     uses for each column, and the number the job computed for it. Reads the
     same branch ``clean_pnezd_rows`` writes, so the two cannot describe
     different columns.
+
+    **The position the file STATES**, per direction (work package W4): a
+    grid northing and easting on a zone target, as always; on a geodetic
+    TARGET the conversion's position in the frame the job writes
+    (``stated_geodetic_position``), in the file's own longitude convention -
+    joining the written cells to the conversion's frame-tagged record rather
+    than to the copy ``ConvertedPoint`` holds; and on a vertical-only geodetic
+    job the input positions, which that file mirrors. For every same-frame
+    job the geodetic-target value is exactly ``output_northing`` and
+    ``output_easting``, the same float the job computed them as.
     """
-    if _geodetic_coordinate_columns(result.settings):
+    settings = result.settings
+    if _geodetic_coordinate_columns(settings):
+        if writes_dms_export(result):
+            latitude, longitude = stated_geodetic_position(point)
+            return (
+                "latitude",
+                latitude,
+                "longitude",
+                settings.longitude_convention.from_signed(longitude),
+            )
         return ("latitude", point.output_northing, "longitude", point.output_easting)
     return ("northing", point.output_northing, "easting", point.output_easting)
 
@@ -749,7 +931,7 @@ def member_names(result: JobResult) -> dict[str, str]:
     unchanged in every direction.
     """
     stem = output_stem(result)
-    if result.settings.direction is Direction.ZONE_TO_GEODETIC:
+    if writes_dms_export(result):
         return {
             "pnezd": f"{stem}_DD.csv",
             "pnezd_dms": f"{stem}_DMS.csv",
@@ -765,10 +947,15 @@ def member_names(result: JobResult) -> dict[str, str]:
 
 def writes_dms_export(result: JobResult) -> bool:
     """Whether this job writes the DMS sibling of its clean export: exactly
-    when the conversion's TARGET is geodetic. A vertical-only job on a
-    geodetic file reproduces its input unconverted and is not a conversion
-    to geodetic, so it does not (amendment #67)."""
-    return result.settings.direction is Direction.ZONE_TO_GEODETIC
+    when the conversion's TARGET is geodetic - State Plane to geodetic, and
+    since the WGS 84 build geodetic to geodetic (plan decision D7), which
+    follows #67 exactly. A vertical-only job on a geodetic file reproduces
+    its input unconverted and is not a conversion to geodetic, so it does not
+    (amendment #67)."""
+    return result.settings.direction in (
+        Direction.ZONE_TO_GEODETIC,
+        Direction.GEODETIC_TO_GEODETIC,
+    )
 
 
 def clean_pnezd_dms_rows(result: JobResult) -> list[list[str]]:
@@ -780,13 +967,16 @@ def clean_pnezd_dms_rows(result: JobResult) -> list[list[str]]:
     ``84-33-19.80000 W`` - from the same formatters and the same arithmetic
     as the audit CSV's DMS columns (#66) and the Single point panel.
 
-    Built from ``conversion.latitude`` and ``conversion.longitude``, the
-    program's own negative-west pivot, NOT from ``output_easting``: that
-    field is re-signed into the job's longitude convention for the decimal
-    file, and a positive-west job would otherwise print a Michigan longitude
-    as E. A DMS position is convention-independent (``longitude_dms``'s
-    docstring), so this file reads the same whichever way the DD file signs
-    its longitudes - pinned under both conventions.
+    Built from the conversion's own signed, negative-west position in the
+    frame the job writes (``stated_geodetic_position``), NOT from
+    ``output_easting``: that field is re-signed into the job's longitude
+    convention for the decimal file, and a positive-west job would otherwise
+    print a Michigan longitude as E. A DMS position is convention-independent
+    (``longitude_dms``'s docstring), so this file reads the same whichever way
+    the DD file signs its longitudes - pinned under both conventions. On a
+    same-frame job that position is the pivot, as it always was; on a WGS 84
+    or ITRF target it is HTDP's output, because the DMS file restates the DD
+    file's position and the DD file holds that frame's (work package W4).
 
     Not for CAD, and not readable by this program's own file reader, which
     takes decimal degrees only and refuses a DMS-looking field by name
@@ -800,11 +990,12 @@ def clean_pnezd_dms_rows(result: JobResult) -> list[list[str]]:
     settings = result.settings
     rows: list[list[str]] = []
     for point in result.points:
+        latitude, longitude = stated_geodetic_position(point)
         rows.append(
             [
                 point.point_id,
-                fmt.latitude_dms_fields(point.conversion.latitude),
-                fmt.longitude_dms_fields(point.conversion.longitude),
+                fmt.latitude_dms_fields(latitude),
+                fmt.longitude_dms_fields(longitude),
                 fmt.coordinate(point.output_elevation, settings.output_unit),
                 point.row.description,
             ]
@@ -821,14 +1012,18 @@ def verify_dms_round_trip(rows: list[list[str]], result: JobResult) -> None:
 
     1. The identifier, elevation and description are character-identical to
        the DD row this file claims to duplicate.
-    2. The DD row's own position is the job's pivot rendered in the job's
-       longitude convention, so the two files are JOINED through one value
+    2. The DD row's own position is the job's STATED position - the pivot on
+       a same-frame job, HTDP's output in the target frame on a WGS 84 or
+       ITRF one (``stated_geodetic_position``; a verifier pointed at the
+       pivot there would refuse every such archive, plan section 3.6) -
+       rendered in the job's longitude convention, so the two files are
+       JOINED through one value
        rather than each checked against the job on its own. With that join
        absent, a DD latitude 1.7 degrees wrong passed both verifiers (0.7.1
        closing gate, LOW 1) - not live, since both files are built from the
        same object, but the archive-level claim is that the two files hold
        the same positions, and now a production check says so.
-    3. The DMS cell is EXACTLY the text the formatter writes for the pivot,
+    3. The DMS cell is EXACTLY the text the formatter writes for that position,
        and the Single point tab's parser reads it back to an angle that
        renders to that same cell again. Compared as TEXT, never within a
        tolerance. The first cut compared the parsed angle against the pivot
@@ -846,9 +1041,9 @@ def verify_dms_round_trip(rows: list[list[str]], result: JobResult) -> None:
        its own fixed point, because the cell and the expectation come from
        the same call (the re-confirmation's LOW 7: a formatter returning a
        constant, or four places instead of five, passed both conditions).
-    4. So the parsed angle is also held to the pivot within ONE FULL last
+    4. So the parsed angle is also held to that position within ONE FULL last
        place of the cell, derived from ``formatting.DMS_SECONDS_DECIMALS``.
-       A correctly rounded cell sits at most HALF a place from the pivot
+       A correctly rounded cell sits at most HALF a place from the position
        plus float noise around 1e-15 degrees, so the bound has half a
        place of headroom - 1.4e-9 degrees, six orders of magnitude above
        the noise - and cannot refuse what the first cut refused (measured
@@ -875,21 +1070,22 @@ def verify_dms_round_trip(rows: list[list[str]], result: JobResult) -> None:
                     f"decimal export reads {dd_row[index]!r}. Nothing was written."
                 )
 
-        pivot_latitude = point.conversion.latitude
-        pivot_longitude = point.conversion.longitude
-        if pivot_latitude is None or pivot_longitude is None:
+        # The position the two files state - see item 2 above.
+        stated_latitude, stated_longitude = stated_geodetic_position(point)
+        if stated_latitude is None or stated_longitude is None:
             raise WriteError(
                 f"DMS round-trip check failed on point {point.point_id!r}: the "
                 f"job carries no geodetic position for it. Nothing was written."
             )
 
-        # The join: the DD cells are the pivot in the job's own convention.
+        # The join: the DD cells are the stated position in the job's own
+        # convention.
         for index, label, expected in (
-            (1, "latitude", fmt.latitude(pivot_latitude)),
+            (1, "latitude", fmt.latitude(stated_latitude)),
             (
                 2,
                 "longitude",
-                fmt.longitude(settings.longitude_convention.from_signed(pivot_longitude)),
+                fmt.longitude(settings.longitude_convention.from_signed(stated_longitude)),
             ),
         ):
             if dd_row[index] != expected:
@@ -901,14 +1097,14 @@ def verify_dms_round_trip(rows: list[list[str]], result: JobResult) -> None:
                     f"not hold. Nothing was written."
                 )
 
-        # The DMS cells: the formatter's own text for the pivot, exactly, and
+        # The DMS cells: the formatter's own text for the stated position, and
         # readable by the other reader back to an angle that renders to the
         # same text - a fixed point, not a tolerance.
-        for index, axis, pivot, render in (
-            (1, dms.LATITUDE, pivot_latitude, fmt.latitude_dms_fields),
-            (2, dms.LONGITUDE, pivot_longitude, fmt.longitude_dms_fields),
+        for index, axis, stated, render in (
+            (1, dms.LATITUDE, stated_latitude, fmt.latitude_dms_fields),
+            (2, dms.LONGITUDE, stated_longitude, fmt.longitude_dms_fields),
         ):
-            expected_cell = render(pivot)
+            expected_cell = render(stated)
             angle, _, letter = row[index].rpartition(" ")
             parts = angle.split(fmt.DMS_FIELD_SEPARATOR) + [letter]
             try:
@@ -924,12 +1120,12 @@ def verify_dms_round_trip(rows: list[list[str]], result: JobResult) -> None:
             if (
                 row[index] != expected_cell
                 or render(actual) != row[index]
-                or abs(actual - pivot) > one_place_deg
+                or abs(actual - stated) > one_place_deg
             ):
                 raise WriteError(
                     f"DMS round-trip check failed on point {point.point_id!r}: "
                     f"the DMS export's {axis} {row[index]!r} reads back as "
-                    f"{actual!r} where the job computed {pivot!r}, written as "
+                    f"{actual!r} where the job computed {stated!r}, written as "
                     f"{expected_cell!r}. Nothing was written."
                 )
 
@@ -1056,10 +1252,6 @@ def write_all(result: JobResult, overwrite: bool = False) -> dict[str, Path]:
     the roles are kept so callers can say which member they mean.
     """
     from michspc.fileio.report import build_report
-
-    # First, before a single cell is rendered or a file staged: the WGS 84
-    # build's write guard (W3 -> W4).
-    require_a_disclosable_job(result)
 
     for point in result.points:
         for label, value in (

@@ -411,6 +411,26 @@ static offsets differ from the IGS set by up to a few centimetres, which moves
 the grid lookup by that much; HTDP does it, so it is copied."""
 
 
+HELMERT_SET_NAMES: Mapping[int, tuple[str, int]] = MappingProxyType(
+    {
+        # (name, htdp.f line of the comment it is copied from) - SETTP's own
+        # heading over each /tranpa/ block, "*** From ITRF94 to <name>",
+        # verbatim after the "to ".
+        1: ("NAD 83", 3649),
+        15: ("ITRF2008 (also IGS08 and IGb08)", 3917),
+        16: ("ITRF2014 (also IGS14 and IGb14)", 3939),
+        17: ("ITRF2020 (also IGS20 and IGb20)", 3962),
+    }
+)
+"""What HTDP calls each transcribed Helmert row, by internal frame index.
+
+The words of SETTP's own comment over the row, so the job record can name the
+parameter set it prints the way NGS's source names it (work package W4,
+docs/PLAN-wgs84.md section 3.6). ``tests/test_frame_disclosure.py`` reads the
+cited line of the committed ``htdp.f`` back and requires it to be exactly
+``*** From ITRF94 to `` followed by the name."""
+
+
 # --------------------------------------------------------------------------
 # Velocity grid 6, "eastern CONUS" (initvl.f:42981-47704).
 # --------------------------------------------------------------------------

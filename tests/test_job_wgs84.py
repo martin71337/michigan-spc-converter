@@ -23,8 +23,11 @@ conversion and ``job.run``. What is pinned here:
 3. **The record**: ``PointConversion``'s transformation evidence, held to
    itself; the canonical-record rule of gate 1's L4; the zone type checks of
    gate 1's I2.
-4. **The write guard** (plan W3 item 9): until W4 builds the disclosure, a
-   transformed job converts and is NOT written.
+4. **The write guard's successors.** W3 held every transformed job back from
+   the disk (plan W3 item 9) until W4 could disclose it. W4 removed the guard;
+   its three pins are kept here as successors - the inputs that refused now
+   WRITE, and what they write is pinned against HTDP's print. The full
+   disclosure suite is ``tests/test_frame_disclosure.py``.
 
 The interface's reachability pins are in ``tests/test_gui_frames.py``.
 """
@@ -40,8 +43,8 @@ import pytest
 
 from michspc import job
 from michspc.fileio import exports, geoid
-from michspc.fileio.exports import UndisclosedTransformationError
 from michspc.fileio.report import build_report
+from tests.conftest import member_text
 from michspc.job import (
     Direction,
     JobSettings,
@@ -1061,7 +1064,17 @@ def test_a_point_conversion_cannot_carry_half_its_evidence_or_contradict_it():
 
 
 # ==========================================================================
-# 5. The write guard (plan W3 item 9): converted, not written, until W4.
+# 5. The write guard's successors (W4).
+#
+# W3 pinned three things: a transformed job converts and is NOT written
+# (``test_a_transformed_job_converts_and_is_not_written``), the guard names
+# each of its three conditions (``test_the_guard_names_every_reason_it_holds``),
+# and a same-frame job still writes (kept below, unchanged). W4 built the
+# disclosure the guard waited for and removed it
+# (``exports.require_a_disclosable_job``, ``UndisclosedTransformationError``).
+# The first two are SUPERSEDED by the successors here - the same five inputs
+# now write, each pinned against HTDP's print, and each of the guard's three
+# conditions now leads to a disclosed archive - not deleted.
 # ==========================================================================
 
 
@@ -1089,46 +1102,82 @@ def _transformed_jobs(tmp_path):
     ), rows_geo
 
 
-def test_a_transformed_job_converts_and_is_not_written(tmp_path):
+def test_the_jobs_the_guard_refused_now_write_and_disclose(tmp_path):
+    """SUCCESSOR of ``test_a_transformed_job_converts_and_is_not_written``.
+
+    The guard's five inputs, exactly as W3 built them, at the L5 date so
+    HTDP's truth is frozen for them (htdp_w3_anchors; the position is L5's,
+    43.0 N 84.5 W, an orthometric Z of 165.000 handed to HTDP as h - the
+    record's own input height). Each now writes an archive whose record
+    carries the FRAME TRANSFORMATION block, and whose positions are HTDP's:
+
+    * g2z: the projected pivot, which is HTDP's printed G2296 -> NAD 83
+      output (checked at the printed digit) projected into MI-C;
+    * z2g and the reverse g2g: the files' position is HTDP's printed
+      NAD 83 -> G2296 output, within half the written 8-place unit plus half
+      HTDP's 1e-10 print (plus the 1e-11 inverse round trip on z2g);
+    * g2g: HTDP's printed G2296 -> NAD 83 output, same tolerance;
+    * vertical-only: the pivot the grids were read at is HTDP's print, and
+      the columns mirror the input.
+    """
+    forward = L5[WGS84_G2296.code]
+    reverse = L5R[WGS84_G2296.code]
+    dd_tolerance = 0.5e-8 + 0.5e-10
+    for label, settings, rows in _transformed_jobs(tmp_path):
+        settings = dataclasses.replace(settings, observation_date=L5_DATE)
+        settings.input_path.parent.mkdir(parents=True, exist_ok=True)
+        _write(settings, rows)
+        result = run(settings)
+        written = exports.write_all(result)
+        archive = written["archive"]
+        assert archive.exists(), label
+        record = member_text(archive, "_README.txt")
+        assert record.count("\nFRAME TRANSFORMATION\n") == 1, label
+        assert build_report(result).count("\nFRAME TRANSFORMATION\n") == 1
+        (point,) = result.points
+        if label in ("g2z", "g2g", "vertical-only"):
+            assert f"{point.conversion.latitude:.10f}" == forward.lat_out, label
+            assert f"{-point.conversion.longitude:.10f}" == forward.lonw_out, label
+        if label == "g2z":
+            expected = project_point(
+                float(forward.lat_out), -float(forward.lonw_out), NAD83_2011, MI_CENTRAL
+            )
+            clean = member_text(archive, "_MI-C.csv").split(",")
+            assert abs(float(clean[1]) - expected.target_northing) <= 0.5e-4 + GRID_TOLERANCE_M
+            assert abs(float(clean[2]) - expected.target_easting) <= 0.5e-4 + GRID_TOLERANCE_M
+        elif label == "vertical-only":
+            clean = member_text(archive, "_VERTICAL.csv").split(",")
+            assert clean[1:3] == ["43.00000000", "84.50000000"]
+        else:
+            dd = member_text(archive, "_DD.csv").split(",")
+            truth = forward if label == "g2g" else reverse
+            extra = 1e-11 if label == "z2g" else 0.0
+            assert abs(float(dd[1]) - float(truth.lat_out)) <= dd_tolerance + extra, label
+            assert abs(float(dd[2]) - float(truth.lonw_out)) <= dd_tolerance + extra, label
+
+
+def test_each_condition_the_guard_held_now_leads_to_a_disclosed_archive(tmp_path):
+    """SUCCESSOR of ``test_the_guard_names_every_reason_it_holds``.
+
+    The guard refused on any of three conditions: a point carrying a frame
+    transformation, the GEODETIC_TO_GEODETIC direction, a stated observation
+    date. The guard is gone - both names are absent from ``exports`` - and a
+    job meeting each condition writes, its record naming the observation
+    date the guard used to quote.
+    """
+    assert not hasattr(exports, "require_a_disclosable_job")
+    assert not hasattr(exports, "UndisclosedTransformationError")
     for label, settings, rows in _transformed_jobs(tmp_path):
         settings.input_path.parent.mkdir(parents=True, exist_ok=True)
         _write(settings, rows)
         result = run(settings)
-        assert len(result.points) == 1, label
-        with pytest.raises(UndisclosedTransformationError) as caught:
-            exports.write_all(result)
-        message = str(caught.value)
-        assert message.startswith("Nothing was written:"), label
-        assert "do not yet state a WGS 84 / ITRF frame transformation" in message
-        assert "work package W4" in message
-        assert not settings.output_directory.exists(), label
-        with pytest.raises(UndisclosedTransformationError):
-            build_report(result)
-
-
-def test_the_guard_names_every_reason_it_holds():
-    """Each condition alone refuses: the points, the direction, the date."""
-    nad83 = JobSettings(
-        input_path=Path("in.csv"),
-        output_directory=Path("out"),
-        direction=Direction.GEODETIC_TO_ZONE,
-        source_zone=None,
-        target_zone=MI_SOUTH,
-        input_unit=METERS,
-        output_unit=METERS,
-        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
-    )
-    empty = job.JobResult(
-        settings=nad83, points=(), input_sha256=None, input_row_count=0,
-        skipped_blank_lines=0, geoid_model=None,
-    )
-    exports.require_a_disclosable_job(empty)  # a same-frame job passes
-    for settings, text in (
-        (dataclasses.replace(nad83, direction=Direction.GEODETIC_TO_GEODETIC), "geodetic to geodetic"),
-        (dataclasses.replace(nad83, observation_date=EPOCH_2020), "observation date 2020-01-01"),
-    ):
-        with pytest.raises(UndisclosedTransformationError, match=text):
-            exports.require_a_disclosable_job(dataclasses.replace(empty, settings=settings))
+        assert all(point.conversion.is_transformed for point in result.points), label
+        assert result.settings.observation_date == EPOCH_2020
+        archive = exports.write_all(result)["archive"]
+        record = member_text(archive, "_README.txt")
+        assert "Observation date   2020-01-01, decimal year 2020.0" in record, label
+        if result.settings.direction is Direction.GEODETIC_TO_GEODETIC:
+            assert "Conversion         geodetic to geodetic" in record
 
 
 def test_a_same_frame_job_still_writes(tmp_path):

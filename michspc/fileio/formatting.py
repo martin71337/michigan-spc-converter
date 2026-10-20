@@ -400,6 +400,43 @@ def vertical_quantity(value_m: float | None, unit: LinearUnit) -> str:
 # ``vertical_quantity(value, METERS)`` produces its output byte for byte.
 
 
+def exact_number(value: float | None) -> str:
+    """The shortest text that reads back as exactly this float.
+
+    For a number a record must state EXACTLY rather than to a display
+    precision (work package W4 of the WGS 84 build, docs/PLAN-wgs84.md
+    section 3.6): a Helmert parameter transcribed from NGS's source, which
+    then reads exactly as NGS wrote it (``-0.00243``, ``5.109e-11``), and
+    HTDP's decimal year, which is the number HTDP's Helmert was evaluated at
+    - so ``float(exact_number(x)) == x`` for every finite x, and a reader can
+    reproduce the arithmetic from the record alone. Python's ``repr`` of a
+    float is that shortest round-tripping text by definition.
+    """
+    if value is None:
+        return NOT_AVAILABLE
+    return repr(float(value))
+
+
+VELOCITY_DECIMALS = 2
+"""Velocities are written to 0.01 mm/yr: the resolution HTDP prints them at
+(docs/DESIGN.md #70, "the 0.01 mm/yr print resolution of the velocities"),
+and the two decimals its grid literals carry (``initvl.f``, transcribed in
+``htdp_data.GRID6_WINDOW``)."""
+
+
+def velocity(value_mm_per_yr: float | None) -> str:
+    """One component of an HTDP velocity, mm/yr, to 0.01 mm/yr.
+
+    ``None`` - no velocity was applied, because the observation date was the
+    NAD83(2011) reference epoch's own day and HTDP then applies the Helmert
+    alone (``htdp.HtdpResult.velocity``) - renders N/A, never 0.00: a zero
+    would state a velocity that was looked up and found still.
+    """
+    if value_mm_per_yr is None:
+        return NOT_AVAILABLE
+    return f"{value_mm_per_yr:.{VELOCITY_DECIMALS}f}"
+
+
 def millimetres(metres: float | None) -> str:
     """A small linear quantity in millimetres, to 4 places."""
     if metres is None:

@@ -756,7 +756,8 @@ def test_the_citation_check_flags_the_citations_it_exists_to_flag():
     Interim gate 1's re-confirmation (N2): the parser was pinned, the verdict
     was not - replacing ``bad.append`` with ``pass``, or dropping the
     blank-line test, left the suite green. Each probe below is derived from
-    the committed htdp.f, whose relevant lines the next test asserts:
+    the committed htdp.f (the next test asserts 4676, 7378 and 4677; 4678 is
+    the non-blank ``nframe(1)`` line, and 8,949 lines is the file's length):
 
     * line 1, ``htdp.f:4676-4677`` - 4676 is blank: L1's own wrong citation;
     * line 2, ``htdp.f:7378`` - blank: L1's ``_newcor`` citation;

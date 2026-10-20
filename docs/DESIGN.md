@@ -706,6 +706,15 @@ re-derived by the lead):
     measured, so only from-NAD 83 records can catch it.
   - **Carried into W3:** L5, I1 and I2. L6's three advice sentences are a
     recorded disposition (plan §3.5).
+  - **Narrowing re-confirmation** (`review/gate-wgs84-1/reconfirm-output.md`):
+    every fix confirmed at the root, all 382 near-tie records re-derived
+    with the reviewer's own binary, and L4's strict rule shown to refuse
+    nothing the program builds (54 legitimate jobs byte-identical to
+    `99a209d`). Two new LOW findings followed:
+    - **N1:** the lead's own oracle working files, swept into a commit.
+    - **N2:** the citation check never proved it flags a bad citation.
+    Both were fixed, pinned and falsified, and the second pass returned
+    **VERDICT: APPROVED. Interim gate 1 is closed.**
 - **Realization dates for D9's warning:** G1762 from 2013-10-16, G2139 from
   2021-01-03, G2296 from 2024-01-07 (NGA, ICG-17 WG-D presentation, 2023;
   EPSG 9756 and 10607; IGSMAIL-8444).

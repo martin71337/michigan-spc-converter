@@ -77,3 +77,27 @@ record. Its "for NAD 83 and WGS 84 a metre or more apart" is offered as an examp
 developer-facing, but only a hand-built record reaches it; the GUI and the job settings cannot.
 
 VERDICT: FINDINGS
+
+---
+
+## Narrow re-confirmation of N1 and N2 at `bdaf200` (diff `315c7cb..bdaf200`)
+
+Scope: only N1 and N2. Seeds were planted in a fresh scratch export of `bdaf200`
+(`/tmp/claude-0/reconf1/repo2`). After each run the file was restored byte for byte and its SHA-256 checked.
+Note: `bdaf200` committed this file. I have appended to it and committed nothing.
+
+**Suite at `bdaf200`:** **4346 passed** in both `pytest` and `python3 -O`. That is the 4345 plus the new test.
+The failures are exactly the same 6 known environmental ones, in both modes.
+
+| # | Fixed at root? | Pin real? | Evidence |
+|---|---|---|---|
+| **N1** | **Yes** | n/a | `in.txt` and `out.txt` are gone from the tree and the working directory, and `.gitignore:40-41` ignores `/in.txt` and `/out.txt`, confirmed with `git check-ignore -v`. Both entries are anchored at the root, so files of those names elsewhere are not hidden. `git ls-tree --name-only bdaf200` at the root is identical to `99a209d`'s. Every file added since `fbcbf4a` (the WGS 84 build's base) is one the build means to carry: the two HTDP modules, the two fixtures, the two generators, the near-tie truth file, the two test files and the gate-1 review files. `git status` is clean apart from this append. |
+| **N2** | **Yes** | **Yes** | `test_the_citation_check_flags_the_citations_it_exists_to_flag` passes five bad citations and one good one to `_bad_citations` and requires the exact list of five. **My two seeds each fail it, by name:** `bad.append(...)` → `pass`; and the blank-line test dropped from `blank_or_missing`. **I added three more, each also caught by the same test:** the reversed-range check dropped; the short form `# :N` no longer parsed; and a hijack in which `text=None` becomes an empty source. That last one fails all three `test_every_fortran_line_citation_names_a_real_non_blank_line[...]` tests through their citation-count floors. **The `text` parameter cannot make the real-module check vacuous.** It defaults to `None`, which reads the module from disk, and the real-module test passes no `text` to either `_citations` or `_bad_citations`. The probe test's `text` is a local string and affects nothing else. As a control at `bdaf200`, putting `frames.py`'s citation back to `htdp.f:4676-4677` still fails `test_every_fortran_line_citation_names_a_real_non_blank_line[frames.py]`. The probe expectations are true of the committed `htdp.f`: 4676 and 7378 are blank, 99999 is past the end, and 4677-4678 are `iframe(1) = 1` and `nframe(1) = 'NAD_83(2011/CORS96/2007)'`. |
+
+**One wording note (INFO, not a finding):** the new test's docstring says "the next test asserts" the relevant
+htdp.f lines. The next test asserts 4676, 7378, 4677 and 7387, but not 4678. The probe still holds, because 4678
+is the non-blank `nframe(1)` line, as read above.
+
+**New findings:** none. Nothing in `315c7cb..bdaf200` touches production code, and no number can have moved.
+
+VERDICT: APPROVED

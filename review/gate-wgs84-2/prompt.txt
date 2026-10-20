@@ -1,0 +1,106 @@
+You are the INDEPENDENT ADVERSARIAL REVIEWER for interim gate 2 of the WGS 84
+build in MCX (Martin Coordinate Exchange), a Michigan State Plane coordinate
+converter used by a licensed professional surveyor. A wrong coordinate, or a
+false sentence in a job record, lands on a sealed survey and moves a
+boundary. You did not write this code and you have not seen the session
+lead's review of it. Your job is to find defects, not to approve.
+
+READ-ONLY on the repository, except your one output file
+review/gate-wgs84-2/output.md. Do not commit. Scratch in /tmp/claude-0/gate2/.
+
+SCOPE: the diff bd2b325..HEAD on branch claude/brave-noether-88m7x1:
+- W3 (8201968): HTDP applied in michspc/spc/convert.py and michspc/job.py;
+  observation_date; GEODETIC_TO_GEODETIC; height conventions.
+- W4 (4454a54): the job record (michspc/fileio/report.py), the audit CSV and
+  clean exports (michspc/fileio/exports.py), and the verifiers.
+- W4b (the commit after 4454a54): zone-less record prose for vertical-only
+  geodetic jobs.
+Gate 1 (review/gate-wgs84-1/) covered W1-W2. Do not re-review htdp.py's
+arithmetic except where W3 calls it.
+
+DESIGN AUTHORITY: docs/PLAN-wgs84.md (decisions D1-D10, sections 3.4-3.6),
+docs/DESIGN.md amendment #70, and #54 (ellipsoid heights), #66-#69
+(audit/DMS/verifier history), #41 (disclosure before reachability) and #50
+(the owner's no-caveat rule: facts only on user surfaces).
+
+THE ORACLE: build NGS's HTDP v3.6.0 from review/wgs84-w0/htdp-v3.6.0/ with
+  gfortran -O0 -std=legacy -w *.f -o htdp
+Calendar stdin:
+  printf '4\nout.txt\n<IN>\n<OUT>\n1\n<M D Y>\n1\n<M D Y>\n3\nin.txt\n0\n0\n'
+in.txt holds LAT,LON_POS_WEST,EHT,NAME lines. NAD83 is 1 1 2010. Menu
+numbers: 1 NAD83(2011), 10 G1762, 11 G2139, 12 G2296, 25 ITRF2014,
+26 ITRF2020. Output is %16.10f%16.10f%10.3f, positive west. The program's
+projection (convert.project_point / to_geodetic on NAD83(2011)) is verified
+against NGS NCAT elsewhere and may be used as an independent leg.
+
+PRIORITY SURFACES, ranked by risk. For each, construct concrete
+counterexamples.
+1. WRONG NUMBERS THROUGH THE REAL FILE PATH. Write input files, run job.run,
+   write_all, unzip and parse every member. Compare against the oracle plus
+   the projection. Cover:
+   - every transformed direction, every frame, every height kind, every
+     vertical mode, every output unit, both longitude conventions;
+   - dates across 2010-2026 and the 2010-01-01 same-day case;
+   - blank and zero Z.
+   Hunt specifically for:
+   - a WGS 84 value written where NAD 83 is labelled, or the reverse;
+   - an ellipsoid height in the wrong frame;
+   - an orthometric Z changed;
+   - a factor computed from the wrong h;
+   - a vertical shift or geoid lookup at the wrong position;
+   - the clean export, the DD/DMS siblings and the audit CSV disagreeing
+     with one another;
+   - unit conversion applied to degrees.
+2. FALSE RECORD SENTENCES. Read the job record of every configuration you
+   build. Is every sentence true for that job? Check the frames, dates,
+   decimal year, Helmert epoch, sets and parameters, velocity statement,
+   height-convention counts and bounds, round-trip statement, warnings and
+   verification prose. Check zone-only prose on zone-less jobs, and
+   same-frame prose on transformed jobs. Check that no caveat prose
+   violates #50.
+3. REFUSALS AND GATES (job.py):
+   - observation_date: required, stray, future, datetime, realization-period
+     warning edges;
+   - stray geodetic_frame / target_geodetic_frame;
+   - GEODETIC_TO_GEODETIC pair rules;
+   - the ellipsoid-height gate (NATRF2022 must still refuse);
+   - TypeError for non-Zone arguments;
+   - the order of gates, every one before the file is read;
+   - the today() seam (local vs UTC).
+   Can any legitimate job be refused? Can any illegitimate one run?
+4. VERIFIERS: can a correctly converted job's archive be refused (the #69
+   class: tolerance or rounding-tie refusal)? Can a wrong archive pass? Seed
+   defects into a scratch copy of exports.py and check the suite and the
+   verifiers both catch them.
+5. SAME-FRAME REGRESSION: does any NAD83(2011) or NATRF2022 job's output
+   change by a byte, other than the W4b supersession of the vertical-only
+   geodetic record text? Compare against the same jobs written at bd2b325
+   (git worktree).
+6. INTERFACE: can any GUI path reach the five frames or GEODETIC_TO_GEODETIC
+   yet? It must not until W5.
+7. TESTS: vacuous pins, expected values read back from the code's own
+   output, or seeds the suite misses.
+
+DELIVERABLE: write review/gate-wgs84-2/output.md with:
+- a findings table. Severity is one of CRITICAL / HIGH / MEDIUM / LOW /
+  INFO, with these meanings:
+  - CRITICAL: a plausible wrong coordinate reaches an output with no
+    refusal;
+  - HIGH: a wrong number or false record statement in a reachable
+    configuration;
+  - MEDIUM: a fail-closed defect refusing legitimate work, or a pin gap
+    that would let a HIGH through;
+  - LOW: wording, citation, hygiene;
+  - INFO: an observation.
+  Each finding needs the concrete input, the observed result, the expected
+  result and the root cause.
+- the clean surfaces you checked and how, with counts.
+- a final line "VERDICT: APPROVED" or "VERDICT: FINDINGS".
+
+The suite runs with
+  QT_QPA_PLATFORM=offscreen python3 -m pytest -q -p no:cacheprovider --continue-on-collection-errors
+and has 6 known environmental failures in this container:
+- the test_zone_registry collection error;
+- three test_fileio::test_r3_3_*;
+- test_geodetic_dms_export half_way_point_writes;
+- test_projection_engines page_ngs_served.

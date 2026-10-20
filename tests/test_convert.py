@@ -319,7 +319,8 @@ def test_every_usable_frame_has_its_identity_and_nothing_else_is_registered():
     * every usable PLATE-FIXED frame (NAD83(2011), NATRF2022) has its identity,
       or a legitimate job within it would be refused;
     * no time-dependent frame has an identity - a vertical-only job on one
-      must refuse until W3 decides how it runs (plan W2, item 5);
+      finds its pivot through the frame's HTDP path to NAD83(2011) instead
+      (plan D8, ``convert.pivot_path``, work package W3), never an identity;
     * the non-identity paths are EXACTLY HTDP v3.6.0 between NAD83(2011) and
       each of the five, both ways - ten, derived here by hand from the plan's
       list, not from the registry. In particular the NAD83(2011) <-> NATRF2022

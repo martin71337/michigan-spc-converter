@@ -16,6 +16,7 @@ convert" behaviour honest - what is previewed is what is written.
 
 from __future__ import annotations
 
+import datetime
 import hashlib
 import math
 from dataclasses import dataclass, field
@@ -23,22 +24,31 @@ from enum import Enum
 from pathlib import Path
 
 from michspc.fileio import formatting, geoid, pnezd, vertcon
+from michspc.spc import htdp
 from michspc.spc.convert import (
     ConversionWarning,
+    HeightConvention,
     PointConversion,
+    TransformHeight,
     WarningCode,
     convert_point,
     easting_looks_wrong_for_zone,
     geodetic_position,
+    geodetic_to_geodetic,
+    pivot_path,
     project_point,
-    require_a_connected_path,
+    require_an_applicable_path,
+    zone_to_geodetic,
 )
 from michspc.spc.factors import Factors, factors_at
 from michspc.spc.frames import (
     NAD83_2011,
     NATRF2022,
+    FrameMismatchError,
+    FrameTransformation,
     FrameTransformationUnavailableError,
     ReferenceFrame,
+    realization_period_of_use,
     require_frame_path,
 )
 from michspc.spc.units import LinearUnit
@@ -70,6 +80,21 @@ class Direction(Enum):
     for the same reason) and only the elevation moves. Requires
     ``VerticalMode.VERTICAL``, and is required by it - ``run`` refuses either
     without the other."""
+
+    GEODETIC_TO_GEODETIC = "geodetic to geodetic"
+    """Latitude and longitude in, latitude and longitude out, across a frame
+    transformation (docs/PLAN-wgs84.md decision D7): a WGS 84 or ITRF position
+    to NAD83(2011), or the reverse - HTDP's own core use. The input is in
+    ``geodetic_frame`` and the output in ``target_geodetic_frame``, and the
+    pair must be a registered NON-identity path: the same frame at both ends
+    converts nothing, and every other pair refuses with the frame registry's
+    own reason. No zone takes part; ``source_zone`` and ``target_zone`` must
+    both be None.
+
+    Pairs with ``VerticalMode.HORIZONTAL`` and with
+    ``HORIZONTAL_AND_VERTICAL`` (a WGS 84 GNSS position and height in, a
+    NAD 83 position and a NAVD 88 elevation out), never with ``VERTICAL`` -
+    which pairs with ``VERTICAL_ONLY`` alone, as it always has."""
 
 
 class VerticalMode(Enum):
@@ -219,9 +244,14 @@ class JobSettings:
     Read at both geodetic ends, not only the input one: on
     ``GEODETIC_TO_ZONE`` it is the frame the file's latitudes and longitudes
     are read as, and on ``ZONE_TO_GEODETIC`` it is the frame the latitudes and
-    longitudes written out are in - which is the source zone's frame, not a
-    choice. Unread by ``ZONE_TO_ZONE``, where both ends are zones carrying
-    their own.
+    longitudes written out are in - the source zone's own frame, or one of the
+    WGS 84 and ITRF frames HTDP carries it to. On ``GEODETIC_TO_GEODETIC`` it
+    is the INPUT frame (``target_geodetic_frame`` is the output's), and on a
+    ``VERTICAL_ONLY`` job with geodetic input the frame the positions are in.
+    Unread by ``ZONE_TO_ZONE`` and by ``VERTICAL_ONLY`` with a zone input,
+    where every end is a zone carrying its own frame - and so a value other
+    than the default there is refused by name rather than ignored (interim
+    gate 1 of the WGS 84 build, finding I1), as a stray zone is.
 
     **NATRF2022 is now a legitimate value** (docs/DESIGN.md amendment #62). It
     was not when this field was written: NATRF2022 had no zones and setting
@@ -234,9 +264,10 @@ class JobSettings:
     with the zone at the other end is refused by
     ``_require_a_registered_frame_path`` before the file is read, and by
     ``convert.require_frame_path`` again at every point. The WGS 84 and ITRF
-    frames registered by the WGS 84 build (docs/DESIGN.md #70) refuse at the
-    same gate in this development build: their paths to NAD83(2011) are
-    registered and not yet applied (``convert.require_a_connected_path``).
+    frames registered by the WGS 84 build (docs/DESIGN.md #70) pass that gate
+    against an SPCS 83 zone or NAD83(2011): their positions are transformed
+    by HTDP v3.6.0 to or from NAD83(2011) (plan W3), and the job then needs
+    ``observation_date``.
 
     **The default is now load-bearing in a way it was not**, and this is worth
     stating rather than discovering: it is NAD83(2011), which is right for
@@ -355,6 +386,35 @@ class JobSettings:
       number - and the record would state a conversion "from GEOID12B" of a
       height that was never on GEOID12B, a false sentence in an audit
       document (the owner's decision, 2026-08-11).
+    """
+
+    observation_date: datetime.date | None = None
+    """The calendar date the job's WGS 84 or ITRF positions were observed.
+
+    **Required exactly when a frame this job's direction reads is
+    time-dependent** - WGS84(G1762), (G2139), (G2296), ITRF2014 or ITRF2020 -
+    and refused by name when none is: a date stated for a job that never
+    reads one would print an observation epoch into a record of a job that
+    used none, the stray-field class of the 0.7.0 closing gate. No default
+    date exists, because a Michigan point moves about 17 mm a year against
+    NAD 83 in those frames (review/wgs84-w0/RECON.md section 3) and a guessed
+    date is a guessed position.
+
+    One date per job (docs/PLAN-wgs84.md decision D10): a PNEZD file has no
+    column for it, so every point in the file is taken as observed on it.
+    A real calendar date only (decision D9): a ``datetime.date``, never a
+    ``datetime.datetime`` (HTDP's calendar entry means 00:00 UTC, so a time of
+    day would be dropped without a word), and never a date after the day the
+    job runs.
+    """
+
+    target_geodetic_frame: ReferenceFrame | None = None
+    """The OUTPUT frame of a ``GEODETIC_TO_GEODETIC`` job, and of nothing else.
+
+    Required by that direction and refused by name on every other, where no
+    second geodetic end exists: ``geodetic_frame`` is the one geodetic end of
+    every other direction, and a second frame stated beside it would be a
+    frame the job record could print and the conversion never used.
     """
 
 
@@ -510,7 +570,11 @@ class EllipsoidHeightReading:
     shipped models."""
 
     ellipsoid_height_m: float
-    """h, exactly as supplied, converted to metres. The smaller number."""
+    """h in NAD83(2011), metres: exactly as supplied, converted to metres - or,
+    on a job whose positions are in a WGS 84 or ITRF frame, the supplied h
+    after it was transformed with the position to NAD83(2011) (plan decision
+    D6; ``PointConversion.pivot_ellipsoid_height``), because N is published
+    against NAD 83. The smaller number."""
 
     geoid_height_m: float
     """N at the point's pivot position, metres. Negative in Michigan."""
@@ -662,6 +726,11 @@ class ConvertedPoint:
     unavailable (``WarningCode.VERTICAL_SHIFT_UNAVAILABLE``), because an
     unconverted height printed as converted is the tier sentence's failure
     mode.
+
+    An ELLIPSOID Z on a job with a frame transformation (plan decision D6) is
+    the ellipsoid height in the job's OUTPUT frame on a horizontal job - the
+    height transformed with the position - and H = h(NAD 83) - N on a
+    vertical one; an ORTHOMETRIC Z is never moved by the transformation.
     """
 
     vertical: VerticalReading | None = None
@@ -728,6 +797,19 @@ class JobResult:
     input_row_count: int
     skipped_blank_lines: int
     geoid_model: str | None
+
+    job_warnings: tuple[ConversionWarning, ...] = ()
+    """Warnings about the JOB rather than about any one point.
+
+    Today exactly one kind: ``WarningCode.REALIZATION_OUTSIDE_PERIOD_OF_USE``
+    (plan decision D9), a fact about the frame and the observation date that
+    is the same for every point (decision D10), so it is raised once here
+    rather than repeated on every row. Not part of ``warnings`` above, whose
+    every entry is paired with the point that raised it; the job record and
+    the interface's warnings field read this alongside it (work packages W4
+    and W5). Empty on every job without a time-dependent frame, so every
+    existing job is unchanged.
+    """
 
     @property
     def warnings(self) -> tuple[tuple[str, ConversionWarning], ...]:
@@ -842,7 +924,10 @@ def _height_frame(settings: JobSettings) -> ReferenceFrame:
       and longitudes are read as (and, past the frame gate, the target zone's);
     * ``ZONE_TO_GEODETIC`` and ``ZONE_TO_ZONE`` - the source zone's own frame;
     * ``VERTICAL_ONLY`` - the source zone's frame with a zone input, and
-      ``geodetic_frame`` with a geodetic one.
+      ``geodetic_frame`` with a geodetic one;
+    * ``GEODETIC_TO_GEODETIC`` - ``geodetic_frame``, the INPUT frame: the Z
+      column is read in it, and is carried from it to NAD83(2011) for
+      ``H = h - N`` whichever end NAD83(2011) is.
 
     Called only after the direction block has established that the fields each
     direction needs are present.
@@ -863,6 +948,22 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
     ``settings.input_path``, because that path was not what was converted
     (WP-R3 fix 2).
     """
+    # Interim gate 1 of the WGS 84 build, finding I2: a zone field holding
+    # something that is not a zone - a frame record is the likeliest, and
+    # JobSettings(target_zone=WGS84_G2296) reads plausibly - used to fail as
+    # an AttributeError deep in the gates below, which walks through every
+    # ``except FrameMismatchError`` a caller writes. A TypeError naming it,
+    # before anything else reads the field.
+    for name in ("source_zone", "target_zone"):
+        value = getattr(settings, name)
+        if value is not None and not isinstance(value, Zone):
+            raise TypeError(
+                f"JobSettings.{name} must be a michspc.spc.zones.Zone, or None "
+                f"where the direction has no zone at that end; got "
+                f"{type(value).__name__} ({value!r}). A reference frame is not "
+                f"a zone: a geodetic end's frame is stated in geodetic_frame."
+            )
+
     if settings.direction is Direction.ZONE_TO_ZONE:
         if settings.source_zone is None or settings.target_zone is None:
             raise ValueError(
@@ -903,6 +1004,22 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
         # ``source_zone`` is the input system: a Zone for a PNEZD file, or
         # None for geodetic positions - exactly the existing source_zone
         # idiom, so no third field exists to disagree with it.
+    elif settings.direction is Direction.GEODETIC_TO_GEODETIC:
+        stray = [
+            name
+            for name in ("source_zone", "target_zone")
+            if getattr(settings, name) is not None
+        ]
+        if stray:
+            raise ValueError(_stray_geodetic_to_geodetic_zone_message(settings, stray))
+        if settings.target_geodetic_frame is None:
+            raise ValueError(
+                "A geodetic-to-geodetic job needs the frame its output "
+                "positions are wanted in, target_geodetic_frame, beside the "
+                "frame its input positions are in, geodetic_frame. Neither "
+                "is inferred: a WGS 84 and a NAD 83 position of one point "
+                "differ by about 1.3 m in Michigan and look alike."
+            )
     else:
         if settings.source_zone is None:
             raise ValueError(
@@ -917,7 +1034,16 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
     # read rather than once per point. The sequence below is EXTENDED at this
     # point and never reordered: which refusal a doubly-invalid job raises is
     # a pinned property.
-    _require_a_registered_frame_path(settings)
+    #
+    # The WGS 84 build (docs/PLAN-wgs84.md, work package W3) extends it in
+    # three places, each a fact about the settings: the stray frame fields
+    # first, beside the stray-zone refusals they mirror; the frame path, which
+    # now returns the record the rows will apply; and the observation date,
+    # straight after it, because whether a date is required is a property of
+    # the path just found.
+    _require_no_stray_frame_fields(settings)
+    frame_path = _require_a_registered_frame_path(settings)
+    epoch, job_warnings = _require_the_observation_date(settings, frame_path)
     _require_units_the_zones_publish(settings)
     _require_a_convertible_ellipsoid_height_frame(settings)
 
@@ -928,6 +1054,7 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
     consults_longitude = settings.direction in (
         Direction.GEODETIC_TO_ZONE,
         Direction.ZONE_TO_GEODETIC,
+        Direction.GEODETIC_TO_GEODETIC,
     ) or (
         settings.direction is Direction.VERTICAL_ONLY
         and settings.source_zone is None
@@ -1262,7 +1389,14 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
     for row in parsed.rows:
         points.append(
             _convert_row(
-                row, settings, grid, transformation, vertcon_grids, swap_grids
+                row,
+                settings,
+                grid,
+                transformation,
+                vertcon_grids,
+                swap_grids,
+                frame_path=frame_path,
+                epoch=epoch,
             )
         )
 
@@ -1285,6 +1419,7 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
         geoid_model=(
             factors_model.name if factors_model is not None else None
         ),
+        job_warnings=job_warnings,
     )
 
 
@@ -1300,72 +1435,150 @@ class _GeoidSwapGrids:
     target_grid: object
 
 
-def _require_a_registered_frame_path(settings: JobSettings) -> None:
-    """Refuse a cross-frame job at its SETTINGS, before the file is read.
+def _stray_geodetic_to_geodetic_zone_message(
+    settings: JobSettings, stray: list[str]
+) -> str:
+    """Why a zone on a geodetic-to-geodetic job is refused, not ignored.
 
-    ``convert.project_point`` and ``convert.convert_point`` each pass their own
-    ends through ``frames.require_frame_path``, so a cross-frame job could
-    never produce a wrong coordinate. What it could do before this gate existed
-    is read the file, convert forty rows, and fail on the forty-first only
-    because that is when the loop reached it - a whole-job refusal announced as
-    though it were about one point. It is about the settings, so it fires here.
+    ``_stray_zone_message``'s rule, for the direction with no zone at either
+    end: a zone the conversion never touches would still reach the job record,
+    which derives its zone blocks from these settings.
+    """
+    named = " and ".join(
+        f"{name}={getattr(settings, name).name} ({getattr(settings, name).code})"
+        for name in stray
+    )
+    return (
+        f"A {Direction.GEODETIC_TO_GEODETIC.name} job was given {named}, which "
+        f"this direction never reads: the input and the output are both "
+        f"latitudes and longitudes, so no zone is inverted or projected into. "
+        f"The job record derives its zone blocks from these settings, not "
+        f"from the conversion that ran, so it would print a block for a zone "
+        f"that took no part in the job. Pass "
+        f"{' and '.join(f'{name}=None' for name in stray)}."
+    )
+
+
+def _reads_geodetic_frame(settings: JobSettings) -> bool:
+    """Whether this job's direction has a geodetic end, and so reads ``geodetic_frame``."""
+    return settings.direction in (
+        Direction.GEODETIC_TO_ZONE,
+        Direction.ZONE_TO_GEODETIC,
+        Direction.GEODETIC_TO_GEODETIC,
+    ) or (
+        settings.direction is Direction.VERTICAL_ONLY
+        and settings.source_zone is None
+    )
+
+
+def _frame_label(frame: object) -> str:
+    code = getattr(frame, "code", None)
+    return code if isinstance(code, str) else repr(frame)
+
+
+def _require_no_stray_frame_fields(settings: JobSettings) -> None:
+    """Refuse a frame field this job's direction never reads, by name.
+
+    The 0.7.0 closing gate's stray-zone MEDIUM, applied to the two frame
+    fields (docs/PLAN-wgs84.md section 3.5, "from the lead's W2 probe";
+    interim gate 1 of the WGS 84 build, finding I1). A ``ZONE_TO_ZONE`` job -
+    or a ``VERTICAL_ONLY`` job reading State Plane coordinates - given a
+    ``geodetic_frame`` of WGS84(G2296) runs, ignores it, and converts
+    correctly; but the field is a statement about where the job's positions
+    are, the job never made that statement true, and a later surface that
+    printed it would describe a frame nothing was in. ``target_geodetic_frame``
+    is read only by ``GEODETIC_TO_GEODETIC``.
+
+    ``geodetic_frame`` is DEFAULTED to NAD83(2011), so the test is "differs
+    from the default", in value: a caller that rebuilt the default record
+    field for field has stated nothing. Both interface tabs already set the
+    field only when a side is geodetic (``controls.geodetic_frame_for``), so
+    this refuses nothing they build.
+    """
+    if (
+        settings.direction is not Direction.GEODETIC_TO_GEODETIC
+        and settings.target_geodetic_frame is not None
+    ):
+        raise ValueError(
+            f"A {settings.direction.name} job was given target_geodetic_frame="
+            f"{_frame_label(settings.target_geodetic_frame)}, which only a "
+            f"{Direction.GEODETIC_TO_GEODETIC.name} job reads: this "
+            f"direction's one geodetic end, if it has one, is geodetic_frame. "
+            f"A second frame stated here would be one the job record could "
+            f"print and the conversion never used. Pass "
+            f"target_geodetic_frame=None."
+        )
+    if not _reads_geodetic_frame(settings) and settings.geodetic_frame != NAD83_2011:
+        reading = (
+            "both ends are zones"
+            if settings.direction is Direction.ZONE_TO_ZONE
+            else "the input is State Plane coordinates and nothing is written "
+            "as latitude and longitude"
+        )
+        raise ValueError(
+            f"A {settings.direction.name} job was given geodetic_frame="
+            f"{_frame_label(settings.geodetic_frame)}, which this job never "
+            f"reads: {reading}, and each zone carries its own frame. The "
+            f"conversion would run in the zones' frame and ignore the field, "
+            f"while the field states that this job's positions are in "
+            f"{_frame_label(settings.geodetic_frame)} - a frame nothing in the "
+            f"job is in. Refused here rather than ignored, as a stray zone is. "
+            f"Leave geodetic_frame at its default, {NAD83_2011.code}."
+        )
+
+
+def _require_a_registered_frame_path(
+    settings: JobSettings,
+) -> FrameTransformation | None:
+    """The frame path this job's rows will apply - or a refusal, before the file is read.
+
+    ``convert.project_point``, ``convert.zone_to_geodetic`` and the other
+    conversion functions each pass their own ends through
+    ``frames.require_frame_path``, so a cross-frame job could never produce a
+    wrong coordinate. What it could do before this gate existed is read the
+    file, convert forty rows, and fail on the forty-first only because that is
+    when the loop reached it - a whole-job refusal announced as though it were
+    about one point. It is about the settings, so it fires here.
 
     The pair this checks is the one the settings alone can put in disagreement:
-    ``geodetic_frame`` names the frame a geodetic END is in, and the zone at
-    the other end carries its own. The two directions differ only in which end
-    is which:
+    ``geodetic_frame`` names the frame a geodetic END is in, and the zone (or
+    the second geodetic frame) at the other end carries its own:
 
     * ``GEODETIC_TO_ZONE`` - the file's latitudes and longitudes are read as
       ``geodetic_frame`` and projected into ``target_zone``;
-    * ``ZONE_TO_GEODETIC`` - ``source_zone``'s coordinates are inverted, and
-      the latitudes and longitudes written out are in that ZONE's frame, which
-      is what ``geodetic_frame`` must therefore name. A 2022-zone job left on
-      the NAD83(2011) default would write NATRF2022 positions under a record
-      that says NAD83(2011) - one to two metres, invisible in the numbers.
+    * ``ZONE_TO_GEODETIC`` - ``source_zone``'s coordinates are inverted into
+      the zone's own frame and written out in ``geodetic_frame``. A 2022-zone
+      job left on the NAD83(2011) default refuses: there is no published
+      NATRF2022 <-> NAD83(2011) path, and writing NATRF2022 positions under a
+      NAD83(2011) label is one to two metres, invisible in the numbers;
+    * ``GEODETIC_TO_GEODETIC`` - ``geodetic_frame`` to ``target_geodetic_frame``,
+      and only across a registered NON-identity path (plan decision D7): the
+      same frame at both ends converts nothing, and is refused rather than
+      run as a conversion that changed no number;
+    * ``VERTICAL_ONLY`` with a GEODETIC input - ``convert.pivot_path``: the
+      frame's identity when it is plate-fixed, its HTDP path to NAD83(2011)
+      when it is time-dependent (plan decision D8), and the bare WGS 84 label
+      refused by name. Until the 0.7.0 closing gate this direction was skipped
+      entirely, and a ``VERTICAL_ONLY`` job stating ``WGS84`` certified a NAVD
+      88 elevation under a record reading "Reference frame WGS84". The same
+      function is the per-point gate in ``convert.geodetic_position``
+      (interim gate 1, finding L5), so the two cannot choose different paths.
 
-    ``ZONE_TO_ZONE`` is not checked here: both ends are zones, neither consults
-    ``geodetic_frame``, and ``convert_point`` gates the pair itself.
-
-    ``VERTICAL_ONLY`` with a GEODETIC input is checked, and the check is the
-    frame against ITSELF. There is no second frame to disagree with the first -
-    the job performs no horizontal conversion and the export mirrors the input
-    columns - so the pair question is genuinely inapplicable; what is NOT
-    inapplicable is whether this program may carry a coordinate in that frame
-    at all. Until the 0.7.0 closing gate this direction was skipped entirely,
-    and a ``VERTICAL_ONLY`` geodetic job stating ``WGS84`` ran to completion:
-    ``geodetic_position`` accepts any ``ReferenceFrame`` without asking whether
-    it is usable, so 43.0 N / 84.5 W came back as a converted NAVD 88 elevation
-    inside a job record reading "Reference frame WGS84 - World Geodetic System
-    1984" - this program certifying a number in the one frame its registry says
-    it neither accepts nor produces.
-
-    The identity lookup is how that is asked, rather than a second usability
-    checker beside this one: it is the true statement about the job (the
-    position stays in the frame it arrived in), it produces
-    ``FrameNotUsableError`` naming WGS 84, and it is strictly stronger than a
-    usability test, because the registry deliberately carries no identity for
-    an unusable frame - so the refusal survives even the removal of the
-    usability check. A ``VERTICAL_ONLY`` job with a ZONE input is not checked:
-    it never reads ``geodetic_frame``, and its pivot comes from a registry zone
-    whose own frame is usable by construction.
+    ``ZONE_TO_ZONE`` and ``VERTICAL_ONLY`` with a zone input are not checked
+    here and return None: every end is a zone, and ``convert_point`` gates the
+    pair itself.
 
     The refusal is ``frames``' own, raised by ``require_frame_path`` and
     propagated UNTOUCHED - it already names both frames, the metre-scale stake,
     NGS's unpublished transformation and the ways out, and wrapping it would
     hide the ``FrameMismatchError`` subclasses callers are told to catch.
 
-    **A registered path is not yet an applied one** (docs/DESIGN.md #70,
-    docs/PLAN-wgs84.md work package W2). Since the WGS 84 build the registry
-    carries NGS HTDP v3.6.0 between NAD83(2011) and five time-dependent frames,
-    and ``require_frame_path`` returns those records instead of refusing. So
-    the record it returns is passed to ``convert.require_a_connected_path``,
-    which refuses every non-identity path until work package W3 wires the
-    transformation into the conversion - the same guard ``convert_point`` and
-    ``project_point`` apply, asked here so the job refuses at its settings
-    rather than at its first point, and so the ``ZONE_TO_GEODETIC`` job, whose
-    points never meet a non-identity path, refuses at all. A ``VERTICAL_ONLY``
-    geodetic job on one of the five frames refuses one step earlier, at the
-    missing identity: the registry deliberately registers none for them.
+    **Since work package W3 a registered path is an APPLIED one.** The record
+    found here is returned, and ``run`` hands it to every row, so the
+    observation date the path requires is decided from the same record the
+    rows apply. It still passes ``convert.require_an_applicable_path``, the
+    single point where a path whose method this program cannot run is
+    refused - the W2 guard's successor.
     """
     if settings.direction is Direction.GEODETIC_TO_ZONE:
         path = require_frame_path(
@@ -1375,54 +1588,221 @@ def _require_a_registered_frame_path(settings: JobSettings) -> None:
         path = require_frame_path(
             settings.source_zone.frame, settings.geodetic_frame
         )
+    elif settings.direction is Direction.GEODETIC_TO_GEODETIC:
+        path = require_frame_path(
+            settings.geodetic_frame, settings.target_geodetic_frame
+        )
+        if path.is_identity:
+            raise FrameTransformationUnavailableError(
+                f"A {Direction.GEODETIC_TO_GEODETIC.name} job was given "
+                f"{path.source.code} at both ends. Nothing would be converted: "
+                f"every position would come back exactly as it went in, under "
+                f"a record stating a conversion. Geodetic to geodetic exists "
+                f"only across a frame transformation - a WGS 84 or ITRF frame "
+                f"to or from {NAD83_2011.code} (docs/PLAN-wgs84.md decision "
+                f"D7). To convert within {path.source.code}, choose a zone at "
+                f"one end."
+            )
     elif (
         settings.direction is Direction.VERTICAL_ONLY
         and settings.source_zone is None
     ):
-        path = require_frame_path(
-            settings.geodetic_frame, settings.geodetic_frame
-        )
+        path = pivot_path(settings.geodetic_frame)
     else:
-        return
+        return None
 
-    # The WGS 84 build's guard (docs/PLAN-wgs84.md, work package W2). The
-    # registry now returns NGS HTDP records for NAD83(2011) against the WGS 84
-    # and ITRF frames, and nothing downstream applies one yet. This gate is
-    # where that is load-bearing rather than belt-and-braces: a
-    # ZONE_TO_GEODETIC job's points go through ``convert_point`` with the
-    # source zone at BOTH ends - an identity - so with geodetic_frame
-    # WGS84(G2296) every row would write the NAD 83 pivot under a WGS 84
-    # label, and no per-point gate would ever see the frame. Refused here,
-    # before the file is read, until W3 connects the arithmetic.
-    require_a_connected_path(path)
+    return require_an_applicable_path(path)
+
+
+def today() -> datetime.date:
+    """The day this job runs, for the observation date's future-date check.
+
+    THE one seam the suite controls (``monkeypatch.setattr(job, "today",
+    ...)``); nothing else in the program reads a clock for this. It is the
+    LATER of the local date and the UTC date: HTDP's calendar entry means
+    00:00 UTC (``htdp.f:7879-7880``), and a GNSS processor dates an
+    observation in UTC, so a Michigan evening session is already tomorrow's
+    date in UTC. Taking the later of the two means a date that is today in
+    either clock is never refused as being in the future, and a date after
+    both still is.
+    """
+    local = datetime.date.today()
+    utc = datetime.datetime.now(datetime.timezone.utc).date()
+    return max(local, utc)
+
+
+def _time_dependent_frames_read(
+    settings: JobSettings, frame_path: FrameTransformation | None
+) -> tuple[ReferenceFrame, ...]:
+    """The time-dependent frames this job's path actually reads - the registry's records.
+
+    Read from the path ``_require_a_registered_frame_path`` returned, never
+    from the settings' own records: the path's two ends are the registry's,
+    so whether a frame is time-dependent is asked where the registry states
+    it (interim gate 1, finding L4). A job with no path (zone-only) reads no
+    geodetic frame at all.
+    """
+    if frame_path is None:
+        return ()
+    ends = (frame_path.source,) if frame_path.is_identity else (
+        frame_path.source,
+        frame_path.target,
+    )
+    return tuple(end for end in ends if end.is_time_dependent)
+
+
+def _require_the_observation_date(
+    settings: JobSettings, frame_path: FrameTransformation | None
+) -> tuple[htdp.ObservationEpoch | None, tuple[ConversionWarning, ...]]:
+    """The job's observation epoch and its job-level warnings, or a refusal.
+
+    Plan decisions D9 and D10, all before the file is read:
+
+    * the type: a ``datetime.date`` and nothing else. A ``datetime.datetime``
+      IS a ``datetime.date`` to Python and is refused by name, because HTDP's
+      calendar entry has no time of day and the time would be dropped without
+      a word;
+    * required when the path reads a time-dependent frame, refused by name
+      when it does not (the stray-field class);
+    * not after the day the job runs (``today``): an observation cannot be in
+      the future, and HTDP would compute one without complaint;
+    * HTDP's own year rule (``htdp.ObservationEpoch``: after 1906, within its
+      minute clock), refused in HTDP's words;
+    * a WARNING, not a refusal, when the date falls OUTSIDE the stated WGS 84
+      realization's period of use (``frames.realization_period_of_use``,
+      derived from the one table of start dates: each period ends the day
+      before the next realization began). Reprocessed data can legitimately
+      carry a later realization than the one broadcast that day, and software
+      can keep labelling with an older one. No warning for
+      ITRF, which has no NGA period of use. Raised once for the job
+      (``JobResult.job_warnings``), because one date covers every point.
+    """
+    date = settings.observation_date
+    if date is not None and (
+        isinstance(date, datetime.datetime) or not isinstance(date, datetime.date)
+    ):
+        raise TypeError(
+            f"JobSettings.observation_date must be a datetime.date - the "
+            f"calendar date the positions were observed - and nothing else; "
+            f"got {type(date).__name__} ({date!r}). "
+            + (
+                "A datetime carries a time of day, and HTDP's calendar entry "
+                "means 00:00 UTC on the date, so the time would be dropped "
+                "without a word. Pass its .date()."
+                if isinstance(date, datetime.datetime)
+                else "A decimal year or a string is not accepted: the date is "
+                "converted the way HTDP converts a calendar date "
+                "(docs/PLAN-wgs84.md section 1, the owner's decision 3)."
+            )
+        )
+
+    read = _time_dependent_frames_read(settings, frame_path)
+    if not read:
+        if date is not None:
+            raise ValueError(
+                f"A {settings.direction.name} job was given observation_date="
+                f"{date.isoformat()}, but no frame this job reads is "
+                f"time-dependent, so no date enters any arithmetic: "
+                + (
+                    f"its positions are in {frame_path.source.code}, a "
+                    f"plate-fixed frame published at its reference epoch."
+                    if frame_path is not None
+                    else "it reads and writes only State Plane coordinates."
+                )
+                + " A date stated for a job that used none would put an "
+                f"observation epoch into a record of a conversion that never "
+                f"read one. Pass observation_date=None."
+            )
+        return None, ()
+
+    names = " and ".join(frame.code for frame in read)
+    if date is None:
+        raise ValueError(
+            f"This job has positions in {names}, a time-dependent frame, at "
+            f"one end, and was given no observation_date. In {names} a Michigan "
+            f"point moves "
+            f"about 17 mm a year against {NAD83_2011.code}, so the position "
+            f"means nothing until the date it was observed is stated, and "
+            f"there is no default date to assume. State the calendar date the "
+            f"positions were observed (one date for the whole job, "
+            f"docs/PLAN-wgs84.md decision D10)."
+        )
+    running = today()
+    if date > running:
+        raise ValueError(
+            f"observation_date {date.isoformat()} is after the day this job "
+            f"runs ({running.isoformat()}). An observation cannot be in the "
+            f"future, and HTDP would compute a position for one without "
+            f"complaint, moved by the plate motion of time that has not "
+            f"passed (docs/PLAN-wgs84.md decision D9). Check the date."
+        )
+    epoch = htdp.ObservationEpoch(date)
+
+    warnings: list[ConversionWarning] = []
+    for frame in read:
+        period = realization_period_of_use(frame)
+        if period is None or period.contains(date):
+            continue
+        span = (
+            f"from {period.first_day.isoformat()} to "
+            f"{period.last_day.isoformat()} (NGA replaced it with "
+            f"{period.succeeded_by} on "
+            f"{(period.last_day + datetime.timedelta(days=1)).isoformat()})"
+            if period.last_day is not None
+            else f"from {period.first_day.isoformat()}, with no end yet"
+        )
+        why = (
+            f"before NGA put {frame.code} into use, so a receiver on that date "
+            f"was not broadcasting it. Reprocessed data can legitimately carry "
+            f"a later realization"
+            if date < period.first_day
+            else f"after NGA had replaced {frame.code} with "
+            f"{period.succeeded_by}, so a receiver on that date was not "
+            f"broadcasting it. Software can legitimately keep labelling output "
+            f"with an older realization"
+        )
+        warnings.append(
+            ConversionWarning(
+                code=WarningCode.REALIZATION_OUTSIDE_PERIOD_OF_USE,
+                message=(
+                    f"The positions are stated in {frame.code} and dated "
+                    f"{date.isoformat()}, outside {frame.code}'s period of use, "
+                    f"which is {span}. The date is {why}, so the job is "
+                    f"converted as stated - but a file labelled with the wrong "
+                    f"realization looks exactly like this. Check which "
+                    f"realization the positions are in."
+                ),
+            )
+        )
+    return epoch, tuple(warnings)
 
 
 def _require_a_convertible_ellipsoid_height_frame(settings: JobSettings) -> None:
-    """Refuse an ELLIPSOID height in a frame no geoid model is published for.
+    """Refuse an ELLIPSOID height in a frame with no path to the geoid models' frame.
 
-    **The 0.7.0 closing gate's HIGH.** ``H = h - N`` is arithmetic on two
-    numbers that must be measured from the SAME ellipsoid, and which ellipsoid
-    an ``h`` is measured from is a property of the reference frame - a fact
-    that could not bite while this program had one usable frame and became a
-    metre the day NATRF2022 got zones.
+    **The 0.7.0 closing gate's HIGH, generalized by plan decision D6.**
+    ``H = h - N`` is arithmetic on two numbers that must be measured from the
+    SAME ellipsoid, and which ellipsoid an ``h`` is measured from is a
+    property of the reference frame. Every geoid model this program carries
+    is an NGS HYBRID model, whose separations N are published against
+    NAD 83(2011). So the rule is: the height's frame must have a registered
+    path to NAD83(2011), because the height is carried along that path before
+    N is subtracted - an identity for NAD83(2011) itself, HTDP for the WGS 84
+    and ITRF frames (``_convert_row`` subtracts N from the NAD 83 h,
+    ``PointConversion.pivot_ellipsoid_height``).
 
-    Every geoid model this program carries is an NGS HYBRID model, whose
-    separations are published against NAD 83(2011). Feed it a height measured
-    from the NATRF2022 ellipsoid and the subtraction silently mixes two
-    realizations. The size of it is not a matter of opinion: at 43.0 N,
-    84.5 W the frozen NGS capture puts one physical point at 200.000 m above
-    the NAD 83(2011) ellipsoid and 198.885 m above the NATRF2022 one, 1.115 m
-    apart (``review/nsrs-n0/FINDINGS.md``). The reviewer's concrete job - a
-    vertical-only job at zone 261008 with h = 198.885 m - escaped an elevation
-    of 231.970 m NAVD 88 where the answer is 233.085 m.
-
-    So it fails closed, here, with the other settings gates and before the file
-    is read: there is no arithmetic this program may honestly do with that
-    height until NGS publishes the NAD83(2011) <-> NATRF2022 transformation.
-    Raised as ``FrameTransformationUnavailableError`` because that is what this
-    is - a job that needs the unpublished bridge to compute anything - and
-    because every caller already catches ``FrameMismatchError`` for exactly
-    that answer.
+    **NATRF2022 still refuses, with its message unchanged.** Feed a hybrid
+    model a height measured from the NATRF2022 ellipsoid and the subtraction
+    silently mixes two realizations. The size of it is not a matter of
+    opinion: at 43.0 N, 84.5 W the frozen NGS capture puts one physical point
+    at 200.000 m above the NAD 83(2011) ellipsoid and 198.885 m above the
+    NATRF2022 one, 1.115 m apart (``review/nsrs-n0/FINDINGS.md``). The
+    reviewer's concrete job - a vertical-only job at zone 261008 with
+    h = 198.885 m - escaped an elevation of 231.970 m NAVD 88 where the answer
+    is 233.085 m. There is no published path to carry it, so it fails closed,
+    here, with the other settings gates and before the file is read. Raised
+    as ``FrameTransformationUnavailableError`` because that is what this is,
+    and every caller already catches ``FrameMismatchError`` for it.
 
     **ORTHOMETRIC input on a 2022 zone is deliberately NOT caught.** An
     elevation is a height above the geoid, not above any frame's ellipsoid, so
@@ -1441,30 +1821,46 @@ def _require_a_convertible_ellipsoid_height_frame(settings: JobSettings) -> None
         return
 
     frame = _height_frame(settings)
-    if frame.code != NATRF2022.code:
-        return
-
     models = ", ".join(model.name for model in geoid.ALL_GEOID_MODELS)
-    raise FrameTransformationUnavailableError(
-        f"This job states ELLIPSOID input heights and works in {frame.code}. "
-        f"An ellipsoid height is measured from the ellipsoid of one "
-        f"particular realization, and the two realizations do not put it in "
-        f"the same place: at 43.0 N, 84.5 W one physical point is 200.000 m "
-        f"above the {NAD83_2011.code} ellipsoid and 198.885 m above the "
-        f"{frame.code} one - 1.115 m apart (frozen NGS capture, "
-        f"review/nsrs-n0/FINDINGS.md). Every geoid model this program carries "
-        f"({models}) publishes its separations N against {NAD83_2011.code}, "
-        f"so H = h - N computed from a {frame.code} height is out by that "
-        f"1.115 m - a metre-scale elevation wearing a vertical datum's label, "
-        f"with nothing in the number to show it. Moving the height between "
-        f"the realizations needs the {NAD83_2011.code} <-> {frame.code} "
-        f"transformation, and NGS has not published one "
-        f"(docs/DEFERRED-NATRF2022-BRIDGE.md, docs/DESIGN.md amendment #62). "
-        f"Two ways on: state that the Z column holds ORTHOMETRIC elevations - "
-        f"an elevation is a height above the geoid, not above a frame's "
-        f"ellipsoid, and every 2022 zone converts one today - or wait, as the "
-        f"cross-frame conversions do, for NGS to publish the transformation."
-    )
+    if frame.code == NATRF2022.code:
+        raise FrameTransformationUnavailableError(
+            f"This job states ELLIPSOID input heights and works in {frame.code}. "
+            f"An ellipsoid height is measured from the ellipsoid of one "
+            f"particular realization, and the two realizations do not put it in "
+            f"the same place: at 43.0 N, 84.5 W one physical point is 200.000 m "
+            f"above the {NAD83_2011.code} ellipsoid and 198.885 m above the "
+            f"{frame.code} one - 1.115 m apart (frozen NGS capture, "
+            f"review/nsrs-n0/FINDINGS.md). Every geoid model this program carries "
+            f"({models}) publishes its separations N against {NAD83_2011.code}, "
+            f"so H = h - N computed from a {frame.code} height is out by that "
+            f"1.115 m - a metre-scale elevation wearing a vertical datum's label, "
+            f"with nothing in the number to show it. Moving the height between "
+            f"the realizations needs the {NAD83_2011.code} <-> {frame.code} "
+            f"transformation, and NGS has not published one "
+            f"(docs/DEFERRED-NATRF2022-BRIDGE.md, docs/DESIGN.md amendment #62). "
+            f"Two ways on: state that the Z column holds ORTHOMETRIC elevations - "
+            f"an elevation is a height above the geoid, not above a frame's "
+            f"ellipsoid, and every 2022 zone converts one today - or wait, as the "
+            f"cross-frame conversions do, for NGS to publish the transformation."
+        )
+
+    # Every other frame: the rule itself. Only NATRF2022 can fail it among
+    # settings the frame gate has already accepted, but it is asked of the
+    # registry rather than assumed, so a frame added later without a path to
+    # NAD83(2011) refuses here too instead of reaching H = h - N.
+    try:
+        require_frame_path(frame, NAD83_2011)
+    except FrameMismatchError as refusal:
+        raise FrameTransformationUnavailableError(
+            f"This job states ELLIPSOID input heights in "
+            f"{_frame_label(frame)}, and there is no registered path from "
+            f"{_frame_label(frame)} to {NAD83_2011.code}, the frame every "
+            f"geoid model this program carries ({models}) publishes its "
+            f"separations N against. H = h - N needs h and N measured from "
+            f"the same ellipsoid, so with no way to carry the height to "
+            f"{NAD83_2011.code} there is no orthometric height to compute. "
+            f"The frame registry's reason: {refusal}"
+        ) from None
 
 
 def _require_units_the_zones_publish(settings: JobSettings) -> None:
@@ -1856,6 +2252,59 @@ def factors_use_source_era(
     return output_model is None and source_model is not None
 
 
+def _transform_height(
+    settings: JobSettings,
+    frame_path: FrameTransformation | None,
+    elevation_m: float | None,
+) -> TransformHeight | None:
+    """What HTDP is handed for this row, or None on a path that runs no HTDP.
+
+    Plan decision D6, one rule per case: a blank or exactly-zero Z - the
+    reader's "not recorded" (``pnezd``), which arrives here as None - is
+    NOT_RECORDED and is transformed at h = 0; an ELLIPSOID Z is transformed
+    with the position; an ORTHOMETRIC Z is handed in place of h and passes
+    unchanged. ``elevation_m`` is metres, the file's own Z.
+    """
+    if frame_path is None or frame_path.is_identity:
+        return None
+    if elevation_m is None:
+        return TransformHeight(HeightConvention.NOT_RECORDED, None)
+    if settings.input_height_kind is HeightKind.ELLIPSOID:
+        return TransformHeight(HeightConvention.ELLIPSOID, elevation_m)
+    return TransformHeight(HeightConvention.ORTHOMETRIC, elevation_m)
+
+
+def _written_geodetic_position(conversion: PointConversion) -> tuple[float, float]:
+    """The latitude and longitude a job with a geodetic OUTPUT writes, signed.
+
+    The position in the frame the path ENDS in: the WGS 84 or ITRF position
+    when the path carries the pivot out to one (``external_position``), the
+    NAD 83 pivot otherwise - including every same-frame job, whose columns are
+    the pivot exactly as before. Writing the pivot under a WGS 84 job's label
+    is the silent pass-through the W2 guard existed to stop.
+    """
+    path = conversion.frame_transformation
+    if path is not None and path.target.is_time_dependent:
+        external = conversion.external_position
+        return external.latitude, external.longitude
+    return conversion.latitude, conversion.longitude
+
+
+def _unconverted_ellipsoid_z_sentence(conversion: PointConversion) -> str:
+    """What a horizontal job's Z holds when no geoid separation could be read."""
+    if conversion.is_transformed:
+        return (
+            f"The Z column carries the ellipsoid height transformed with the "
+            f"position into {conversion.frame_transformation.target.code}, not "
+            f"converted to an elevation, and the elevation and combined "
+            f"factors read "
+        )
+    return (
+        "The Z column carries the ellipsoid height as supplied, unconverted, "
+        "and the elevation and combined factors read "
+    )
+
+
 def _convert_row(
     row: pnezd.PnezdRow,
     settings: JobSettings,
@@ -1863,13 +2312,38 @@ def _convert_row(
     transformation: VerticalTransformation | None,
     vertcon_grids: vertcon.VertconGridPair | None,
     swap_grids: _GeoidSwapGrids | None = None,
+    *,
+    frame_path: FrameTransformation | None = None,
+    epoch: htdp.ObservationEpoch | None = None,
 ) -> ConvertedPoint:
     context = f"point {row.point_id}"
     warnings: list[ConversionWarning] = []
 
-    geodetic_input = settings.direction is Direction.GEODETIC_TO_ZONE or (
+    geodetic_input = settings.direction in (
+        Direction.GEODETIC_TO_ZONE,
+        Direction.GEODETIC_TO_GEODETIC,
+    ) or (
         settings.direction is Direction.VERTICAL_ONLY
         and settings.source_zone is None
+    )
+
+    # The Z in metres, as the file states it - computed here, before the
+    # conversion, because a frame transformation needs the height it is
+    # handed (plan decision D6). Only its unit is touched; every rule below
+    # about what the Z becomes is unchanged.
+    elevation_m = (
+        settings.input_unit.to_meters(row.elevation)
+        if row.elevation is not None
+        else None
+    )
+    transform_height = _transform_height(settings, frame_path, elevation_m)
+    # Keyword arguments for the conversion call: an epoch and a height only
+    # on a path that runs HTDP, and nothing at all on a same-frame one, whose
+    # call is then exactly the call it always was.
+    transform_arguments = (
+        dict(epoch=epoch, height=transform_height)
+        if transform_height is not None
+        else {}
     )
 
     if geodetic_input:
@@ -1888,10 +2362,27 @@ def _convert_row(
                 settings.geodetic_frame,
                 settings.target_zone,
                 context,
+                **transform_arguments,
             )
             output_unit = settings.output_unit
             output_northing = output_unit.from_meters(conversion.target_northing)
             output_easting = output_unit.from_meters(conversion.target_easting)
+        elif settings.direction is Direction.GEODETIC_TO_GEODETIC:
+            # Plan decision D7. No zone: the output columns are the position
+            # in the TARGET frame, in the file's own longitude convention.
+            conversion = geodetic_to_geodetic(
+                latitude,
+                longitude,
+                settings.geodetic_frame,
+                settings.target_geodetic_frame,
+                context,
+                **transform_arguments,
+            )
+            out_latitude, out_longitude = _written_geodetic_position(conversion)
+            output_northing = out_latitude
+            output_easting = settings.longitude_convention.from_signed(
+                out_longitude
+            )
         else:
             # VERTICAL_ONLY, geodetic input. No zone exists anywhere in this
             # job, and none is fabricated: the position record carries the
@@ -1901,8 +2392,16 @@ def _convert_row(
             # columns are the INPUT values, unchanged - the mirror this
             # direction promises - including the longitude exactly as the
             # file wrote it, in its own convention.
+            #
+            # On a WGS 84 or ITRF input (plan decision D8) the position record's
+            # pivot is the input carried to NAD83(2011) - what every grid is
+            # read at - while the columns still mirror the input exactly.
             conversion = geodetic_position(
-                latitude, longitude, settings.geodetic_frame, context
+                latitude,
+                longitude,
+                settings.geodetic_frame,
+                context,
+                **transform_arguments,
             )
             output_northing = row.northing
             output_easting = row.easting
@@ -1934,16 +2433,22 @@ def _convert_row(
             )
 
         if settings.direction is Direction.ZONE_TO_GEODETIC:
-            conversion = convert_point(
+            # Within one frame, zone_to_geodetic IS convert_point with the
+            # source zone at both ends, the call this branch always made. Into
+            # a WGS 84 or ITRF frame it carries the pivot there with HTDP, and
+            # the columns written are that frame's position, not the pivot's.
+            conversion = zone_to_geodetic(
                 northing_m,
                 easting_m,
                 settings.source_zone,
-                settings.source_zone,
+                settings.geodetic_frame,
                 context,
+                **transform_arguments,
             )
-            output_northing = conversion.latitude
+            out_latitude, out_longitude = _written_geodetic_position(conversion)
+            output_northing = out_latitude
             output_easting = settings.longitude_convention.from_signed(
-                conversion.longitude
+                out_longitude
             )
         elif settings.direction is Direction.VERTICAL_ONLY:
             # VERTICAL_ONLY, zone input. The pivot latitude and longitude the
@@ -1989,11 +2494,8 @@ def _convert_row(
     # the record instructs computed the elevation factor at 900 m instead of
     # 274.3 m, a 98 ppm error, and read a Z field 625.680 m from the truth.
     # The unit now follows the output unit end to end (WP-R2 fix A).
-    elevation_m = (
-        settings.input_unit.to_meters(row.elevation)
-        if row.elevation is not None
-        else None
-    )
+    # (``elevation_m`` itself is computed above, before the conversion, since
+    # the WGS 84 build: a frame transformation is handed the height.)
 
     # ----------------------------------------------------------------------
     # Ellipsoid height in, orthometric height out - H = h - N (the owner's
@@ -2023,6 +2525,20 @@ def _convert_row(
     # accepted configuration, and ``grid`` is loaded from exactly that record.
     # ----------------------------------------------------------------------
     supplied_m = elevation_m
+    if (
+        conversion.transform_height is not None
+        and conversion.transform_height.convention is HeightConvention.ELLIPSOID
+    ):
+        # Plan decision D6, the one place it bites. An ellipsoid height is part
+        # of the 3-D position, so it was transformed WITH it: the Z a
+        # horizontal job writes is the height in the job's OUTPUT frame -
+        # HTDP's own output height - and every H = h - N below uses the
+        # NAD83(2011) h, because every geoid model publishes N against
+        # NAD 83. #54's "horizontal passes the Z through unchanged" still
+        # holds in the sense #54 meant: the height is never turned into an
+        # elevation; only its frame changes, because the job's frame did.
+        supplied_m = conversion.target_frame_ellipsoid_height
+        elevation_m = conversion.pivot_ellipsoid_height
     ellipsoid_reading: EllipsoidHeightReading | None = None
     if settings.input_height_kind is HeightKind.ELLIPSOID and elevation_m is not None:
         model = factors_geoid_model(settings, transformation)
@@ -2065,9 +2581,7 @@ def _convert_row(
                             "No elevation is written for this point and its "
                             "elevation and combined factors read "
                             if settings.vertical_mode.converts_elevations
-                            else "The Z column carries the ellipsoid height "
-                            "as supplied, unconverted, and the elevation and "
-                            "combined factors read "
+                            else _unconverted_ellipsoid_z_sentence(conversion)
                         )
                         + f"{formatting.NOT_AVAILABLE}. The HORIZONTAL "
                         f"coordinate is unaffected and stands: it does not "

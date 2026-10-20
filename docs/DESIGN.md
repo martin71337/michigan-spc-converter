@@ -715,6 +715,27 @@ re-derived by the lead):
     - **N2:** the citation check never proved it flags a bad citation.
     Both were fixed, pinned and falsified, and the second pass returned
     **VERDICT: APPROVED. Interim gate 1 is closed.**
+- **W3, the transformation wired in** (lead-reviewed). HTDP is applied in
+  `convert.py` (`project_point`, the new `zone_to_geodetic` and
+  `geodetic_to_geodetic`, and `geodetic_position` through `pivot_path`) and
+  in `job.run`. The NAD 83 pivot governs every lookup (D5). D6's heights run
+  through `TransformHeight`. `JobSettings` gains `observation_date` and
+  `target_geodetic_frame`, and there is a new `Direction.GEODETIC_TO_GEODETIC`.
+  Gate 1's L5, I1 and I2 are closed.
+  - **D9 settled:** the realization warning fires OUTSIDE the period of use.
+    Each period ends the day before its successor starts, derived from one
+    table.
+  - **The "today" seam:** the later of the local and UTC dates, so an
+    evening session is never refused as future-dated.
+  - **Gate 1's L5 job:** a WGS84(G2296) ellipsoid h of 165.000 at
+    2025-06-15 now gives NAVD 88 199.184 (h 166.099 in NAD 83, plus
+    33.085). The unguarded path had written 198.085.
+  - **Lead's end-to-end probe:** random Michigan positions, dates, zones and
+    all five frames through `job.run` and real files, in every transformed
+    direction, against NGS's binary. Every value lies within half HTDP's
+    print unit (5e-11 deg, 0.5 mm).
+  - Transformed jobs refuse to WRITE until W4 (W3's write guard; #41's
+    rule, disclosure before reachability).
 - **Realization dates for D9's warning:** G1762 from 2013-10-16, G2139 from
   2021-01-03, G2296 from 2024-01-07 (NGA, ICG-17 WG-D presentation, 2023;
   EPSG 9756 and 10607; IGSMAIL-8444).

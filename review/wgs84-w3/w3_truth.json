@@ -1,0 +1,283 @@
+{
+ "provenance": {
+  "binary_flags": "gfortran -O0 -std=legacy -w *.f -o htdp_linux (x86_64, SSE2 double arithmetic)",
+  "binary_sha256": "3738c50c66901c02b751d391b8ca6a0c5eac667fbc7c30875c21b59f82f77f8f",
+  "capture_utc": "2026-10-20T19:58:04+00:00",
+  "commit": "59fdbe6b7cf5fabf79f901801ecdc33e7ca2095c",
+  "compiler_at_capture": "GNU Fortran (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+  "compiler_at_w0": "GNU Fortran (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+  "input_from": "review/gate-wgs84-1/output.md, finding L5",
+  "repository": "https://github.com/noaa-ngs/HTDP",
+  "source_sha256": {
+   "htdp.f": "97a46675b4fb9de24152ed70fc3a34f72017e90cb77e4994696dfd5dffb75271",
+   "initbd.f": "66da175e3cb7a979b3179633a2517b194f14286e47f154bffca9760315de696d",
+   "initeq.f": "c2d92dec9d9c3402589c8a9d9aa873ddaefb2925577b38be252475c71cd0eac9",
+   "initps.f": "543eb7c650f8f9a8047bbf66e8cdddd205c32512ee46e069a0765e0b97655945",
+   "initvl.f": "06455583630018c888db5f6828e55972b80477548df92790a3e5a30483dc1e56"
+  },
+  "stdin_template": "4/out.txt/<in menu>/1/1/<m d y>/1/1 1 2010/3/in.txt/0/0",
+  "tool": "NGS HTDP v3.6.0 (htdp.f:27-28 'April 7, 2025')"
+ },
+ "runs": [
+  {
+   "frame_code": "WGS84(G1762)",
+   "frame_in_menu": 10,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "43.0,84.5,165.000,L5"
+   ],
+   "observation_date": [
+    2025,
+    6,
+    15
+   ],
+   "outputs": [
+    {
+     "eht": "166.096",
+     "lat": "42.9999914444",
+     "lonW": "84.4999892422",
+     "name": "L5"
+    }
+   ],
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G1762)             (EPOCH = 06-15-2025 (2025.4521))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   42.9999914444   84.4999892422   166.096    L5\n",
+   "raw_sha256": "00744679fe2c3bf3680992951a9216b52a3014e43fac2395eb9d7d43c90fec97",
+   "returncode": 0,
+   "run_id": "l5_f10_2025-06-15",
+   "stdin": "4\nout.txt\n10\n1\n1\n6 15 2025\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_code": "WGS84(G2139)",
+   "frame_in_menu": 11,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "43.0,84.5,165.000,L5"
+   ],
+   "observation_date": [
+    2025,
+    6,
+    15
+   ],
+   "outputs": [
+    {
+     "eht": "166.098",
+     "lat": "42.9999914606",
+     "lonW": "84.4999892204",
+     "name": "L5"
+    }
+   ],
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G2139)             (EPOCH = 06-15-2025 (2025.4521))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   42.9999914606   84.4999892204   166.098    L5\n",
+   "raw_sha256": "70e13d807af024e62aaf1c9850f4f6eafb64a486fadf75259c77361116210697",
+   "returncode": 0,
+   "run_id": "l5_f11_2025-06-15",
+   "stdin": "4\nout.txt\n11\n1\n1\n6 15 2025\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_code": "WGS84(G2296)",
+   "frame_in_menu": 12,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "43.0,84.5,165.000,L5"
+   ],
+   "observation_date": [
+    2025,
+    6,
+    15
+   ],
+   "outputs": [
+    {
+     "eht": "166.099",
+     "lat": "42.9999914726",
+     "lonW": "84.4999892398",
+     "name": "L5"
+    }
+   ],
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G2296)             (EPOCH = 06-15-2025 (2025.4521))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   42.9999914726   84.4999892398   166.099    L5\n",
+   "raw_sha256": "784f213e139038a5e4819a7277387dcd13ca4b8cafcad09da308fc7fa4e62bdf",
+   "returncode": 0,
+   "run_id": "l5_f12_2025-06-15",
+   "stdin": "4\nout.txt\n12\n1\n1\n6 15 2025\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_code": "ITRF2014",
+   "frame_in_menu": 25,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "43.0,84.5,165.000,L5"
+   ],
+   "observation_date": [
+    2025,
+    6,
+    15
+   ],
+   "outputs": [
+    {
+     "eht": "166.098",
+     "lat": "42.9999914597",
+     "lonW": "84.4999892204",
+     "name": "L5"
+    }
+   ],
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2014 or IGS14/IGb14  (EPOCH = 06-15-2025 (2025.4521))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   42.9999914597   84.4999892204   166.098    L5\n",
+   "raw_sha256": "ca0a6839f0195c6b05731c64a00542e60956e4992fecab906a3244d319a9a988",
+   "returncode": 0,
+   "run_id": "l5_f25_2025-06-15",
+   "stdin": "4\nout.txt\n25\n1\n1\n6 15 2025\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_code": "ITRF2020",
+   "frame_in_menu": 26,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "43.0,84.5,165.000,L5"
+   ],
+   "observation_date": [
+    2025,
+    6,
+    15
+   ],
+   "outputs": [
+    {
+     "eht": "166.099",
+     "lat": "42.9999914716",
+     "lonW": "84.4999892398",
+     "name": "L5"
+    }
+   ],
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2020 or IGS20/IGb20  (EPOCH = 06-15-2025 (2025.4521))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   42.9999914716   84.4999892398   166.099    L5\n",
+   "raw_sha256": "b7809b95dd9bb863a35895e6e1f3982ad49b30016e6882bf0dc6adb0be748ea8",
+   "returncode": 0,
+   "run_id": "l5_f26_2025-06-15",
+   "stdin": "4\nout.txt\n26\n1\n1\n6 15 2025\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_code": "WGS84(G1762)",
+   "frame_in_menu": 1,
+   "frame_out_menu": 10,
+   "input_lines": [
+    "43.0,84.5,165.000,L5R"
+   ],
+   "observation_date": [
+    2025,
+    6,
+    15
+   ],
+   "outputs": [
+    {
+     "eht": "163.904",
+     "lat": "43.0000085556",
+     "lonW": "84.5000107580",
+     "name": "L5R"
+    }
+   ],
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G1762)             (EPOCH = 06-15-2025 (2025.4521))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G1762)            ***\n ***CAUTION: Coordinates in this file have been updated to  6-15-2025=(2025.452) ***\n\n   43.0000085556   84.5000107580   163.904    L5R\n",
+   "raw_sha256": "c1d668480d61cb58339050dfabf0beee9767f79671fe40d7b31fd3d53f60b88f",
+   "returncode": 0,
+   "run_id": "l5r_f10_2025-06-15",
+   "stdin": "4\nout.txt\n1\n10\n1\n1 1 2010\n1\n6 15 2025\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_code": "WGS84(G2139)",
+   "frame_in_menu": 1,
+   "frame_out_menu": 11,
+   "input_lines": [
+    "43.0,84.5,165.000,L5R"
+   ],
+   "observation_date": [
+    2025,
+    6,
+    15
+   ],
+   "outputs": [
+    {
+     "eht": "163.902",
+     "lat": "43.0000085394",
+     "lonW": "84.5000107797",
+     "name": "L5R"
+    }
+   ],
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G2139)             (EPOCH = 06-15-2025 (2025.4521))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G2139)            ***\n ***CAUTION: Coordinates in this file have been updated to  6-15-2025=(2025.452) ***\n\n   43.0000085394   84.5000107797   163.902    L5R\n",
+   "raw_sha256": "2aee9039785b81a848f63cf69a6d91a261fafdaa494256bc947a844b59348db6",
+   "returncode": 0,
+   "run_id": "l5r_f11_2025-06-15",
+   "stdin": "4\nout.txt\n1\n11\n1\n1 1 2010\n1\n6 15 2025\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_code": "WGS84(G2296)",
+   "frame_in_menu": 1,
+   "frame_out_menu": 12,
+   "input_lines": [
+    "43.0,84.5,165.000,L5R"
+   ],
+   "observation_date": [
+    2025,
+    6,
+    15
+   ],
+   "outputs": [
+    {
+     "eht": "163.901",
+     "lat": "43.0000085274",
+     "lonW": "84.5000107604",
+     "name": "L5R"
+    }
+   ],
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G2296)             (EPOCH = 06-15-2025 (2025.4521))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G2296)            ***\n ***CAUTION: Coordinates in this file have been updated to  6-15-2025=(2025.452) ***\n\n   43.0000085274   84.5000107604   163.901    L5R\n",
+   "raw_sha256": "01fc9b048584ebfe03eec24067276a7a841e9f77b7583eddd6aeedb824085008",
+   "returncode": 0,
+   "run_id": "l5r_f12_2025-06-15",
+   "stdin": "4\nout.txt\n1\n12\n1\n1 1 2010\n1\n6 15 2025\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_code": "ITRF2014",
+   "frame_in_menu": 1,
+   "frame_out_menu": 25,
+   "input_lines": [
+    "43.0,84.5,165.000,L5R"
+   ],
+   "observation_date": [
+    2025,
+    6,
+    15
+   ],
+   "outputs": [
+    {
+     "eht": "163.902",
+     "lat": "43.0000085404",
+     "lonW": "84.5000107797",
+     "name": "L5R"
+    }
+   ],
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2014 or IGS14/IGb14  (EPOCH = 06-15-2025 (2025.4521))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2014 or IGS14/IGb14 ***\n ***CAUTION: Coordinates in this file have been updated to  6-15-2025=(2025.452) ***\n\n   43.0000085404   84.5000107797   163.902    L5R\n",
+   "raw_sha256": "c8aa538ae33279af695dc4c27e4d9bfac41199fd54b086ee254bb9ed9264d532",
+   "returncode": 0,
+   "run_id": "l5r_f25_2025-06-15",
+   "stdin": "4\nout.txt\n1\n25\n1\n1 1 2010\n1\n6 15 2025\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_code": "ITRF2020",
+   "frame_in_menu": 1,
+   "frame_out_menu": 26,
+   "input_lines": [
+    "43.0,84.5,165.000,L5R"
+   ],
+   "observation_date": [
+    2025,
+    6,
+    15
+   ],
+   "outputs": [
+    {
+     "eht": "163.901",
+     "lat": "43.0000085284",
+     "lonW": "84.5000107604",
+     "name": "L5R"
+    }
+   ],
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2020 or IGS20/IGb20  (EPOCH = 06-15-2025 (2025.4521))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2020 or IGS20/IGb20 ***\n ***CAUTION: Coordinates in this file have been updated to  6-15-2025=(2025.452) ***\n\n   43.0000085284   84.5000107604   163.901    L5R\n",
+   "raw_sha256": "7020bc8e23f968a30cc6a3b97f9d2ffcd9a2b06b78a9cf8d9c7dd7bc33b866e5",
+   "returncode": 0,
+   "run_id": "l5r_f26_2025-06-15",
+   "stdin": "4\nout.txt\n1\n26\n1\n1 1 2010\n1\n6 15 2025\n3\nin.txt\n0\n0\n"
+  }
+ ]
+}

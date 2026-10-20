@@ -31,10 +31,9 @@ so they are deliberately the same shape.
   it; these records name the path and hold no parameter of it, because the
   two frames' ``htdp_frame`` records determine it completely and
   ``htdp_data`` is the one authoritative representation of its numbers.
-  **Registered is not the same as connected**: in this development build the
-  conversion pipeline (``convert.py``, ``job.py``) refuses every non-identity
-  record until work package W3 wires the arithmetic in, so a WGS 84 position
-  can never be handed on as though it were NAD 83.
+  The conversion pipeline APPLIES them (``convert.py``, work package W3): a
+  WGS 84 or ITRF end is moved to or from NAD83(2011) by ``htdp`` exactly once,
+  and the NAD 83 position is the pivot every zone and grid reads.
 
 Work across NAD83(2011) and NATRF2022 refuses, because NGS has not published
 the transformation - its NCAT computes one from server-side parameters that are
@@ -58,6 +57,7 @@ startup rather than quietly at the first job that needed it.
 from __future__ import annotations
 
 import dataclasses
+import datetime
 import math
 from dataclasses import dataclass
 from enum import Enum
@@ -103,8 +103,8 @@ class FrameTransformationUnavailableError(FrameMismatchError):
     longitude alone while calling it transformed is exactly the failure the
     tier sentence exists to prevent. NAD83(2011) to NATRF2022 raises this
     today (DESIGN.md #62); so do the pairs plan decisions D3 and D4 do not
-    offer, and - in this development build - every registered non-identity
-    path, at the conversion pipeline, until work package W3 connects it.
+    offer, and - at the conversion pipeline - a registered path whose method
+    it has no arithmetic for (``convert.require_an_applicable_path``).
     """
 
 
@@ -427,6 +427,25 @@ _NGA_IMPLEMENTATION_SOURCES = (
     "IGSMAIL-8444 (docs/PLAN-wgs84.md decision D9)"
 )
 
+_WGS84_IN_USE_FROM: Mapping[str, datetime.date] = MappingProxyType(
+    {
+        # NGA's implementation dates, _NGA_IMPLEMENTATION_SOURCES above
+        # (docs/PLAN-wgs84.md decision D9; DESIGN.md #70).
+        "WGS84(G1762)": datetime.date(2013, 10, 16),
+        "WGS84(G2139)": datetime.date(2021, 1, 3),
+        "WGS84(G2296)": datetime.date(2024, 1, 7),
+    }
+)
+"""The first day of each WGS 84 realization's period of use, by frame code.
+
+THE one statement of these dates: each record's citation below prints its
+date from this table, and ``realization_period_of_use`` derives every period
+from it - including where each period ENDS, which is the day before the next
+realization's first day, never a second typed list - so the dates a job is
+warned against and the date its record cites cannot differ. The ITRF frames
+have no NGA period of use and are deliberately absent.
+"""
+
 
 WGS84_G1762 = ReferenceFrame(
     code="WGS84(G1762)",
@@ -436,7 +455,8 @@ WGS84_G1762 = ReferenceFrame(
         f"{_HTDP_SOURCE}: MENU1 frame 10, 'WGS84(G1762)' (htdp.f:4704-4705), "
         f"carried with ITRF2008's parameters ('WGS84(G1762)  "
         f"ITRF2008=IGS08=IGb08 used', htdp.f:4767), on the WGS 84 ellipsoid "
-        f"by its name (htdp.f:3221-3224). Implemented by NGA on 2013-10-16 "
+        f"by its name (htdp.f:3221-3224). Implemented by NGA on "
+        f"{_WGS84_IN_USE_FROM['WGS84(G1762)'].isoformat()} "
         f"({_NGA_IMPLEMENTATION_SOURCES})"
     ),
     status=FrameStatus.USABLE,
@@ -453,7 +473,8 @@ WGS84_G2139 = ReferenceFrame(
         f"{_HTDP_SOURCE}: MENU1 frame 11, 'WGS84(G2139)' (htdp.f:4707-4708), "
         f"carried with ITRF2014's parameters ('WGS84(G2139)  "
         f"ITRF2014=IGS14=IGb14 used', htdp.f:4768), on the WGS 84 ellipsoid "
-        f"by its name (htdp.f:3221-3224). Implemented by NGA on 2021-01-03 "
+        f"by its name (htdp.f:3221-3224). Implemented by NGA on "
+        f"{_WGS84_IN_USE_FROM['WGS84(G2139)'].isoformat()} "
         f"({_NGA_IMPLEMENTATION_SOURCES})"
     ),
     status=FrameStatus.USABLE,
@@ -471,7 +492,8 @@ WGS84_G2296 = ReferenceFrame(
         f"carried with ITRF2020's parameters ('WGS84(G2296)  "
         f"ITRF2020=IGS20=IGb20=ITRF2020-u2023 used', htdp.f:4769), on the "
         f"WGS 84 ellipsoid by its name (htdp.f:3221-3224). Implemented by NGA "
-        f"on 2024-01-07 ({_NGA_IMPLEMENTATION_SOURCES})"
+        f"on {_WGS84_IN_USE_FROM['WGS84(G2296)'].isoformat()} "
+        f"({_NGA_IMPLEMENTATION_SOURCES})"
     ),
     status=FrameStatus.USABLE,
     epoch_kind=FrameEpochKind.TIME_DEPENDENT,
@@ -876,9 +898,11 @@ _IDENTITY_NATRF2022 = FrameTransformation(
 # (plan W2). Every grid this program reads a position against - GEOID18,
 # GEOID12B, VERTCON 3.0 - is published against NAD 83, so even a job that
 # leaves a WGS 84 position in its own frame needs it carried to NAD83(2011)
-# first; until work package W3 decides how such a job runs, a vertical-only job
-# on one of these frames must refuse at the missing identity rather than look
-# its WGS 84 position up in a NAD 83 grid. Pinned.
+# first. Work package W3 decided how such a job runs (plan D8): the
+# vertical-only job's pivot is found through the frame's registered path to
+# NAD83(2011) (``convert.pivot_path``), never through an identity - so an
+# identity here could only ever be the WGS 84 position looked up in a NAD 83
+# grid. Pinned.
 
 
 def _htdp_citation(source: ReferenceFrame, target: ReferenceFrame) -> str:
@@ -1068,6 +1092,66 @@ def resolve_frame(frame: ReferenceFrame) -> ReferenceFrame:
     return _canonical(frame)
 
 
+@dataclass(frozen=True)
+class RealizationPeriod:
+    """A WGS 84 realization's period of use, derived from ``_WGS84_IN_USE_FROM``.
+
+    ``first_day`` is NGA's implementation date. ``last_day`` is the day before
+    the NEXT realization's implementation date - NGA replaces one realization
+    with the next, so the next one's start is this one's end - and None for
+    the newest, whose period has not ended. ``succeeded_by`` is that next
+    realization's code, or None.
+    """
+
+    first_day: datetime.date
+    last_day: datetime.date | None
+    succeeded_by: str | None
+
+    def contains(self, day: datetime.date) -> bool:
+        """Whether ``day`` falls inside the period, both ends inclusive."""
+        if day < self.first_day:
+            return False
+        return self.last_day is None or day <= self.last_day
+
+
+def realization_period_of_use(frame: ReferenceFrame) -> RealizationPeriod | None:
+    """A WGS 84 realization's period of use, or None for a frame with none.
+
+    None for every frame that has no such period - the ITRF frames, NAD 83,
+    NATRF2022 - which is a statement, not an absence: plan decision D9 warns
+    about an observation dated OUTSIDE its realization's period of use, and
+    only the NGA realizations have one. The end of each period is DERIVED
+    from the one table of start dates (``_WGS84_IN_USE_FROM``), ordered by
+    date: G1762 runs to the day before G2139 began, G2139 to the day before
+    G2296 began, and G2296 has no end yet. Asked of the registry's record
+    (``resolve_frame``), so a disagreeing copy is refused rather than looked
+    up by its code.
+    """
+    code = resolve_frame(frame).code
+    first_day = _WGS84_IN_USE_FROM.get(code)
+    if first_day is None:
+        return None
+    later = sorted(
+        (start, other)
+        for other, start in _WGS84_IN_USE_FROM.items()
+        if start > first_day
+    )
+    if not later:
+        return RealizationPeriod(first_day=first_day, last_day=None, succeeded_by=None)
+    next_start, next_code = later[0]
+    return RealizationPeriod(
+        first_day=first_day,
+        last_day=next_start - datetime.timedelta(days=1),
+        succeeded_by=next_code,
+    )
+
+
+def realization_in_use_from(frame: ReferenceFrame) -> datetime.date | None:
+    """The first day of a WGS 84 realization's period of use, or None."""
+    period = realization_period_of_use(frame)
+    return period.first_day if period is not None else None
+
+
 def _realizations_message() -> str:
     """The sentence that tells a user which named frames to choose from."""
     offered = [frame for frame in _TIME_DEPENDENT_OFFERED if frame.is_usable]
@@ -1148,10 +1232,11 @@ def _no_path_message(source: ReferenceFrame, target: ReferenceFrame) -> str:
             f"and GEOID12B geoid models and the VERTCON 3.0 grids - is "
             f"published against {NAD83_2011.code}, so even a job that leaves "
             f"the position in {source.code} needs it carried to "
-            f"{NAD83_2011.code} first. That is not yet connected in this "
-            f"development build (docs/PLAN-wgs84.md decision D8, work package "
-            f"W3). Converting one {source.code} position to another "
-            f"{source.code} position is not a conversion."
+            f"{NAD83_2011.code} first, and this program does that through the "
+            f"registered {source.code} -> {NAD83_2011.code} path, never an "
+            f"identity (docs/PLAN-wgs84.md decision D8). Converting one "
+            f"{source.code} position to another {source.code} position is "
+            f"not a conversion."
         )
 
     known = ", ".join(f"{s} -> {t}" for s, t in sorted(_TRANSFORMATIONS_BY_CODE))
@@ -1176,9 +1261,8 @@ def require_frame_path(
     Within one frame the zone-to-zone conversion is an exact, reversible
     re-projection of the same physical position, and this function returns
     that frame's identity record. Between NAD83(2011) and a time-dependent
-    frame it returns the HTDP record - which, in this development build, the
-    conversion pipeline then REFUSES (``convert.require_a_connected_path``)
-    until work package W3 connects the arithmetic.
+    frame it returns the HTDP record, which the conversion pipeline applies
+    (``convert.require_an_applicable_path``, work package W3).
 
     Two distinct refusals, because they mean different things to a user:
 

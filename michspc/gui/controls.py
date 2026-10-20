@@ -27,7 +27,7 @@ from PySide6.QtWidgets import QButtonGroup, QComboBox, QMessageBox, QRadioButton
 from michspc.fileio import geoid
 from michspc.job import Direction, LongitudeConvention, VerticalMode
 from michspc.spc.units import ALL_UNITS, INTERNATIONAL_FEET, LinearUnit
-from michspc.spc.convert import require_a_connected_path
+from michspc.spc.convert import require_an_applicable_path
 from michspc.spc.frames import (
     ALL_FRAMES,
     FrameMismatchError,
@@ -878,17 +878,20 @@ def frames_have_a_path(source: ReferenceFrame, target: ReferenceFrame) -> bool:
     Directional, because the registry is keyed by (source, target) and a future
     transformation need not be registered both ways.
 
-    **And through the same guard ``job.run`` applies** (docs/PLAN-wgs84.md,
-    work package W2): since the WGS 84 build the registry returns NGS HTDP
-    records that the conversion pipeline does not yet apply, and
-    ``convert.require_a_connected_path`` refuses them. Asking only the
-    registry would answer True for a pair ``job.run`` refuses - the
-    disagreement this function exists to rule out. No frame on either end of
-    such a pair is offered in a dropdown yet (``frames_offered``), so this is
-    the rule kept true rather than a visible change.
+    **And through the same point ``job.run`` applies or refuses a path**
+    (``convert.require_an_applicable_path``, docs/PLAN-wgs84.md work package
+    W3): the registry returns NGS HTDP records for NAD83(2011) against the
+    WGS 84 and ITRF frames, and since W3 the conversion pipeline applies them,
+    so this answers True for those pairs exactly as ``job.run`` accepts them
+    (a WGS 84 position into an SPCS 83 zone, an SPCS 83 zone out to WGS 84) -
+    and False for a registered path whose method the pipeline could not run.
+    Under W2 it answered False for all ten, because the guard then refused
+    them. No frame on either end of such a pair is offered in a dropdown yet
+    (``frames_offered``, until work package W5), so this is the rule kept
+    true rather than a visible change.
     """
     try:
-        require_a_connected_path(require_frame_path(source, target))
+        require_an_applicable_path(require_frame_path(source, target))
     except FrameMismatchError:
         return False
     return True

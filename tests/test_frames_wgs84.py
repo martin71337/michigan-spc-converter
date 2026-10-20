@@ -1,4 +1,4 @@
-"""The WGS 84 and ITRF frames in the registry, and the guard that keeps them unapplied.
+"""The WGS 84 and ITRF frames in the registry, and the guard that kept them unapplied.
 
 Work package W2 of the WGS 84 build (docs/PLAN-wgs84.md section 3.3,
 decisions D2-D4; docs/DESIGN.md #70). Three things are pinned here:
@@ -21,6 +21,11 @@ decisions D2-D4; docs/DESIGN.md #70). Three things are pinned here:
    ``job.run``'s settings gate, before the file is read; pinned end to end
    through ``job.run`` with real files, per direction.
 
+   SUPERSEDED at work package W3 (DESIGN.md #70): the conversion now applies
+   the HTDP records, so section 4's guard pins have successors on the same
+   inputs, pinned as TRANSFORMED against HTDP's printed output; each names the
+   W2 pin it replaces.
+
 Every expected value is derived in the comment above it (docs/method/METHOD.md
 section 4).
 """
@@ -37,7 +42,7 @@ import pytest
 from michspc.fileio import exports
 from michspc.job import Direction, JobSettings, LongitudeConvention, VerticalMode, run
 from michspc.spc import convert, frames, htdp, htdp_data
-from michspc.spc.convert import project_point, require_a_connected_path
+from michspc.spc.convert import project_point
 from michspc.spc.frames import (
     ALL_FRAMES,
     FRAME_TRANSFORMATIONS,
@@ -330,7 +335,11 @@ def test_the_import_check_catches_a_lost_htdp_pair(monkeypatch):
 
 @pytest.mark.parametrize("frame", (*FIVE, WGS84), ids=[*FIVE_IDS, "WGS84"])
 def test_no_time_dependent_frame_has_an_identity(frame):
-    """Plan W2 item 5: no identity for the five (W3 decides), none for bare WGS 84."""
+    """Plan W2 item 5: no identity for the five, none for bare WGS 84.
+
+    W3 routes a vertical-only job on one of the five through its HTDP path to
+    NAD83(2011) instead (plan D8, ``convert.pivot_path``), never an identity.
+    """
     assert (frame.code, frame.code) not in frames._TRANSFORMATIONS_BY_CODE
     assert (frame, frame) not in FRAME_TRANSFORMATIONS
 
@@ -555,8 +564,35 @@ def test_an_unrecognised_frame_gets_a_message_that_claims_nothing_it_cannot_know
 
 
 # ==========================================================================
-# 4. The safety guard.
+# 4. The safety guard, and its successor.
+#
+# SUPERSEDED (DESIGN.md #70, plan W3). Under W2 every registered HTDP path
+# REFUSED at ``convert.require_a_connected_path`` and at the job's settings
+# gate, because nothing applied one. W3 connects the arithmetic, so each W2
+# guard pin below has a successor on the SAME inputs, now pinned as
+# TRANSFORMED against HTDP's own printed output (tests/fixtures/
+# htdp_w3_anchors.py: interim gate 1's L5 position, 43.0 N 84.5 W h 165 m, in
+# every frame, both directions, captured from NGS's binary) - and, beside
+# each, the refusal that keeps the guard's purpose: no epoch, no conversion.
+# None of the W2 pins was deleted silently; each successor says which it
+# replaces. The full W3 suite is tests/test_job_wgs84.py.
 # ==========================================================================
+
+from michspc.spc.convert import (  # noqa: E402
+    HeightConvention,
+    TransformHeight,
+    require_an_applicable_path,
+)
+from michspc.spc.zones import Zone  # noqa: E402
+from tests.fixtures.htdp_w3_anchors import (  # noqa: E402
+    L5_RECORDS,
+    L5_REVERSE_RECORDS,
+)
+
+L5_BY_CODE = {record.frame_code: record for record in L5_RECORDS}
+L5R_BY_CODE = {record.frame_code: record for record in L5_REVERSE_RECORDS}
+L5_DATE = datetime.date(2025, 6, 15)
+L5_EPOCH = htdp.ObservationEpoch(L5_DATE)
 
 
 def test_the_stake_a_pass_through_would_cost_is_a_metre_and_more():
@@ -582,47 +618,91 @@ def test_the_stake_a_pass_through_would_cost_is_a_metre_and_more():
     assert 1.2 < math.hypot(north, east) < 1.4
 
 
-def test_the_guard_passes_identities_and_refuses_every_htdp_record():
+def test_the_applicable_path_point_passes_identities_and_every_htdp_record():
+    """SUPERSEDES test_the_guard_passes_identities_and_refuses_every_htdp_record.
+
+    The W2 guard refused all ten HTDP records; its successor
+    (``require_an_applicable_path``) passes them, because W3 applies them -
+    and still refuses what the guard existed to refuse: a non-identity record
+    whose method the pipeline has no arithmetic for, which would otherwise be
+    run as though it were an identity. No such record can be CONSTRUCTED
+    (``FrameTransformation.__post_init__``), so one is forged past it with
+    ``object.__setattr__``: the G2296 record relabelled IDENTITY, still
+    joining two different frames.
+    """
     for frame in (NAD83_2011, NATRF2022):
         identity = FRAME_TRANSFORMATIONS[(frame, frame)]
-        assert require_a_connected_path(identity) is identity
+        assert require_an_applicable_path(identity) is identity
     for source, target in HTDP_PAIRS:
-        with pytest.raises(FrameTransformationUnavailableError) as caught:
-            require_a_connected_path(FRAME_TRANSFORMATIONS[(source, target)])
-        message = str(caught.value)
-        assert "registered but not yet connected" in message
-        assert "development build" in message
-        assert source.code in message and target.code in message
-    with pytest.raises(TypeError, match="never treated as an identity"):
-        require_a_connected_path(None)  # type: ignore[arg-type]
+        record = FRAME_TRANSFORMATIONS[(source, target)]
+        assert require_an_applicable_path(record) is record
 
-
-@pytest.mark.parametrize("frame", FIVE, ids=FIVE_IDS)
-def test_project_point_refuses_a_global_position_into_an_spcs83_zone(frame):
-    """The reviewer-style input: 43.0 / -84.5 in a global frame, into MI-S.
-
-    The pair is REGISTERED (frame -> NAD83(2011)), so require_frame_path
-    returns its record; the guard in project_point must refuse it rather than
-    project the WGS 84 latitude and longitude as though they were NAD 83.
-    """
+    forged = dataclasses.replace(FRAME_TRANSFORMATIONS[(WGS84_G2296, NAD83_2011)])
+    object.__setattr__(forged, "method", FrameTransformationMethod.IDENTITY)
+    assert not forged.is_identity
     with pytest.raises(FrameTransformationUnavailableError) as caught:
-        project_point(43.0, -84.5, frame, MI_SOUTH)
-    assert "registered but not yet connected" in str(caught.value)
+        require_an_applicable_path(forged)
+    message = str(caught.value)
+    assert "has no arithmetic for it" in message
+    assert "WGS84(G2296)" in message and "NAD83(2011)" in message
+    with pytest.raises(TypeError, match="never treated as an identity"):
+        require_an_applicable_path(None)  # type: ignore[arg-type]
+
+
+def _ellipsoid(value: float) -> TransformHeight:
+    return TransformHeight(HeightConvention.ELLIPSOID, value)
 
 
 @pytest.mark.parametrize("frame", FIVE, ids=FIVE_IDS)
-def test_convert_point_refuses_a_zone_pair_across_an_htdp_path(frame):
-    """No real zone sits on a global frame, so one is built for the pin.
+def test_project_point_transforms_a_global_position_into_an_spcs83_zone(frame):
+    """SUPERSEDES test_project_point_refuses_a_global_position_into_an_spcs83_zone.
 
-    MI-S's own record with its frame replaced: a zone pair NAD83(2011) ->
-    WGS84(...) is a registered HTDP path, and convert_point applies none, so
-    the guard must refuse it - in both orders.
+    The reviewer-style input, 43.0 / -84.5 in a global frame into MI-S, now
+    with the date and height HTDP needs: h = 165.000 m on 2025-06-15. The
+    pivot must be HTDP's NAD 83 output, at HTDP's printed digit (1e-10 deg,
+    1 mm: the W1 acceptance standard) - frozen from the binary, never from
+    michspc - and the grid coordinate must be that pivot projected, exactly,
+    since project_point projects its own pivot.
+    """
+    truth = L5_BY_CODE[frame.code]
+    conversion = project_point(
+        43.0, -84.5, frame, MI_SOUTH, epoch=L5_EPOCH, height=_ellipsoid(165.0)
+    )
+    assert f"{conversion.latitude:.10f}" == truth.lat_out
+    assert f"{-conversion.longitude:.10f}" == truth.lonw_out
+    assert f"{conversion.pivot_ellipsoid_height:.3f}" == truth.h_out
+    assert conversion.frame is NAD83_2011
+    assert conversion.external_position.frame is frame
+    assert (conversion.external_position.latitude, conversion.external_position.longitude) == (
+        43.0,
+        -84.5,
+    )
+    plain = project_point(conversion.latitude, conversion.longitude, NAD83_2011, MI_SOUTH)
+    assert conversion.target_northing == plain.target_northing
+    assert conversion.target_easting == plain.target_easting
+
+    # The guard's purpose, kept: no epoch, no projection.
+    with pytest.raises(ValueError) as caught:
+        project_point(43.0, -84.5, frame, MI_SOUTH, height=_ellipsoid(165.0))
+    assert f"observation epoch of the {frame.code} position" in str(caught.value)
+
+
+@pytest.mark.parametrize("frame", FIVE, ids=FIVE_IDS)
+def test_convert_point_still_refuses_a_zone_pair_across_an_htdp_path(frame):
+    """SUPERSEDES test_convert_point_refuses_a_zone_pair_across_an_htdp_path.
+
+    Same inputs: MI-S's own record with its frame replaced. Still REFUSED, in
+    both orders - zone to zone never crosses a frame transformation, because
+    no State Plane zone is defined on a WGS 84 or ITRF frame (plan D4) - but
+    with W3's reason, not W2's "not yet connected".
     """
     on_global = dataclasses.replace(MI_SOUTH, frame=frame)
     for source, target in ((MI_SOUTH, on_global), (on_global, MI_SOUTH)):
         with pytest.raises(FrameTransformationUnavailableError) as caught:
             convert.convert_point(200_000.0, 4_000_000.0, source, target)
-        assert "registered but not yet connected" in str(caught.value)
+        message = str(caught.value)
+        assert "zone to zone" in message and "decision D4" in message
+        assert "not yet connected" not in message
 
 
 # End to end through job.run, with real files.
@@ -644,15 +724,16 @@ def _settings(tmp_path: Path, **overrides) -> JobSettings:
     return JobSettings(**fields)
 
 
-def _mi_south_row() -> str:
+def _mi_south_row(height: str = "200.000") -> str:
     """A real MI-S coordinate of 43.0 N, 84.5 W, as an input row.
 
     An input, not an expected value: the NAD 83 position projected into MI-S
     by the program's own projection, so the row is plausible State Plane data
-    exactly where the reviewer's geodetic point is.
+    exactly where the reviewer's geodetic point is. Written with repr, so the
+    file holds the projected doubles exactly.
     """
     point = project_point(43.0, -84.5, NAD83_2011, MI_SOUTH)
-    return f"1,{point.target_northing:.3f},{point.target_easting:.3f},200.000,P\n"
+    return f"1,{point.target_northing!r},{point.target_easting!r},{height},P\n"
 
 
 def _assert_refused_before_reading_and_nothing_written(settings, expected):
@@ -677,50 +758,108 @@ def _assert_refused_before_reading_and_nothing_written(settings, expected):
     return message
 
 
-@pytest.mark.parametrize("frame", FIVE, ids=FIVE_IDS)
-def test_job_geodetic_to_zone_on_a_global_frame_refuses(tmp_path, frame):
-    """GEODETIC_TO_ZONE, geodetic_frame=<global>, 43.0 / -84.5, target MI-S."""
-    settings = _settings(tmp_path, geodetic_frame=frame)
-    settings.input_path.write_text("1,43.0,-84.5,200.000,P\n", encoding="utf-8")
-    message = _assert_refused_before_reading_and_nothing_written(
-        settings, FrameTransformationUnavailableError
-    )
-    assert "registered but not yet connected" in message
-    assert f"from {frame.code} to NAD83(2011)" in message
+# Half of HTDP's print unit in latitude (1e-10 deg), carried into grid metres:
+# 0.5e-10 deg x (pi/180) x 6.39e6 m (the meridian radius of curvature at 43 N,
+# which is the largest radius the projection scales a latitude step by here)
+# = 5.6e-6 m; a longitude step is no larger (cos 43 < 1). The grid N and E
+# each take at most both steps, rotated by the convergence and scaled by
+# k < 1.0001, so each component of the projected difference is at most
+# 2 x 5.6e-6 x 1.0001 = 1.12e-5 m. Rounded up.
+GRID_TOLERANCE_M = 1.2e-5
 
 
 @pytest.mark.parametrize("frame", FIVE, ids=FIVE_IDS)
-def test_job_zone_to_geodetic_into_a_global_frame_refuses(tmp_path, frame):
-    """ZONE_TO_GEODETIC, MI-S in, geodetic_frame=<global> out.
+def test_job_geodetic_to_zone_on_a_global_frame_converts(tmp_path, frame):
+    """SUPERSEDES test_job_geodetic_to_zone_on_a_global_frame_refuses.
 
-    The direction no per-point gate can see: its rows go through
-    convert_point(MI-S, MI-S), an identity, so only the settings gate stands
-    between the job and the NAD 83 pivot written under a WGS 84 label.
+    Same job: GEODETIC_TO_ZONE, 43.0 / -84.5, target MI-S, Z 165.000 - now
+    with the observation date. The Z is ORTHOMETRIC (the default kind), so
+    HTDP is handed H = 165.000 in place of h, which is exactly the frozen
+    record's input height. The expected grid coordinate is HTDP's printed NAD 83
+    output projected by the program's own NCAT-verified projection - two
+    independent legs - within GRID_TOLERANCE_M per component (derived above).
+    The Z is unchanged (plan D6).
     """
+    truth = L5_BY_CODE[frame.code]
+    settings = _settings(tmp_path, geodetic_frame=frame, observation_date=L5_DATE)
+    settings.input_path.write_text("1,43.0,-84.5,165.000,P\n", encoding="utf-8")
+    (point,) = run(settings).points
+    expected = project_point(
+        float(truth.lat_out), -float(truth.lonw_out), NAD83_2011, MI_SOUTH
+    )
+    assert abs(point.output_northing - expected.target_northing) <= GRID_TOLERANCE_M
+    assert abs(point.output_easting - expected.target_easting) <= GRID_TOLERANCE_M
+    assert point.output_elevation == 165.0
+    assert point.conversion.transform_height.convention is HeightConvention.ORTHOMETRIC
+
+    # The guard's purpose, kept: no date, no conversion - before the file.
+    undated = _settings(tmp_path, geodetic_frame=frame)
+    message = _assert_refused_before_reading_and_nothing_written(undated, ValueError)
+    assert f"has positions in {frame.code}" in message
+    assert "no observation_date" in message
+
+
+# Half of HTDP's print unit, 0.5e-10 deg, plus the bound on the projection
+# round trip measured in the test itself (1e-11 deg): HTDP's map is a
+# near-identity shift (its Jacobian differs from 1 by about 1e-6), so an
+# input moved by the round trip moves the output by the same to within
+# rounding.
+GEODETIC_TOLERANCE_DEG = 0.5e-10 + 1e-11
+
+
+@pytest.mark.parametrize("frame", FIVE, ids=FIVE_IDS)
+def test_job_zone_to_geodetic_into_a_global_frame_converts(tmp_path, frame):
+    """SUPERSEDES test_job_zone_to_geodetic_into_a_global_frame_refuses.
+
+    Same job: MI-S in, geodetic_frame = <global> out - the direction no
+    per-point gate could see under W2. The input row is the reverse record's
+    NAD 83 input (43.0 N 84.5 W) projected into MI-S by the program, so the
+    job's inverse gives that position back to within the round trip, and the
+    written latitude and longitude must be HTDP's printed output in the
+    global frame - not the NAD 83 pivot, which is what W2 refused to write
+    under a WGS 84 label.
+    """
+    truth = L5R_BY_CODE[frame.code]
     settings = _settings(
         tmp_path,
         direction=Direction.ZONE_TO_GEODETIC,
         source_zone=MI_SOUTH,
         target_zone=None,
         geodetic_frame=frame,
+        observation_date=L5_DATE,
     )
-    settings.input_path.write_text(_mi_south_row(), encoding="utf-8")
-    message = _assert_refused_before_reading_and_nothing_written(
-        settings, FrameTransformationUnavailableError
+    settings.input_path.write_text(_mi_south_row("165.000"), encoding="utf-8")
+    (point,) = run(settings).points
+    # The round trip of the input, measured: the bound GEODETIC_TOLERANCE_DEG
+    # assumes.
+    assert abs(point.conversion.latitude - 43.0) <= 1e-11
+    assert abs(point.conversion.longitude + 84.5) <= 1e-11
+    assert abs(point.output_northing - float(truth.lat_out)) <= GEODETIC_TOLERANCE_DEG
+    assert abs(-point.output_easting - float(truth.lonw_out)) <= GEODETIC_TOLERANCE_DEG
+    assert point.output_northing != point.conversion.latitude
+
+    undated = _settings(
+        tmp_path,
+        direction=Direction.ZONE_TO_GEODETIC,
+        source_zone=MI_SOUTH,
+        target_zone=None,
+        geodetic_frame=frame,
     )
-    assert "registered but not yet connected" in message
-    assert f"from NAD83(2011) to {frame.code}" in message
+    message = _assert_refused_before_reading_and_nothing_written(undated, ValueError)
+    assert f"has positions in {frame.code}" in message
 
 
 @pytest.mark.parametrize("frame", FIVE, ids=FIVE_IDS)
-def test_job_vertical_only_on_a_global_frame_refuses_at_the_missing_identity(
-    tmp_path, frame
-):
-    """VERTICAL_ONLY, source_zone=None: require_frame_path(frame, frame).
+def test_job_vertical_only_on_a_global_frame_converts_through_its_path(tmp_path, frame):
+    """SUPERSEDES test_job_vertical_only_on_a_global_frame_refuses_at_the_missing_identity.
 
-    No identity is registered for a time-dependent frame, so the lookup itself
-    refuses - verified here, not assumed - with the identity message.
+    Same job: VERTICAL_ONLY, geodetic input in <global>, NGVD 29 to NAVD 88,
+    Z 165.000 (orthometric). No identity is registered for the frame, and none
+    is added (pinned in section 2): the pivot is found through the frame's
+    HTDP path to NAD 83 (plan D8), so it must be HTDP's printed NAD 83 output
+    - at HTDP's printed digit - and the columns must mirror the input exactly.
     """
+    truth = L5_BY_CODE[frame.code]
     settings = _settings(
         tmp_path,
         direction=Direction.VERTICAL_ONLY,
@@ -729,12 +868,17 @@ def test_job_vertical_only_on_a_global_frame_refuses_at_the_missing_identity(
         vertical_mode=VerticalMode.VERTICAL,
         source_vertical_datum=NGVD29,
         target_vertical_datum=NAVD88,
+        observation_date=L5_DATE,
     )
-    settings.input_path.write_text("1,43.0,-84.5,200.000,P\n", encoding="utf-8")
-    message = _assert_refused_before_reading_and_nothing_written(
-        settings, FrameTransformationUnavailableError
-    )
-    assert "no identity is registered" in message
+    settings.input_path.write_text("1,43.0,-84.5,165.000,P\n", encoding="utf-8")
+    (point,) = run(settings).points
+    assert f"{point.conversion.latitude:.10f}" == truth.lat_out
+    assert f"{-point.conversion.longitude:.10f}" == truth.lonw_out
+    assert (point.output_northing, point.output_easting) == (43.0, -84.5)
+    assert point.conversion.external_position.frame is frame
+    assert point.vertical is not None
+    with pytest.raises(FrameTransformationUnavailableError):
+        require_frame_path(frame, frame)
 
 
 @pytest.mark.parametrize(
@@ -747,18 +891,33 @@ def test_job_vertical_only_on_a_global_frame_refuses_at_the_missing_identity(
     ],
     ids=["g2z-horizontal", "g2z-vertical", "z2g-horizontal", "vertical-only"],
 )
-def test_job_with_ellipsoid_heights_on_wgs84_g2296_refuses(tmp_path, direction, mode):
-    """ELLIPSOID height kind cannot open a door the frame gate closes.
+def test_job_with_ellipsoid_heights_on_wgs84_g2296_converts(tmp_path, direction, mode):
+    """SUPERSEDES test_job_with_ellipsoid_heights_on_wgs84_g2296_refuses.
 
-    ``_require_a_convertible_ellipsoid_height_frame`` passes every frame but
-    NATRF2022, so for these jobs the frame gate - which runs before it - is
-    what refuses. Pinned for each direction that reads ``geodetic_frame``.
+    The four ELLIPSOID-height jobs W2 refused at the frame gate now convert,
+    and the height takes the path plan D6 sets, against HTDP's printed h:
+
+    * GEODETIC_TO_ZONE, horizontal: the Z written is the ellipsoid height in
+      the OUTPUT frame, NAD 83 - HTDP's 166.099 m for 165.000 m in G2296;
+    * GEODETIC_TO_ZONE and VERTICAL_ONLY, vertical: the Z written is
+      H = h(NAD 83) - N, with N from the program's GEOID18 reader at HTDP's
+      printed NAD 83 pivot (the gate's L5 job, which the unguarded seed wrote
+      as 198.085 - h in WGS 84 taken as h in NAD 83);
+    * ZONE_TO_GEODETIC, horizontal: the Z is a NAD 83 h (the zone's frame),
+      and the Z written is HTDP's reverse output in G2296, 163.901 m.
+
+    Each within half of HTDP's 1 mm print unit, plus 1e-6 m for N read at the
+    program's unrounded pivot rather than the printed one (the two are within
+    5e-11 deg, about 6 um, and N changes by well under 1e-6 m over that).
     """
+    from michspc.fileio import geoid
+
     overrides = dict(
         direction=direction,
         geodetic_frame=WGS84_G2296,
         input_height_kind=HeightKind.ELLIPSOID,
         vertical_mode=mode,
+        observation_date=L5_DATE,
     )
     if mode is not VerticalMode.HORIZONTAL:
         overrides.update(
@@ -766,7 +925,7 @@ def test_job_with_ellipsoid_heights_on_wgs84_g2296_refuses(tmp_path, direction, 
         )
     if direction is Direction.ZONE_TO_GEODETIC:
         overrides.update(source_zone=MI_SOUTH, target_zone=None)
-        row = _mi_south_row()
+        row = _mi_south_row("165.000")
     elif direction is Direction.VERTICAL_ONLY:
         overrides.update(target_zone=None)
         row = "1,43.0,-84.5,165.000,P\n"
@@ -774,26 +933,40 @@ def test_job_with_ellipsoid_heights_on_wgs84_g2296_refuses(tmp_path, direction, 
         row = "1,43.0,-84.5,165.000,P\n"
     settings = _settings(tmp_path, **overrides)
     settings.input_path.write_text(row, encoding="utf-8")
-    message = _assert_refused_before_reading_and_nothing_written(
-        settings, FrameTransformationUnavailableError
+    (point,) = run(settings).points
+    tolerance = 0.0005 + 1e-6
+
+    if direction is Direction.ZONE_TO_GEODETIC:
+        truth = L5R_BY_CODE[WGS84_G2296.code]
+        assert abs(point.output_elevation - float(truth.h_out)) <= tolerance
+        return
+    truth = L5_BY_CODE[WGS84_G2296.code]
+    if mode is VerticalMode.HORIZONTAL:
+        assert abs(point.output_elevation - float(truth.h_out)) <= tolerance
+        return
+    separation = geoid.geoid_height(
+        float(truth.lat_out),
+        -float(truth.lonw_out),
+        geoid.default_grid(geoid.GEOID18_MODEL),
     )
-    # The frame gate's refusal, not some other settings gate's.
-    if direction is Direction.VERTICAL_ONLY:
-        assert "no identity is registered" in message
-    else:
-        assert "registered but not yet connected" in message
+    expected = float(truth.h_out) - separation
+    assert abs(point.output_elevation - expected) <= tolerance
+    # The reviewer's unguarded figure is more than a metre away.
+    assert abs(point.output_elevation - 198.085) > 1.0
 
 
 def test_the_same_jobs_on_nad83_still_convert(tmp_path):
-    """The control: the guard refuses the frames, not the directions.
+    """The control: the frames transform, the NAD 83 jobs are untouched.
 
     The reviewer's GEODETIC_TO_ZONE job, identical but for geodetic_frame =
-    NAD83(2011), converts; so does its ZONE_TO_GEODETIC mirror.
+    NAD83(2011) and no date, converts as an identity; so does its
+    ZONE_TO_GEODETIC mirror. Neither carries any transformation evidence.
     """
     settings = _settings(tmp_path, geodetic_frame=NAD83_2011)
     settings.input_path.write_text("1,43.0,-84.5,200.000,P\n", encoding="utf-8")
     result = run(settings)
     assert len(result.points) == 1
+    assert not result.points[0].conversion.is_transformed
 
     mirror = _settings(
         tmp_path,
@@ -803,7 +976,9 @@ def test_the_same_jobs_on_nad83_still_convert(tmp_path):
         geodetic_frame=NAD83_2011,
     )
     mirror.input_path.write_text(_mi_south_row(), encoding="utf-8")
-    assert len(run(mirror).points) == 1
+    (point,) = run(mirror).points
+    assert not point.conversion.is_transformed
+    assert isinstance(MI_SOUTH, Zone)
 
 
 # ==========================================================================

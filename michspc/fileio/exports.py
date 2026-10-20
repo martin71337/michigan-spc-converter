@@ -42,6 +42,71 @@ reader, which is the property `verify_round_trip` below exists to guarantee.
 """
 
 
+class UndisclosedTransformationError(WriteError):
+    """Raised for a job whose outputs could not yet state what was done to it.
+
+    The WGS 84 build's write guard (docs/PLAN-wgs84.md, between work packages
+    W3 and W4). W3 connects HTDP's frame transformation to the conversion;
+    W4 builds its disclosure - the job record's FRAME TRANSFORMATION block,
+    the audit CSV's frame-named columns, and verifiers that check each file
+    against the position that file states. Until then nothing written could
+    say which frames, which date, which height convention, or that a
+    transformation ran at all, so a transformed job is not written. The
+    #41 sequencing rule: disclosure before reachability.
+    """
+
+
+def require_a_disclosable_job(result: JobResult) -> None:
+    """Refuse to write a job whose frame transformation no output yet discloses.
+
+    A job is refused when ANY of these holds, each a sufficient sign that a
+    WGS 84 or ITRF position took part:
+
+    * a point carries a frame transformation (``PointConversion
+      .frame_transformation``);
+    * the direction is ``GEODETIC_TO_GEODETIC``, which exists only across one;
+    * the settings state an observation date, which ``job.run`` accepts only
+      for a time-dependent frame - so an empty transformed job is refused too.
+
+    Called first by ``write_all`` and by ``report.build_report``. Every
+    same-frame job passes untouched, and writes byte for byte what it always
+    wrote. Removed by work package W4 when the disclosure exists.
+    """
+    settings = result.settings
+    transformed = [
+        point.point_id
+        for point in result.points
+        if getattr(point.conversion, "frame_transformation", None) is not None
+    ]
+    geodetic_to_geodetic = settings.direction is Direction.GEODETIC_TO_GEODETIC
+    dated = getattr(settings, "observation_date", None) is not None
+    if not (transformed or geodetic_to_geodetic or dated):
+        return
+    reasons = []
+    if transformed:
+        shown = ", ".join(transformed[:5]) + (", ..." if len(transformed) > 5 else "")
+        reasons.append(
+            f"{len(transformed)} point(s) ({shown}) were moved by a frame "
+            f"transformation"
+        )
+    if geodetic_to_geodetic:
+        reasons.append("the job is geodetic to geodetic")
+    if dated:
+        reasons.append(
+            f"the job states the observation date "
+            f"{settings.observation_date.isoformat()} of a WGS 84 or ITRF frame"
+        )
+    raise UndisclosedTransformationError(
+        f"Nothing was written: {'; '.join(reasons)}. The job record and the "
+        f"audit CSV do not yet state a WGS 84 / ITRF frame transformation - "
+        f"which frames, which observation date, which height convention, or "
+        f"that HTDP ran at all - so an archive of this job would read as "
+        f"though no transformation had happened. That disclosure is the next "
+        f"stage of this development build (docs/PLAN-wgs84.md, work package "
+        f"W4); until it exists a transformed job converts but is not written."
+    )
+
+
 def _geodetic_coordinate_columns(settings) -> bool:
     """Whether this job's OUTPUT coordinate columns hold degrees.
 
@@ -991,6 +1056,10 @@ def write_all(result: JobResult, overwrite: bool = False) -> dict[str, Path]:
     the roles are kept so callers can say which member they mean.
     """
     from michspc.fileio.report import build_report
+
+    # First, before a single cell is rendered or a file staged: the WGS 84
+    # build's write guard (W3 -> W4).
+    require_a_disclosable_job(result)
 
     for point in result.points:
         for label, value in (

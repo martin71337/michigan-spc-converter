@@ -1,6 +1,6 @@
 # PLAN: WGS 84 and ITRF positions, to and from NAD 83(2011)
 
-**Status (2026-10-20): W0, W1, W2 and interim gate 1 DONE (APPROVED after one fix round and a narrowing re-confirmation); W3 next.** W2 registers the five frames and ten HTDP paths, and every one of them REFUSES at `convert.require_a_connected_path` and at the job's settings gate until W3 connects the arithmetic. W1 (`htdp.py`, `htdp_data.py`, 1,846 anchors) reproduces HTDP on all 19,236 applicable frozen records, and on 720 fresh random records the lead drove through NGS's binary, at every printed digit. Written by the session
+**Status (2026-10-20): W0 to W3 and interim gate 1 DONE; W4 next.** W3 applies HTDP in `convert.py` and `job.run`. Transformed jobs refuse to WRITE until W4 builds their disclosure. W2 registers the five frames and ten HTDP paths, and every one of them REFUSES at `convert.require_a_connected_path` and at the job's settings gate until W3 connects the arithmetic. W1 (`htdp.py`, `htdp_data.py`, 1,846 anchors) reproduces HTDP on all 19,236 applicable frozen records, and on 720 fresh random records the lead drove through NGS's binary, at every printed digit. Written by the session
 lead at the owner's instruction ("get going on it. follow the established
 development method"). DESIGN.md amendment **#70** records the opening of this
 build, the owner's three scope decisions and what W0 measured. This plan is the
@@ -395,7 +395,7 @@ gate.
 | **W1** | `htdp.py` + `htdp_data.py` + anchors fixture + transcription pin + falsification seeds. Version → `0.8.0-dev`. **DONE.** |
 | **W2** | `frames.py` records and parameterized paths; refusal successors (the old "WGS 84 is unusable" pins become pins on the bare record, never deleted silently). **DONE.** |
 | | **Interim gate 1** over W1–W2: the arithmetic. **APPROVED** (`review/gate-wgs84-1/`). |
-| **W3** | `convert.py` + `job.py`: D5–D10, `GEODETIC_TO_GEODETIC`, gates, end-to-end pins. |
+| **W3** | `convert.py` + `job.py`: D5–D10, `GEODETIC_TO_GEODETIC`, gates, end-to-end pins. **DONE.** |
 | **W4** | Outputs: record block, conditional columns, verifiers, the digest pin untouched. |
 | | **Interim gate 2** over W3–W4: the integration and the records. |
 | **W5** | GUI, both tabs. |

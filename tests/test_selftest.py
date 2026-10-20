@@ -738,8 +738,10 @@ def test_the_frame_refusal_check_fails_when_the_public_gate_is_bypassed(
 
     SUPERSEDED SEED (DESIGN.md #70, plan W2). Since the WGS 84 build
     ``project_point`` hands the record ``require_frame_path`` returns to
-    ``convert.require_a_connected_path``, which refuses anything that is not an
-    identity record - so the reviewer's literal no-op, returning ``None``, no
+    ``convert.require_a_connected_path`` (since W3 its successor,
+    ``convert.require_an_applicable_path``), which refuses anything that is
+    not a ``FrameTransformation`` record - so the reviewer's literal no-op,
+    returning ``None``, no
     longer opens the public path: it now refuses there, as a ``TypeError``,
     and check 11 still fails (on the wrong class). That is pinned first, below.
     The bypass this test exists to model therefore needs a stronger seed: a

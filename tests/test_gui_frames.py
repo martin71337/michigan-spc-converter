@@ -341,9 +341,16 @@ def test_the_wgs84_and_itrf_frames_reach_no_dropdown_yet(window):
     disclose the transformation. W5 changes the rule, deliberately.
 
     Checked three ways: the rule's own answer, every dropdown's labels and
-    data on the real window, and ``frames_have_a_path`` - which now asks the
-    same connected-path guard ``job.run`` refuses on, so it answers False for
-    all ten registered HTDP pairs rather than True from the registry alone.
+    data on the real window, and ``frames_have_a_path``.
+
+    SUPERSEDED in part (DESIGN.md #70, plan W3). Under W2
+    ``frames_have_a_path`` asked the connected-path guard ``job.run`` refused
+    on, so it answered False for all ten registered HTDP pairs. W3 connects
+    them and ``job.run`` accepts them (tests/test_job_wgs84.py), so the
+    function - whose rule is to AGREE with ``job.run`` - now answers True for
+    all ten; it still answers False for NATRF2022 against each of the five
+    (plan D3), and for a global frame against itself. The frames still reach
+    no dropdown, which is the reachability this test exists to hold until W5.
     """
     five = [
         frame
@@ -367,10 +374,14 @@ def test_the_wgs84_and_itrf_frames_reach_no_dropdown_yet(window):
         assert frame not in offered
         with pytest.raises(KeyError):
             controls.geodetic_choice(frame)
-        # Registered in the core, refused by the guard the interface shares.
+        # Registered in the core and applied by it since W3; the interface
+        # agrees with job.run, which accepts both directions.
         assert frames.require_frame_path(frame, NAD83_2011) is not None
-        assert controls.frames_have_a_path(frame, NAD83_2011) is False
-        assert controls.frames_have_a_path(NAD83_2011, frame) is False
+        assert controls.frames_have_a_path(frame, NAD83_2011) is True
+        assert controls.frames_have_a_path(NAD83_2011, frame) is True
+        assert controls.frames_have_a_path(frame, NATRF2022) is False
+        assert controls.frames_have_a_path(NATRF2022, frame) is False
+        assert controls.frames_have_a_path(frame, frame) is False
 
     for combo in (
         window.from_zone,
@@ -1280,3 +1291,97 @@ def test_a_natrf2022_vertical_only_job_converts_and_writes(window, tmp_path):
     # And the archive - the job record included - was actually written.
     assert window.written_files
     assert sorted(tmp_path.glob("*.zip"))
+
+
+# --------------------------------------------------------------------------
+# Work package W3 of the WGS 84 build: the interface stays out of reach.
+#
+# W3 connects HTDP's frame transformation to job.run and adds
+# Direction.GEODETIC_TO_GEODETIC, observation_date and target_geodetic_frame
+# to the core. W4 has not built the disclosure and W5 has not built the
+# controls, so the #41 rule - disclosure before reachability - means no
+# interface path may reach any of it yet (docs/PLAN-wgs84.md, W3 item 8).
+# --------------------------------------------------------------------------
+
+
+_FIVE = tuple(
+    frame for frame in ALL_FRAMES if frame.is_usable and frame.is_time_dependent
+)
+
+
+def test_no_interface_path_builds_a_geodetic_to_geodetic_job():
+    """``direction_for`` still answers None for geodetic against geodetic.
+
+    For every pair of geodetic selections - the two the dropdowns offer, and
+    choices FORGED for the five time-dependent frames, which no dropdown
+    holds - so the answer cannot depend on what happens to be offered today.
+    W5 changes this, deliberately.
+    """
+    offered = list(controls.GEODETIC_CHOICES)
+    forged = [controls.GeodeticChoice(frame=frame) for frame in _FIVE]
+    for source in offered + forged:
+        for target in offered + forged:
+            assert controls.direction_for(source, target) is None
+    assert controls.frames_offered() == (NAD83_2011, NATRF2022)
+
+
+def test_no_interface_module_names_the_w3_fields_or_direction():
+    """A source scan: nothing under michspc/gui sets the W3 settings or direction.
+
+    ``JobSettings`` defaults ``observation_date`` and ``target_geodetic_frame``
+    to None and nothing in the interface names ``GEODETIC_TO_GEODETIC``, so
+    every job either tab can build is a same-frame job - which the write guard
+    and job.run both let through unchanged.
+    """
+    gui = Path(controls.__file__).resolve().parent
+    for source in sorted(gui.glob("*.py")):
+        text = source.read_text(encoding="utf-8")
+        for name in ("GEODETIC_TO_GEODETIC", "target_geodetic_frame", "observation_date"):
+            assert name not in text, f"{source.name} names {name}"
+
+
+@pytest.mark.parametrize("which", ["single", "multi"])
+def test_both_tabs_zone_jobs_pass_the_stray_geodetic_frame_refusal(
+    window, which, tmp_path
+):
+    """Interim gate 1, I1: the refusal breaks no job either tab builds.
+
+    ``job._require_no_stray_frame_fields`` refuses a non-default
+    ``geodetic_frame`` on ZONE_TO_ZONE and on VERTICAL_ONLY with a zone input.
+    Both tabs leave the field at its default for those jobs
+    (``controls.geodetic_frame_for``) - so the zone-to-zone job and the
+    vertical-only zone job each tab builds pass it, and the multi-point tab
+    converts both end to end.
+    """
+    from michspc import job as jobmod
+
+    page = pages(window)[which]
+    if which == "multi":
+        source = tmp_path / "in.csv"
+        source.write_text("1,500000.0,13000000.0,200.0,A\n", encoding="utf-8")
+        page.input_edit.setText(str(source))
+        page.output_edit.setText(str(tmp_path))
+    else:
+        page.first_edit.setText("500000.0")
+        page.second_edit.setText("13000000.0")
+
+    choose(page.from_zone, MI_CENTRAL)
+    choose(page.to_zone, MI_SOUTH)
+    zone_to_zone = page.settings()
+    assert zone_to_zone is not None
+    assert zone_to_zone.direction is Direction.ZONE_TO_ZONE
+    jobmod._require_no_stray_frame_fields(zone_to_zone)
+    if which == "multi":
+        assert len(run(zone_to_zone).points) == 1
+
+    page.mode_vertical_only.setChecked(True)
+    choose(page.from_zone, MI_CENTRAL)
+    choose(page.vertical_source_combo, NGVD29)
+    choose(page.vertical_target_combo, NAVD88)
+    vertical = page.settings()
+    assert vertical is not None
+    assert vertical.direction is Direction.VERTICAL_ONLY
+    assert vertical.source_zone is MI_CENTRAL
+    jobmod._require_no_stray_frame_fields(vertical)
+    if which == "multi":
+        assert len(run(vertical).points) == 1

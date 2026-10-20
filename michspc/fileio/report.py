@@ -1237,6 +1237,13 @@ def _method_and_verification(settings) -> list[str]:
 
 def build_report(result: JobResult) -> str:
     """Render the job record."""
+    # The WGS 84 build's write guard, here as well as in exports.write_all:
+    # a record built for a transformed job would describe a conversion
+    # without its transformation (docs/PLAN-wgs84.md, W3 -> W4). Imported
+    # here because exports imports this module inside write_all.
+    from michspc.fileio.exports import require_a_disclosable_job
+
+    require_a_disclosable_job(result)
     settings = result.settings
     if settings.input_path is None or settings.output_directory is None:
         # The record's INPUT block opens with "File" and its OUTPUT block opens

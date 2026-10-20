@@ -35,3 +35,7 @@ review/opus-probes/
 review/opus-probes-sp/
 review/ncat-crosscheck/inputs/
 review/ncat-crosscheck/outputs/
+
+# HTDP working files from ad-hoc oracle runs (interim gate 1, N1)
+/in.txt
+/out.txt

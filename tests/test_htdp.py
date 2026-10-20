@@ -699,9 +699,16 @@ _CITED_NUMBER = re.compile(r"(\d{1,6})(?:-(\d{1,6}))?")
 _CITING_MODULES = ("htdp.py", "htdp_data.py", "frames.py")
 
 
-def _citations(module: str) -> list[tuple[int, str, int, int | None]]:
-    """(module line, cited file, first line, last line or None) for every citation."""
-    text = (REPO_ROOT / "michspc" / "spc" / module).read_text(encoding="utf-8")
+def _citations(
+    module: str, text: str | None = None
+) -> list[tuple[int, str, int, int | None]]:
+    """(module line, cited file, first line, last line or None) for every citation.
+
+    ``text`` stands in for the module's source, so the checker itself can be
+    shown a known-bad citation (interim gate 1 re-confirmation, N2).
+    """
+    if text is None:
+        text = (REPO_ROOT / "michspc" / "spc" / module).read_text(encoding="utf-8")
     found = []
     for number, line in enumerate(text.split("\n"), 1):
         specs = [(m[1], m[2]) for m in _FULL_CITATION.finditer(line)]
@@ -713,9 +720,11 @@ def _citations(module: str) -> list[tuple[int, str, int, int | None]]:
     return found
 
 
-def _bad_citations(module: str, sources: dict[str, list[str]]) -> list[str]:
+def _bad_citations(
+    module: str, sources: dict[str, list[str]], text: str | None = None
+) -> list[str]:
     bad = []
-    for number, cited, first, last in _citations(module):
+    for number, cited, first, last in _citations(module, text):
         lines = sources[cited]
 
         def blank_or_missing(k: int) -> bool:
@@ -739,6 +748,42 @@ def test_every_fortran_line_citation_names_a_real_non_blank_line(module):
     assert len(_citations(module)) >= floor, module
     bad = _bad_citations(module, sources)
     assert not bad, bad
+
+
+def test_the_citation_check_flags_the_citations_it_exists_to_flag():
+    """The checker, shown known-bad citations, names each one and only those.
+
+    Interim gate 1's re-confirmation (N2): the parser was pinned, the verdict
+    was not - replacing ``bad.append`` with ``pass``, or dropping the
+    blank-line test, left the suite green. Each probe below is derived from
+    the committed htdp.f, whose relevant lines the next test asserts:
+
+    * line 1, ``htdp.f:4676-4677`` - 4676 is blank: L1's own wrong citation;
+    * line 2, ``htdp.f:7378`` - blank: L1's ``_newcor`` citation;
+    * line 3, ``htdp.f:4614-4603`` - a reversed range;
+    * line 4, ``htdp.f:99999`` - past the end of the file;
+    * line 5, ``# :7378`` - the short form onto the same blank line;
+    * line 6, ``htdp.f:4677-4678`` - correct (``iframe(1) = 1`` and the
+      ``nframe(1)`` line), so it must NOT be flagged.
+    """
+    sources = {name: _lines(name) for name in _CITED_FILES}
+    text = "\n".join(
+        (
+            "a = 1  # htdp.f:4676-4677",
+            "b = 2  # htdp.f:7378",
+            "c = 3  # htdp.f:4614-4603",
+            "d = 4  # htdp.f:99999",
+            "e = 5  # :7378",
+            "f = 6  # htdp.f:4677-4678",
+        )
+    )
+    assert _bad_citations("htdp.py", sources, text) == [
+        "htdp.py:1 cites htdp.f:4676-4677",
+        "htdp.py:2 cites htdp.f:7378",
+        "htdp.py:3 cites htdp.f:4614-4603",
+        "htdp.py:4 cites htdp.f:99999",
+        "htdp.py:5 cites htdp.f:7378",
+    ]
 
 
 def test_the_citation_check_sees_each_form_it_claims_to():

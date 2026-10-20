@@ -52,9 +52,15 @@ round-trip records, not smoothed.
 **What is verified, and against what.** ``tests/test_htdp.py`` reproduces HTDP's
 printed output - 1e-10 degree, 1 mm - on every frozen anchor in
 ``tests/fixtures/htdp_anchors.py``, taken from NGS's source compiled in the
-container (review/wgs84-w0/). The W0 transcription this module descends from
-matched that binary on 45,408 of 45,408 printed records. NGS's own 32-bit
-Windows build was not run (plan section 7, still human).
+container (review/wgs84-w0/), and on the records of
+``tests/fixtures/htdp_near_tie_anchors.py``: inputs tuned, with W0's
+independent transcription, to put one component's result beside a rounding
+tie of HTDP's print - where an ulp's change in the order of operations moves
+the printed digit - and to put the velocity lookup either side of each edge
+of the window below (interim gate 1 of the WGS 84 build, findings L2 and L3).
+The W0 transcription this module descends from matched that binary on 45,408
+of 45,408 printed records. NGS's own 32-bit Windows build was not run (plan
+section 7, still human).
 
 **Exactly these paths and nothing wider.** NAD 83(2011) at its reference epoch
 2010.0 (plan D1) to or from one of five time-dependent frames - WGS84(G1762),
@@ -236,7 +242,7 @@ class HtdpFrame:
 NAD83_2011 = HtdpFrame(
     menu=1,
     iopt=1,
-    htdp_name="NAD_83(2011/CORS96/2007)",  # htdp.f:4676-4677
+    htdp_name="NAD_83(2011/CORS96/2007)",  # htdp.f:4677-4678
 )
 """NAD 83(2011), plate-fixed: always at epoch 2010.0 here (plan D1)."""
 
@@ -672,17 +678,17 @@ def _toit94(
     """
     p = table[iopt]
     x1, y1, z1 = xyz
-    dtime = date - p.reference_epoch  # htdp.f:4604
-    tranx = -(p.tx_m + p.dtx_m_per_yr * dtime)  # htdp.f:4605
-    trany = -(p.ty_m + p.dty_m_per_yr * dtime)  # htdp.f:4606
-    tranz = -(p.tz_m + p.dtz_m_per_yr * dtime)  # htdp.f:4607
-    rotnx = -(p.rx_rad + p.drx_rad_per_yr * dtime)  # htdp.f:4608
-    rotny = -(p.ry_rad + p.dry_rad_per_yr * dtime)  # htdp.f:4609
-    rotnz = -(p.rz_rad + p.drz_rad_per_yr * dtime)  # htdp.f:4610
-    ds = 1.0 - (p.scale + p.dscale_per_yr * dtime)  # htdp.f:4611
-    x2 = tranx + ds * x1 + rotnz * y1 - rotny * z1  # htdp.f:4613
-    y2 = trany - rotnz * x1 + ds * y1 + rotnx * z1  # htdp.f:4614
-    z2 = tranz + rotny * x1 - rotnx * y1 + ds * z1  # htdp.f:4615
+    dtime = date - p.reference_epoch  # htdp.f:4603
+    tranx = -(p.tx_m + p.dtx_m_per_yr * dtime)  # htdp.f:4604
+    trany = -(p.ty_m + p.dty_m_per_yr * dtime)  # htdp.f:4605
+    tranz = -(p.tz_m + p.dtz_m_per_yr * dtime)  # htdp.f:4606
+    rotnx = -(p.rx_rad + p.drx_rad_per_yr * dtime)  # htdp.f:4607
+    rotny = -(p.ry_rad + p.dry_rad_per_yr * dtime)  # htdp.f:4608
+    rotnz = -(p.rz_rad + p.drz_rad_per_yr * dtime)  # htdp.f:4609
+    ds = 1.0 - (p.scale + p.dscale_per_yr * dtime)  # htdp.f:4610
+    x2 = tranx + ds * x1 + rotnz * y1 - rotny * z1  # htdp.f:4612
+    y2 = trany - rotnz * x1 + ds * y1 + rotnx * z1  # htdp.f:4613
+    z2 = tranz + rotny * x1 - rotnx * y1 + ds * z1  # htdp.f:4614
     return x2, y2, z2
 
 
@@ -763,6 +769,23 @@ precision). ``GETREG`` compares a lookup latitude against THIS number, not
 against the 50.0 of ``GRDWEI``'s degrees, so the edge test is made on it."""
 
 
+def _cell_is_in_window(i: int, j: int) -> bool:
+    """True when all four nodes of GRDWEI's cell (i, j) are transcribed.
+
+    Cell (i, j) is read from nodes (i, j), (i + 1, j), (i, j + 1) and
+    (i + 1, j + 1) (``GRDVEC``, ``htdp.f:1685-1692``), so with nodes
+    I ``i_low``-``i_high`` and J ``j_low``-``j_high`` transcribed the accepted
+    cells are I ``i_low`` to ``i_high - 1`` and J ``j_low`` to ``j_high - 1``.
+    Its own function so that the window's rows and columns can be held to that
+    by the suite separately from region 6's 50.0 N edge, which coincides with
+    the window's north row at the double and would otherwise mask it (interim
+    gate 1 of the WGS 84 build, finding L3).
+    """
+    i_low, i_high = htdp_data.WINDOW_I_RANGE
+    j_low, j_high = htdp_data.WINDOW_J_RANGE
+    return (i_low <= i and i + 1 <= i_high and j_low <= j and j + 1 <= j_high)
+
+
 def _window_cell(
     rlat: float, rlon: float, frame: HtdpFrame, latitude: float, longitude: float
 ) -> tuple[int, int, float, float]:
@@ -797,7 +820,7 @@ def _window_cell(
     i_low, i_high = htdp_data.WINDOW_I_RANGE
     j_low, j_high = htdp_data.WINDOW_J_RANGE
     north_of_edge = rlat >= _REGION6_NORTH_EDGE_RAD
-    outside_window = not (i_low <= i and i + 1 <= i_high and j_low <= j and j + 1 <= j_high)
+    outside_window = not _cell_is_in_window(i, j)
     if north_of_edge or outside_window:
         where = (
             "at or north of 50.0 N, the northern edge of HTDP's velocity "
@@ -828,10 +851,35 @@ def _window_cell(
     return i, j, posx, posy
 
 
+def _window_node(i: int, j: int) -> tuple[float, float, float]:
+    """One transcribed node of grid 6, or a refusal - never a ``KeyError``.
+
+    ``_window_cell`` accepts only cells whose four nodes are transcribed, so
+    this refusal is unreachable while that check is right. It exists so that
+    if the check is ever wrong - an off-by-one at an edge (interim gate 1 of
+    the WGS 84 build, finding L3) - the lookup still fails CLOSED and in this
+    module's own family: a ``KeyError`` would walk straight through every
+    ``except HtdpRefusal`` and ``except FrameMismatchError`` a caller writes.
+    """
+    try:
+        return GRID6_WINDOW[(i, j)]
+    except KeyError:
+        i_low, i_high = htdp_data.WINDOW_I_RANGE
+        j_low, j_high = htdp_data.WINDOW_J_RANGE
+        raise HtdpVelocityGridError(
+            f"HTDP's velocity grid node I = {i}, J = {j} is not part of the "
+            f"transcription this program carries (nodes I {i_low} to {i_high}, "
+            f"J {j_low} to {j_high}; htdp_data.GRID6_WINDOW). The window check "
+            f"should have refused this position before any node was read, so "
+            f"this is a defect in this program, not a fact about the position; "
+            f"nothing is computed from a node that is not NGS's."
+        ) from None
+
+
 def _grid_velocity(
     i: int, j: int, posx: float, posy: float
 ) -> tuple[float, float, float]:
-    """COMVEL's grid branch, ITRF2008 mm/yr. ``htdp.f:458-472``, ``1613-1631``."""
+    """COMVEL's grid branch, ITRF2008 mm/yr. ``htdp.f:458-474``, ``1613-1631``."""
     stepx = (
         htdp_data.GRID6_UPPER_EAST_LONGITUDE - htdp_data.GRID6_LOWER_EAST_LONGITUDE
     ) / htdp_data.GRID6_CELLS_EAST  # htdp.f:1608
@@ -849,11 +897,11 @@ def _grid_velocity(
     w22 = (posx - grlx) * (posy - grly) / denom  # htdp.f:1628
 
     # GRDVEC, htdp.f:1685-1692: VEL(II+1, IJ+1, IVEC) <- node (I+II, J+IJ).
-    v11 = GRID6_WINDOW[(i, j)]
-    v12 = GRID6_WINDOW[(i, j + 1)]
-    v21 = GRID6_WINDOW[(i + 1, j)]
-    v22 = GRID6_WINDOW[(i + 1, j + 1)]
-    # COMVEL, htdp.f:467-475, in its own summation order.
+    v11 = _window_node(i, j)
+    v12 = _window_node(i, j + 1)
+    v21 = _window_node(i + 1, j)
+    v22 = _window_node(i + 1, j + 1)
+    # COMVEL, htdp.f:467-474, in its own summation order.
     vn = w11 * v11[0] + w12 * v12[0] + w21 * v21[0] + w22 * v22[0]
     ve = w11 * v11[1] + w12 * v12[1] + w21 * v21[1] + w22 * v22[1]
     vu = w11 * v11[2] + w12 * v12[2] + w21 * v21[2] + w22 * v22[2]
@@ -956,12 +1004,12 @@ def _newcor(
     adds the difference, rather than multiplying the velocity by the span;
     the floating-point result is not the same, so the form is copied.
     """
-    ht = htold  # htdp.f:7378
-    ylat1, ylon1, ht1 = _compsn(ylat, ylon, ht, min1, vn, ve, vu)  # :7380-7381
-    ylat2, ylon2, ht2 = _compsn(ylat, ylon, ht, min2, vn, ve, vu)  # :7383-7384
-    ylat3 = ylat + ylat2 - ylat1  # htdp.f:7386
-    ylon3 = ylon + ylon2 - ylon1  # htdp.f:7387
-    htnew = ht + ht2 - ht1  # htdp.f:7388
+    ht = htold  # htdp.f:7379
+    ylat1, ylon1, ht1 = _compsn(ylat, ylon, ht, min1, vn, ve, vu)  # :7381-7382
+    ylat2, ylon2, ht2 = _compsn(ylat, ylon, ht, min2, vn, ve, vu)  # :7384-7385
+    ylat3 = ylat + ylat2 - ylat1  # htdp.f:7387
+    ylon3 = ylon + ylon2 - ylon1  # htdp.f:7388
+    htnew = ht + ht2 - ht1  # htdp.f:7389
     return ylat3, ylon3, htnew
 
 

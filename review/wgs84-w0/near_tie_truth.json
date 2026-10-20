@@ -1,0 +1,5647 @@
+{
+ "provenance": {
+  "binary_flags": "gfortran -O0 -std=legacy -w *.f -o htdp_linux (x86_64, SSE2 double arithmetic)",
+  "binary_sha256": "3738c50c66901c02b751d391b8ca6a0c5eac667fbc7c30875c21b59f82f77f8f",
+  "capture_utc": "2026-10-20T19:06:36+00:00",
+  "commit": "59fdbe6b7cf5fabf79f901801ecdc33e7ca2095c",
+  "compiler_at_capture": "GNU Fortran (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+  "compiler_at_w0": "GNU Fortran (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+  "repository": "https://github.com/noaa-ngs/HTDP",
+  "selected_with": "review/wgs84-w0/experiment.py (W0's independent transcription), never michspc; see review/wgs84-w0/make_near_tie_anchors.py",
+  "source_sha256": {
+   "htdp.f": "97a46675b4fb9de24152ed70fc3a34f72017e90cb77e4994696dfd5dffb75271",
+   "initbd.f": "66da175e3cb7a979b3179633a2517b194f14286e47f154bffca9760315de696d",
+   "initeq.f": "c2d92dec9d9c3402589c8a9d9aa873ddaefb2925577b38be252475c71cd0eac9",
+   "initps.f": "543eb7c650f8f9a8047bbf66e8cdddd205c32512ee46e069a0765e0b97655945",
+   "initvl.f": "06455583630018c888db5f6828e55972b80477548df92790a3e5a30483dc1e56"
+  },
+  "stdin_template": "4/out.txt/<in menu>/<out menu>/1/<m d y>/1/<m d y>/3/in.txt/0/0",
+  "tool": "NGS HTDP v3.6.0 (htdp.f:27-28 'April 7, 2025')"
+ },
+ "runs": [
+  {
+   "frame_in_menu": 10,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "47.79012295815437,83.59623838508085,200.0,NT000LAB",
+    "47.790122958154384,83.59623838508085,200.0,NT000LAA",
+    "46.26752795260161,84.47924045278626,0.0,NT000LOB",
+    "46.26752795260161,84.47924045278627,0.0,NT000LOA",
+    "47.62091708196841,89.87854653434083,600.000451500039,NT000HTB",
+    "47.62091708196841,89.87854653434083,600.0004515000619,NT000HTA"
+   ],
+   "observation_date": [
+    2028,
+    5,
+    19
+   ],
+   "outputs": [
+    {
+     "eht": "200.954",
+     "lat": "47.7901136141",
+     "lonW": "83.5962258185",
+     "name": "NT000LAB"
+    },
+    {
+     "eht": "200.954",
+     "lat": "47.7901136142",
+     "lonW": "83.5962258185",
+     "name": "NT000LAA"
+    },
+    {
+     "eht": "0.994",
+     "lat": "46.2675189693",
+     "lonW": "84.4792281518",
+     "name": "NT000LOB"
+    },
+    {
+     "eht": "0.994",
+     "lat": "46.2675189693",
+     "lonW": "84.4792281519",
+     "name": "NT000LOA"
+    },
+    {
+     "eht": "600.893",
+     "lat": "47.6209088489",
+     "lonW": "89.8785320039",
+     "name": "NT000HTB"
+    },
+    {
+     "eht": "600.894",
+     "lat": "47.6209088489",
+     "lonW": "89.8785320039",
+     "name": "NT000HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G1762)             (EPOCH = 05-19-2028 (2028.3798))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   47.7901136141   83.5962258185   200.954    NT000LAB\n   47.7901136142   83.5962258185   200.954    NT000LAA\n   46.2675189693   84.4792281518     0.994    NT000LOB\n   46.2675189693   84.4792281519     0.994    NT000LOA\n   47.6209088489   89.8785320039   600.893    NT000HTB\n   47.6209088489   89.8785320039   600.894    NT000HTA\n",
+   "raw_sha256": "ab2839b242b48d11e3174f027efe5dd2e2a6fdbb18f2bc8101aea151363c1efe",
+   "returncode": 0,
+   "run_id": "neartie_10_1_0",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n10\n1\n1\n5 19 2028\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 10,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "41.99865470578811,87.97418951396476,200.0,NT001LAB",
+    "41.998654705788134,87.97418951396476,200.0,NT001LAA",
+    "44.4423142678516,86.95597090802723,600.0,NT001LOB",
+    "44.4423142678516,86.95597090802724,600.0,NT001LOA",
+    "43.97597283307788,88.38026860813873,-0.0002498556859791387,NT001HTB",
+    "43.97597283307788,88.38026860813873,-0.00024985568597912783,NT001HTA"
+   ],
+   "observation_date": [
+    2008,
+    2,
+    29
+   ],
+   "outputs": [
+    {
+     "eht": "201.087",
+     "lat": "41.9986467811",
+     "lonW": "87.9741812668",
+     "name": "NT001LAB"
+    },
+    {
+     "eht": "201.087",
+     "lat": "41.9986467812",
+     "lonW": "87.9741812668",
+     "name": "NT001LAA"
+    },
+    {
+     "eht": "601.025",
+     "lat": "44.4423058296",
+     "lonW": "86.9559625082",
+     "name": "NT001LOB"
+    },
+    {
+     "eht": "601.025",
+     "lat": "44.4423058296",
+     "lonW": "86.9559625083",
+     "name": "NT001LOA"
+    },
+    {
+     "eht": "1.022",
+     "lat": "43.9759646172",
+     "lonW": "88.3802598695",
+     "name": "NT001HTB"
+    },
+    {
+     "eht": "1.023",
+     "lat": "43.9759646172",
+     "lonW": "88.3802598695",
+     "name": "NT001HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G1762)             (EPOCH = 02-29-2008 (2008.1612))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   41.9986467811   87.9741812668   201.087    NT001LAB\n   41.9986467812   87.9741812668   201.087    NT001LAA\n   44.4423058296   86.9559625082   601.025    NT001LOB\n   44.4423058296   86.9559625083   601.025    NT001LOA\n   43.9759646172   88.3802598695     1.022    NT001HTB\n   43.9759646172   88.3802598695     1.023    NT001HTA\n",
+   "raw_sha256": "4092d338103f8f07e8fc52447aa15a4a509fbc0dbffadc2f8a744637fd1636eb",
+   "returncode": 0,
+   "run_id": "neartie_10_1_1",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n10\n1\n1\n2 29 2008\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 10,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "46.12415527556122,87.00112888505717,433.05496065138857,NT002LAB",
+    "46.12415527556123,87.00112888505717,433.05496065138857,NT002LAA",
+    "42.510931763794595,89.79298954038417,200.0,NT002LOB",
+    "42.510931763794595,89.79298954038418,200.0,NT002LOA",
+    "42.09096992070935,90.0983472755102,199.99992435564647,NT002HTB",
+    "42.09096992070935,90.0983472755102,199.99992435565218,NT002HTA"
+   ],
+   "observation_date": [
+    2022,
+    11,
+    14
+   ],
+   "outputs": [
+    {
+     "eht": "434.027",
+     "lat": "46.1241467011",
+     "lonW": "87.0011169674",
+     "name": "NT002LAB"
+    },
+    {
+     "eht": "434.027",
+     "lat": "46.1241467012",
+     "lonW": "87.0011169674",
+     "name": "NT002LAA"
+    },
+    {
+     "eht": "201.049",
+     "lat": "42.5109240563",
+     "lonW": "89.7929778818",
+     "name": "NT002LOB"
+    },
+    {
+     "eht": "201.049",
+     "lat": "42.5109240563",
+     "lonW": "89.7929778819",
+     "name": "NT002LOA"
+    },
+    {
+     "eht": "201.057",
+     "lat": "42.0909623194",
+     "lonW": "90.0983356452",
+     "name": "NT002HTB"
+    },
+    {
+     "eht": "201.058",
+     "lat": "42.0909623194",
+     "lonW": "90.0983356452",
+     "name": "NT002HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G1762)             (EPOCH = 11-14-2022 (2022.8685))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   46.1241467011   87.0011169674   434.027    NT002LAB\n   46.1241467012   87.0011169674   434.027    NT002LAA\n   42.5109240563   89.7929778818   201.049    NT002LOB\n   42.5109240563   89.7929778819   201.049    NT002LOA\n   42.0909623194   90.0983356452   201.057    NT002HTB\n   42.0909623194   90.0983356452   201.058    NT002HTA\n",
+   "raw_sha256": "fae940a2341125344f0dd542a2aaf1f27f90dc7cd4bb3390200c20067bd0e558",
+   "returncode": 0,
+   "run_id": "neartie_10_1_2",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n10\n1\n1\n11 14 2022\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 10,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "47.69055217199984,89.35980570669001,600.0,NT003LAB",
+    "47.69055217199985,89.35980570669001,600.0,NT003LAA",
+    "44.47898848445561,88.8613737786368,200.0,NT003LOB",
+    "44.47898848445561,88.86137377863682,200.0,NT003LOA",
+    "46.18393386502703,84.35610834702781,599.999646948162,NT003HTB",
+    "46.18393386502703,84.35610834702781,599.9996469481848,NT003HTA"
+   ],
+   "observation_date": [
+    2005,
+    5,
+    5
+   ],
+   "outputs": [
+    {
+     "eht": "600.897",
+     "lat": "47.6905434475",
+     "lonW": "89.3597964873",
+     "name": "NT003LAB"
+    },
+    {
+     "eht": "600.897",
+     "lat": "47.6905434476",
+     "lonW": "89.3597964873",
+     "name": "NT003LAA"
+    },
+    {
+     "eht": "201.002",
+     "lat": "44.4789802100",
+     "lonW": "88.8613653707",
+     "name": "NT003LOB"
+    },
+    {
+     "eht": "201.002",
+     "lat": "44.4789802100",
+     "lonW": "88.8613653708",
+     "name": "NT003LOA"
+    },
+    {
+     "eht": "600.997",
+     "lat": "46.1839248848",
+     "lonW": "84.3561009899",
+     "name": "NT003HTB"
+    },
+    {
+     "eht": "600.998",
+     "lat": "46.1839248848",
+     "lonW": "84.3561009899",
+     "name": "NT003HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G1762)             (EPOCH = 05-05-2005 (2005.3397))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   47.6905434475   89.3597964873   600.897    NT003LAB\n   47.6905434476   89.3597964873   600.897    NT003LAA\n   44.4789802100   88.8613653707   201.002    NT003LOB\n   44.4789802100   88.8613653708   201.002    NT003LOA\n   46.1839248848   84.3561009899   600.997    NT003HTB\n   46.1839248848   84.3561009899   600.998    NT003HTA\n",
+   "raw_sha256": "b201b9665d630bc3d1b390b2e9933c48c92769f59c9efcb2aa223f6733509d99",
+   "returncode": 0,
+   "run_id": "neartie_10_1_3",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n10\n1\n1\n5 5 2005\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 10,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "41.62503292197737,90.400228332072,335.97481873398215,NT004LAB",
+    "41.625032921977386,90.400228332072,335.97481873398215,NT004LAA",
+    "42.67515891512537,90.1634232149874,600.0,NT004LOB",
+    "42.67515891512537,90.16342321498742,600.0,NT004LOA",
+    "45.09091350690229,86.09461914201906,200.00011717667235,NT004HTB",
+    "45.09091350690229,86.09461914201906,200.00011717667806,NT004HTA"
+   ],
+   "observation_date": [
+    2034,
+    4,
+    30
+   ],
+   "outputs": [
+    {
+     "eht": "337.042",
+     "lat": "41.6250255361",
+     "lonW": "90.4002146238",
+     "name": "NT004LAB"
+    },
+    {
+     "eht": "337.042",
+     "lat": "41.6250255362",
+     "lonW": "90.4002146238",
+     "name": "NT004LAA"
+    },
+    {
+     "eht": "601.040",
+     "lat": "42.6751513507",
+     "lonW": "90.1634092338",
+     "name": "NT004LOB"
+    },
+    {
+     "eht": "601.040",
+     "lat": "42.6751513507",
+     "lonW": "90.1634092339",
+     "name": "NT004LOA"
+    },
+    {
+     "eht": "201.014",
+     "lat": "45.0909049651",
+     "lonW": "86.0946054308",
+     "name": "NT004HTB"
+    },
+    {
+     "eht": "201.015",
+     "lat": "45.0909049651",
+     "lonW": "86.0946054308",
+     "name": "NT004HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G1762)             (EPOCH = 04-30-2034 (2034.3260))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   41.6250255361   90.4002146238   337.042    NT004LAB\n   41.6250255362   90.4002146238   337.042    NT004LAA\n   42.6751513507   90.1634092338   601.040    NT004LOB\n   42.6751513507   90.1634092339   601.040    NT004LOA\n   45.0909049651   86.0946054308   201.014    NT004HTB\n   45.0909049651   86.0946054308   201.015    NT004HTA\n",
+   "raw_sha256": "3f0e2755bb0e513ee2cd5bb271c44a3136b60ce6880902d8c71d2e3d05a33927",
+   "returncode": 0,
+   "run_id": "neartie_10_1_4",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n10\n1\n1\n4 30 2034\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 10,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "47.14834451619295,85.92127498614215,200.0,NT005LAB",
+    "47.14834451619296,85.92127498614215,200.0,NT005LAA",
+    "42.59731104094526,83.81169341114149,200.0,NT005LOB",
+    "42.59731104094526,83.8116934111415,200.0,NT005LOA",
+    "43.62452315608166,86.80813334385753,474.9747919211982,NT005HTB",
+    "43.62452315608166,86.80813334385753,474.9747919212096,NT005HTA"
+   ],
+   "observation_date": [
+    2006,
+    5,
+    15
+   ],
+   "outputs": [
+    {
+     "eht": "200.952",
+     "lat": "47.1483355340",
+     "lonW": "85.9212667238",
+     "name": "NT005LAB"
+    },
+    {
+     "eht": "200.952",
+     "lat": "47.1483355341",
+     "lonW": "85.9212667238",
+     "name": "NT005LAA"
+    },
+    {
+     "eht": "201.115",
+     "lat": "42.5973026244",
+     "lonW": "83.8116866636",
+     "name": "NT005LOB"
+    },
+    {
+     "eht": "201.115",
+     "lat": "42.5973026244",
+     "lonW": "83.8116866637",
+     "name": "NT005LOA"
+    },
+    {
+     "eht": "476.026",
+     "lat": "43.6245148345",
+     "lonW": "86.8081255048",
+     "name": "NT005HTB"
+    },
+    {
+     "eht": "476.027",
+     "lat": "43.6245148345",
+     "lonW": "86.8081255048",
+     "name": "NT005HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G1762)             (EPOCH = 05-15-2006 (2006.3671))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   47.1483355340   85.9212667238   200.952    NT005LAB\n   47.1483355341   85.9212667238   200.952    NT005LAA\n   42.5973026244   83.8116866636   201.115    NT005LOB\n   42.5973026244   83.8116866637   201.115    NT005LOA\n   43.6245148345   86.8081255048   476.026    NT005HTB\n   43.6245148345   86.8081255048   476.027    NT005HTA\n",
+   "raw_sha256": "4920236074ab78f0bd86973336bb4a7cc09116460ff861717004087b00efb710",
+   "returncode": 0,
+   "run_id": "neartie_10_1_5",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n10\n1\n1\n5 15 2006\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 11,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "45.342392989783576,85.68000962470312,200.0,NT010LAB",
+    "45.3423929897836,85.68000962470312,200.0,NT010LAA",
+    "43.49729001581057,83.23055840792021,200.0,NT010LOB",
+    "43.49729001581057,83.23055840792023,200.0,NT010LOA",
+    "42.35187118788242,86.46390175146882,-0.0003038928844034781,NT010HTB",
+    "42.35187118788242,86.46390175146882,-0.0003038928844034672,NT010HTA"
+   ],
+   "observation_date": [
+    2005,
+    4,
+    2
+   ],
+   "outputs": [
+    {
+     "eht": "201.011",
+     "lat": "45.3423842952",
+     "lonW": "85.6800020185",
+     "name": "NT010LAB"
+    },
+    {
+     "eht": "201.011",
+     "lat": "45.3423842953",
+     "lonW": "85.6800020185",
+     "name": "NT010LAA"
+    },
+    {
+     "eht": "201.093",
+     "lat": "43.4972814272",
+     "lonW": "83.2305518935",
+     "name": "NT010LOB"
+    },
+    {
+     "eht": "201.093",
+     "lat": "43.4972814272",
+     "lonW": "83.2305518936",
+     "name": "NT010LOA"
+    },
+    {
+     "eht": "1.093",
+     "lat": "42.3518630877",
+     "lonW": "86.4638944313",
+     "name": "NT010HTB"
+    },
+    {
+     "eht": "1.094",
+     "lat": "42.3518630877",
+     "lonW": "86.4638944313",
+     "name": "NT010HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G2139)             (EPOCH = 04-02-2005 (2005.2493))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   45.3423842952   85.6800020185   201.011    NT010LAB\n   45.3423842953   85.6800020185   201.011    NT010LAA\n   43.4972814272   83.2305518935   201.093    NT010LOB\n   43.4972814272   83.2305518936   201.093    NT010LOA\n   42.3518630877   86.4638944313     1.093    NT010HTB\n   42.3518630877   86.4638944313     1.094    NT010HTA\n",
+   "raw_sha256": "ff6765e2c29392669bad34b0978a703f34e6b55a24abb6a8097fb8739f9ff712",
+   "returncode": 0,
+   "run_id": "neartie_11_1_0",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n11\n1\n1\n4 2 2005\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 11,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "44.90840131173779,89.06220913496438,600.0,NT011LAB",
+    "44.908401311737805,89.06220913496438,600.0,NT011LAA",
+    "48.17830848462618,83.48994179610862,200.0,NT011LOB",
+    "48.17830848462618,83.48994179610865,200.0,NT011LOA",
+    "46.21923166079692,86.81004753582205,479.339820776589,NT011HTB",
+    "46.21923166079692,86.81004753582205,479.33982077660045,NT011HTA"
+   ],
+   "observation_date": [
+    2008,
+    12,
+    9
+   ],
+   "outputs": [
+    {
+     "eht": "600.986",
+     "lat": "44.9083930560",
+     "lonW": "89.0621998238",
+     "name": "NT011LAB"
+    },
+    {
+     "eht": "600.986",
+     "lat": "44.9083930561",
+     "lonW": "89.0621998238",
+     "name": "NT011LAA"
+    },
+    {
+     "eht": "200.942",
+     "lat": "48.1782991370",
+     "lonW": "83.4899334878",
+     "name": "NT011LOB"
+    },
+    {
+     "eht": "200.942",
+     "lat": "48.1782991370",
+     "lonW": "83.4899334879",
+     "name": "NT011LOA"
+    },
+    {
+     "eht": "480.311",
+     "lat": "46.2192229578",
+     "lonW": "86.8100386195",
+     "name": "NT011HTB"
+    },
+    {
+     "eht": "480.312",
+     "lat": "46.2192229578",
+     "lonW": "86.8100386195",
+     "name": "NT011HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G2139)             (EPOCH = 12-09-2008 (2008.9372))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   44.9083930560   89.0621998238   600.986    NT011LAB\n   44.9083930561   89.0621998238   600.986    NT011LAA\n   48.1782991370   83.4899334878   200.942    NT011LOB\n   48.1782991370   83.4899334879   200.942    NT011LOA\n   46.2192229578   86.8100386195   480.311    NT011HTB\n   46.2192229578   86.8100386195   480.312    NT011HTA\n",
+   "raw_sha256": "b66858acb51e245df00b1268ff6da3a751c953304b56d857a0054e49d9052ac3",
+   "returncode": 0,
+   "run_id": "neartie_11_1_1",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n11\n1\n1\n12 9 2008\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 11,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "45.870092524586425,87.07423686479765,600.0,NT012LAB",
+    "45.87009252458644,87.07423686479765,600.0,NT012LAA",
+    "47.20999238897955,84.75304348187392,0.0,NT012LOB",
+    "47.20999238897955,84.75304348187393,0.0,NT012LOA",
+    "42.94859529808749,83.41853680729393,600.0000653504165,NT012HTB",
+    "42.94859529808749,83.41853680729393,600.0000653504394,NT012HTA"
+   ],
+   "observation_date": [
+    2031,
+    10,
+    23
+   ],
+   "outputs": [
+    {
+     "eht": "600.982",
+     "lat": "45.8700840810",
+     "lonW": "87.0742230747",
+     "name": "NT012LAB"
+    },
+    {
+     "eht": "600.982",
+     "lat": "45.8700840811",
+     "lonW": "87.0742230747",
+     "name": "NT012LAA"
+    },
+    {
+     "eht": "0.964",
+     "lat": "47.2099833476",
+     "lonW": "84.7530299637",
+     "name": "NT012LOB"
+    },
+    {
+     "eht": "0.964",
+     "lat": "47.2099833476",
+     "lonW": "84.7530299638",
+     "name": "NT012LOA"
+    },
+    {
+     "eht": "601.111",
+     "lat": "42.9485865361",
+     "lonW": "83.4185251210",
+     "name": "NT012HTB"
+    },
+    {
+     "eht": "601.112",
+     "lat": "42.9485865361",
+     "lonW": "83.4185251210",
+     "name": "NT012HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G2139)             (EPOCH = 10-23-2031 (2031.8082))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   45.8700840810   87.0742230747   600.982    NT012LAB\n   45.8700840811   87.0742230747   600.982    NT012LAA\n   47.2099833476   84.7530299637     0.964    NT012LOB\n   47.2099833476   84.7530299638     0.964    NT012LOA\n   42.9485865361   83.4185251210   601.111    NT012HTB\n   42.9485865361   83.4185251210   601.112    NT012HTA\n",
+   "raw_sha256": "526fa6863995d0efe038e4ca54a78a410c4a34f53322cd4d91e12b7fa9a94564",
+   "returncode": 0,
+   "run_id": "neartie_11_1_2",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n11\n1\n1\n10 23 2031\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 11,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "43.13562069437889,82.21665136783324,600.0,NT013LAB",
+    "43.13562069437891,82.21665136783324,600.0,NT013LAA",
+    "45.41590230604836,85.44279433869944,600.0,NT013LOB",
+    "45.41590230604836,85.44279433869946,600.0,NT013LOA",
+    "44.50681489860062,82.96557753579967,0.00027782889083026755,NT013HTB",
+    "44.50681489860062,82.96557753579967,0.00027782889083027845,NT013HTA"
+   ],
+   "observation_date": [
+    2022,
+    12,
+    31
+   ],
+   "outputs": [
+    {
+     "eht": "601.116",
+     "lat": "43.1356118380",
+     "lonW": "82.2166417385",
+     "name": "NT013LAB"
+    },
+    {
+     "eht": "601.116",
+     "lat": "43.1356118381",
+     "lonW": "82.2166417385",
+     "name": "NT013LAA"
+    },
+    {
+     "eht": "601.013",
+     "lat": "45.4158936060",
+     "lonW": "85.4427830829",
+     "name": "NT013LOB"
+    },
+    {
+     "eht": "601.013",
+     "lat": "45.4158936060",
+     "lonW": "85.4427830830",
+     "name": "NT013LOA"
+    },
+    {
+     "eht": "1.066",
+     "lat": "44.5068059512",
+     "lonW": "82.9655673138",
+     "name": "NT013HTB"
+    },
+    {
+     "eht": "1.067",
+     "lat": "44.5068059512",
+     "lonW": "82.9655673138",
+     "name": "NT013HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G2139)             (EPOCH = 12-31-2022 (2022.9973))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   43.1356118380   82.2166417385   601.116    NT013LAB\n   43.1356118381   82.2166417385   601.116    NT013LAA\n   45.4158936060   85.4427830829   601.013    NT013LOB\n   45.4158936060   85.4427830830   601.013    NT013LOA\n   44.5068059512   82.9655673138     1.066    NT013HTB\n   44.5068059512   82.9655673138     1.067    NT013HTA\n",
+   "raw_sha256": "40fd7d89871dad77e98b1c3e33a5a4885cc8c21d6836fb9dfb5ea5ad0807f015",
+   "returncode": 0,
+   "run_id": "neartie_11_1_3",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n11\n1\n1\n12 31 2022\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 11,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "47.68047019514521,87.71102384924482,122.16369963086163,NT014LAB",
+    "47.68047019514522,87.71102384924482,122.16369963086163,NT014LAA",
+    "42.65022778939418,87.43371346916506,600.0,NT014LOB",
+    "42.65022778939418,87.43371346916507,600.0,NT014LOA",
+    "47.34340043673231,85.54643829926992,108.75599898071674,NT014HTB",
+    "47.34340043673231,85.54643829926992,108.7559989807196,NT014HTA"
+   ],
+   "observation_date": [
+    2001,
+    1,
+    21
+   ],
+   "outputs": [
+    {
+     "eht": "123.079",
+     "lat": "47.6804612799",
+     "lonW": "87.7110160743",
+     "name": "NT014LAB"
+    },
+    {
+     "eht": "123.079",
+     "lat": "47.6804612800",
+     "lonW": "87.7110160743",
+     "name": "NT014LAA"
+    },
+    {
+     "eht": "601.073",
+     "lat": "42.6502197244",
+     "lonW": "87.4337066144",
+     "name": "NT014LOB"
+    },
+    {
+     "eht": "601.073",
+     "lat": "42.6502197244",
+     "lonW": "87.4337066145",
+     "name": "NT014LOA"
+    },
+    {
+     "eht": "109.704",
+     "lat": "47.3433913942",
+     "lonW": "85.5464312655",
+     "name": "NT014HTB"
+    },
+    {
+     "eht": "109.705",
+     "lat": "47.3433913942",
+     "lonW": "85.5464312655",
+     "name": "NT014HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G2139)             (EPOCH = 01-21-2001 (2001.0548))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   47.6804612799   87.7110160743   123.079    NT014LAB\n   47.6804612800   87.7110160743   123.079    NT014LAA\n   42.6502197244   87.4337066144   601.073    NT014LOB\n   42.6502197244   87.4337066145   601.073    NT014LOA\n   47.3433913942   85.5464312655   109.704    NT014HTB\n   47.3433913942   85.5464312655   109.705    NT014HTA\n",
+   "raw_sha256": "950b51c375711c0a7b16bb57a51102a24e2dc282e8eac43303a93c5acecf6888",
+   "returncode": 0,
+   "run_id": "neartie_11_1_4",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n11\n1\n1\n1 21 2001\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 11,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "43.45203808785904,88.05355464056204,600.0,NT015LAB",
+    "43.45203808785905,88.05355464056204,600.0,NT015LAA",
+    "47.32254482397992,84.42951851929581,383.8190077740525,NT015LOB",
+    "47.32254482397992,84.42951851929583,383.8190077740525,NT015LOA",
+    "42.25524782836903,84.16208932521334,0.0002630739472806345,NT015HTB",
+    "42.25524782836903,84.16208932521334,0.00026307394728064537,NT015HTA"
+   ],
+   "observation_date": [
+    2016,
+    6,
+    10
+   ],
+   "outputs": [
+    {
+     "eht": "601.043",
+     "lat": "43.4520299889",
+     "lonW": "88.0535444492",
+     "name": "NT015LAB"
+    },
+    {
+     "eht": "601.043",
+     "lat": "43.4520299890",
+     "lonW": "88.0535444492",
+     "name": "NT015LAA"
+    },
+    {
+     "eht": "384.781",
+     "lat": "47.3225357032",
+     "lonW": "84.4295084514",
+     "name": "NT015LOB"
+    },
+    {
+     "eht": "384.781",
+     "lat": "47.3225357032",
+     "lonW": "84.4295084515",
+     "name": "NT015LOA"
+    },
+    {
+     "eht": "1.123",
+     "lat": "42.2552394328",
+     "lonW": "84.1620805793",
+     "name": "NT015HTB"
+    },
+    {
+     "eht": "1.124",
+     "lat": "42.2552394328",
+     "lonW": "84.1620805793",
+     "name": "NT015HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G2139)             (EPOCH = 06-10-2016 (2016.4399))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   43.4520299889   88.0535444492   601.043    NT015LAB\n   43.4520299890   88.0535444492   601.043    NT015LAA\n   47.3225357032   84.4295084514   384.781    NT015LOB\n   47.3225357032   84.4295084515   384.781    NT015LOA\n   42.2552394328   84.1620805793     1.123    NT015HTB\n   42.2552394328   84.1620805793     1.124    NT015HTA\n",
+   "raw_sha256": "13459703e88658b808bdc385561b27d863ac86a2133e39e64701bed4375fe753",
+   "returncode": 0,
+   "run_id": "neartie_11_1_5",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n11\n1\n1\n6 10 2016\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 12,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "47.509791972771296,82.87111762165112,0.0,NT020LAB",
+    "47.5097919727713,82.87111762165112,0.0,NT020LAA",
+    "46.04312515519212,83.19386175174833,0.0,NT020LOB",
+    "46.04312515519212,83.19386175174836,0.0,NT020LOA",
+    "46.73462158291713,88.81637286127658,199.9995568864922,NT020HTB",
+    "46.73462158291713,88.81637286127658,199.9995568864979,NT020HTA"
+   ],
+   "observation_date": [
+    2015,
+    5,
+    8
+   ],
+   "outputs": [
+    {
+     "eht": "0.969",
+     "lat": "47.5097826312",
+     "lonW": "82.8711082732",
+     "name": "NT020LAB"
+    },
+    {
+     "eht": "0.969",
+     "lat": "47.5097826313",
+     "lonW": "82.8711082732",
+     "name": "NT020LAA"
+    },
+    {
+     "eht": "1.013",
+     "lat": "46.0431160724",
+     "lonW": "83.1938526776",
+     "name": "NT020LOB"
+    },
+    {
+     "eht": "1.013",
+     "lat": "46.0431160724",
+     "lonW": "83.1938526777",
+     "name": "NT020LOA"
+    },
+    {
+     "eht": "200.932",
+     "lat": "46.7346131208",
+     "lonW": "88.8163618321",
+     "name": "NT020HTB"
+    },
+    {
+     "eht": "200.933",
+     "lat": "46.7346131208",
+     "lonW": "88.8163618321",
+     "name": "NT020HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G2296)             (EPOCH = 05-08-2015 (2015.3479))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   47.5097826312   82.8711082732     0.969    NT020LAB\n   47.5097826313   82.8711082732     0.969    NT020LAA\n   46.0431160724   83.1938526776     1.013    NT020LOB\n   46.0431160724   83.1938526777     1.013    NT020LOA\n   46.7346131208   88.8163618321   200.932    NT020HTB\n   46.7346131208   88.8163618321   200.933    NT020HTA\n",
+   "raw_sha256": "4be7efb2ff65e121ddaf07cd7f439b69097d537a78c99c835f7113941a2b2d9c",
+   "returncode": 0,
+   "run_id": "neartie_12_1_0",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n12\n1\n1\n5 8 2015\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 12,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "45.86636976124477,87.84195357482355,600.0,NT021LAB",
+    "45.866369761244776,87.84195357482355,600.0,NT021LAA",
+    "44.91500828524995,82.11884899402736,0.0,NT021LOB",
+    "44.91500828524995,82.11884899402737,0.0,NT021LOA",
+    "42.109871966973984,89.21321577640872,599.9998881085547,NT021HTB",
+    "42.109871966973984,89.21321577640872,599.9998881085776,NT021HTA"
+   ],
+   "observation_date": [
+    2004,
+    10,
+    2
+   ],
+   "outputs": [
+    {
+     "eht": "600.967",
+     "lat": "45.8663611793",
+     "lonW": "87.8419453313",
+     "name": "NT021LAB"
+    },
+    {
+     "eht": "600.967",
+     "lat": "45.8663611794",
+     "lonW": "87.8419453313",
+     "name": "NT021LAA"
+    },
+    {
+     "eht": "1.056",
+     "lat": "44.9149993490",
+     "lonW": "82.1188427072",
+     "name": "NT021LOB"
+    },
+    {
+     "eht": "1.056",
+     "lat": "44.9149993490",
+     "lonW": "82.1188427073",
+     "name": "NT021LOA"
+    },
+    {
+     "eht": "601.064",
+     "lat": "42.1098641561",
+     "lonW": "89.2132077830",
+     "name": "NT021HTB"
+    },
+    {
+     "eht": "601.065",
+     "lat": "42.1098641561",
+     "lonW": "89.2132077830",
+     "name": "NT021HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G2296)             (EPOCH = 10-02-2004 (2004.7514))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   45.8663611793   87.8419453313   600.967    NT021LAB\n   45.8663611794   87.8419453313   600.967    NT021LAA\n   44.9149993490   82.1188427072     1.056    NT021LOB\n   44.9149993490   82.1188427073     1.056    NT021LOA\n   42.1098641561   89.2132077830   601.064    NT021HTB\n   42.1098641561   89.2132077830   601.065    NT021HTA\n",
+   "raw_sha256": "dce9ad0fbe7a917370cd30b04daf7f87aed0c4dd4d17d94461862ea6858afac4",
+   "returncode": 0,
+   "run_id": "neartie_12_1_1",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n12\n1\n1\n10 2 2004\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 12,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "46.73688017808298,82.62999744582447,56.29699264708459,NT022LAB",
+    "46.736880178082984,82.62999744582447,56.29699264708459,NT022LAA",
+    "47.98966031164818,88.84302420913919,600.0,NT022LOB",
+    "47.98966031164818,88.8430242091392,600.0,NT022LOA",
+    "43.170376797147135,85.41227853362606,-2.8994171242230533,NT022HTB",
+    "43.170376797147135,85.41227853362606,-2.899417124222964,NT022HTA"
+   ],
+   "observation_date": [
+    2030,
+    9,
+    3
+   ],
+   "outputs": [
+    {
+     "eht": "57.298",
+     "lat": "46.7368708348",
+     "lonW": "82.6299850756",
+     "name": "NT022LAB"
+    },
+    {
+     "eht": "57.298",
+     "lat": "46.7368708349",
+     "lonW": "82.6299850756",
+     "name": "NT022LAA"
+    },
+    {
+     "eht": "600.899",
+     "lat": "47.9896519246",
+     "lonW": "88.8430093525",
+     "name": "NT022LOB"
+    },
+    {
+     "eht": "600.899",
+     "lat": "47.9896519246",
+     "lonW": "88.8430093526",
+     "name": "NT022LOA"
+    },
+    {
+     "eht": "-1.814",
+     "lat": "43.1703683672",
+     "lonW": "85.4122664088",
+     "name": "NT022HTB"
+    },
+    {
+     "eht": "-1.813",
+     "lat": "43.1703683672",
+     "lonW": "85.4122664088",
+     "name": "NT022HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G2296)             (EPOCH = 09-03-2030 (2030.6712))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   46.7368708348   82.6299850756    57.298    NT022LAB\n   46.7368708349   82.6299850756    57.298    NT022LAA\n   47.9896519246   88.8430093525   600.899    NT022LOB\n   47.9896519246   88.8430093526   600.899    NT022LOA\n   43.1703683672   85.4122664088    -1.814    NT022HTB\n   43.1703683672   85.4122664088    -1.813    NT022HTA\n",
+   "raw_sha256": "a46961cab40e84e83048dfc2381ee4e7c85f16d6ddef2ac202e9ff37b77b3d43",
+   "returncode": 0,
+   "run_id": "neartie_12_1_2",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n12\n1\n1\n9 3 2030\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 12,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "47.39243242617564,83.39204753671078,600.0,NT023LAB",
+    "47.392432426175645,83.39204753671078,600.0,NT023LAA",
+    "44.2906804152216,82.58677449602763,188.75860794948952,NT023LOB",
+    "44.2906804152216,82.58677449602764,188.75860794948952,NT023LOA",
+    "42.64984840581814,87.50034542893394,599.999703083653,NT023HTB",
+    "42.64984840581814,87.50034542893394,599.9997030836531,NT023HTA"
+   ],
+   "observation_date": [
+    2008,
+    9,
+    8
+   ],
+   "outputs": [
+    {
+     "eht": "600.966",
+     "lat": "47.3924231870",
+     "lonW": "83.3920395156",
+     "name": "NT023LAB"
+    },
+    {
+     "eht": "600.966",
+     "lat": "47.3924231871",
+     "lonW": "83.3920395156",
+     "name": "NT023LAA"
+    },
+    {
+     "eht": "189.831",
+     "lat": "44.2906715923",
+     "lonW": "82.5867673709",
+     "name": "NT023LOB"
+    },
+    {
+     "eht": "189.831",
+     "lat": "44.2906715923",
+     "lonW": "82.5867673710",
+     "name": "NT023LOA"
+    },
+    {
+     "eht": "601.070",
+     "lat": "42.6498403517",
+     "lonW": "87.5003371011",
+     "name": "NT023HTB"
+    },
+    {
+     "eht": "601.071",
+     "lat": "42.6498403517",
+     "lonW": "87.5003371011",
+     "name": "NT023HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G2296)             (EPOCH = 09-08-2008 (2008.6858))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   47.3924231870   83.3920395156   600.966    NT023LAB\n   47.3924231871   83.3920395156   600.966    NT023LAA\n   44.2906715923   82.5867673709   189.831    NT023LOB\n   44.2906715923   82.5867673710   189.831    NT023LOA\n   42.6498403517   87.5003371011   601.070    NT023HTB\n   42.6498403517   87.5003371011   601.071    NT023HTA\n",
+   "raw_sha256": "50b0e8cec9008b4a124aca360373b69e13f53579e918da2db68d44cbd81e1ff4",
+   "returncode": 0,
+   "run_id": "neartie_12_1_3",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n12\n1\n1\n9 8 2008\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 12,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "46.512351690323435,84.46424667516264,200.0,NT024LAB",
+    "46.51235169032344,84.46424667516264,200.0,NT024LAA",
+    "43.9703170255084,83.4419662986658,200.0,NT024LOB",
+    "43.9703170255084,83.44196629866582,200.0,NT024LOA",
+    "42.98929538881826,85.66027974110104,600.0000129597965,NT024HTB",
+    "42.98929538881826,85.66027974110104,600.0000129598194,NT024HTA"
+   ],
+   "observation_date": [
+    2008,
+    10,
+    21
+   ],
+   "outputs": [
+    {
+     "eht": "200.984",
+     "lat": "46.5123426943",
+     "lonW": "84.4642384753",
+     "name": "NT024LAB"
+    },
+    {
+     "eht": "200.984",
+     "lat": "46.5123426944",
+     "lonW": "84.4642384753",
+     "name": "NT024LAA"
+    },
+    {
+     "eht": "201.074",
+     "lat": "43.9703083396",
+     "lonW": "83.4419589405",
+     "name": "NT024LOB"
+    },
+    {
+     "eht": "201.074",
+     "lat": "43.9703083396",
+     "lonW": "83.4419589406",
+     "name": "NT024LOA"
+    },
+    {
+     "eht": "601.081",
+     "lat": "42.9892870909",
+     "lonW": "85.6602718818",
+     "name": "NT024HTB"
+    },
+    {
+     "eht": "601.082",
+     "lat": "42.9892870909",
+     "lonW": "85.6602718818",
+     "name": "NT024HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G2296)             (EPOCH = 10-21-2008 (2008.8033))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   46.5123426943   84.4642384753   200.984    NT024LAB\n   46.5123426944   84.4642384753   200.984    NT024LAA\n   43.9703083396   83.4419589405   201.074    NT024LOB\n   43.9703083396   83.4419589406   201.074    NT024LOA\n   42.9892870909   85.6602718818   601.081    NT024HTB\n   42.9892870909   85.6602718818   601.082    NT024HTA\n",
+   "raw_sha256": "9867ce4d51a1b8799149d5e885f7184e9ddd40ead4b7d35bbebf583ed505e767",
+   "returncode": 0,
+   "run_id": "neartie_12_1_4",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n12\n1\n1\n10 21 2008\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 12,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "46.60608719325383,86.89905623079153,0.0,NT025LAB",
+    "46.606087193253835,86.89905623079153,0.0,NT025LAA",
+    "45.024468393112315,83.31774688882116,600.0,NT025LOB",
+    "45.024468393112315,83.31774688882118,600.0,NT025LOA",
+    "41.76699063779344,83.83302594558681,0.0001451051793992465,NT025HTB",
+    "41.76699063779344,83.83302594558681,0.00014510517939925194,NT025HTA"
+   ],
+   "observation_date": [
+    2003,
+    8,
+    7
+   ],
+   "outputs": [
+    {
+     "eht": "0.954",
+     "lat": "46.6060783911",
+     "lonW": "86.8990483752",
+     "name": "NT025LAB"
+    },
+    {
+     "eht": "0.954",
+     "lat": "46.6060783912",
+     "lonW": "86.8990483752",
+     "name": "NT025LAA"
+    },
+    {
+     "eht": "601.041",
+     "lat": "45.0244595489",
+     "lonW": "83.3177404400",
+     "name": "NT025LOB"
+    },
+    {
+     "eht": "601.041",
+     "lat": "45.0244595489",
+     "lonW": "83.3177404401",
+     "name": "NT025LOA"
+    },
+    {
+     "eht": "1.136",
+     "lat": "41.7669824313",
+     "lonW": "83.8330198340",
+     "name": "NT025HTB"
+    },
+    {
+     "eht": "1.137",
+     "lat": "41.7669824313",
+     "lonW": "83.8330198340",
+     "name": "NT025HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G2296)             (EPOCH = 08-07-2003 (2003.5973))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   46.6060783911   86.8990483752     0.954    NT025LAB\n   46.6060783912   86.8990483752     0.954    NT025LAA\n   45.0244595489   83.3177404400   601.041    NT025LOB\n   45.0244595489   83.3177404401   601.041    NT025LOA\n   41.7669824313   83.8330198340     1.136    NT025HTB\n   41.7669824313   83.8330198340     1.137    NT025HTA\n",
+   "raw_sha256": "62bcf94ed592c365a25b61771ee2e875fa61eee9571e13969ee6094e6b50b6c0",
+   "returncode": 0,
+   "run_id": "neartie_12_1_5",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n12\n1\n1\n8 7 2003\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 25,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "46.705635962094725,84.11971044941913,200.0,NT030LAB",
+    "46.70563596209473,84.11971044941913,200.0,NT030LAA",
+    "47.373442454955764,84.1392177995874,200.0,NT030LOB",
+    "47.373442454955764,84.13921779958741,200.0,NT030LOA",
+    "46.95844696076995,88.53066685016564,248.72924771764679,NT030HTB",
+    "46.95844696076995,88.53066685016564,248.7292477176525,NT030HTA"
+   ],
+   "observation_date": [
+    2015,
+    11,
+    13
+   ],
+   "outputs": [
+    {
+     "eht": "200.985",
+     "lat": "46.7056268899",
+     "lonW": "84.1197007788",
+     "name": "NT030LAB"
+    },
+    {
+     "eht": "200.985",
+     "lat": "46.7056268900",
+     "lonW": "84.1197007788",
+     "name": "NT030LAA"
+    },
+    {
+     "eht": "200.963",
+     "lat": "47.3734332876",
+     "lonW": "84.1392079386",
+     "name": "NT030LOB"
+    },
+    {
+     "eht": "200.963",
+     "lat": "47.3734332876",
+     "lonW": "84.1392079387",
+     "name": "NT030LOA"
+    },
+    {
+     "eht": "249.659",
+     "lat": "46.9584384354",
+     "lonW": "88.5306557157",
+     "name": "NT030HTB"
+    },
+    {
+     "eht": "249.660",
+     "lat": "46.9584384354",
+     "lonW": "88.5306557157",
+     "name": "NT030HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2014 or IGS14/IGb14  (EPOCH = 11-13-2015 (2015.8658))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   46.7056268899   84.1197007788   200.985    NT030LAB\n   46.7056268900   84.1197007788   200.985    NT030LAA\n   47.3734332876   84.1392079386   200.963    NT030LOB\n   47.3734332876   84.1392079387   200.963    NT030LOA\n   46.9584384354   88.5306557157   249.659    NT030HTB\n   46.9584384354   88.5306557157   249.660    NT030HTA\n",
+   "raw_sha256": "33acc6a290db735b19cc520330ddcc7bd8e20fe19bd57622d253aa39acdbe81a",
+   "returncode": 0,
+   "run_id": "neartie_25_1_0",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n25\n1\n1\n11 13 2015\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 25,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "47.80592144534276,83.27348173258797,600.0,NT031LAB",
+    "47.80592144534277,83.27348173258797,600.0,NT031LAA",
+    "41.75346888611305,90.38413246302878,0.0,NT031LOB",
+    "41.75346888611305,90.3841324630288,0.0,NT031LOA",
+    "41.81228586383846,83.31447550454877,599.9996197693754,NT031HTB",
+    "41.81228586383846,83.31447550454877,599.9996197693982,NT031HTA"
+   ],
+   "observation_date": [
+    2012,
+    6,
+    11
+   ],
+   "outputs": [
+    {
+     "eht": "600.957",
+     "lat": "47.8059121173",
+     "lonW": "83.2734728004",
+     "name": "NT031LAB"
+    },
+    {
+     "eht": "600.957",
+     "lat": "47.8059121174",
+     "lonW": "83.2734728004",
+     "name": "NT031LAA"
+    },
+    {
+     "eht": "1.064",
+     "lat": "41.7534613080",
+     "lonW": "90.3841227476",
+     "name": "NT031LOB"
+    },
+    {
+     "eht": "1.064",
+     "lat": "41.7534613080",
+     "lonW": "90.3841227477",
+     "name": "NT031LOA"
+    },
+    {
+     "eht": "601.144",
+     "lat": "41.8122774963",
+     "lonW": "83.3144678694",
+     "name": "NT031HTB"
+    },
+    {
+     "eht": "601.145",
+     "lat": "41.8122774963",
+     "lonW": "83.3144678694",
+     "name": "NT031HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2014 or IGS14/IGb14  (EPOCH = 06-11-2012 (2012.4426))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   47.8059121173   83.2734728004   600.957    NT031LAB\n   47.8059121174   83.2734728004   600.957    NT031LAA\n   41.7534613080   90.3841227476     1.064    NT031LOB\n   41.7534613080   90.3841227477     1.064    NT031LOA\n   41.8122774963   83.3144678694   601.144    NT031HTB\n   41.8122774963   83.3144678694   601.145    NT031HTA\n",
+   "raw_sha256": "e21fb0437ae475f065e1b44fbfa432c4950d9558ce39d9584b328f8248a427bf",
+   "returncode": 0,
+   "run_id": "neartie_25_1_1",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n25\n1\n1\n6 11 2012\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 25,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "42.903811464855245,89.83142566402933,0.0,NT032LAB",
+    "42.90381146485525,89.83142566402933,0.0,NT032LAA",
+    "46.908798140421524,82.10223068024301,200.0,NT032LOB",
+    "46.908798140421524,82.10223068024304,200.0,NT032LOA",
+    "43.9479053067252,86.27979017242949,2.1279323846101083e-05,NT032HTB",
+    "43.9479053067252,86.27979017242949,2.1279323846101764e-05,NT032HTA"
+   ],
+   "observation_date": [
+    2031,
+    3,
+    2
+   ],
+   "outputs": [
+    {
+     "eht": "1.040",
+     "lat": "42.9038037956",
+     "lonW": "89.8314122761",
+     "name": "NT032LAB"
+    },
+    {
+     "eht": "1.040",
+     "lat": "42.9038037957",
+     "lonW": "89.8314122761",
+     "name": "NT032LAA"
+    },
+    {
+     "eht": "200.998",
+     "lat": "46.9087886667",
+     "lonW": "82.1022182898",
+     "name": "NT032LOB"
+    },
+    {
+     "eht": "200.998",
+     "lat": "46.9087886667",
+     "lonW": "82.1022182899",
+     "name": "NT032LOA"
+    },
+    {
+     "eht": "1.050",
+     "lat": "43.9478969220",
+     "lonW": "86.2797774180",
+     "name": "NT032HTB"
+    },
+    {
+     "eht": "1.051",
+     "lat": "43.9478969220",
+     "lonW": "86.2797774180",
+     "name": "NT032HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2014 or IGS14/IGb14  (EPOCH = 03-02-2031 (2031.1644))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   42.9038037956   89.8314122761     1.040    NT032LAB\n   42.9038037957   89.8314122761     1.040    NT032LAA\n   46.9087886667   82.1022182898   200.998    NT032LOB\n   46.9087886667   82.1022182899   200.998    NT032LOA\n   43.9478969220   86.2797774180     1.050    NT032HTB\n   43.9478969220   86.2797774180     1.051    NT032HTA\n",
+   "raw_sha256": "2290cbb57952d38888934b6b265a4706a21407ef5884b7ad84ec08a7cab77ef1",
+   "returncode": 0,
+   "run_id": "neartie_25_1_2",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n25\n1\n1\n3 2 2031\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 25,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "42.52586071555325,89.73444961715325,0.0,NT033LAB",
+    "42.52586071555326,89.73444961715325,0.0,NT033LAA",
+    "43.22621249740821,90.26785531784596,445.61191893303635,NT033LOB",
+    "43.22621249740821,90.26785531784597,445.61191893303635,NT033LOA",
+    "46.86691378991614,90.49007471424237,600.0003125876891,NT033HTB",
+    "46.86691378991614,90.49007471424237,600.000312587712,NT033HTA"
+   ],
+   "observation_date": [
+    2034,
+    7,
+    16
+   ],
+   "outputs": [
+    {
+     "eht": "1.053",
+     "lat": "42.5258531002",
+     "lonW": "89.7344357399",
+     "name": "NT033LAB"
+    },
+    {
+     "eht": "1.053",
+     "lat": "42.5258531003",
+     "lonW": "89.7344357399",
+     "name": "NT033LAA"
+    },
+    {
+     "eht": "446.637",
+     "lat": "43.2262049009",
+     "lonW": "90.2678410558",
+     "name": "NT033LOB"
+    },
+    {
+     "eht": "446.637",
+     "lat": "43.2262049009",
+     "lonW": "90.2678410559",
+     "name": "NT033LOA"
+    },
+    {
+     "eht": "600.912",
+     "lat": "46.8669058738",
+     "lonW": "90.4900588974",
+     "name": "NT033HTB"
+    },
+    {
+     "eht": "600.913",
+     "lat": "46.8669058738",
+     "lonW": "90.4900588974",
+     "name": "NT033HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2014 or IGS14/IGb14  (EPOCH = 07-16-2034 (2034.5370))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   42.5258531002   89.7344357399     1.053    NT033LAB\n   42.5258531003   89.7344357399     1.053    NT033LAA\n   43.2262049009   90.2678410558   446.637    NT033LOB\n   43.2262049009   90.2678410559   446.637    NT033LOA\n   46.8669058738   90.4900588974   600.912    NT033HTB\n   46.8669058738   90.4900588974   600.913    NT033HTA\n",
+   "raw_sha256": "16885bcd105e96dbff66bb1bc8d447936e62a709875dc9d7f9e24fbbd24f960e",
+   "returncode": 0,
+   "run_id": "neartie_25_1_3",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n25\n1\n1\n7 16 2034\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 25,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "44.12755995245603,86.84868029128943,200.0,NT034LAB",
+    "44.127559952456046,86.84868029128943,200.0,NT034LAA",
+    "47.03695793029429,84.01879655252893,600.0,NT034LOB",
+    "47.03695793029429,84.01879655252894,600.0,NT034LOA",
+    "46.696041482272456,83.20952689195646,199.99977679410378,NT034HTB",
+    "46.696041482272456,83.20952689195646,199.9997767941095,NT034HTA"
+   ],
+   "observation_date": [
+    2000,
+    12,
+    22
+   ],
+   "outputs": [
+    {
+     "eht": "201.035",
+     "lat": "44.1275515612",
+     "lonW": "86.8486734201",
+     "name": "NT034LAB"
+    },
+    {
+     "eht": "201.035",
+     "lat": "44.1275515613",
+     "lonW": "86.8486734201",
+     "name": "NT034LAA"
+    },
+    {
+     "eht": "600.973",
+     "lat": "47.0369488192",
+     "lonW": "84.0187900677",
+     "name": "NT034LOB"
+    },
+    {
+     "eht": "600.973",
+     "lat": "47.0369488192",
+     "lonW": "84.0187900678",
+     "name": "NT034LOA"
+    },
+    {
+     "eht": "200.991",
+     "lat": "46.6960323639",
+     "lonW": "83.2095207230",
+     "name": "NT034HTB"
+    },
+    {
+     "eht": "200.992",
+     "lat": "46.6960323639",
+     "lonW": "83.2095207230",
+     "name": "NT034HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2014 or IGS14/IGb14  (EPOCH = 12-22-2000 (2000.9727))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   44.1275515612   86.8486734201   201.035    NT034LAB\n   44.1275515613   86.8486734201   201.035    NT034LAA\n   47.0369488192   84.0187900677   600.973    NT034LOB\n   47.0369488192   84.0187900678   600.973    NT034LOA\n   46.6960323639   83.2095207230   200.991    NT034HTB\n   46.6960323639   83.2095207230   200.992    NT034HTA\n",
+   "raw_sha256": "d877e08d25de977498c26925f05e79e529b5ed4b4cd393a3ffbeaaa3b4b22ad4",
+   "returncode": 0,
+   "run_id": "neartie_25_1_4",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n25\n1\n1\n12 22 2000\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 25,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "43.17943930740784,84.02318415763108,275.19790420967473,NT035LAB",
+    "43.17943930740786,84.02318415763108,275.19790420967473,NT035LAA",
+    "44.70629361713836,89.365824973309,316.719794422371,NT035LOB",
+    "44.70629361713836,89.36582497330902,316.719794422371,NT035LOA",
+    "44.39429051314707,88.65939762190001,599.9997526095021,NT035HTB",
+    "44.39429051314707,88.65939762190001,599.999752609525,NT035HTA"
+   ],
+   "observation_date": [
+    2000,
+    7,
+    28
+   ],
+   "outputs": [
+    {
+     "eht": "276.292",
+     "lat": "43.1794308827",
+     "lonW": "84.0231783670",
+     "name": "NT035LAB"
+    },
+    {
+     "eht": "276.292",
+     "lat": "43.1794308828",
+     "lonW": "84.0231783670",
+     "name": "NT035LAA"
+    },
+    {
+     "eht": "317.708",
+     "lat": "44.7062853305",
+     "lonW": "89.3658173271",
+     "name": "NT035LOB"
+    },
+    {
+     "eht": "317.708",
+     "lat": "44.7062853305",
+     "lonW": "89.3658173272",
+     "name": "NT035LOA"
+    },
+    {
+     "eht": "601.005",
+     "lat": "44.3942822233",
+     "lonW": "88.6593902396",
+     "name": "NT035HTB"
+    },
+    {
+     "eht": "601.006",
+     "lat": "44.3942822233",
+     "lonW": "88.6593902396",
+     "name": "NT035HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2014 or IGS14/IGb14  (EPOCH = 07-28-2000 (2000.5710))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   43.1794308827   84.0231783670   276.292    NT035LAB\n   43.1794308828   84.0231783670   276.292    NT035LAA\n   44.7062853305   89.3658173271   317.708    NT035LOB\n   44.7062853305   89.3658173272   317.708    NT035LOA\n   44.3942822233   88.6593902396   601.005    NT035HTB\n   44.3942822233   88.6593902396   601.006    NT035HTA\n",
+   "raw_sha256": "b202e1e74bc6e451cf6e9d70415db8a7810b26a90f0f71d56aea8e0ecbd23e5a",
+   "returncode": 0,
+   "run_id": "neartie_25_1_5",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n25\n1\n1\n7 28 2000\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 26,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "45.343326604277856,85.33698831094686,600.0,NT040LAB",
+    "45.34332660427788,85.33698831094686,600.0,NT040LAA",
+    "47.13752273519002,86.53098205574858,200.0,NT040LOB",
+    "47.13752273519002,86.5309820557486,200.0,NT040LOA",
+    "42.48532602462424,85.63438392728222,599.9998017162789,NT040HTB",
+    "42.48532602462424,85.63438392728222,599.9998017163017,NT040HTA"
+   ],
+   "observation_date": [
+    2034,
+    11,
+    21
+   ],
+   "outputs": [
+    {
+     "eht": "601.021",
+     "lat": "45.3433179245",
+     "lonW": "85.3369746519",
+     "name": "NT040LAB"
+    },
+    {
+     "eht": "601.021",
+     "lat": "45.3433179246",
+     "lonW": "85.3369746519",
+     "name": "NT040LAA"
+    },
+    {
+     "eht": "200.952",
+     "lat": "47.1375140795",
+     "lonW": "86.5309673187",
+     "name": "NT040LOB"
+    },
+    {
+     "eht": "200.952",
+     "lat": "47.1375140795",
+     "lonW": "86.5309673188",
+     "name": "NT040LOA"
+    },
+    {
+     "eht": "601.105",
+     "lat": "42.4853176977",
+     "lonW": "85.6343711289",
+     "name": "NT040HTB"
+    },
+    {
+     "eht": "601.106",
+     "lat": "42.4853176977",
+     "lonW": "85.6343711289",
+     "name": "NT040HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2020 or IGS20/IGb20  (EPOCH = 11-21-2034 (2034.8877))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   45.3433179245   85.3369746519   601.021    NT040LAB\n   45.3433179246   85.3369746519   601.021    NT040LAA\n   47.1375140795   86.5309673187   200.952    NT040LOB\n   47.1375140795   86.5309673188   200.952    NT040LOA\n   42.4853176977   85.6343711289   601.105    NT040HTB\n   42.4853176977   85.6343711289   601.106    NT040HTA\n",
+   "raw_sha256": "38418b00ae73f280ddece6a72f5493accad3cf75eba615f8e0fdd22d2fd1878d",
+   "returncode": 0,
+   "run_id": "neartie_26_1_0",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n26\n1\n1\n11 21 2034\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 26,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "45.94139573379326,87.30365382451515,600.0,NT041LAB",
+    "45.941395733793264,87.30365382451515,600.0,NT041LAA",
+    "46.26402668906452,82.20569346360173,200.0,NT041LOB",
+    "46.26402668906452,82.20569346360175,200.0,NT041LOA",
+    "41.67379973233503,84.63765363366285,599.9999089161637,NT041HTB",
+    "41.67379973233503,84.63765363366285,599.9999089161865,NT041HTA"
+   ],
+   "observation_date": [
+    2021,
+    6,
+    2
+   ],
+   "outputs": [
+    {
+     "eht": "600.977",
+     "lat": "45.9413872407",
+     "lonW": "87.3036421746",
+     "name": "NT041LAB"
+    },
+    {
+     "eht": "600.977",
+     "lat": "45.9413872408",
+     "lonW": "87.3036421746",
+     "name": "NT041LAA"
+    },
+    {
+     "eht": "201.017",
+     "lat": "46.2640174080",
+     "lonW": "82.2056833617",
+     "name": "NT041LOB"
+    },
+    {
+     "eht": "201.017",
+     "lat": "46.2640174080",
+     "lonW": "82.2056833618",
+     "name": "NT041LOA"
+    },
+    {
+     "eht": "601.136",
+     "lat": "41.6737914501",
+     "lonW": "84.6376439578",
+     "name": "NT041HTB"
+    },
+    {
+     "eht": "601.137",
+     "lat": "41.6737914501",
+     "lonW": "84.6376439578",
+     "name": "NT041HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2020 or IGS20/IGb20  (EPOCH = 06-02-2021 (2021.4164))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   45.9413872407   87.3036421746   600.977    NT041LAB\n   45.9413872408   87.3036421746   600.977    NT041LAA\n   46.2640174080   82.2056833617   201.017    NT041LOB\n   46.2640174080   82.2056833618   201.017    NT041LOA\n   41.6737914501   84.6376439578   601.136    NT041HTB\n   41.6737914501   84.6376439578   601.137    NT041HTA\n",
+   "raw_sha256": "1247ab0165862c4de8e1a358337e25ee3560231ee5a1737538fd29461b905c1a",
+   "returncode": 0,
+   "run_id": "neartie_26_1_1",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n26\n1\n1\n6 2 2021\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 26,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "47.28012876612868,82.85957028818015,600.0,NT042LAB",
+    "47.28012876612869,82.85957028818015,600.0,NT042LAA",
+    "47.84278462314894,89.06572485133267,200.0,NT042LOB",
+    "47.84278462314894,89.0657248513327,200.0,NT042LOA",
+    "46.858169890629924,84.35941777063128,-5.933130159974234e-05,NT042HTB",
+    "46.858169890629924,84.35941777063128,-5.9331301599740975e-05,NT042HTA"
+   ],
+   "observation_date": [
+    2028,
+    3,
+    23
+   ],
+   "outputs": [
+    {
+     "eht": "600.981",
+     "lat": "47.2801193980",
+     "lonW": "82.8595581844",
+     "name": "NT042LAB"
+    },
+    {
+     "eht": "600.981",
+     "lat": "47.2801193981",
+     "lonW": "82.8595581844",
+     "name": "NT042LAA"
+    },
+    {
+     "eht": "200.900",
+     "lat": "47.8427762532",
+     "lonW": "89.0657105321",
+     "name": "NT042LOB"
+    },
+    {
+     "eht": "200.900",
+     "lat": "47.8427762532",
+     "lonW": "89.0657105322",
+     "name": "NT042LOA"
+    },
+    {
+     "eht": "0.980",
+     "lat": "46.8581608335",
+     "lonW": "84.3594053239",
+     "name": "NT042HTB"
+    },
+    {
+     "eht": "0.981",
+     "lat": "46.8581608335",
+     "lonW": "84.3594053239",
+     "name": "NT042HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2020 or IGS20/IGb20  (EPOCH = 03-23-2028 (2028.2240))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   47.2801193980   82.8595581844   600.981    NT042LAB\n   47.2801193981   82.8595581844   600.981    NT042LAA\n   47.8427762532   89.0657105321   200.900    NT042LOB\n   47.8427762532   89.0657105322   200.900    NT042LOA\n   46.8581608335   84.3594053239     0.980    NT042HTB\n   46.8581608335   84.3594053239     0.981    NT042HTA\n",
+   "raw_sha256": "aebada6ead010b36001b9a1f7f82fe726478a8f35e1724ead807b9594a6b7b52",
+   "returncode": 0,
+   "run_id": "neartie_26_1_2",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n26\n1\n1\n3 23 2028\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 26,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "42.653123043706536,88.5487978647671,357.14952273062886,NT043LAB",
+    "42.65312304370654,88.5487978647671,357.14952273062886,NT043LAA",
+    "47.25745278571656,87.07850229159544,200.0,NT043LOB",
+    "47.25745278571656,87.07850229159546,200.0,NT043LOA",
+    "47.68568028266534,83.77143939291894,0.00027253711596130235,NT043HTB",
+    "47.68568028266534,83.77143939291894,0.00027253711596131325,NT043HTA"
+   ],
+   "observation_date": [
+    2018,
+    2,
+    25
+   ],
+   "outputs": [
+    {
+     "eht": "358.211",
+     "lat": "42.6531151373",
+     "lonW": "88.5487874141",
+     "name": "NT043LAB"
+    },
+    {
+     "eht": "358.211",
+     "lat": "42.6531151374",
+     "lonW": "88.5487874141",
+     "name": "NT043LAA"
+    },
+    {
+     "eht": "200.937",
+     "lat": "47.2574440501",
+     "lonW": "87.0784910339",
+     "name": "NT043LOB"
+    },
+    {
+     "eht": "200.937",
+     "lat": "47.2574440501",
+     "lonW": "87.0784910340",
+     "name": "NT043LOA"
+    },
+    {
+     "eht": "0.956",
+     "lat": "47.6856710226",
+     "lonW": "83.7714290773",
+     "name": "NT043HTB"
+    },
+    {
+     "eht": "0.957",
+     "lat": "47.6856710226",
+     "lonW": "83.7714290773",
+     "name": "NT043HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2020 or IGS20/IGb20  (EPOCH = 02-25-2018 (2018.1507))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   42.6531151373   88.5487874141   358.211    NT043LAB\n   42.6531151374   88.5487874141   358.211    NT043LAA\n   47.2574440501   87.0784910339   200.937    NT043LOB\n   47.2574440501   87.0784910340   200.937    NT043LOA\n   47.6856710226   83.7714290773     0.956    NT043HTB\n   47.6856710226   83.7714290773     0.957    NT043HTA\n",
+   "raw_sha256": "4d41b9a766c7670f1f71fafc83a250009fcb416864116bf57ba1fd23f9ec426f",
+   "returncode": 0,
+   "run_id": "neartie_26_1_3",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n26\n1\n1\n2 25 2018\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 26,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "44.55299681501996,89.02649302267243,437.4174049843741,NT044LAB",
+    "44.55299681501998,89.02649302267243,437.4174049843741,NT044LAA",
+    "45.21388679606876,88.35784768398322,0.0,NT044LOB",
+    "45.21388679606876,88.35784768398324,0.0,NT044LOA",
+    "47.43875297692184,85.29503924155622,599.9996434333507,NT044HTB",
+    "47.43875297692184,85.29503924155622,599.9996434333735,NT044HTA"
+   ],
+   "observation_date": [
+    2028,
+    4,
+    10
+   ],
+   "outputs": [
+    {
+     "eht": "438.419",
+     "lat": "44.5529888137",
+     "lonW": "89.0264798704",
+     "name": "NT044LAB"
+    },
+    {
+     "eht": "438.419",
+     "lat": "44.5529888138",
+     "lonW": "89.0264798704",
+     "name": "NT044LAA"
+    },
+    {
+     "eht": "0.989",
+     "lat": "45.2138786152",
+     "lonW": "88.3578344911",
+     "name": "NT044LOB"
+    },
+    {
+     "eht": "0.989",
+     "lat": "45.2138786152",
+     "lonW": "88.3578344912",
+     "name": "NT044LOA"
+    },
+    {
+     "eht": "600.952",
+     "lat": "47.4387440061",
+     "lonW": "85.2950262569",
+     "name": "NT044HTB"
+    },
+    {
+     "eht": "600.953",
+     "lat": "47.4387440061",
+     "lonW": "85.2950262569",
+     "name": "NT044HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2020 or IGS20/IGb20  (EPOCH = 04-10-2028 (2028.2732))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   44.5529888137   89.0264798704   438.419    NT044LAB\n   44.5529888138   89.0264798704   438.419    NT044LAA\n   45.2138786152   88.3578344911     0.989    NT044LOB\n   45.2138786152   88.3578344912     0.989    NT044LOA\n   47.4387440061   85.2950262569   600.952    NT044HTB\n   47.4387440061   85.2950262569   600.953    NT044HTA\n",
+   "raw_sha256": "a4498b36bfb8ea0220a8bedaf3834a794869ba0feb97148bcd1f22da7fa016c0",
+   "returncode": 0,
+   "run_id": "neartie_26_1_4",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n26\n1\n1\n4 10 2028\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 26,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "42.412905450173454,90.15429648893898,0.0,NT045LAB",
+    "42.41290545017347,90.15429648893898,0.0,NT045LAA",
+    "48.326498089812674,84.83242120777946,200.0,NT045LOB",
+    "48.326498089812674,84.83242120777948,200.0,NT045LOA",
+    "47.054743941557284,89.8481826189697,-2.490682527422905e-05,NT045HTB",
+    "47.054743941557284,89.8481826189697,-2.4906825274229046e-05,NT045HTA"
+   ],
+   "observation_date": [
+    2029,
+    3,
+    31
+   ],
+   "outputs": [
+    {
+     "eht": "1.052",
+     "lat": "42.4128978959",
+     "lonW": "90.1542835526",
+     "name": "NT045LAB"
+    },
+    {
+     "eht": "1.052",
+     "lat": "42.4128978960",
+     "lonW": "90.1542835526",
+     "name": "NT045LAA"
+    },
+    {
+     "eht": "200.929",
+     "lat": "48.3264889068",
+     "lonW": "84.8324078310",
+     "name": "NT045LOB"
+    },
+    {
+     "eht": "200.929",
+     "lat": "48.3264889068",
+     "lonW": "84.8324078311",
+     "name": "NT045LOA"
+    },
+    {
+     "eht": "0.915",
+     "lat": "47.0547358170",
+     "lonW": "89.8481681143",
+     "name": "NT045HTB"
+    },
+    {
+     "eht": "0.916",
+     "lat": "47.0547358170",
+     "lonW": "89.8481681143",
+     "name": "NT045HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2020 or IGS20/IGb20  (EPOCH = 03-31-2029 (2029.2438))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   42.4128978959   90.1542835526     1.052    NT045LAB\n   42.4128978960   90.1542835526     1.052    NT045LAA\n   48.3264889068   84.8324078310   200.929    NT045LOB\n   48.3264889068   84.8324078311   200.929    NT045LOA\n   47.0547358170   89.8481681143     0.915    NT045HTB\n   47.0547358170   89.8481681143     0.916    NT045HTA\n",
+   "raw_sha256": "1678f8277b2406a435adcb63d6db5e9181996e39873d0d44eabdd8eb70bc4b7f",
+   "returncode": 0,
+   "run_id": "neartie_26_1_5",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n26\n1\n1\n3 31 2029\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 10,
+   "input_lines": [
+    "45.467821536828495,86.54996538684065,604.8181825117655,NT050LAB",
+    "45.46782153682852,86.54996538684065,604.8181825117655,NT050LAA",
+    "46.318848624418706,85.99917125753903,206.62399420590816,NT050LOB",
+    "46.318848624418706,85.99917125753906,206.62399420590816,NT050LOA",
+    "41.82674698768988,89.6840244134872,0.00021389080211519653,NT050HTB",
+    "41.82674698768988,89.6840244134872,0.00021389080211520198,NT050HTA"
+   ],
+   "observation_date": [
+    2016,
+    6,
+    13
+   ],
+   "outputs": [
+    {
+     "eht": "603.820",
+     "lat": "45.4678301343",
+     "lonW": "86.5499756164",
+     "name": "NT050LAB"
+    },
+    {
+     "eht": "603.820",
+     "lat": "45.4678301344",
+     "lonW": "86.5499756164",
+     "name": "NT050LAA"
+    },
+    {
+     "eht": "205.647",
+     "lat": "46.3188574130",
+     "lonW": "85.9991815350",
+     "name": "NT050LOB"
+    },
+    {
+     "eht": "205.647",
+     "lat": "46.3188574130",
+     "lonW": "85.9991815351",
+     "name": "NT050LOA"
+    },
+    {
+     "eht": "-1.071",
+     "lat": "41.8267546549",
+     "lonW": "89.6840346698",
+     "name": "NT050HTB"
+    },
+    {
+     "eht": "-1.070",
+     "lat": "41.8267546549",
+     "lonW": "89.6840346698",
+     "name": "NT050HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G1762)             (EPOCH = 06-13-2016 (2016.4481))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G1762)            ***\n ***CAUTION: Coordinates in this file have been updated to  6-13-2016=(2016.448) ***\n\n   45.4678301343   86.5499756164   603.820    NT050LAB\n   45.4678301344   86.5499756164   603.820    NT050LAA\n   46.3188574130   85.9991815350   205.647    NT050LOB\n   46.3188574130   85.9991815351   205.647    NT050LOA\n   41.8267546549   89.6840346698    -1.071    NT050HTB\n   41.8267546549   89.6840346698    -1.070    NT050HTA\n",
+   "raw_sha256": "1d27965c8b3ce37112af8cf27aa6d82c1b1790ab45f914b7a89ed7457048cc87",
+   "returncode": 0,
+   "run_id": "neartie_1_10_0",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n10\n1\n1 1 2010\n1\n6 13 2016\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 10,
+   "input_lines": [
+    "41.83910462170812,87.32338899228388,0.0,NT051LAB",
+    "41.83910462170815,87.32338899228388,0.0,NT051LAA",
+    "42.08777407312595,89.13743217486132,0.0,NT051LOB",
+    "42.08777407312595,89.13743217486133,0.0,NT051LOA",
+    "47.605870976075494,86.47604126007084,-0.0002641775645315756,NT051HTB",
+    "47.605870976075494,86.47604126007084,-0.0002641775645315647,NT051HTA"
+   ],
+   "observation_date": [
+    2001,
+    10,
+    16
+   ],
+   "outputs": [
+    {
+     "eht": "-1.100",
+     "lat": "41.8391125838",
+     "lonW": "87.3233958137",
+     "name": "NT051LAB"
+    },
+    {
+     "eht": "-1.100",
+     "lat": "41.8391125839",
+     "lonW": "87.3233958137",
+     "name": "NT051LAA"
+    },
+    {
+     "eht": "-1.070",
+     "lat": "42.0877819323",
+     "lonW": "89.1374395846",
+     "name": "NT051LOB"
+    },
+    {
+     "eht": "-1.070",
+     "lat": "42.0877819323",
+     "lonW": "89.1374395847",
+     "name": "NT051LOA"
+    },
+    {
+     "eht": "-0.932",
+     "lat": "47.6058800084",
+     "lonW": "86.4760487743",
+     "name": "NT051HTB"
+    },
+    {
+     "eht": "-0.931",
+     "lat": "47.6058800084",
+     "lonW": "86.4760487743",
+     "name": "NT051HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G1762)             (EPOCH = 10-16-2001 (2001.7890))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G1762)            ***\n ***CAUTION: Coordinates in this file have been updated to 10-16-2001=(2001.789) ***\n\n   41.8391125838   87.3233958137    -1.100    NT051LAB\n   41.8391125839   87.3233958137    -1.100    NT051LAA\n   42.0877819323   89.1374395846    -1.070    NT051LOB\n   42.0877819323   89.1374395847    -1.070    NT051LOA\n   47.6058800084   86.4760487743    -0.932    NT051HTB\n   47.6058800084   86.4760487743    -0.931    NT051HTA\n",
+   "raw_sha256": "bfedf184f48cfde8bde2398cfc2cf67b38a3118b3c5091853e034e6f2dc304d2",
+   "returncode": 0,
+   "run_id": "neartie_1_10_1",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n10\n1\n1 1 2010\n1\n10 16 2001\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 10,
+   "input_lines": [
+    "47.88562734712035,84.4001858958853,484.1961742460503,NT052LAB",
+    "47.88562734712036,84.4001858958853,484.1961742460503,NT052LAA",
+    "47.54267090090286,88.77092446762877,0.0,NT052LOB",
+    "47.54267090090286,88.7709244676288,0.0,NT052LOA",
+    "42.57621471386512,82.58845746982293,599.9996107811811,NT052HTB",
+    "42.57621471386512,82.58845746982293,599.999610781204,NT052HTA"
+   ],
+   "observation_date": [
+    2033,
+    2,
+    21
+   ],
+   "outputs": [
+    {
+     "eht": "483.253",
+     "lat": "47.8856365621",
+     "lonW": "84.4001998359",
+     "name": "NT052LAB"
+    },
+    {
+     "eht": "483.253",
+     "lat": "47.8856365622",
+     "lonW": "84.4001998359",
+     "name": "NT052LAA"
+    },
+    {
+     "eht": "-0.908",
+     "lat": "47.5426792205",
+     "lonW": "88.7709396732",
+     "name": "NT052LOB"
+    },
+    {
+     "eht": "-0.908",
+     "lat": "47.5426792205",
+     "lonW": "88.7709396733",
+     "name": "NT052LOA"
+    },
+    {
+     "eht": "598.871",
+     "lat": "42.5762235781",
+     "lonW": "82.5884690164",
+     "name": "NT052HTB"
+    },
+    {
+     "eht": "598.872",
+     "lat": "42.5762235781",
+     "lonW": "82.5884690164",
+     "name": "NT052HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G1762)             (EPOCH = 02-21-2033 (2033.1397))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G1762)            ***\n ***CAUTION: Coordinates in this file have been updated to  2-21-2033=(2033.140) ***\n\n   47.8856365621   84.4001998359   483.253    NT052LAB\n   47.8856365622   84.4001998359   483.253    NT052LAA\n   47.5426792205   88.7709396732    -0.908    NT052LOB\n   47.5426792205   88.7709396733    -0.908    NT052LOA\n   42.5762235781   82.5884690164   598.871    NT052HTB\n   42.5762235781   82.5884690164   598.872    NT052HTA\n",
+   "raw_sha256": "4c0b5b16f656776984cb17302986b70b1df9840c00428d5fa436854356cce0b2",
+   "returncode": 0,
+   "run_id": "neartie_1_10_2",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n10\n1\n1 1 2010\n1\n2 21 2033\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 10,
+   "input_lines": [
+    "42.85506270290816,85.7510534433609,0.0,NT053LAB",
+    "42.855062702908164,85.7510534433609,0.0,NT053LAA",
+    "45.43469443512118,85.92709845555179,0.0,NT053LOB",
+    "45.43469443512118,85.9270984555518,0.0,NT053LOA",
+    "45.911494096253975,89.42904616864438,-0.00032679038122297423,NT053HTB",
+    "45.911494096253975,89.42904616864438,-0.00032679038122296333,NT053HTA"
+   ],
+   "observation_date": [
+    2002,
+    10,
+    8
+   ],
+   "outputs": [
+    {
+     "eht": "-1.087",
+     "lat": "42.8550709789",
+     "lonW": "85.7510601237",
+     "name": "NT053LAB"
+    },
+    {
+     "eht": "-1.087",
+     "lat": "42.8550709790",
+     "lonW": "85.7510601237",
+     "name": "NT053LAA"
+    },
+    {
+     "eht": "-1.005",
+     "lat": "45.4347031619",
+     "lonW": "85.9271056126",
+     "name": "NT053LOB"
+    },
+    {
+     "eht": "-1.005",
+     "lat": "45.4347031619",
+     "lonW": "85.9271056127",
+     "name": "NT053LOA"
+    },
+    {
+     "eht": "-0.952",
+     "lat": "45.9115025884",
+     "lonW": "89.4290544768",
+     "name": "NT053HTB"
+    },
+    {
+     "eht": "-0.951",
+     "lat": "45.9115025884",
+     "lonW": "89.4290544768",
+     "name": "NT053HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G1762)             (EPOCH = 10-08-2002 (2002.7671))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G1762)            ***\n ***CAUTION: Coordinates in this file have been updated to 10-08-2002=(2002.767) ***\n\n   42.8550709789   85.7510601237    -1.087    NT053LAB\n   42.8550709790   85.7510601237    -1.087    NT053LAA\n   45.4347031619   85.9271056126    -1.005    NT053LOB\n   45.4347031619   85.9271056127    -1.005    NT053LOA\n   45.9115025884   89.4290544768    -0.952    NT053HTB\n   45.9115025884   89.4290544768    -0.951    NT053HTA\n",
+   "raw_sha256": "38cdab119fe2090fca96dfc0c73466802dfeaf3045c07d7db2b7e0551577ed64",
+   "returncode": 0,
+   "run_id": "neartie_1_10_3",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n10\n1\n1 1 2010\n1\n10 8 2002\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 10,
+   "input_lines": [
+    "48.38992459085166,89.97288677048465,0.0,NT054LAB",
+    "48.38992459085168,89.97288677048465,0.0,NT054LAA",
+    "42.70565992927431,84.16300036812751,0.0,NT054LOB",
+    "42.70565992927431,84.16300036812754,0.0,NT054LOA",
+    "46.569886946072614,90.0518685214794,-3.0199531465769492e-05,NT054HTB",
+    "46.569886946072614,90.0518685214794,-3.019953146576881e-05,NT054HTA"
+   ],
+   "observation_date": [
+    2018,
+    2,
+    21
+   ],
+   "outputs": [
+    {
+     "eht": "-0.868",
+     "lat": "48.3899331084",
+     "lonW": "89.9728992699",
+     "name": "NT054LAB"
+    },
+    {
+     "eht": "-0.868",
+     "lat": "48.3899331085",
+     "lonW": "89.9728992699",
+     "name": "NT054LAA"
+    },
+    {
+     "eht": "-1.108",
+     "lat": "42.7056684334",
+     "lonW": "84.1630095235",
+     "name": "NT054LOB"
+    },
+    {
+     "eht": "-1.108",
+     "lat": "42.7056684334",
+     "lonW": "84.1630095236",
+     "name": "NT054LOA"
+    },
+    {
+     "eht": "-0.924",
+     "lat": "46.5698952060",
+     "lonW": "90.0518804876",
+     "name": "NT054HTB"
+    },
+    {
+     "eht": "-0.923",
+     "lat": "46.5698952060",
+     "lonW": "90.0518804876",
+     "name": "NT054HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G1762)             (EPOCH = 02-21-2018 (2018.1397))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G1762)            ***\n ***CAUTION: Coordinates in this file have been updated to  2-21-2018=(2018.140) ***\n\n   48.3899331084   89.9728992699    -0.868    NT054LAB\n   48.3899331085   89.9728992699    -0.868    NT054LAA\n   42.7056684334   84.1630095235    -1.108    NT054LOB\n   42.7056684334   84.1630095236    -1.108    NT054LOA\n   46.5698952060   90.0518804876    -0.924    NT054HTB\n   46.5698952060   90.0518804876    -0.923    NT054HTA\n",
+   "raw_sha256": "fb5299a0faf4f6c9d67e7dc05db83b46477392c6e17d7a618d64dba27464902a",
+   "returncode": 0,
+   "run_id": "neartie_1_10_4",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n10\n1\n1 1 2010\n1\n2 21 2018\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 10,
+   "input_lines": [
+    "46.177200194554224,86.12612118006885,600.0,NT055LAB",
+    "46.17720019455423,86.12612118006885,600.0,NT055LAA",
+    "46.40378634610323,89.27757284331041,579.7767947183631,NT055LOB",
+    "46.40378634610323,89.27757284331044,579.7767947183631,NT055LOA",
+    "41.79497072281999,86.43956273136172,408.1167543851656,NT055HTB",
+    "41.79497072281999,86.43956273136172,408.11675438517705,NT055HTA"
+   ],
+   "observation_date": [
+    2000,
+    12,
+    6
+   ],
+   "outputs": [
+    {
+     "eht": "599.020",
+     "lat": "46.1772090399",
+     "lonW": "86.1261281392",
+     "name": "NT055LAB"
+    },
+    {
+     "eht": "599.020",
+     "lat": "46.1772090400",
+     "lonW": "86.1261281392",
+     "name": "NT055LAA"
+    },
+    {
+     "eht": "578.839",
+     "lat": "46.4037949611",
+     "lonW": "89.2775808021",
+     "name": "NT055LOB"
+    },
+    {
+     "eht": "578.839",
+     "lat": "46.4037949611",
+     "lonW": "89.2775808022",
+     "name": "NT055LOA"
+    },
+    {
+     "eht": "407.005",
+     "lat": "41.7949787436",
+     "lonW": "86.4395691154",
+     "name": "NT055HTB"
+    },
+    {
+     "eht": "407.006",
+     "lat": "41.7949787436",
+     "lonW": "86.4395691154",
+     "name": "NT055HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G1762)             (EPOCH = 12-06-2000 (2000.9290))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G1762)            ***\n ***CAUTION: Coordinates in this file have been updated to 12-06-2000=(2000.929) ***\n\n   46.1772090399   86.1261281392   599.020    NT055LAB\n   46.1772090400   86.1261281392   599.020    NT055LAA\n   46.4037949611   89.2775808021   578.839    NT055LOB\n   46.4037949611   89.2775808022   578.839    NT055LOA\n   41.7949787436   86.4395691154   407.005    NT055HTB\n   41.7949787436   86.4395691154   407.006    NT055HTA\n",
+   "raw_sha256": "f553abc9944d56b7116ab3f99e55152f090dbb51d2c96da6745a484f8be42313",
+   "returncode": 0,
+   "run_id": "neartie_1_10_5",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n10\n1\n1 1 2010\n1\n12 6 2000\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 11,
+   "input_lines": [
+    "43.372286379611616,85.07356570905829,0.0,NT060LAB",
+    "43.37228637961163,85.07356570905829,0.0,NT060LAA",
+    "44.28063239014486,88.33622305814023,617.7407579507125,NT060LOB",
+    "44.28063239014486,88.33622305814026,617.7407579507125,NT060LOA",
+    "45.910999664472946,90.40680231904955,200.00008435965876,NT060HTB",
+    "45.910999664472946,90.40680231904955,200.00008435966447,NT060HTA"
+   ],
+   "observation_date": [
+    2001,
+    9,
+    21
+   ],
+   "outputs": [
+    {
+     "eht": "-1.078",
+     "lat": "43.3722947698",
+     "lonW": "85.0735720762",
+     "name": "NT060LAB"
+    },
+    {
+     "eht": "-1.078",
+     "lat": "43.3722947699",
+     "lonW": "85.0735720762",
+     "name": "NT060LAA"
+    },
+    {
+     "eht": "616.728",
+     "lat": "44.2806406768",
+     "lonW": "88.3362305574",
+     "name": "NT060LOB"
+    },
+    {
+     "eht": "616.728",
+     "lat": "44.2806406768",
+     "lonW": "88.3362305575",
+     "name": "NT060LOA"
+    },
+    {
+     "eht": "199.061",
+     "lat": "45.9110080443",
+     "lonW": "90.4068107148",
+     "name": "NT060HTB"
+    },
+    {
+     "eht": "199.062",
+     "lat": "45.9110080443",
+     "lonW": "90.4068107148",
+     "name": "NT060HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G2139)             (EPOCH = 09-21-2001 (2001.7205))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G2139)            ***\n ***CAUTION: Coordinates in this file have been updated to  9-21-2001=(2001.721) ***\n\n   43.3722947698   85.0735720762    -1.078    NT060LAB\n   43.3722947699   85.0735720762    -1.078    NT060LAA\n   44.2806406768   88.3362305574   616.728    NT060LOB\n   44.2806406768   88.3362305575   616.728    NT060LOA\n   45.9110080443   90.4068107148   199.061    NT060HTB\n   45.9110080443   90.4068107148   199.062    NT060HTA\n",
+   "raw_sha256": "dffd4ed426f96787efa0c22c16e8a5c05b2fa18e89dd4df8246e733777a225b1",
+   "returncode": 0,
+   "run_id": "neartie_1_11_0",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n11\n1\n1 1 2010\n1\n9 21 2001\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 11,
+   "input_lines": [
+    "42.365575172635324,85.30009668895187,571.345381139129,NT061LAB",
+    "42.36557517263534,85.30009668895187,571.345381139129,NT061LAA",
+    "45.43006459058449,89.77451253931851,200.0,NT061LOB",
+    "45.43006459058449,89.77451253931852,200.0,NT061LOA",
+    "47.024543794455596,88.82477660625389,255.59472339087526,NT061HTB",
+    "47.024543794455596,88.82477660625389,255.59472339088097,NT061HTA"
+   ],
+   "observation_date": [
+    2018,
+    9,
+    16
+   ],
+   "outputs": [
+    {
+     "eht": "570.237",
+     "lat": "42.3655834614",
+     "lonW": "85.3001062480",
+     "name": "NT061LAB"
+    },
+    {
+     "eht": "570.237",
+     "lat": "42.3655834615",
+     "lonW": "85.3001062480",
+     "name": "NT061LAA"
+    },
+    {
+     "eht": "199.037",
+     "lat": "45.4300727104",
+     "lonW": "89.7745242253",
+     "name": "NT061LOB"
+    },
+    {
+     "eht": "199.037",
+     "lat": "45.4300727104",
+     "lonW": "89.7745242254",
+     "name": "NT061LOA"
+    },
+    {
+     "eht": "254.669",
+     "lat": "47.0245522457",
+     "lonW": "88.8247884741",
+     "name": "NT061HTB"
+    },
+    {
+     "eht": "254.670",
+     "lat": "47.0245522457",
+     "lonW": "88.8247884741",
+     "name": "NT061HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G2139)             (EPOCH = 09-16-2018 (2018.7068))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G2139)            ***\n ***CAUTION: Coordinates in this file have been updated to  9-16-2018=(2018.707) ***\n\n   42.3655834614   85.3001062480   570.237    NT061LAB\n   42.3655834615   85.3001062480   570.237    NT061LAA\n   45.4300727104   89.7745242253   199.037    NT061LOB\n   45.4300727104   89.7745242254   199.037    NT061LOA\n   47.0245522457   88.8247884741   254.669    NT061HTB\n   47.0245522457   88.8247884741   254.670    NT061HTA\n",
+   "raw_sha256": "bd46ef1c9e8a13ad06fdf19a843d457bb2701a90b5113cc151abb4a06119f223",
+   "returncode": 0,
+   "run_id": "neartie_1_11_1",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n11\n1\n1 1 2010\n1\n9 16 2018\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 11,
+   "input_lines": [
+    "48.14660305026805,84.01891689536248,557.3038271133652,NT062LAB",
+    "48.146603050268055,84.01891689536248,557.3038271133652,NT062LAA",
+    "44.501165780804484,89.24301739842142,0.0,NT062LOB",
+    "44.501165780804484,89.24301739842139,0.0,NT062LOA",
+    "46.866024401226696,85.4575143274195,-0.0002239276655018384,NT062HTB",
+    "46.866024401226696,85.4575143274195,-0.00022392766550183296,NT062HTA"
+   ],
+   "observation_date": [
+    2007,
+    1,
+    22
+   ],
+   "outputs": [
+    {
+     "eht": "556.366",
+     "lat": "48.1466123346",
+     "lonW": "84.0189249442",
+     "name": "NT062LAB"
+    },
+    {
+     "eht": "556.366",
+     "lat": "48.1466123347",
+     "lonW": "84.0189249442",
+     "name": "NT062LAA"
+    },
+    {
+     "eht": "-0.996",
+     "lat": "44.5011739739",
+     "lonW": "89.2430262955",
+     "name": "NT062LOB"
+    },
+    {
+     "eht": "-0.996",
+     "lat": "44.5011739739",
+     "lonW": "89.2430262956",
+     "name": "NT062LOA"
+    },
+    {
+     "eht": "-0.966",
+     "lat": "46.8660333553",
+     "lonW": "85.4575225581",
+     "name": "NT062HTB"
+    },
+    {
+     "eht": "-0.965",
+     "lat": "46.8660333553",
+     "lonW": "85.4575225581",
+     "name": "NT062HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G2139)             (EPOCH = 01-22-2007 (2007.0575))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G2139)            ***\n ***CAUTION: Coordinates in this file have been updated to  1-22-2007=(2007.058) ***\n\n   48.1466123346   84.0189249442   556.366    NT062LAB\n   48.1466123347   84.0189249442   556.366    NT062LAA\n   44.5011739739   89.2430262955    -0.996    NT062LOB\n   44.5011739739   89.2430262956    -0.996    NT062LOA\n   46.8660333553   85.4575225581    -0.966    NT062HTB\n   46.8660333553   85.4575225581    -0.965    NT062HTA\n",
+   "raw_sha256": "de5bc7f34642c38eae441e0bea4f1ce3d910ce80c8c06489555ffbf845abbea0",
+   "returncode": 0,
+   "run_id": "neartie_1_11_2",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n11\n1\n1 1 2010\n1\n1 22 2007\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 11,
+   "input_lines": [
+    "46.23850568753576,87.88654165662055,600.0,NT063LAB",
+    "46.23850568753577,87.88654165662055,600.0,NT063LAA",
+    "42.5553469428667,87.0841779656325,600.0,NT063LOB",
+    "42.5553469428667,87.08417796563252,600.0,NT063LOA",
+    "43.443277725120154,84.64411150803014,649.5752921155427,NT063HTB",
+    "43.443277725120154,84.64411150803014,649.5752921155655,NT063HTA"
+   ],
+   "observation_date": [
+    2032,
+    8,
+    24
+   ],
+   "outputs": [
+    {
+     "eht": "599.038",
+     "lat": "46.2385140134",
+     "lonW": "87.8865560077",
+     "name": "NT063LAB"
+    },
+    {
+     "eht": "599.038",
+     "lat": "46.2385140135",
+     "lonW": "87.8865560077",
+     "name": "NT063LAA"
+    },
+    {
+     "eht": "598.916",
+     "lat": "42.5553550354",
+     "lonW": "87.0841907842",
+     "name": "NT063LOB"
+    },
+    {
+     "eht": "598.916",
+     "lat": "42.5553550354",
+     "lonW": "87.0841907843",
+     "name": "NT063LOA"
+    },
+    {
+     "eht": "648.491",
+     "lat": "43.4432863427",
+     "lonW": "84.6441238878",
+     "name": "NT063HTB"
+    },
+    {
+     "eht": "648.492",
+     "lat": "43.4432863427",
+     "lonW": "84.6441238878",
+     "name": "NT063HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G2139)             (EPOCH = 08-24-2032 (2032.6448))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G2139)            ***\n ***CAUTION: Coordinates in this file have been updated to  8-24-2032=(2032.645) ***\n\n   46.2385140134   87.8865560077   599.038    NT063LAB\n   46.2385140135   87.8865560077   599.038    NT063LAA\n   42.5553550354   87.0841907842   598.916    NT063LOB\n   42.5553550354   87.0841907843   598.916    NT063LOA\n   43.4432863427   84.6441238878   648.491    NT063HTB\n   43.4432863427   84.6441238878   648.492    NT063HTA\n",
+   "raw_sha256": "ebe6a60ae39dc93633acb5fa4586b82eebb031d12e649a66bf68ef0be4c14a0b",
+   "returncode": 0,
+   "run_id": "neartie_1_11_3",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n11\n1\n1 1 2010\n1\n8 24 2032\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 11,
+   "input_lines": [
+    "46.09065755837877,82.39857901359541,600.0,NT064LAB",
+    "46.090657558378766,82.39857901359541,600.0,NT064LAA",
+    "46.36595878730817,88.31753697534009,0.0,NT064LOB",
+    "46.36595878730817,88.3175369753401,0.0,NT064LOA",
+    "42.60884600663212,82.9232872220914,329.5559632270597,NT064HTB",
+    "42.60884600663212,82.9232872220914,329.55596322705975,NT064HTA"
+   ],
+   "observation_date": [
+    2020,
+    12,
+    10
+   ],
+   "outputs": [
+    {
+     "eht": "598.979",
+     "lat": "46.0906667900",
+     "lonW": "82.3985890481",
+     "name": "NT064LAB"
+    },
+    {
+     "eht": "598.979",
+     "lat": "46.0906667901",
+     "lonW": "82.3985890481",
+     "name": "NT064LAA"
+    },
+    {
+     "eht": "-0.952",
+     "lat": "46.3659671970",
+     "lonW": "88.3175489786",
+     "name": "NT064LOB"
+    },
+    {
+     "eht": "-0.952",
+     "lat": "46.3659671970",
+     "lonW": "88.3175489787",
+     "name": "NT064LOA"
+    },
+    {
+     "eht": "328.430",
+     "lat": "42.6088546594",
+     "lonW": "82.9232965427",
+     "name": "NT064HTB"
+    },
+    {
+     "eht": "328.431",
+     "lat": "42.6088546594",
+     "lonW": "82.9232965427",
+     "name": "NT064HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G2139)             (EPOCH = 12-10-2020 (2020.9399))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G2139)            ***\n ***CAUTION: Coordinates in this file have been updated to 12-10-2020=(2020.940) ***\n\n   46.0906667900   82.3985890481   598.979    NT064LAB\n   46.0906667901   82.3985890481   598.979    NT064LAA\n   46.3659671970   88.3175489786    -0.952    NT064LOB\n   46.3659671970   88.3175489787    -0.952    NT064LOA\n   42.6088546594   82.9232965427   328.430    NT064HTB\n   42.6088546594   82.9232965427   328.431    NT064HTA\n",
+   "raw_sha256": "3da0bfde52faaf6ac082143b28112eb6388bc831470b6d8d3a47af348db124bb",
+   "returncode": 0,
+   "run_id": "neartie_1_11_4",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n11\n1\n1 1 2010\n1\n12 10 2020\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 11,
+   "input_lines": [
+    "46.14593012194077,89.96700250282797,0.0,NT065LAB",
+    "46.145930121940786,89.96700250282797,0.0,NT065LAA",
+    "43.77726705877759,87.02010745955577,200.0,NT065LOB",
+    "43.77726705877759,87.02010745955579,200.0,NT065LOA",
+    "45.359186679278324,83.02936734381102,600.0002681663963,NT065HTB",
+    "45.359186679278324,83.02936734381102,600.0002681664191,NT065HTA"
+   ],
+   "observation_date": [
+    2031,
+    11,
+    8
+   ],
+   "outputs": [
+    {
+     "eht": "-0.940",
+     "lat": "46.1459380923",
+     "lonW": "89.9670172822",
+     "name": "NT065LAB"
+    },
+    {
+     "eht": "-0.940",
+     "lat": "46.1459380924",
+     "lonW": "89.9670172822",
+     "name": "NT065LAA"
+    },
+    {
+     "eht": "198.952",
+     "lat": "43.7772752989",
+     "lonW": "87.0201205147",
+     "name": "NT065LOB"
+    },
+    {
+     "eht": "198.952",
+     "lat": "43.7772752989",
+     "lonW": "87.0201205148",
+     "name": "NT065LOA"
+    },
+    {
+     "eht": "598.960",
+     "lat": "45.3591957922",
+     "lonW": "83.0293796526",
+     "name": "NT065HTB"
+    },
+    {
+     "eht": "598.961",
+     "lat": "45.3591957922",
+     "lonW": "83.0293796526",
+     "name": "NT065HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G2139)             (EPOCH = 11-08-2031 (2031.8521))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G2139)            ***\n ***CAUTION: Coordinates in this file have been updated to 11-08-2031=(2031.852) ***\n\n   46.1459380923   89.9670172822    -0.940    NT065LAB\n   46.1459380924   89.9670172822    -0.940    NT065LAA\n   43.7772752989   87.0201205147   198.952    NT065LOB\n   43.7772752989   87.0201205148   198.952    NT065LOA\n   45.3591957922   83.0293796526   598.960    NT065HTB\n   45.3591957922   83.0293796526   598.961    NT065HTA\n",
+   "raw_sha256": "37009cae47963956e1eb40d3b5ad3ed42dce179edf388de70516477d6d81b8e9",
+   "returncode": 0,
+   "run_id": "neartie_1_11_5",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n11\n1\n1 1 2010\n1\n11 8 2031\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 12,
+   "input_lines": [
+    "45.28421322966007,85.82560187773454,200.0,NT070LAB",
+    "45.284213229660075,85.82560187773454,200.0,NT070LAA",
+    "47.59072505195234,84.91662497169574,200.0,NT070LOB",
+    "47.59072505195234,84.9166249716958,200.0,NT070LOA",
+    "44.65863088811421,83.16399474818496,200.00021059484584,NT070HTB",
+    "44.65863088811421,83.16399474818496,200.00021059485155,NT070HTA"
+   ],
+   "observation_date": [
+    2018,
+    11,
+    24
+   ],
+   "outputs": [
+    {
+     "eht": "198.988",
+     "lat": "45.2842218607",
+     "lonW": "85.8256123471",
+     "name": "NT070LAB"
+    },
+    {
+     "eht": "198.988",
+     "lat": "45.2842218608",
+     "lonW": "85.8256123471",
+     "name": "NT070LAA"
+    },
+    {
+     "eht": "199.051",
+     "lat": "47.5907341370",
+     "lonW": "84.9166358012",
+     "name": "NT070LOB"
+    },
+    {
+     "eht": "199.051",
+     "lat": "47.5907341370",
+     "lonW": "84.9166358013",
+     "name": "NT070LOA"
+    },
+    {
+     "eht": "198.941",
+     "lat": "44.6586397887",
+     "lonW": "83.1640042148",
+     "name": "NT070HTB"
+    },
+    {
+     "eht": "198.942",
+     "lat": "44.6586397887",
+     "lonW": "83.1640042148",
+     "name": "NT070HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G2296)             (EPOCH = 11-24-2018 (2018.8959))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G2296)            ***\n ***CAUTION: Coordinates in this file have been updated to 11-24-2018=(2018.896) ***\n\n   45.2842218607   85.8256123471   198.988    NT070LAB\n   45.2842218608   85.8256123471   198.988    NT070LAA\n   47.5907341370   84.9166358012   199.051    NT070LOB\n   47.5907341370   84.9166358013   199.051    NT070LOA\n   44.6586397887   83.1640042148   198.941    NT070HTB\n   44.6586397887   83.1640042148   198.942    NT070HTA\n",
+   "raw_sha256": "f1550e7c49acc31a88a3399af5aa26ee2fc834311dee441f90427b6592c5433e",
+   "returncode": 0,
+   "run_id": "neartie_1_12_0",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n12\n1\n1 1 2010\n1\n11 24 2018\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 12,
+   "input_lines": [
+    "45.45670905342231,86.45518958334193,600.0,NT071LAB",
+    "45.45670905342232,86.45518958334193,600.0,NT071LAA",
+    "46.89933507760861,83.90865768227515,318.14669761493826,NT071LOB",
+    "46.89933507760861,83.90865768227516,318.14669761493826,NT071LOA",
+    "44.10987161901174,83.99472229896493,694.7364108892862,NT071HTB",
+    "44.10987161901174,83.99472229896493,694.736410889309,NT071HTA"
+   ],
+   "observation_date": [
+    2025,
+    5,
+    18
+   ],
+   "outputs": [
+    {
+     "eht": "598.998",
+     "lat": "45.4567175853",
+     "lonW": "86.4552016606",
+     "name": "NT071LAB"
+    },
+    {
+     "eht": "598.998",
+     "lat": "45.4567175854",
+     "lonW": "86.4552016606",
+     "name": "NT071LAA"
+    },
+    {
+     "eht": "317.164",
+     "lat": "46.8993442127",
+     "lonW": "83.9086693767",
+     "name": "NT071LOB"
+    },
+    {
+     "eht": "317.164",
+     "lat": "46.8993442127",
+     "lonW": "83.9086693768",
+     "name": "NT071LOA"
+    },
+    {
+     "eht": "693.666",
+     "lat": "44.1098803679",
+     "lonW": "83.9947332024",
+     "name": "NT071HTB"
+    },
+    {
+     "eht": "693.667",
+     "lat": "44.1098803679",
+     "lonW": "83.9947332024",
+     "name": "NT071HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G2296)             (EPOCH = 05-18-2025 (2025.3753))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G2296)            ***\n ***CAUTION: Coordinates in this file have been updated to  5-18-2025=(2025.375) ***\n\n   45.4567175853   86.4552016606   598.998    NT071LAB\n   45.4567175854   86.4552016606   598.998    NT071LAA\n   46.8993442127   83.9086693767   317.164    NT071LOB\n   46.8993442127   83.9086693768   317.164    NT071LOA\n   44.1098803679   83.9947332024   693.666    NT071HTB\n   44.1098803679   83.9947332024   693.667    NT071HTA\n",
+   "raw_sha256": "bc8bdb1b90ebaf1fcbea9e8e3803fe82d5fc3915efa20c5b03ab6ac3df1c2782",
+   "returncode": 0,
+   "run_id": "neartie_1_12_1",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n12\n1\n1 1 2010\n1\n5 18 2025\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 12,
+   "input_lines": [
+    "47.925083497185284,83.18682490449505,45.08195831370257,NT072LAB",
+    "47.925083497185305,83.18682490449505,45.08195831370257,NT072LAA",
+    "42.03403686030952,83.97569566104778,0.0,NT072LOB",
+    "42.03403686030952,83.97569566104784,0.0,NT072LOA",
+    "46.16713927894337,86.19328609322162,571.8846446978631,NT072HTB",
+    "46.16713927894337,86.19328609322162,571.884644697886,NT072HTA"
+   ],
+   "observation_date": [
+    2010,
+    10,
+    31
+   ],
+   "outputs": [
+    {
+     "eht": "44.131",
+     "lat": "47.9250928455",
+     "lonW": "83.1868334588",
+     "name": "NT072LAB"
+    },
+    {
+     "eht": "44.131",
+     "lat": "47.9250928456",
+     "lonW": "83.1868334588",
+     "name": "NT072LAA"
+    },
+    {
+     "eht": "-1.129",
+     "lat": "42.0340451784",
+     "lonW": "83.9757032206",
+     "name": "NT072LOB"
+    },
+    {
+     "eht": "-1.129",
+     "lat": "42.0340451784",
+     "lonW": "83.9757032207",
+     "name": "NT072LOA"
+    },
+    {
+     "eht": "570.906",
+     "lat": "46.1671480280",
+     "lonW": "86.1932951931",
+     "name": "NT072HTB"
+    },
+    {
+     "eht": "570.907",
+     "lat": "46.1671480280",
+     "lonW": "86.1932951931",
+     "name": "NT072HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G2296)             (EPOCH = 10-31-2010 (2010.8301))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G2296)            ***\n ***CAUTION: Coordinates in this file have been updated to 10-31-2010=(2010.830) ***\n\n   47.9250928455   83.1868334588    44.131    NT072LAB\n   47.9250928456   83.1868334588    44.131    NT072LAA\n   42.0340451784   83.9757032206    -1.129    NT072LOB\n   42.0340451784   83.9757032207    -1.129    NT072LOA\n   46.1671480280   86.1932951931   570.906    NT072HTB\n   46.1671480280   86.1932951931   570.907    NT072HTA\n",
+   "raw_sha256": "64a77a6779a7f5e87632c506280bdd45c65566fca84a8454376449a245cc74b3",
+   "returncode": 0,
+   "run_id": "neartie_1_12_2",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n12\n1\n1 1 2010\n1\n10 31 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 12,
+   "input_lines": [
+    "45.49300624698334,82.39368516265344,0.0,NT073LAB",
+    "45.49300624698335,82.39368516265344,0.0,NT073LAA",
+    "42.0213538313528,90.28796174995944,200.0,NT073LOB",
+    "42.0213538313528,90.28796174995946,200.0,NT073LOA",
+    "46.048174781349005,84.64385738120637,690.5492773935902,NT073HTB",
+    "46.048174781349005,84.64385738120637,690.549277393613,NT073HTA"
+   ],
+   "observation_date": [
+    2004,
+    10,
+    13
+   ],
+   "outputs": [
+    {
+     "eht": "-1.035",
+     "lat": "45.4930152592",
+     "lonW": "82.3936916463",
+     "name": "NT073LAB"
+    },
+    {
+     "eht": "-1.035",
+     "lat": "45.4930152593",
+     "lonW": "82.3936916463",
+     "name": "NT073LAA"
+    },
+    {
+     "eht": "198.947",
+     "lat": "42.0213615296",
+     "lonW": "90.2879700485",
+     "name": "NT073LOB"
+    },
+    {
+     "eht": "198.947",
+     "lat": "42.0213615296",
+     "lonW": "90.2879700486",
+     "name": "NT073LOA"
+    },
+    {
+     "eht": "689.553",
+     "lat": "46.0481836867",
+     "lonW": "84.6438646905",
+     "name": "NT073HTB"
+    },
+    {
+     "eht": "689.554",
+     "lat": "46.0481836867",
+     "lonW": "84.6438646905",
+     "name": "NT073HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G2296)             (EPOCH = 10-13-2004 (2004.7814))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G2296)            ***\n ***CAUTION: Coordinates in this file have been updated to 10-13-2004=(2004.781) ***\n\n   45.4930152592   82.3936916463    -1.035    NT073LAB\n   45.4930152593   82.3936916463    -1.035    NT073LAA\n   42.0213615296   90.2879700485   198.947    NT073LOB\n   42.0213615296   90.2879700486   198.947    NT073LOA\n   46.0481836867   84.6438646905   689.553    NT073HTB\n   46.0481836867   84.6438646905   689.554    NT073HTA\n",
+   "raw_sha256": "9eb83110ab57e38be967ebfae5fc91e41ea2a4ad4baee204f3f989721b33d90e",
+   "returncode": 0,
+   "run_id": "neartie_1_12_3",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n12\n1\n1 1 2010\n1\n10 13 2004\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 12,
+   "input_lines": [
+    "42.691171524990864,85.60863018366635,133.95523911738223,NT074LAB",
+    "42.691171524990885,85.60863018366635,133.95523911738223,NT074LAA",
+    "45.52848955300266,86.06675345066046,0.0,NT074LOB",
+    "45.52848955300266,86.06675345066049,0.0,NT074LOA",
+    "42.6732031266731,82.38357306130196,199.9996034852172,NT074HTB",
+    "42.6732031266731,82.38357306130196,199.9996034852229,NT074HTA"
+   ],
+   "observation_date": [
+    2022,
+    2,
+    3
+   ],
+   "outputs": [
+    {
+     "eht": "132.860",
+     "lat": "42.6911798300",
+     "lonW": "85.6086405550",
+     "name": "NT074LAB"
+    },
+    {
+     "eht": "132.860",
+     "lat": "42.6911798301",
+     "lonW": "85.6086405550",
+     "name": "NT074LAA"
+    },
+    {
+     "eht": "-1.003",
+     "lat": "45.5284981701",
+     "lonW": "86.0667647336",
+     "name": "NT074LOB"
+    },
+    {
+     "eht": "-1.003",
+     "lat": "45.5284981701",
+     "lonW": "86.0667647337",
+     "name": "NT074LOA"
+    },
+    {
+     "eht": "198.870",
+     "lat": "42.6732118652",
+     "lonW": "82.3835824301",
+     "name": "NT074HTB"
+    },
+    {
+     "eht": "198.871",
+     "lat": "42.6732118652",
+     "lonW": "82.3835824301",
+     "name": "NT074HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G2296)             (EPOCH = 02-03-2022 (2022.0904))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G2296)            ***\n ***CAUTION: Coordinates in this file have been updated to  2-03-2022=(2022.090) ***\n\n   42.6911798300   85.6086405550   132.860    NT074LAB\n   42.6911798301   85.6086405550   132.860    NT074LAA\n   45.5284981701   86.0667647336    -1.003    NT074LOB\n   45.5284981701   86.0667647337    -1.003    NT074LOA\n   42.6732118652   82.3835824301   198.870    NT074HTB\n   42.6732118652   82.3835824301   198.871    NT074HTA\n",
+   "raw_sha256": "48f15da1109bfe9bf30b7706c3f10f163818668d580ca0b09e2e653318189a73",
+   "returncode": 0,
+   "run_id": "neartie_1_12_4",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n12\n1\n1 1 2010\n1\n2 3 2022\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 12,
+   "input_lines": [
+    "42.22860449971874,87.85491888390747,0.0,NT075LAB",
+    "42.228604499718784,87.85491888390747,0.0,NT075LAA",
+    "46.75938026337417,82.64360364486275,45.5465859752471,NT075LOB",
+    "46.75938026337417,82.64360364486278,45.5465859752471,NT075LOA",
+    "47.75944435277111,88.10414484184184,-0.00043568434193731444,NT075HTB",
+    "47.75944435277111,88.10414484184184,-0.00043568434193730354,NT075HTA"
+   ],
+   "observation_date": [
+    2033,
+    9,
+    5
+   ],
+   "outputs": [
+    {
+     "eht": "-1.087",
+     "lat": "42.2286124053",
+     "lonW": "87.8549319845",
+     "name": "NT075LAB"
+    },
+    {
+     "eht": "-1.087",
+     "lat": "42.2286124054",
+     "lonW": "87.8549319845",
+     "name": "NT075LAA"
+    },
+    {
+     "eht": "44.545",
+     "lat": "46.7593896244",
+     "lonW": "82.6436166758",
+     "name": "NT075LOB"
+    },
+    {
+     "eht": "44.545",
+     "lat": "46.7593896244",
+     "lonW": "82.6436166759",
+     "name": "NT075LOA"
+    },
+    {
+     "eht": "-0.916",
+     "lat": "47.7594527974",
+     "lonW": "88.1041600508",
+     "name": "NT075HTB"
+    },
+    {
+     "eht": "-0.915",
+     "lat": "47.7594527974",
+     "lonW": "88.1041600508",
+     "name": "NT075HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G2296)             (EPOCH = 09-05-2033 (2033.6767))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G2296)            ***\n ***CAUTION: Coordinates in this file have been updated to  9-05-2033=(2033.677) ***\n\n   42.2286124053   87.8549319845    -1.087    NT075LAB\n   42.2286124054   87.8549319845    -1.087    NT075LAA\n   46.7593896244   82.6436166758    44.545    NT075LOB\n   46.7593896244   82.6436166759    44.545    NT075LOA\n   47.7594527974   88.1041600508    -0.916    NT075HTB\n   47.7594527974   88.1041600508    -0.915    NT075HTA\n",
+   "raw_sha256": "adb9178ae7423463e0818ef4c5a330d183df4f40d3cbafbe15674759652d63c1",
+   "returncode": 0,
+   "run_id": "neartie_1_12_5",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n12\n1\n1 1 2010\n1\n9 5 2033\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 25,
+   "input_lines": [
+    "48.37626379626386,89.04592454448593,200.0,NT080LAB",
+    "48.37626379626389,89.04592454448593,200.0,NT080LAA",
+    "43.366136517490844,83.38050862971177,600.0,NT080LOB",
+    "43.366136517490844,83.38050862971178,600.0,NT080LOA",
+    "46.09662306266359,88.48582521445337,600.0001625087815,NT080HTB",
+    "46.09662306266359,88.48582521445337,600.0001625088044,NT080HTA"
+   ],
+   "observation_date": [
+    2008,
+    10,
+    23
+   ],
+   "outputs": [
+    {
+     "eht": "199.121",
+     "lat": "48.3762725644",
+     "lonW": "89.0459346436",
+     "name": "NT080LAB"
+    },
+    {
+     "eht": "199.121",
+     "lat": "48.3762725645",
+     "lonW": "89.0459346436",
+     "name": "NT080LAA"
+    },
+    {
+     "eht": "598.904",
+     "lat": "43.3661451060",
+     "lonW": "83.3805158742",
+     "name": "NT080LOB"
+    },
+    {
+     "eht": "598.904",
+     "lat": "43.3661451060",
+     "lonW": "83.3805158743",
+     "name": "NT080LOA"
+    },
+    {
+     "eht": "599.043",
+     "lat": "46.0966315667",
+     "lonW": "88.4858345882",
+     "name": "NT080HTB"
+    },
+    {
+     "eht": "599.044",
+     "lat": "46.0966315667",
+     "lonW": "88.4858345882",
+     "name": "NT080HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2014 or IGS14/IGb14  (EPOCH = 10-23-2008 (2008.8087))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2014 or IGS14/IGb14 ***\n ***CAUTION: Coordinates in this file have been updated to 10-23-2008=(2008.809) ***\n\n   48.3762725644   89.0459346436   199.121    NT080LAB\n   48.3762725645   89.0459346436   199.121    NT080LAA\n   43.3661451060   83.3805158742   598.904    NT080LOB\n   43.3661451060   83.3805158743   598.904    NT080LOA\n   46.0966315667   88.4858345882   599.043    NT080HTB\n   46.0966315667   88.4858345882   599.044    NT080HTA\n",
+   "raw_sha256": "248ae96a8682e497b89f97f21968c7298f4bbe38b1bd33e681fc7e2fd357ac84",
+   "returncode": 0,
+   "run_id": "neartie_1_25_0",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n25\n1\n1 1 2010\n1\n10 23 2008\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 25,
+   "input_lines": [
+    "45.753632792904455,88.3307695111571,600.0,NT081LAB",
+    "45.75363279290446,88.3307695111571,600.0,NT081LAA",
+    "41.60298507293781,84.0495994937017,600.0,NT081LOB",
+    "41.60298507293781,84.04959949370169,600.0,NT081LOA",
+    "46.89073608385321,86.50103165706241,0.00017583044245838577,NT081HTB",
+    "46.89073608385321,86.50103165706241,0.00017583044245839122,NT081HTA"
+   ],
+   "observation_date": [
+    2024,
+    6,
+    8
+   ],
+   "outputs": [
+    {
+     "eht": "599.029",
+     "lat": "45.7536410866",
+     "lonW": "88.3307820793",
+     "name": "NT081LAB"
+    },
+    {
+     "eht": "599.029",
+     "lat": "45.7536410867",
+     "lonW": "88.3307820793",
+     "name": "NT081LAA"
+    },
+    {
+     "eht": "598.855",
+     "lat": "41.6029934661",
+     "lonW": "84.0496095489",
+     "name": "NT081LOB"
+    },
+    {
+     "eht": "598.855",
+     "lat": "41.6029934661",
+     "lonW": "84.0496095490",
+     "name": "NT081LOA"
+    },
+    {
+     "eht": "-0.956",
+     "lat": "46.8907448064",
+     "lonW": "86.5010440206",
+     "name": "NT081HTB"
+    },
+    {
+     "eht": "-0.955",
+     "lat": "46.8907448064",
+     "lonW": "86.5010440206",
+     "name": "NT081HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2014 or IGS14/IGb14  (EPOCH = 06-08-2024 (2024.4344))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2014 or IGS14/IGb14 ***\n ***CAUTION: Coordinates in this file have been updated to  6-08-2024=(2024.434) ***\n\n   45.7536410866   88.3307820793   599.029    NT081LAB\n   45.7536410867   88.3307820793   599.029    NT081LAA\n   41.6029934661   84.0496095489   598.855    NT081LOB\n   41.6029934661   84.0496095490   598.855    NT081LOA\n   46.8907448064   86.5010440206    -0.956    NT081HTB\n   46.8907448064   86.5010440206    -0.955    NT081HTA\n",
+   "raw_sha256": "13d811866182e83cb634999851396e43a61e02aeb8d8c6da6ec6b13ed20a49e0",
+   "returncode": 0,
+   "run_id": "neartie_1_25_1",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n25\n1\n1 1 2010\n1\n6 8 2024\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 25,
+   "input_lines": [
+    "47.562046086577205,89.42534652570264,0.0,NT082LAB",
+    "47.56204608657721,89.42534652570264,0.0,NT082LAA",
+    "47.86368392967682,83.90809745765931,175.48155481349576,NT082LOB",
+    "47.86368392967682,83.9080974576593,175.48155481349576,NT082LOA",
+    "42.760340353575856,87.31317598494664,279.01086788018023,NT082HTB",
+    "42.760340353575856,87.31317598494664,279.01086788019165,NT082HTA"
+   ],
+   "observation_date": [
+    2019,
+    4,
+    21
+   ],
+   "outputs": [
+    {
+     "eht": "-0.902",
+     "lat": "47.5620545213",
+     "lonW": "89.4253588806",
+     "name": "NT082LAB"
+    },
+    {
+     "eht": "-0.902",
+     "lat": "47.5620545214",
+     "lonW": "89.4253588806",
+     "name": "NT082LAA"
+    },
+    {
+     "eht": "174.532",
+     "lat": "47.8636932037",
+     "lonW": "83.9081081486",
+     "name": "NT082LOB"
+    },
+    {
+     "eht": "174.532",
+     "lat": "47.8636932037",
+     "lonW": "83.9081081487",
+     "name": "NT082LOA"
+    },
+    {
+     "eht": "277.937",
+     "lat": "42.7603484416",
+     "lonW": "87.3131863494",
+     "name": "NT082HTB"
+    },
+    {
+     "eht": "277.938",
+     "lat": "42.7603484416",
+     "lonW": "87.3131863494",
+     "name": "NT082HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2014 or IGS14/IGb14  (EPOCH = 04-21-2019 (2019.3014))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2014 or IGS14/IGb14 ***\n ***CAUTION: Coordinates in this file have been updated to  4-21-2019=(2019.301) ***\n\n   47.5620545213   89.4253588806    -0.902    NT082LAB\n   47.5620545214   89.4253588806    -0.902    NT082LAA\n   47.8636932037   83.9081081486   174.532    NT082LOB\n   47.8636932037   83.9081081487   174.532    NT082LOA\n   42.7603484416   87.3131863494   277.937    NT082HTB\n   42.7603484416   87.3131863494   277.938    NT082HTA\n",
+   "raw_sha256": "8a4c3ccf8fe4603d8f3311c50edfd1416d1e5696b82dc021c785b78dcd62cd4c",
+   "returncode": 0,
+   "run_id": "neartie_1_25_2",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n25\n1\n1 1 2010\n1\n4 21 2019\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 25,
+   "input_lines": [
+    "46.73320061206594,85.5128352519381,200.0,NT083LAB",
+    "46.73320061206596,85.5128352519381,200.0,NT083LAA",
+    "42.13285079875438,85.86099979969394,376.5570841656339,NT083LOB",
+    "42.13285079875438,85.86099979969399,376.5570841656339,NT083LOA",
+    "48.25947600119507,85.34080069378545,-0.0003939564339816679,NT083HTB",
+    "48.25947600119507,85.34080069378545,-0.00039395643398165703,NT083HTA"
+   ],
+   "observation_date": [
+    2026,
+    2,
+    13
+   ],
+   "outputs": [
+    {
+     "eht": "199.029",
+     "lat": "46.7332094638",
+     "lonW": "85.5128476067",
+     "name": "NT083LAB"
+    },
+    {
+     "eht": "199.029",
+     "lat": "46.7332094639",
+     "lonW": "85.5128476067",
+     "name": "NT083LAA"
+    },
+    {
+     "eht": "375.447",
+     "lat": "42.1328590160",
+     "lonW": "85.8610108919",
+     "name": "NT083LOB"
+    },
+    {
+     "eht": "375.447",
+     "lat": "42.1328590160",
+     "lonW": "85.8610108920",
+     "name": "NT083LOA"
+    },
+    {
+     "eht": "-0.925",
+     "lat": "48.2594851056",
+     "lonW": "85.3408135266",
+     "name": "NT083HTB"
+    },
+    {
+     "eht": "-0.924",
+     "lat": "48.2594851056",
+     "lonW": "85.3408135266",
+     "name": "NT083HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2014 or IGS14/IGb14  (EPOCH = 02-13-2026 (2026.1178))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2014 or IGS14/IGb14 ***\n ***CAUTION: Coordinates in this file have been updated to  2-13-2026=(2026.118) ***\n\n   46.7332094638   85.5128476067   199.029    NT083LAB\n   46.7332094639   85.5128476067   199.029    NT083LAA\n   42.1328590160   85.8610108919   375.447    NT083LOB\n   42.1328590160   85.8610108920   375.447    NT083LOA\n   48.2594851056   85.3408135266    -0.925    NT083HTB\n   48.2594851056   85.3408135266    -0.924    NT083HTA\n",
+   "raw_sha256": "9d3b601c6d6b6ac012c4d010a9312a7df8ff4508922dc049e3fe0eca3bb1e538",
+   "returncode": 0,
+   "run_id": "neartie_1_25_3",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n25\n1\n1 1 2010\n1\n2 13 2026\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 25,
+   "input_lines": [
+    "42.9958652815417,87.09927782765732,600.0,NT084LAB",
+    "42.99586528154172,87.09927782765732,600.0,NT084LAA",
+    "42.383880678244545,85.66677972666261,0.0,NT084LOB",
+    "42.383880678244545,85.6667797266626,0.0,NT084LOA",
+    "45.60691216322462,88.72751915241534,26.226684369611775,NT084HTB",
+    "45.60691216322462,88.72751915241534,26.22668436961249,NT084HTA"
+   ],
+   "observation_date": [
+    2019,
+    5,
+    2
+   ],
+   "outputs": [
+    {
+     "eht": "598.931",
+     "lat": "42.9958734308",
+     "lonW": "87.0992881945",
+     "name": "NT084LAB"
+    },
+    {
+     "eht": "598.931",
+     "lat": "42.9958734309",
+     "lonW": "87.0992881945",
+     "name": "NT084LAA"
+    },
+    {
+     "eht": "-1.103",
+     "lat": "42.3838889274",
+     "lonW": "85.6667895238",
+     "name": "NT084LOB"
+    },
+    {
+     "eht": "-1.103",
+     "lat": "42.3838889274",
+     "lonW": "85.6667895239",
+     "name": "NT084LOA"
+    },
+    {
+     "eht": "25.256",
+     "lat": "45.6069204417",
+     "lonW": "88.7275307142",
+     "name": "NT084HTB"
+    },
+    {
+     "eht": "25.257",
+     "lat": "45.6069204417",
+     "lonW": "88.7275307142",
+     "name": "NT084HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2014 or IGS14/IGb14  (EPOCH = 05-02-2019 (2019.3315))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2014 or IGS14/IGb14 ***\n ***CAUTION: Coordinates in this file have been updated to  5-02-2019=(2019.332) ***\n\n   42.9958734308   87.0992881945   598.931    NT084LAB\n   42.9958734309   87.0992881945   598.931    NT084LAA\n   42.3838889274   85.6667895238    -1.103    NT084LOB\n   42.3838889274   85.6667895239    -1.103    NT084LOA\n   45.6069204417   88.7275307142    25.256    NT084HTB\n   45.6069204417   88.7275307142    25.257    NT084HTA\n",
+   "raw_sha256": "d0fde62e0fa93dc031e5ee6b5c82ca4350e8c6c48b6368c1675283d88fbf5d63",
+   "returncode": 0,
+   "run_id": "neartie_1_25_4",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n25\n1\n1 1 2010\n1\n5 2 2019\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 25,
+   "input_lines": [
+    "44.758741209671975,89.82871889998032,200.0,NT085LAB",
+    "44.75874120967198,89.82871889998032,200.0,NT085LAA",
+    "43.84827403912831,86.27075237102143,0.0,NT085LOB",
+    "43.84827403912831,86.27075237102147,0.0,NT085LOA",
+    "41.7340639036691,89.2189957592091,227.22070376993517,NT085HTB",
+    "41.7340639036691,89.2189957592091,227.22070376994088,NT085HTA"
+   ],
+   "observation_date": [
+    2016,
+    4,
+    5
+   ],
+   "outputs": [
+    {
+     "eht": "199.018",
+     "lat": "44.7587492679",
+     "lonW": "89.8287299049",
+     "name": "NT085LAB"
+    },
+    {
+     "eht": "199.018",
+     "lat": "44.7587492680",
+     "lonW": "89.8287299049",
+     "name": "NT085LAA"
+    },
+    {
+     "eht": "-1.052",
+     "lat": "43.8482824202",
+     "lonW": "86.2707620956",
+     "name": "NT085LOB"
+    },
+    {
+     "eht": "-1.052",
+     "lat": "43.8482824202",
+     "lonW": "86.2707620957",
+     "name": "NT085LOA"
+    },
+    {
+     "eht": "226.140",
+     "lat": "41.7340715930",
+     "lonW": "89.2190058484",
+     "name": "NT085HTB"
+    },
+    {
+     "eht": "226.141",
+     "lat": "41.7340715930",
+     "lonW": "89.2190058484",
+     "name": "NT085HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2014 or IGS14/IGb14  (EPOCH = 04-05-2016 (2016.2596))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2014 or IGS14/IGb14 ***\n ***CAUTION: Coordinates in this file have been updated to  4-05-2016=(2016.260) ***\n\n   44.7587492679   89.8287299049   199.018    NT085LAB\n   44.7587492680   89.8287299049   199.018    NT085LAA\n   43.8482824202   86.2707620956    -1.052    NT085LOB\n   43.8482824202   86.2707620957    -1.052    NT085LOA\n   41.7340715930   89.2190058484   226.140    NT085HTB\n   41.7340715930   89.2190058484   226.141    NT085HTA\n",
+   "raw_sha256": "caf68f626ae44c9680167e7175adbbfe09a4e9b1e74ed120780a72ba58b31e97",
+   "returncode": 0,
+   "run_id": "neartie_1_25_5",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n25\n1\n1 1 2010\n1\n4 5 2016\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 26,
+   "input_lines": [
+    "41.863266574757255,86.57785326363161,0.0,NT090LAB",
+    "41.863266574757276,86.57785326363161,0.0,NT090LAA",
+    "47.24747269876585,89.32473803864774,200.0,NT090LOB",
+    "47.24747269876585,89.32473803864775,200.0,NT090LOA",
+    "44.73875732183495,85.873010452514,0.00032801041379569877,NT090HTB",
+    "44.73875732183495,85.873010452514,0.00032801041379570966,NT090HTA"
+   ],
+   "observation_date": [
+    2025,
+    3,
+    26
+   ],
+   "outputs": [
+    {
+     "eht": "-1.111",
+     "lat": "41.8632746250",
+     "lonW": "86.5778643092",
+     "name": "NT090LAB"
+    },
+    {
+     "eht": "-1.111",
+     "lat": "41.8632746251",
+     "lonW": "86.5778643092",
+     "name": "NT090LAA"
+    },
+    {
+     "eht": "199.086",
+     "lat": "47.2474809968",
+     "lonW": "89.3247515572",
+     "name": "NT090LOB"
+    },
+    {
+     "eht": "199.086",
+     "lat": "47.2474809968",
+     "lonW": "89.3247515573",
+     "name": "NT090LOA"
+    },
+    {
+     "eht": "-1.031",
+     "lat": "44.7387658609",
+     "lonW": "85.8730220998",
+     "name": "NT090HTB"
+    },
+    {
+     "eht": "-1.030",
+     "lat": "44.7387658609",
+     "lonW": "85.8730220998",
+     "name": "NT090HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2020 or IGS20/IGb20  (EPOCH = 03-26-2025 (2025.2301))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2020 or IGS20/IGb20 ***\n ***CAUTION: Coordinates in this file have been updated to  3-26-2025=(2025.230) ***\n\n   41.8632746250   86.5778643092    -1.111    NT090LAB\n   41.8632746251   86.5778643092    -1.111    NT090LAA\n   47.2474809968   89.3247515572   199.086    NT090LOB\n   47.2474809968   89.3247515573   199.086    NT090LOA\n   44.7387658609   85.8730220998    -1.031    NT090HTB\n   44.7387658609   85.8730220998    -1.030    NT090HTA\n",
+   "raw_sha256": "6e9df1da9c14c9e7a7014d4fa256e44c9246a944ed07f6f89a9dcf0b9b35748c",
+   "returncode": 0,
+   "run_id": "neartie_1_26_0",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n26\n1\n1 1 2010\n1\n3 26 2025\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 26,
+   "input_lines": [
+    "42.68083192545231,88.93678270722593,0.0,NT091LAB",
+    "42.68083192545232,88.93678270722593,0.0,NT091LAA",
+    "43.28028480043831,86.40431238038066,200.0,NT091LOB",
+    "43.28028480043831,86.40431238038067,200.0,NT091LOA",
+    "43.637554116573355,84.6496825725583,0.00019536772742866925,NT091HTB",
+    "43.637554116573355,84.6496825725583,0.0001953677274286747,NT091HTA"
+   ],
+   "observation_date": [
+    2021,
+    12,
+    20
+   ],
+   "outputs": [
+    {
+     "eht": "-1.057",
+     "lat": "42.6808397628",
+     "lonW": "88.9367940053",
+     "name": "NT091LAB"
+    },
+    {
+     "eht": "-1.057",
+     "lat": "42.6808397629",
+     "lonW": "88.9367940053",
+     "name": "NT091LAA"
+    },
+    {
+     "eht": "198.931",
+     "lat": "43.2802930750",
+     "lonW": "86.4043231185",
+     "name": "NT091LOB"
+    },
+    {
+     "eht": "198.931",
+     "lat": "43.2802930750",
+     "lonW": "86.4043231186",
+     "name": "NT091LOA"
+    },
+    {
+     "eht": "-1.077",
+     "lat": "43.6375626904",
+     "lonW": "84.6496928695",
+     "name": "NT091HTB"
+    },
+    {
+     "eht": "-1.076",
+     "lat": "43.6375626904",
+     "lonW": "84.6496928695",
+     "name": "NT091HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2020 or IGS20/IGb20  (EPOCH = 12-20-2021 (2021.9671))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2020 or IGS20/IGb20 ***\n ***CAUTION: Coordinates in this file have been updated to 12-20-2021=(2021.967) ***\n\n   42.6808397628   88.9367940053    -1.057    NT091LAB\n   42.6808397629   88.9367940053    -1.057    NT091LAA\n   43.2802930750   86.4043231185   198.931    NT091LOB\n   43.2802930750   86.4043231186   198.931    NT091LOA\n   43.6375626904   84.6496928695    -1.077    NT091HTB\n   43.6375626904   84.6496928695    -1.076    NT091HTA\n",
+   "raw_sha256": "c0c32c677c23942da8e935ea9f68a26c95e5797c7781186bd99370cac4406756",
+   "returncode": 0,
+   "run_id": "neartie_1_26_1",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n26\n1\n1 1 2010\n1\n12 20 2021\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 26,
+   "input_lines": [
+    "47.191545151621554,82.63145426318667,600.0,NT092LAB",
+    "47.19154515162157,82.63145426318667,600.0,NT092LAA",
+    "45.557789365894465,89.98402235467258,0.0,NT092LOB",
+    "45.557789365894465,89.9840223546726,0.0,NT092LOA",
+    "47.04025362907844,89.42221813450762,599.9998643719363,NT092HTB",
+    "47.04025362907844,89.42221813450762,599.9998643719591,NT092HTA"
+   ],
+   "observation_date": [
+    2033,
+    5,
+    13
+   ],
+   "outputs": [
+    {
+     "eht": "599.012",
+     "lat": "47.1915545715",
+     "lonW": "82.6314673849",
+     "name": "NT092LAB"
+    },
+    {
+     "eht": "599.012",
+     "lat": "47.1915545716",
+     "lonW": "82.6314673849",
+     "name": "NT092LAA"
+    },
+    {
+     "eht": "-0.961",
+     "lat": "45.5577972401",
+     "lonW": "89.9840372072",
+     "name": "NT092LOB"
+    },
+    {
+     "eht": "-0.961",
+     "lat": "45.5577972401",
+     "lonW": "89.9840372073",
+     "name": "NT092LOA"
+    },
+    {
+     "eht": "599.077",
+     "lat": "47.0402617440",
+     "lonW": "89.4222334024",
+     "name": "NT092HTB"
+    },
+    {
+     "eht": "599.078",
+     "lat": "47.0402617440",
+     "lonW": "89.4222334024",
+     "name": "NT092HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2020 or IGS20/IGb20  (EPOCH = 05-13-2033 (2033.3616))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2020 or IGS20/IGb20 ***\n ***CAUTION: Coordinates in this file have been updated to  5-13-2033=(2033.362) ***\n\n   47.1915545715   82.6314673849   599.012    NT092LAB\n   47.1915545716   82.6314673849   599.012    NT092LAA\n   45.5577972401   89.9840372072    -0.961    NT092LOB\n   45.5577972401   89.9840372073    -0.961    NT092LOA\n   47.0402617440   89.4222334024   599.077    NT092HTB\n   47.0402617440   89.4222334024   599.078    NT092HTA\n",
+   "raw_sha256": "c82c9f66959a202b9a3e5ebb8ba5ee124af823b52a5a1b6f00cfc6f229a4090a",
+   "returncode": 0,
+   "run_id": "neartie_1_26_2",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n26\n1\n1 1 2010\n1\n5 13 2033\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 26,
+   "input_lines": [
+    "45.57873819842436,85.7162383218291,0.0,NT093LAB",
+    "45.578738198424375,85.7162383218291,0.0,NT093LAA",
+    "44.20883492171136,85.21819685946696,200.0,NT093LOB",
+    "44.20883492171136,85.21819685946699,200.0,NT093LOA",
+    "45.58882002603011,89.50893993326173,200.00029548489852,NT093HTB",
+    "45.58882002603011,89.50893993326173,200.00029548490423,NT093HTA"
+   ],
+   "observation_date": [
+    2017,
+    10,
+    28
+   ],
+   "outputs": [
+    {
+     "eht": "-1.004",
+     "lat": "45.5787468893",
+     "lonW": "85.7162486083",
+     "name": "NT093LAB"
+    },
+    {
+     "eht": "-1.004",
+     "lat": "45.5787468894",
+     "lonW": "85.7162486083",
+     "name": "NT093LAA"
+    },
+    {
+     "eht": "198.948",
+     "lat": "44.2088434853",
+     "lonW": "85.2182066456",
+     "name": "NT093LOB"
+    },
+    {
+     "eht": "198.948",
+     "lat": "44.2088434853",
+     "lonW": "85.2182066457",
+     "name": "NT093LOA"
+    },
+    {
+     "eht": "199.039",
+     "lat": "45.5888282103",
+     "lonW": "89.5089513835",
+     "name": "NT093HTB"
+    },
+    {
+     "eht": "199.040",
+     "lat": "45.5888282103",
+     "lonW": "89.5089513835",
+     "name": "NT093HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2020 or IGS20/IGb20  (EPOCH = 10-28-2017 (2017.8219))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2020 or IGS20/IGb20 ***\n ***CAUTION: Coordinates in this file have been updated to 10-28-2017=(2017.822) ***\n\n   45.5787468893   85.7162486083    -1.004    NT093LAB\n   45.5787468894   85.7162486083    -1.004    NT093LAA\n   44.2088434853   85.2182066456   198.948    NT093LOB\n   44.2088434853   85.2182066457   198.948    NT093LOA\n   45.5888282103   89.5089513835   199.039    NT093HTB\n   45.5888282103   89.5089513835   199.040    NT093HTA\n",
+   "raw_sha256": "ea7ebeada599703f5fc0765f888577d2ecb73bef3f9272f0c4507b92b99bb589",
+   "returncode": 0,
+   "run_id": "neartie_1_26_3",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n26\n1\n1 1 2010\n1\n10 28 2017\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 26,
+   "input_lines": [
+    "42.7182130257065,84.15281409757456,250.07285598766407,NT094LAB",
+    "42.71821302570651,84.15281409757456,250.07285598766407,NT094LAA",
+    "42.743981785293705,85.66787513578524,600.0,NT094LOB",
+    "42.743981785293705,85.66787513578522,600.0,NT094LOA",
+    "43.32644229988538,85.63928663497082,200.0001797671373,NT094HTB",
+    "43.32644229988538,85.63928663497082,200.000179767143,NT094HTA"
+   ],
+   "observation_date": [
+    2030,
+    10,
+    17
+   ],
+   "outputs": [
+    {
+     "eht": "248.960",
+     "lat": "42.7182216115",
+     "lonW": "84.1528257064",
+     "name": "NT094LAB"
+    },
+    {
+     "eht": "248.960",
+     "lat": "42.7182216116",
+     "lonW": "84.1528257064",
+     "name": "NT094LAA"
+    },
+    {
+     "eht": "598.904",
+     "lat": "42.7439901206",
+     "lonW": "85.6678872307",
+     "name": "NT094LOB"
+    },
+    {
+     "eht": "598.904",
+     "lat": "42.7439901206",
+     "lonW": "85.6678872308",
+     "name": "NT094LOA"
+    },
+    {
+     "eht": "198.921",
+     "lat": "43.3264507098",
+     "lonW": "85.6392989013",
+     "name": "NT094HTB"
+    },
+    {
+     "eht": "198.922",
+     "lat": "43.3264507098",
+     "lonW": "85.6392989013",
+     "name": "NT094HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2020 or IGS20/IGb20  (EPOCH = 10-17-2030 (2030.7918))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2020 or IGS20/IGb20 ***\n ***CAUTION: Coordinates in this file have been updated to 10-17-2030=(2030.792) ***\n\n   42.7182216115   84.1528257064   248.960    NT094LAB\n   42.7182216116   84.1528257064   248.960    NT094LAA\n   42.7439901206   85.6678872307   598.904    NT094LOB\n   42.7439901206   85.6678872308   598.904    NT094LOA\n   43.3264507098   85.6392989013   198.921    NT094HTB\n   43.3264507098   85.6392989013   198.922    NT094HTA\n",
+   "raw_sha256": "034e16ad62b90df47bb7b49e9f21439eab9e8965cc8494c95a30e5a35dc1ba70",
+   "returncode": 0,
+   "run_id": "neartie_1_26_4",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n26\n1\n1 1 2010\n1\n10 17 2030\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 26,
+   "input_lines": [
+    "44.27624552275367,90.03225419335044,0.0,NT095LAB",
+    "44.2762455227537,90.03225419335044,0.0,NT095LAA",
+    "45.01239222278225,84.63250187343706,0.0,NT095LOB",
+    "45.01239222278225,84.63250187343709,0.0,NT095LOA",
+    "47.17680381191792,87.95978956062885,600.0003293924736,NT095HTB",
+    "47.17680381191792,87.95978956062885,600.0003293924965,NT095HTA"
+   ],
+   "observation_date": [
+    2027,
+    6,
+    24
+   ],
+   "outputs": [
+    {
+     "eht": "-0.997",
+     "lat": "44.2762533440",
+     "lonW": "90.0322673621",
+     "name": "NT095LAB"
+    },
+    {
+     "eht": "-0.997",
+     "lat": "44.2762533441",
+     "lonW": "90.0322673621",
+     "name": "NT095LAA"
+    },
+    {
+     "eht": "-1.036",
+     "lat": "45.0124009921",
+     "lonW": "84.6325136651",
+     "name": "NT095LOB"
+    },
+    {
+     "eht": "-1.036",
+     "lat": "45.0124009921",
+     "lonW": "84.6325136652",
+     "name": "NT095LOA"
+    },
+    {
+     "eht": "599.067",
+     "lat": "47.1768122846",
+     "lonW": "87.9598031210",
+     "name": "NT095HTB"
+    },
+    {
+     "eht": "599.068",
+     "lat": "47.1768122846",
+     "lonW": "87.9598031210",
+     "name": "NT095HTA"
+    }
+   ],
+   "purpose": "near_tie",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2020 or IGS20/IGb20  (EPOCH = 06-24-2027 (2027.4767))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2020 or IGS20/IGb20 ***\n ***CAUTION: Coordinates in this file have been updated to  6-24-2027=(2027.477) ***\n\n   44.2762533440   90.0322673621    -0.997    NT095LAB\n   44.2762533441   90.0322673621    -0.997    NT095LAA\n   45.0124009921   84.6325136651    -1.036    NT095LOB\n   45.0124009921   84.6325136652    -1.036    NT095LOA\n   47.1768122846   87.9598031210   599.067    NT095HTB\n   47.1768122846   87.9598031210   599.068    NT095HTA\n",
+   "raw_sha256": "a16e6811eed93eb89d3c06f68252ad0c24035364f5ab68a433f70400f29bbb19",
+   "returncode": 0,
+   "run_id": "neartie_1_26_5",
+   "selection": [
+    {
+     "component": "LA",
+     "side": "B"
+    },
+    {
+     "component": "LA",
+     "side": "A"
+    },
+    {
+     "component": "LO",
+     "side": "B"
+    },
+    {
+     "component": "LO",
+     "side": "A"
+    },
+    {
+     "component": "HT",
+     "side": "B"
+    },
+    {
+     "component": "HT",
+     "side": "A"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n26\n1\n1 1 2010\n1\n6 24 2027\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 12,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "44.0,80.50001013840465,0.0,EDGEEIN",
+    "44.0,80.50001013840463,0.0,EDGEEOUT",
+    "44.0,92.000013652255,200.0,EDGEWIN",
+    "44.0,92.00001365225502,200.0,EDGEWOUT",
+    "40.50000810302311,85.0,0.0,EDGESIN",
+    "40.500008103023106,85.0,0.0,EDGESOUT",
+    "50.000009079610194,88.0,200.0,EDGENIN",
+    "50.0000090796102,88.0,200.0,EDGENOUT"
+   ],
+   "observation_date": [
+    2025,
+    6,
+    15
+   ],
+   "outputs": [
+    {
+     "eht": "1.106",
+     "lat": "43.9999907760",
+     "lonW": "80.5000003769",
+     "name": "EDGEEIN"
+    },
+    {
+     "eht": "1.106",
+     "lat": "43.9999907760",
+     "lonW": "80.5000003769",
+     "name": "EDGEEOUT"
+    },
+    {
+     "eht": "200.979",
+     "lat": "43.9999924838",
+     "lonW": "92.0000004615",
+     "name": "EDGEWIN"
+    },
+    {
+     "eht": "200.979",
+     "lat": "43.9999924838",
+     "lonW": "92.0000004615",
+     "name": "EDGEWOUT"
+    },
+    {
+     "eht": "1.169",
+     "lat": "40.5000000245",
+     "lonW": "84.9999897843",
+     "name": "EDGESIN"
+    },
+    {
+     "eht": "1.169",
+     "lat": "40.5000000245",
+     "lonW": "84.9999897843",
+     "name": "EDGESOUT"
+    },
+    {
+     "eht": "200.842",
+     "lat": "50.0000001766",
+     "lonW": "87.9999859098",
+     "name": "EDGENIN"
+    },
+    {
+     "eht": "200.839",
+     "lat": "49.9999999817",
+     "lonW": "87.9999858216",
+     "name": "EDGENOUT"
+    }
+   ],
+   "purpose": "window_edge",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G2296)             (EPOCH = 06-15-2025 (2025.4521))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   43.9999907760   80.5000003769     1.106    EDGEEIN\n   43.9999907760   80.5000003769     1.106    EDGEEOUT\n   43.9999924838   92.0000004615   200.979    EDGEWIN\n   43.9999924838   92.0000004615   200.979    EDGEWOUT\n   40.5000000245   84.9999897843     1.169    EDGESIN\n   40.5000000245   84.9999897843     1.169    EDGESOUT\n   50.0000001766   87.9999859098   200.842    EDGENIN\n   49.9999999817   87.9999858216   200.839    EDGENOUT\n",
+   "raw_sha256": "a7ccd3fc70922d587a7303c5adb9e1abb25cfcd459237c47e2e3639532f5f151",
+   "returncode": 0,
+   "run_id": "edge_12_1",
+   "selection": [
+    {
+     "edge": "E",
+     "side": "IN"
+    },
+    {
+     "edge": "E",
+     "side": "OUT"
+    },
+    {
+     "edge": "W",
+     "side": "IN"
+    },
+    {
+     "edge": "W",
+     "side": "OUT"
+    },
+    {
+     "edge": "S",
+     "side": "IN"
+    },
+    {
+     "edge": "S",
+     "side": "OUT"
+    },
+    {
+     "edge": "N",
+     "side": "IN"
+    },
+    {
+     "edge": "N",
+     "side": "OUT"
+    }
+   ],
+   "stdin": "4\nout.txt\n12\n1\n1\n6 15 2025\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 25,
+   "input_lines": [
+    "44.0,80.49998665393605,0.0,EDGEEIN",
+    "44.0,80.49998665393603,0.0,EDGEEOUT",
+    "44.0,91.9999796534672,200.0,EDGEWIN",
+    "44.0,91.99997965346721,200.0,EDGEWOUT",
+    "40.499984101252466,85.0,0.0,EDGESIN",
+    "40.49998410125246,85.0,0.0,EDGESOUT",
+    "49.99998179405068,88.0,200.0,EDGENIN",
+    "49.99998179405069,88.0,200.0,EDGENOUT"
+   ],
+   "observation_date": [
+    2025,
+    6,
+    15
+   ],
+   "outputs": [
+    {
+     "eht": "-1.105",
+     "lat": "44.0000092371",
+     "lonW": "80.4999964367",
+     "name": "EDGEEIN"
+    },
+    {
+     "eht": "-1.105",
+     "lat": "44.0000092371",
+     "lonW": "80.4999964367",
+     "name": "EDGEEOUT"
+    },
+    {
+     "eht": "199.022",
+     "lat": "44.0000075274",
+     "lonW": "91.9999928610",
+     "name": "EDGEWIN"
+    },
+    {
+     "eht": "199.022",
+     "lat": "44.0000075274",
+     "lonW": "91.9999928610",
+     "name": "EDGEWOUT"
+    },
+    {
+     "eht": "-1.168",
+     "lat": "40.4999921941",
+     "lonW": "85.0000102342",
+     "name": "EDGESIN"
+    },
+    {
+     "eht": "-1.168",
+     "lat": "40.4999921941",
+     "lonW": "85.0000102342",
+     "name": "EDGESOUT"
+    },
+    {
+     "eht": "199.159",
+     "lat": "49.9999907052",
+     "lonW": "88.0000141109",
+     "name": "EDGENIN"
+    },
+    {
+     "eht": "199.162",
+     "lat": "49.9999909000",
+     "lonW": "88.0000141991",
+     "name": "EDGENOUT"
+    }
+   ],
+   "purpose": "window_edge",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2014 or IGS14/IGb14  (EPOCH = 06-15-2025 (2025.4521))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2014 or IGS14/IGb14 ***\n ***CAUTION: Coordinates in this file have been updated to  6-15-2025=(2025.452) ***\n\n   44.0000092371   80.4999964367    -1.105    EDGEEIN\n   44.0000092371   80.4999964367    -1.105    EDGEEOUT\n   44.0000075274   91.9999928610   199.022    EDGEWIN\n   44.0000075274   91.9999928610   199.022    EDGEWOUT\n   40.4999921941   85.0000102342    -1.168    EDGESIN\n   40.4999921941   85.0000102342    -1.168    EDGESOUT\n   49.9999907052   88.0000141109   199.159    EDGENIN\n   49.9999909000   88.0000141991   199.162    EDGENOUT\n",
+   "raw_sha256": "71a71a6f4cd73280ae7a959bfa805778bb05bbc423fa920929b4d6daf67411de",
+   "returncode": 0,
+   "run_id": "edge_1_25",
+   "selection": [
+    {
+     "edge": "E",
+     "side": "IN"
+    },
+    {
+     "edge": "E",
+     "side": "OUT"
+    },
+    {
+     "edge": "W",
+     "side": "IN"
+    },
+    {
+     "edge": "W",
+     "side": "OUT"
+    },
+    {
+     "edge": "S",
+     "side": "IN"
+    },
+    {
+     "edge": "S",
+     "side": "OUT"
+    },
+    {
+     "edge": "N",
+     "side": "IN"
+    },
+    {
+     "edge": "N",
+     "side": "OUT"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n25\n1\n1 1 2010\n1\n6 15 2025\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 10,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "44.16073757508377,84.2231097333896,0.0,GATE1S26N0"
+   ],
+   "observation_date": [
+    2002,
+    1,
+    20
+   ],
+   "outputs": [
+    {
+     "eht": "1.063",
+     "lat": "44.1607289389",
+     "lonW": "84.2231034649",
+     "name": "GATE1S26N0"
+    }
+   ],
+   "purpose": "gate1_counterexample",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G1762)             (EPOCH = 01-20-2002 (2002.0521))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   44.1607289389   84.2231034649     1.063    GATE1S26N0\n",
+   "raw_sha256": "ea740c0bf19e7093b7ddf2c82dab0503d7c4406f1e662c998ed8ce45fc2c156d",
+   "returncode": 0,
+   "run_id": "gate1_s26_0",
+   "selection": [
+    {
+     "seed": "S26"
+    }
+   ],
+   "stdin": "4\nout.txt\n10\n1\n1\n1 20 2002\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 10,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "45.00005377942753,89.46078879147638,0.0,GATE1S26N1"
+   ],
+   "observation_date": [
+    1995,
+    1,
+    28
+   ],
+   "outputs": [
+    {
+     "eht": "0.979",
+     "lat": "45.0000453443",
+     "lonW": "89.4607822278",
+     "name": "GATE1S26N1"
+    }
+   ],
+   "purpose": "gate1_counterexample",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM WGS84(G1762)             (EPOCH = 01-28-1995 (1995.0740))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   45.0000453443   89.4607822278     0.979    GATE1S26N1\n",
+   "raw_sha256": "5ae6ae821b7d9eb3d21f8f8e8f9c7347bbdc01d20a13565bbb97859983995a5b",
+   "returncode": 0,
+   "run_id": "gate1_s26_1",
+   "selection": [
+    {
+     "seed": "S26"
+    }
+   ],
+   "stdin": "4\nout.txt\n10\n1\n1\n1 28 1995\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 25,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "42.757733086988175,90.95031453635029,76.48566873467087,GATE1S26N2"
+   ],
+   "observation_date": [
+    2026,
+    10,
+    1
+   ],
+   "outputs": [
+    {
+     "eht": "77.515",
+     "lat": "42.7577255755",
+     "lonW": "90.9503017363",
+     "name": "GATE1S26N2"
+    }
+   ],
+   "purpose": "gate1_counterexample",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2014 or IGS14/IGb14  (EPOCH = 10-01-2026 (2026.7479))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   42.7577255755   90.9503017363    77.515    GATE1S26N2\n",
+   "raw_sha256": "25ef53519de18cc0fa0cb70e4c84704dea617b9b4622ad15a59578da95871cf2",
+   "returncode": 0,
+   "run_id": "gate1_s26_2",
+   "selection": [
+    {
+     "seed": "S26"
+    }
+   ],
+   "stdin": "4\nout.txt\n25\n1\n1\n10 1 2026\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 25,
+   "frame_out_menu": 1,
+   "input_lines": [
+    "45.00007767533613,86.07399523500962,0.0,GATE1S26N3"
+   ],
+   "observation_date": [
+    2034,
+    1,
+    3
+   ],
+   "outputs": [
+    {
+     "eht": "1.021",
+     "lat": "45.0000691472",
+     "lonW": "86.0739816056",
+     "name": "GATE1S26N3"
+    }
+   ],
+   "purpose": "gate1_counterexample",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM ITRF2014 or IGS14/IGb14  (EPOCH = 01-03-2034 (2034.0055))\n                          TO NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in NAD_83(2011/CORS96/2007)***\n ***CAUTION: Coordinates in this file have been updated to  1-01-2010=(2010.000) ***\n\n   45.0000691472   86.0739816056     1.021    GATE1S26N3\n",
+   "raw_sha256": "c2c76ee773f5f00eaeb847a7068b6fa74b898b9fc66da72974bfd05041d322dd",
+   "returncode": 0,
+   "run_id": "gate1_s26_3",
+   "selection": [
+    {
+     "seed": "S26"
+    }
+   ],
+   "stdin": "4\nout.txt\n25\n1\n1\n1 3 2034\n1\n1 1 2010\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 12,
+   "input_lines": [
+    "44.269962536263435,82.54369826118517,0.0,GATE1S15N4"
+   ],
+   "observation_date": [
+    2022,
+    7,
+    23
+   ],
+   "outputs": [
+    {
+     "eht": "-1.078",
+     "lat": "44.2699714973",
+     "lonW": "82.5437081763",
+     "name": "GATE1S15N4"
+    }
+   ],
+   "purpose": "gate1_counterexample",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO WGS84(G2296)             (EPOCH = 07-23-2022 (2022.5562))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in WGS84(G2296)            ***\n ***CAUTION: Coordinates in this file have been updated to  7-23-2022=(2022.556) ***\n\n   44.2699714973   82.5437081763    -1.078    GATE1S15N4\n",
+   "raw_sha256": "2f939cff1f4eba7cbbe698d9714e19c1bd0d8e03fa38a7ccf6422e448d761501",
+   "returncode": 0,
+   "run_id": "gate1_s15_4",
+   "selection": [
+    {
+     "seed": "S15"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n12\n1\n1 1 2010\n1\n7 23 2022\n3\nin.txt\n0\n0\n"
+  },
+  {
+   "frame_in_menu": 1,
+   "frame_out_menu": 25,
+   "input_lines": [
+    "44.9999521625992,83.50785611478302,4532.693697117842,GATE1S26N5"
+   ],
+   "observation_date": [
+    2033,
+    12,
+    6
+   ],
+   "outputs": [
+    {
+     "eht": "4531.647",
+     "lat": "44.9999611493",
+     "lonW": "83.5078688929",
+     "name": "GATE1S26N5"
+    }
+   ],
+   "purpose": "gate1_counterexample",
+   "raw": " HTDP OUTPUT, VERSION 3.6.0   \n\n TRANSFORMING POSITIONS FROM NAD_83(2011/CORS96/2007) (EPOCH = 01-01-2010 (2010.0000))\n                          TO ITRF2014 or IGS14/IGb14  (EPOCH = 12-06-2033 (2033.9288))\n\n ***CAUTION: This file was processed using HTDP version 3.6.0   ***\n ***CAUTION: Coordinates in this file are in ITRF2014 or IGS14/IGb14 ***\n ***CAUTION: Coordinates in this file have been updated to 12-06-2033=(2033.929) ***\n\n   44.9999611493   83.5078688929  4531.647    GATE1S26N5\n",
+   "raw_sha256": "69ab8ec0429da48184827735f303a728b946ae611d4cbc739a3c1e0ad3d7d276",
+   "returncode": 0,
+   "run_id": "gate1_s26_5",
+   "selection": [
+    {
+     "seed": "S26"
+    }
+   ],
+   "stdin": "4\nout.txt\n1\n25\n1\n1 1 2010\n1\n12 6 2033\n3\nin.txt\n0\n0\n"
+  }
+ ]
+}

@@ -31,6 +31,7 @@ from michspc.spc.frames import (
     FrameMismatchError,
     FrameNotUsableError,
     FrameEpochKind,
+    FrameRecordMismatchError,
     FrameStatus,
     FrameTransformation,
     FrameTransformationMethod,
@@ -175,8 +176,44 @@ def test_frames_are_compared_by_code_not_identity():
     ``FrameStatus`` precedent. The rebuilt record states a self-consistent
     plate-fixed epoch and NO HTDP frame - a record from data that never heard
     of HTDP - and must still resolve by code to the registry's own.
+
+    SUPERSEDED CONSTRUCTION A THIRD TIME (interim gate 1 of the WGS 84 build,
+    finding L4): a record whose code names a registry frame now resolves only
+    when it EQUALS that frame's record; one that disagrees is refused, naming
+    the fields (``FrameRecordMismatchError``). The reviewer showed why the old
+    silent substitution was unsafe: ``replace(WGS84_G2296, code="NAD83(2011)")``
+    ran as NAD 83 while carrying WGS 84's fields. The record above disagreed in
+    name, citation, status and HTDP frame, so it is now a refusal - pinned
+    below, ``test_a_rebuilt_record_that_disagrees_with_the_registry_is_refused``
+    - which keeps both halves of the #62 sentence (it can neither grant nor
+    take away a status: it is refused). What this test was written for is
+    unchanged: a DISTINCT object, rebuilt field by field from data, that states
+    the registry's facts, is recognised as the same frame.
     """
     duplicate = ReferenceFrame(
+        code="NAD83(2011)",
+        name=NAD83_2011.name,
+        ellipsoid_name="GRS 80",
+        citation=NAD83_2011.citation,
+        status=FrameStatus.USABLE,
+        epoch_kind=FrameEpochKind.PLATE_FIXED,
+        reference_epoch=2010.0,
+        htdp_frame=NAD83_2011.htdp_frame,
+    )
+    assert duplicate is not NAD83_2011 and duplicate == NAD83_2011
+    path = require_frame_path(NAD83_2011, duplicate)  # must not raise
+
+    assert path is FRAME_TRANSFORMATIONS[(NAD83_2011, NAD83_2011)]
+
+
+def test_a_rebuilt_record_that_disagrees_with_the_registry_is_refused():
+    """The record the test above used to build, before gate 1's L4: refused now.
+
+    It disagrees with NAD83(2011)'s registry record in name ('rebuilt from
+    data'), citation ('synthetic'), status (DECLARED_NOT_USABLE against
+    USABLE) and HTDP frame (None against NAD_83(2011)); every one is named.
+    """
+    rebuilt = ReferenceFrame(
         code="NAD83(2011)",
         name="rebuilt from data",
         ellipsoid_name="GRS 80",
@@ -186,9 +223,10 @@ def test_frames_are_compared_by_code_not_identity():
         reference_epoch=2010.0,
         htdp_frame=None,
     )
-    path = require_frame_path(NAD83_2011, duplicate)  # must not raise
-
-    assert path is FRAME_TRANSFORMATIONS[(NAD83_2011, NAD83_2011)]
+    with pytest.raises(FrameRecordMismatchError) as caught:
+        require_frame_path(NAD83_2011, rebuilt)
+    assert "its name, citation, status, htdp_frame differ" in str(caught.value)
+    assert isinstance(caught.value, FrameMismatchError)
 
 
 def test_a_frame_that_is_not_usable_is_refused_before_the_pair_is_looked_up():
@@ -225,10 +263,15 @@ def test_a_frame_that_is_not_usable_is_refused_before_the_pair_is_looked_up():
     assert "WHEN it was observed" in message
     # The size of the realization question, measured by the lead with HTDP
     # v3.6.0 at Clare (43.82 N 84.77 W, h 200 m), NAD83(2011)@2010.0 to each
-    # realization @2010.0 (DESIGN.md #70): G730..G2296 spread 2.9 cm north,
-    # 5.2 cm east, 7.5 cm up, so "up to about 8 cm"; Transit vs G730 is
-    # 9.872e-6 deg north = 1.10 m, so "about 1.1 m".
-    assert "up to about 8 cm" in message
+    # realization @2010.0 (DESIGN.md #70): G730..G2296 (menus 6-12) spread
+    # 2.95 cm north, 5.20 cm east, 7.50 cm up. Those are per-component
+    # spreads; the largest PAIRWISE 3-D difference among the seven is
+    # 8.73 cm (5.42 cm of it horizontal), measured by the interim-gate-1
+    # reviewer and re-run against the binary by the gate-1 fix (finding L6),
+    # so "up to about 9 cm" - the old "about 8 cm" rounded 8.73 down.
+    # Transit vs G730 is 9.872e-6 deg north = 1.10 m, so "about 1.1 m".
+    assert "up to about 9 cm" in message
+    assert "8 cm" not in message
     assert "about 1.1 m" in message
     # The mislabelled-NAD 83 case, and its size (plan section 6).
     assert "really NAD 83" in message and "about 1.3 m" in message

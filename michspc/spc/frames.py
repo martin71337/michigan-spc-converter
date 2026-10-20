@@ -57,6 +57,7 @@ startup rather than quietly at the first job that needed it.
 
 from __future__ import annotations
 
+import dataclasses
 import math
 from dataclasses import dataclass
 from enum import Enum
@@ -104,6 +105,29 @@ class FrameTransformationUnavailableError(FrameMismatchError):
     today (DESIGN.md #62); so do the pairs plan decisions D3 and D4 do not
     offer, and - in this development build - every registered non-identity
     path, at the conversion pipeline, until work package W3 connects it.
+    """
+
+
+class FrameRecordMismatchError(FrameMismatchError):
+    """Raised when a frame record names a registered frame but states other facts.
+
+    A ``ReferenceFrame`` whose ``code`` is a registry code is a claim to BE that
+    frame, and its other fields - ellipsoid, epoch kind, reference epoch, HTDP
+    frame, status, name, citation - are a second copy of facts the registry
+    already holds. When the copy disagrees, the code says one frame and the
+    fields another: ``dataclasses.replace(WGS84_G2296, code="NAD83(2011)")`` is
+    a time-dependent, WGS 84-ellipsoid, HTDP-G2296 record calling itself NAD 83
+    (interim gate 1 of the WGS 84 build, finding L4). Before the gate it was
+    silently replaced by the registry's record at the frame gate and carried
+    on, uncorrected, everywhere else - the job ran as a NAD 83 identity and the
+    record printed the WGS 84 name beside the NAD 83 code.
+
+    A subclass of ``FrameMismatchError`` rather than a ``TypeError``, because
+    the argument IS a well-formed ``ReferenceFrame``: the likeliest source is
+    data - a record rebuilt from a saved job, then edited - not a programming
+    mistake, and every caller already turns ``FrameMismatchError`` into a
+    refusal the user reads. ``TypeError`` stays what it is in this module: an
+    argument that is not a ``ReferenceFrame`` at all.
     """
 
 
@@ -324,7 +348,7 @@ NAD83_2011 = ReferenceFrame(
     # The epoch NGS, OPUS, NCAT and the CORS network publish it at
     # (docs/PLAN-wgs84.md decision D1); checked against htdp.NAD83_2011_EPOCH.
     reference_epoch=2010.0,
-    htdp_frame=htdp.NAD83_2011,  # htdp.f:4676-4677, MENU1 frame 1
+    htdp_frame=htdp.NAD83_2011,  # htdp.f:4677-4678, MENU1 frame 1
 )
 """The frame SPCS 83 coordinates are expressed in.
 
@@ -513,7 +537,7 @@ WGS84 = ReferenceFrame(
         "D2). A position labelled only 'WGS 84' cannot be converted, because "
         "the label leaves unstated the two facts that decide where the "
         "position is: WHICH realization it is in - the realizations from "
-        "G730 on differ from one another by up to about 8 cm in Michigan, and "
+        "G730 on differ from one another by up to about 9 cm in Michigan, and "
         "the original 1987 realization sits about 1.1 m from them (HTDP "
         "v3.6.0 at 43.82 N 84.77 W, epoch 2010.0; DESIGN.md #70) - "
         "and WHEN it was observed, since a position in a global frame moves "
@@ -974,15 +998,74 @@ _check_registry_keeps_every_required_pair()
 
 
 def _canonical(frame: ReferenceFrame) -> ReferenceFrame:
-    """The registry's own record for this frame's code, when it has one.
+    """The registry's own record for this frame's code - or a refusal.
 
     A record rebuilt from a saved job, or hand-built by a caller, must not be
     able to claim a status this module did not grant it - that is how an
     unusable frame would slip through, and a hand-built ``ReferenceFrame`` is
-    a two-line thing to write. An unrecognised code is returned unchanged, so
-    it reaches the pair refusal below, which names it.
+    a two-line thing to write. Nor may it state any OTHER fact the registry's
+    record does not: until interim gate 1 of the WGS 84 build (finding L4)
+    this function silently substituted the registry's record for a
+    disagreeing one, so the frame gate answered for the registry's frame while
+    every caller downstream still held - and could read - the caller's.
+    Now a record whose code names a registry frame resolves only when it is
+    EQUAL to that frame's record, field for field, and otherwise is refused,
+    naming the fields that disagree. Equal means equal in value: a record
+    rebuilt from data that states the registry's facts resolves, though it is
+    not the same object.
+
+    An unrecognised code is returned unchanged, so it reaches the pair refusal
+    below, which names it.
     """
-    return _FRAMES_BY_CODE.get(frame.code, frame)
+    registered = _FRAMES_BY_CODE.get(frame.code)
+    if registered is None:
+        return frame
+    if frame == registered:
+        return registered
+    differing = [
+        field.name
+        for field in dataclasses.fields(ReferenceFrame)
+        if getattr(frame, field.name) != getattr(registered, field.name)
+    ]
+
+    def shown(value: object) -> str:
+        text = repr(value)
+        return text if len(text) <= 70 else text[:67] + "..."
+
+    details = "; ".join(
+        f"{name} {shown(getattr(frame, name))}, where the registry states "
+        f"{shown(getattr(registered, name))}"
+        for name in differing
+    )
+    raise FrameRecordMismatchError(
+        f"The reference frame record passed as {frame.code!r} is not this "
+        f"program's record for {frame.code}: its {', '.join(differing)} "
+        f"{'differ' if len(differing) > 1 else 'differs'} ({details}). A "
+        f"record that carries a registered frame's code must state exactly "
+        f"that frame's facts. A disagreeing copy says one frame in its code "
+        f"and another in its ellipsoid, epoch or HTDP frame, and which of the "
+        f"two a conversion followed would depend on which field it read - "
+        f"for NAD 83 and WGS 84 a metre or more apart. Use "
+        f"michspc.spc.frames.frame_by_code({frame.code!r})."
+    )
+
+
+def resolve_frame(frame: ReferenceFrame) -> ReferenceFrame:
+    """The registry's record for ``frame``, refusing a disagreeing copy.
+
+    The public form of the check ``require_frame_path`` makes on both its
+    arguments, for a caller that takes a frame and keeps it without asking for
+    a path - ``convert.geodetic_position``, whose result carries the frame into
+    the job record. It answers only whether the record is consistent with the
+    registry: an unrecognised code comes back unchanged, and whether the frame
+    is USABLE is not asked here.
+    """
+    if not isinstance(frame, ReferenceFrame):
+        raise TypeError(
+            f"resolve_frame needs a michspc.spc.frames.ReferenceFrame; got "
+            f"{type(frame).__name__} ({frame!r})."
+        )
+    return _canonical(frame)
 
 
 def _realizations_message() -> str:

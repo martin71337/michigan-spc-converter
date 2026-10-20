@@ -42,6 +42,7 @@ from michspc.spc.frames import (
     FrameTransformationUnavailableError,
     ReferenceFrame,
     require_frame_path,
+    resolve_frame,
 )
 from michspc.spc.projection import forward as project_forward
 from michspc.spc.projection import inverse as project_inverse
@@ -449,7 +450,8 @@ def project_point(
     # zone is a REGISTERED path - and projecting its latitude and longitude
     # unchanged would put a WGS 84 position on the NAD 83 grid. Refused until
     # W3 transforms it.
-    require_a_connected_path(require_frame_path(source_frame, target_zone.frame))
+    path = require_frame_path(source_frame, target_zone.frame)
+    require_a_connected_path(path)
 
     (
         northing,
@@ -462,7 +464,10 @@ def project_point(
     return PointConversion(
         source_zone=target_zone,
         target_zone=target_zone,
-        frame=source_frame,
+        # The registry's own record, which the frame gate has just required
+        # the caller's to equal (frames._canonical): every reader downstream
+        # reads the facts the gate checked, never a caller's copy of them.
+        frame=path.source,
         source_northing=northing,
         source_easting=easting,
         latitude=latitude,
@@ -510,11 +515,17 @@ def geodetic_position(
             f"and longitude do not carry their own frame. Pass "
             f"michspc.spc.frames.NAD83_2011 for an NAD 83 position."
         )
+    # A record that names a registered frame must BE that frame's record
+    # (interim gate 1 of the WGS 84 build, finding L4): this function asks no
+    # frame question of its own, so without this a disagreeing copy would be
+    # carried into the result - and into the job record - unexamined. Whether
+    # the frame is usable is the job's settings gate's question, not this one.
+    frame = resolve_frame(source_frame)
 
     return PointConversion(
         source_zone=None,
         target_zone=None,
-        frame=source_frame,
+        frame=frame,
         source_northing=None,
         source_easting=None,
         latitude=latitude,

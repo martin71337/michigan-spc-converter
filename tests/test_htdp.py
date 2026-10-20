@@ -14,6 +14,12 @@ holds it to that program from two sides:
    every constant ``htdp_data`` carries must equal the one NGS wrote, number
    for number; the source files themselves are SHA-256 pinned.
 
+3. **The near ties and window edges** (``tests/fixtures/htdp_near_tie_anchors.py``,
+   interim gate 1 of the WGS 84 build, L2 and L3): records whose result sits
+   beside a rounding tie of HTDP's print, so that an ulp's change in the order
+   of operations is seen, and records either side of every edge of the
+   velocity window, frozen from the same binary.
+
 Then the facts that do not show in a single anchor: the ellipsoid follows the
 frame's name, HTDP's calendar arithmetic, the window that bounds this module's
 scope (with the proof from NGS's source that nothing outside it - another
@@ -40,6 +46,7 @@ import pytest
 
 from michspc.spc import frames, htdp, htdp_data
 from tests.fixtures.htdp_anchors import HTDP_RUNS
+from tests.fixtures.htdp_near_tie_anchors import NEAR_TIE_RUNS
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 W0 = REPO_ROOT / "review" / "wgs84-w0"
@@ -222,14 +229,21 @@ def test_the_round_trip_chains_to_htdps_own_round_trip(run_id):
         assert back == (record.lat_out, record.lonw_out, record.h_out), (run_id, record.name)
 
 
-def test_htdps_round_trip_does_not_close_and_neither_does_this_one():
-    """The non-closure is HTDP's, so it must be present, not smoothed away.
+def test_the_frozen_round_trips_include_records_that_do_not_close():
+    """Anti-vacuity for the round-trip pin: HTDP's own records DO fail to close.
 
     RECON.md section 5: HTDP's arithmetic is not exactly invertible (two
     clocks, radii without a height term, a negated linearized Helmert), so on
     some records the printed round trip lands a print unit or more from where
-    it started. Count them in HTDP's own records; this module reproduces every
-    one (the parametrized test above), so the count is the same for both.
+    it started. This counts such records in the FIXTURE only - it never calls
+    ``htdp`` and would pass against any module. What it establishes is that
+    ``test_the_round_trip_chains_to_htdps_own_round_trip`` above is asked to
+    reproduce non-closing records, not only closing ones; that test is the one
+    that holds this module to HTDP's non-closure.
+
+    RENAMED at interim gate 1 of the WGS 84 build (finding L7): it was
+    ``test_htdps_round_trip_does_not_close_and_neither_does_this_one``, a name
+    claiming a check of this module that the body never made.
     """
     non_closing = 0
     for run_id in ROUND_TRIPS:
@@ -243,6 +257,205 @@ def test_htdps_round_trip_does_not_close_and_neither_does_this_one():
             ):
                 non_closing += 1
     assert non_closing > 0
+
+
+# --------------------------------------------------------------------------
+# (g) Near ties and window edges: the last place, and the window's own edges.
+#
+# Interim gate 1 of the WGS 84 build, findings L2 and L3. The 1,846 anchors
+# above were chosen by position, and a printed digit only moves when the exact
+# result crosses a rounding tie - so a change of one ulp in the ORDER of HTDP's
+# operations left them all green (the reviewer's seeds S15 and S26). These
+# records were TUNED, with W0's independent experiment.py and never with this
+# module, so that one component's exact result sits beside a tie of HTDP's
+# print, from below and from above; and so that the velocity lookup sits
+# either side of each window edge. Their expected strings are the binary's
+# (review/wgs84-w0/make_near_tie_anchors.py, near_tie_truth.json).
+# --------------------------------------------------------------------------
+
+NEAR_TIE_BY_ID = {run.run_id: run for run in NEAR_TIE_RUNS}
+NEAR_TIE_IDS = [run.run_id for run in NEAR_TIE_RUNS]
+NEAR_TIE_DIRECTIONS = [
+    (menu, 1) for menu in (10, 11, 12, 25, 26)
+] + [(1, menu) for menu in (10, 11, 12, 25, 26)]
+
+
+def _near_tie_inside(record) -> bool:
+    # Every record but a window-edge OUTSIDE one is a position MCX transforms.
+    return not record.role.endswith("outside")
+
+
+@functools.lru_cache(maxsize=None)
+def near_tie_computed(run_id: str):
+    """(record, ours, HTDP's) for every record MCX accepts, computed once."""
+    run = NEAR_TIE_BY_ID[run_id]
+    out = []
+    for record in run.records:
+        if not _near_tie_inside(record):
+            continue
+        ours = htdp_print(run_record(run, record.lat_in, record.lonw_in, record.h_in))
+        out.append((record, ours, (record.lat_out, record.lonw_out, record.h_out)))
+    return tuple(out)
+
+
+def _near_tie_mismatches(run_id: str, component: int) -> list[str]:
+    return [
+        f"{record.name} ({record.role}): ours {ours[component]} HTDP {theirs[component]}"
+        for record, ours, theirs in near_tie_computed(run_id)
+        if ours[component] != theirs[component]
+    ]
+
+
+@pytest.mark.parametrize("run_id", NEAR_TIE_IDS)
+def test_near_tie_latitude_is_htdps_printed_latitude(run_id):
+    bad = _near_tie_mismatches(run_id, 0)
+    assert not bad, f"{run_id}: {bad}"
+
+
+@pytest.mark.parametrize("run_id", NEAR_TIE_IDS)
+def test_near_tie_longitude_is_htdps_printed_longitude(run_id):
+    bad = _near_tie_mismatches(run_id, 1)
+    assert not bad, f"{run_id}: {bad}"
+
+
+@pytest.mark.parametrize("run_id", NEAR_TIE_IDS)
+def test_near_tie_height_is_htdps_printed_height(run_id):
+    bad = _near_tie_mismatches(run_id, 2)
+    assert not bad, f"{run_id}: {bad}"
+
+
+def test_the_near_tie_generator_reproduces_its_fixture_byte_for_byte():
+    """The drift guard, as for the positional anchors: render() == the file."""
+    spec = importlib.util.spec_from_file_location(
+        "make_near_tie_anchors", W0 / "make_near_tie_anchors.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    fixture = (REPO_ROOT / "tests" / "fixtures" / "htdp_near_tie_anchors.py").read_text(
+        encoding="utf-8"
+    )
+    assert module.render() == fixture
+
+
+def test_the_near_tie_capture_is_the_one_frozen():
+    # SHA-256 of review/wgs84-w0/near_tie_truth.json as committed with the
+    # gate-1 fixes, quoted in the fixture's own provenance block.
+    digest = hashlib.sha256((W0 / "near_tie_truth.json").read_bytes()).hexdigest()
+    assert digest == "0de61a57afd317cbb14492a74e088875afa05c616b2fe8865abbe3b5a5c9f348"
+    fixture = (REPO_ROOT / "tests" / "fixtures" / "htdp_near_tie_anchors.py").read_text(
+        encoding="utf-8"
+    )
+    assert f"truth file sha256 {digest}" in fixture
+
+
+def test_the_near_ties_cover_every_direction_component_and_side():
+    """The coverage the generator's docstring claims, checked, not trusted.
+
+    Ten HTDP directions (menu 1 against 10, 11, 12, 25 and 26, each way) x six
+    runs = 60 near-tie runs, each holding exactly one record per component
+    (LA latitude, LO longitude, HT height) per side (below, above): 360
+    records. No run is dated 2010-01-01, where HTDP runs no velocity and
+    NEWCOR - where S15 lives - is never called.
+    """
+    tie_runs = [run for run in NEAR_TIE_RUNS if run.purpose == "near_tie"]
+    assert len(tie_runs) == 60
+    by_direction: dict[tuple[int, int], int] = {}
+    for run in tie_runs:
+        key = (run.frame_in_menu, run.frame_out_menu)
+        by_direction[key] = by_direction.get(key, 0) + 1
+        assert run.observation_date != datetime.date(2010, 1, 1), run.run_id
+        roles = sorted(record.role for record in run.records)
+        assert roles == sorted(
+            f"tie {c} {side}" for c in ("LA", "LO", "HT") for side in ("below", "above")
+        ), run.run_id
+    assert by_direction == {direction: 6 for direction in NEAR_TIE_DIRECTIONS}
+
+
+def _tie_distance(value: float, decimals: int) -> Fraction:
+    """Signed distance of ``value`` from the rounding tie inside its print unit.
+
+    In print units. ``%.{decimals}f`` rounds the exact value of the double, so
+    its one decision point between the print units k and k + 1 is
+    (k + 1/2) / 10**decimals, k = floor(value * 10**decimals).
+    """
+    scale = 10**decimals
+    k = math.floor(Fraction(value) * scale)
+    return Fraction(value) * scale - (Fraction(k) + Fraction(1, 2))
+
+
+def test_every_near_tie_is_a_near_tie_as_this_module_computes_it():
+    """Anti-vacuity: the records sit at a tie in THIS module's arithmetic too.
+
+    The fixture's ``note`` is experiment.py's distance; recomputed here from
+    this module's unrounded result, each record must lie on its stated side of
+    its tie and within 1e-3 of a print unit of it. In practice the latitude
+    and longitude records lie a few result ulps from their tie at most (one
+    ulp is about 7e-15 degree here, 7e-5 of a print unit), and the height
+    records within about 1e-9 m (1e-6 of a print unit), the granularity of
+    HTDP's Cartesian round trip - so a change of that size, in the right
+    direction, flips the printed digit. That is what makes them see S15 and
+    S26.
+
+    Worth knowing when reading which records catch S15: it is invisible on
+    every to-NAD 83 path. There NEWCOR's second time is ITREF, so
+    ``ylat2 == ylat`` exactly, and both ``ylat + ylat - ylat1`` and
+    ``ylat + (ylat - ylat1)`` are exact in double precision - the two
+    groupings cannot differ. Only the from-NAD 83 records can see it.
+    """
+    far = []
+    for run in NEAR_TIE_RUNS:
+        if run.purpose != "near_tie":
+            continue
+        for record in run.records:
+            _, component, side = record.role.split()
+            result = run_record(run, record.lat_in, record.lonw_in, record.h_in)
+            value, decimals = {
+                "LA": (result.latitude, 10),
+                "LO": (-result.longitude, 10),
+                "HT": (result.ellipsoid_height, 3),
+            }[component]
+            distance = _tie_distance(value, decimals)
+            on_side = distance < 0 if side == "below" else distance > 0
+            if not on_side or abs(distance) > Fraction(1, 1000):
+                far.append(f"{record.name}: {float(distance):+.3e}")
+            # And experiment.py's stated distance agrees with ours.
+            assert float(distance) == pytest.approx(float(record.note), rel=1e-2, abs=1e-12), (
+                record.name
+            )
+    assert not far, far
+
+
+# The reviewer's own counterexamples (review/gate-wgs84-1/output.md, L2),
+# recovered from the gate's deterministic fuzz: HTDP's print at each, frozen
+# from the binary. S26 at the first is the one the reviewer quoted: HTDP
+# prints 44.1607289389, ``math.radians`` gives ...388.
+GATE1_COUNTEREXAMPLES = [
+    ("GATE1S26N0", 10, 1, datetime.date(2002, 1, 20), "44.16073757508377", "84.2231097333896", "0.0", "44.1607289389"),
+    ("GATE1S26N1", 10, 1, datetime.date(1995, 1, 28), "45.00005377942753", "89.46078879147638", "0.0", "45.0000453443"),
+    ("GATE1S26N2", 25, 1, datetime.date(2026, 10, 1), "42.757733086988175", "90.95031453635029", "76.48566873467087", "42.7577255755"),
+    ("GATE1S26N3", 25, 1, datetime.date(2034, 1, 3), "45.00007767533613", "86.07399523500962", "0.0", "45.0000691472"),
+    ("GATE1S15N4", 1, 12, datetime.date(2022, 7, 23), "44.269962536263435", "82.54369826118517", "0.0", "44.2699714973"),
+    ("GATE1S26N5", 1, 25, datetime.date(2033, 12, 6), "44.9999521625992", "83.50785611478302", "4532.693697117842", "44.9999611493"),
+]
+
+
+@pytest.mark.parametrize(
+    "name,menu_in,menu_out,observed,lat,lonw,h,htdp_lat",
+    GATE1_COUNTEREXAMPLES,
+    ids=[row[0] for row in GATE1_COUNTEREXAMPLES],
+)
+def test_the_gate1_counterexamples_print_as_htdp_prints_them(
+    name, menu_in, menu_out, observed, lat, lonw, h, htdp_lat
+):
+    (record,) = [
+        record for run in NEAR_TIE_RUNS for record in run.records if record.name == name
+    ]
+    (run,) = [run for run in NEAR_TIE_RUNS if record in run.records]
+    assert (run.frame_in_menu, run.frame_out_menu, run.observation_date) == (
+        menu_in, menu_out, observed
+    )
+    assert (record.lat_in, record.lonw_in, record.h_in, record.lat_out) == (lat, lonw, h, htdp_lat)
+    assert htdp_print(run_record(run, lat, lonw, h))[0] == htdp_lat
 
 
 # --------------------------------------------------------------------------
@@ -452,6 +665,108 @@ def test_model_and_inline_constants_are_htdp_f():
     assert "HTDP_version = '3.6.0'" in _line("htdp.f", 27)
     assert "Version_date = 'April 7, 2025'" in _line("htdp.f", 28)
     assert (htdp_data.HTDP_VERSION, htdp_data.HTDP_VERSION_DATE) == ("3.6.0", "April 7, 2025")
+
+
+# Every line citation into the committed Fortran, in the three modules that
+# make them. Interim gate 1 of the WGS 84 build (finding L1) found ten wrong
+# ones - _toit94's comments each a line late, _newcor's likewise, NAD 83's
+# MENU1 entry citing the blank line above it - and nothing checked them, since
+# only SETTP's citations were read back. A citation is
+#
+#   FILE:N  or  FILE:N-M     FILE one of htdp.f, initvl.f, initbd.f, initeq.f,
+#                            initps.f
+#
+# optionally continued by further numbers that name more lines of the SAME
+# file ("htdp.f:3229 and 3264", "``htdp.f:3245``, ``3276-3283``"), and, in
+# htdp.py only, the short form "# :N" or "# :N-M" on a code line, which that
+# module uses for htdp.f where the full form would overflow the line. What can
+# be checked mechanically, and is: the cited line exists and is not blank, and
+# for a range the first and last lines both exist, both are non-blank, and the
+# range runs forwards. A one-line-late citation onto a blank line - every one
+# L1 named whose target was blank - fails it; a citation onto a wrong but
+# non-blank line needs a reader, and the reviewer paired all 127 single-line
+# citations by hand.
+_CITED_FILES = ("htdp.f", "initvl.f", "initbd.f", "initeq.f", "initps.f")
+_CITATION_CONTINUATION = (
+    r"(?:(?:``)?\s*(?:,|\band\b)\s*(?:``)?\d{1,6}(?:-\d{1,6})?(?![\d.]))*"
+)
+_FULL_CITATION = re.compile(
+    r"\b(htdp\.f|initvl\.f|initbd\.f|initeq\.f|initps\.f):"
+    r"(\d{1,6}(?:-\d{1,6})?" + _CITATION_CONTINUATION + ")"
+)
+_SHORT_CITATION = re.compile(r"#\s*:(\d{1,6}(?:-\d{1,6})?" + _CITATION_CONTINUATION + ")")
+_CITED_NUMBER = re.compile(r"(\d{1,6})(?:-(\d{1,6}))?")
+_CITING_MODULES = ("htdp.py", "htdp_data.py", "frames.py")
+
+
+def _citations(module: str) -> list[tuple[int, str, int, int | None]]:
+    """(module line, cited file, first line, last line or None) for every citation."""
+    text = (REPO_ROOT / "michspc" / "spc" / module).read_text(encoding="utf-8")
+    found = []
+    for number, line in enumerate(text.split("\n"), 1):
+        specs = [(m[1], m[2]) for m in _FULL_CITATION.finditer(line)]
+        if module == "htdp.py":
+            specs += [("htdp.f", m[1]) for m in _SHORT_CITATION.finditer(line)]
+        for cited, spec in specs:
+            for first, last in _CITED_NUMBER.findall(spec):
+                found.append((number, cited, int(first), int(last) if last else None))
+    return found
+
+
+def _bad_citations(module: str, sources: dict[str, list[str]]) -> list[str]:
+    bad = []
+    for number, cited, first, last in _citations(module):
+        lines = sources[cited]
+
+        def blank_or_missing(k: int) -> bool:
+            return not 1 <= k <= len(lines) or not lines[k - 1].strip()
+
+        if (
+            blank_or_missing(first)
+            or (last is not None and (last < first or blank_or_missing(last)))
+        ):
+            span = f"{first}-{last}" if last is not None else f"{first}"
+            bad.append(f"{module}:{number} cites {cited}:{span}")
+    return bad
+
+
+@pytest.mark.parametrize("module", _CITING_MODULES)
+def test_every_fortran_line_citation_names_a_real_non_blank_line(module):
+    sources = {name: _lines(name) for name in _CITED_FILES}
+    # Anti-vacuity: each module makes citations the parser sees. htdp_data.py
+    # alone carries 480 initvl.f node citations, so its floor is that.
+    floor = {"htdp.py": 150, "htdp_data.py": 480, "frames.py": 10}[module]
+    assert len(_citations(module)) >= floor, module
+    bad = _bad_citations(module, sources)
+    assert not bad, bad
+
+
+def test_the_citation_check_sees_each_form_it_claims_to():
+    """The parser, on the forms L1's citations took, before and after the fix.
+
+    Each probe line is checked against the real htdp.f: 4676 and 7378 are
+    blank (the lines L1 found cited), 4611 and 7386 are blank, 4677 is
+    ``iframe(1) = 1`` and 7387 is ``YLAT3 = YLAT + YLAT2 - YLAT1``.
+    """
+    sources = {name: _lines(name) for name in _CITED_FILES}
+    assert not sources["htdp.f"][4676 - 1].strip()
+    assert not sources["htdp.f"][7378 - 1].strip()
+    assert sources["htdp.f"][4677 - 1].strip() == "iframe(1) = 1"
+    assert sources["htdp.f"][7387 - 1].strip() == "YLAT3 = YLAT + YLAT2 - YLAT1"
+    probes = {
+        "# htdp.f:4676-4677": [("htdp.f", 4676, 4677)],
+        "x  # :7380-7381": [("htdp.f", 7380, 7381)],
+        "(``htdp.f:3245``, ``3276-3283``)": [("htdp.f", 3245, None), ("htdp.f", 3276, 3283)],
+        "htdp.f:3229 and 3264": [("htdp.f", 3229, None), ("htdp.f", 3264, None)],
+        "initvl.f:42988 B(128809)": [("initvl.f", 42988, None)],
+    }
+    for line, expected in probes.items():
+        got = []
+        for m in _FULL_CITATION.finditer(line):
+            got += [(m[1], int(a), int(b) if b else None) for a, b in _CITED_NUMBER.findall(m[2])]
+        for m in _SHORT_CITATION.finditer(line):
+            got += [("htdp.f", int(a), int(b) if b else None) for a, b in _CITED_NUMBER.findall(m[1])]
+        assert got == expected, line
 
 
 def test_the_frames_are_menu1s_own():
@@ -839,6 +1154,255 @@ def test_the_window_refuses_on_the_same_day_too():
     same_day = htdp.ObservationEpoch(datetime.date(2010, 1, 1))
     with pytest.raises(htdp.HtdpVelocityGridError):
         htdp.to_nad83(44.0, -93.0, 0.0, htdp.WGS84_G2139, same_day)
+
+
+# --------------------------------------------------------------------------
+# The window's own edges (interim gate 1 of the WGS 84 build, finding L3).
+#
+# The window, from htdp_data: nodes I 37-60 and J 34-53 transcribed. GRDVEC
+# reads cell (i, j) from nodes i, i + 1 and j, j + 1 (htdp.f:1685-1692), so the
+# accepted cells are i 37-59 and j 34-52. GRDWEI's index is
+# i = int((posx - 250) / 0.5) + 1 and j = int((posy - 24) / 0.5) + 1
+# (htdp.f:1610-1611), so cell i spans posx [250 + (i - 1) 0.5, 250 + i 0.5):
+#
+#   accepted  268.0 <= posx < 279.5  (92.0 W to 80.5 W)
+#             40.5  <= posy < 50.0
+#   and, separately, region 6's north edge: rlat < 50.0 N in radians as
+#   GETBDY converts it (htdp.f:271, initbd.f:39-40).
+#
+# The window's north row and region 6's edge coincide at the double - at the
+# edge's own radian value posy is exactly 50.0, one ulp below it 49.99...99 -
+# so through a lookup position each check MASKS the other (the reviewer's S16
+# and S17). They are therefore pinned apart: the cell rule on its own
+# function, ``_cell_is_in_window``, and the region edge by the refusal it
+# alone writes ("the northern edge of HTDP's velocity region 6").
+# --------------------------------------------------------------------------
+
+WINDOW_REFUSAL = "outside the part of HTDP's velocity grid this program carries"
+REGION_REFUSAL = "the northern edge of HTDP's velocity region 6"
+
+
+@pytest.mark.parametrize(
+    "i,j,accepted,edge",
+    [
+        (37, 34, True, "south-west cell, both lowest accepted indices"),
+        (59, 52, True, "north-east cell, both highest accepted indices"),
+        (37, 52, True, "north-west cell"),
+        (59, 34, True, "south-east cell"),
+        (36, 40, False, "west: node 36 is not transcribed"),
+        (60, 40, False, "east: cell 60 needs node 61 (the reviewer's S16b)"),
+        (40, 33, False, "south: node 33 is not transcribed"),
+        (40, 53, False, "north row: cell 53 needs node 54 (the reviewer's S16)"),
+    ],
+)
+def test_the_window_accepts_exactly_the_cells_whose_four_nodes_are_transcribed(
+    i, j, accepted, edge
+):
+    assert htdp._cell_is_in_window(i, j) is accepted, edge
+    corners = {(i, j), (i + 1, j), (i, j + 1), (i + 1, j + 1)}
+    assert (corners <= set(htdp_data.GRID6_WINDOW)) is accepted, edge
+
+
+def _grdwei_posx(rlon: float) -> float:
+    # htdp.f:1603, POSX = (TWOPI - YLON) * 180.D0 / PI: east longitude, degrees.
+    return (htdp_data.TWOPI - rlon) * 180.0 / htdp_data.PI
+
+
+def _grdwei_posy(rlat: float) -> float:
+    # htdp.f:1604, POSY = YLAT * 180.D0 / PI.
+    return rlat * 180.0 / htdp_data.PI
+
+
+def _adjacent_doubles_across(f, target: float, guess: float) -> tuple[float, float]:
+    """Adjacent doubles (lo, hi) about ``guess`` with f(lo) < target <= f(hi); f increasing."""
+    lo, hi = guess - 1e-9, guess + 1e-9
+    assert f(lo) < target <= f(hi)
+    while math.nextafter(lo, hi) != hi:
+        mid = lo + (hi - lo) / 2.0
+        if f(mid) < target:
+            lo = mid
+        else:
+            hi = mid
+    return lo, hi
+
+
+def _cell_or_refusal(rlat: float, rlon: float):
+    try:
+        return htdp._window_cell(rlat, rlon, htdp.WGS84_G2296, 44.0, -85.0)
+    except htdp.HtdpVelocityGridError as refusal:
+        return str(refusal)
+
+
+def _east_edge_lookup(east_deg: float, rlat: float):
+    """The two lookup longitudes either side of ``east_deg``, as radians WEST."""
+    # rlon as a function of increasing east longitude decreases, so search in
+    # -rlon, where posx increases.
+    lo, hi = _adjacent_doubles_across(
+        lambda minus_rlon: _grdwei_posx(-minus_rlon),
+        east_deg,
+        -(htdp_data.TWOPI - east_deg * htdp_data.PI / 180.0),
+    )
+    return rlat, -lo, -hi  # posx below the edge at -lo, at or above it at -hi
+
+
+# The other coordinate of each edge probe sits mid-cell, well away from any
+# index boundary: 44.25 N is row j = int(20.25 / 0.5) + 1 = 41, and 275.25 E
+# (84.75 W) column i = int(25.25 / 0.5) + 1 = 51.
+MID_LAT_RAD = 44.25 * 3600.0 / htdp_data.RHOSEC
+MID_LON_RAD = htdp_data.TWOPI - 275.25 * htdp_data.PI / 180.0
+
+
+def test_east_edge_last_accepted_and_first_refused_lookup():
+    # posx just below 279.5 is cell i = 59 (nodes 59 and 60): accepted. posx at
+    # or above 279.5 is cell 60, which needs node 61: refused by the window.
+    rlat, below, at_or_above = _east_edge_lookup(279.5, MID_LAT_RAD)
+    assert _grdwei_posx(below) < 279.5 <= _grdwei_posx(at_or_above)
+    accepted = _cell_or_refusal(rlat, below)
+    assert accepted[:2] == (59, 41), accepted
+    refused = _cell_or_refusal(rlat, at_or_above)
+    assert isinstance(refused, str) and WINDOW_REFUSAL in refused, refused
+    assert REGION_REFUSAL not in refused
+
+
+def test_west_edge_last_accepted_and_first_refused_lookup():
+    # posx at or above 268.0 is cell i = 37: accepted. Below it, cell 36, whose
+    # node 36 is not transcribed: refused by the window.
+    rlat, below, at_or_above = _east_edge_lookup(268.0, MID_LAT_RAD)
+    assert _grdwei_posx(below) < 268.0 <= _grdwei_posx(at_or_above)
+    accepted = _cell_or_refusal(rlat, at_or_above)
+    assert accepted[:2] == (37, 41), accepted
+    refused = _cell_or_refusal(rlat, below)
+    assert isinstance(refused, str) and WINDOW_REFUSAL in refused, refused
+
+
+def _north_lookups(north_deg: float):
+    lo, hi = _adjacent_doubles_across(
+        _grdwei_posy, north_deg, north_deg * 3600.0 / htdp_data.RHOSEC
+    )
+    return lo, hi  # posy below north_deg at lo, at or above it at hi
+
+
+def test_south_edge_last_accepted_and_first_refused_lookup():
+    # posy at or above 40.5 is row j = 34: accepted. Below it, row 33: refused.
+    below, at_or_above = _north_lookups(40.5)
+    assert _grdwei_posy(below) < 40.5 <= _grdwei_posy(at_or_above)
+    accepted = _cell_or_refusal(at_or_above, MID_LON_RAD)
+    assert accepted[:2] == (51, 34), accepted
+    refused = _cell_or_refusal(below, MID_LON_RAD)
+    assert isinstance(refused, str) and WINDOW_REFUSAL in refused, refused
+
+
+def test_north_edge_last_accepted_lookup_and_the_region_edge_refusal():
+    # posy just below 50.0 is row j = 52 (nodes 52 and 53): accepted, and its
+    # rlat is below region 6's edge. At posy 50.0 - the edge's own radian value
+    # - both checks refuse; the refusal must be the REGION's, which this check
+    # alone writes. With the region check removed (S17) the window's north row
+    # still refuses, but with the window's words.
+    below, at_or_above = _north_lookups(50.0)
+    assert _grdwei_posy(below) < 50.0 <= _grdwei_posy(at_or_above)
+    assert at_or_above == htdp._REGION6_NORTH_EDGE_RAD
+    accepted = _cell_or_refusal(below, MID_LON_RAD)
+    assert accepted[:2] == (51, 52), accepted
+    refused = _cell_or_refusal(at_or_above, MID_LON_RAD)
+    assert isinstance(refused, str) and REGION_REFUSAL in refused, refused
+
+
+@pytest.mark.parametrize("call", ["to_nad83", "from_nad83"])
+def test_north_of_region_6_is_refused_by_the_region_edge_by_name(call):
+    # 50.1 N (W0's B002): lookup rows past the window AND past region 6. The
+    # refusal is the region's - it names the edge and the plate model HTDP
+    # goes to beyond it - not the window's generic one (S17's signature).
+    with pytest.raises(htdp.HtdpVelocityGridError) as raised:
+        getattr(htdp, call)(50.1, -88.0, 0.0, htdp.WGS84_G2296, EPOCH_2020)
+    assert REGION_REFUSAL in str(raised.value)
+    assert WINDOW_REFUSAL not in str(raised.value)
+
+
+def test_the_reviewers_east_edge_point_is_refused_by_the_window():
+    # The reviewer's S16b input: 44.0 N, 80.4 W in WGS84(G2296) on 2020-01-01.
+    # Its lookup is about 279.6 E, cell i = int(29.6 / 0.5) + 1 = 60, which
+    # needs node 61: refused by the window check, in the window's words.
+    with pytest.raises(htdp.HtdpVelocityGridError) as raised:
+        htdp.to_nad83(44.0, -80.4, 0.0, htdp.WGS84_G2296, EPOCH_2020)
+    message = str(raised.value)
+    assert WINDOW_REFUSAL in message, message
+    assert "not part of the transcription" not in message
+
+
+def test_an_untranscribed_node_is_a_refusal_never_a_key_error():
+    """L3's root: a wrong window check must still fail CLOSED, in this family.
+
+    Node (61, 40) is one column east of the transcription (I 37-60).
+    """
+    with pytest.raises(htdp.HtdpVelocityGridError) as raised:
+        htdp._window_node(61, 40)
+    assert "I = 61, J = 40" in str(raised.value)
+    assert htdp._window_node(60, 53) == htdp_data.GRID6_WINDOW[(60, 53)]
+
+
+def test_an_off_by_one_window_still_fails_closed_through_the_pipeline(monkeypatch):
+    """The reviewer's S16b, simulated wholesale: a window that accepts everything.
+
+    With the cell check made to accept every cell, 44.0 N 80.4 W reaches cell
+    60 and its node 61. Before the gate-1 fix that escaped as ``KeyError
+    (61, 40)``, through every ``except HtdpRefusal``; it must be the module's
+    own refusal, naming the node.
+    """
+    monkeypatch.setattr(htdp, "_cell_is_in_window", lambda i, j: True)
+    with pytest.raises(htdp.HtdpVelocityGridError) as raised:
+        htdp.to_nad83(44.0, -80.4, 0.0, htdp.WGS84_G2296, EPOCH_2020)
+    assert "I = 61" in str(raised.value)
+
+
+EDGE_RECORDS = [
+    (run.run_id, record.name)
+    for run in NEAR_TIE_RUNS
+    if run.purpose == "window_edge"
+    for record in run.records
+]
+
+
+@pytest.mark.parametrize("run_id,name", EDGE_RECORDS, ids=[f"{r}-{n}" for r, n in EDGE_RECORDS])
+def test_at_each_window_edge_the_inside_input_is_htdp_and_the_outside_one_refused(run_id, name):
+    """The edges through the public path, at inputs frozen from the binary.
+
+    Two adjacent input doubles per edge and direction, whose ITRF2008 lookups
+    (experiment.py's, the fixture's ``note``) fall either side of it. HTDP
+    computes both - its grid 6 runs 250-294 E, 24-50 N; MCX must print HTDP's
+    numbers for the inside one and refuse the outside one, with the window's
+    words on the east, west and south and the region edge's on the north.
+    """
+    run = NEAR_TIE_BY_ID[run_id]
+    (record,) = [r for r in run.records if r.name == name]
+    _, edge, side = record.role.split()
+    lookup = float(record.note)
+    target = {"E": 279.5, "W": 268.0, "S": 40.5, "N": 50.0}[edge]
+    inside_is_below = edge in "EN"
+    assert (lookup < target) is (inside_is_below is (side == "inside")), record
+    if side == "inside":
+        assert htdp_print(run_record(run, record.lat_in, record.lonw_in, record.h_in)) == (
+            record.lat_out, record.lonw_out, record.h_out
+        )
+        return
+    with pytest.raises(htdp.HtdpVelocityGridError) as raised:
+        run_record(run, record.lat_in, record.lonw_in, record.h_in)
+    expected = REGION_REFUSAL if edge == "N" else WINDOW_REFUSAL
+    assert expected in str(raised.value), str(raised.value)
+
+
+def test_every_edge_and_direction_has_its_pair_of_edge_records():
+    edges = {
+        (run.frame_in_menu, run.frame_out_menu, record.role)
+        for run in NEAR_TIE_RUNS
+        if run.purpose == "window_edge"
+        for record in run.records
+    }
+    assert edges == {
+        (m1, m2, f"edge {edge} {side}")
+        for m1, m2 in ((12, 1), (1, 25))
+        for edge in "EWSN"
+        for side in ("inside", "outside")
+    }
 
 
 def test_frmxyz_non_convergence_is_refused_where_htdp_would_stop_666():

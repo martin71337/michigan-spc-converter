@@ -804,3 +804,145 @@ def test_the_same_jobs_on_nad83_still_convert(tmp_path):
     )
     mirror.input_path.write_text(_mi_south_row(), encoding="utf-8")
     assert len(run(mirror).points) == 1
+
+
+# ==========================================================================
+# 5. A record's code is tied to the registry record it names.
+#
+# Interim gate 1 of the WGS 84 build, finding L4. A ReferenceFrame whose code
+# is a registry code but whose other fields differ is a second, disagreeing
+# copy of that frame's facts. ``frames._canonical`` used to substitute the
+# registry's record silently - so the frame gate answered for NAD 83 while the
+# caller's WGS 84 fields travelled on, and the job record printed
+# "Reference frame NAD83(2011) - World Geodetic System 1984, realization
+# G2296". Now it refuses, naming the fields; an EQUAL record still resolves.
+# ==========================================================================
+
+from michspc.spc.frames import FrameRecordMismatchError, resolve_frame  # noqa: E402
+
+# The reviewer's two counterexamples, verbatim.
+NAD83_NAMED_G2296 = dataclasses.replace(WGS84_G2296, code="NAD83(2011)")
+G2296_NAMED_ITRF2020 = dataclasses.replace(ITRF2020, code="WGS84(G2296)")
+
+
+def test_a_record_that_disagrees_with_the_registry_still_constructs():
+    """The refusal is at use, not construction: each fake is self-consistent.
+
+    WGS84(G2296)'s own fields under NAD 83's code: time-dependent, WGS 84
+    ellipsoid, HTDP frame G2296 - all mutually consistent, so
+    ``__post_init__`` (which checks the record against itself and HTDP) has
+    nothing to object to. Only the registry knows the code means another frame.
+    """
+    assert NAD83_NAMED_G2296.htdp_frame is htdp.WGS84_G2296
+    assert NAD83_NAMED_G2296.is_time_dependent
+    assert G2296_NAMED_ITRF2020.ellipsoid_name == "GRS 80"
+
+
+@pytest.mark.parametrize(
+    "fake,differing",
+    [
+        # replace(WGS84_G2296, code=NAD83) keeps G2296's name, ellipsoid
+        # ("WGS 84" against NAD 83's "GRS 80"), citation, epoch kind
+        # (TIME_DEPENDENT against PLATE_FIXED), reference epoch (None against
+        # 2010.0) and HTDP frame (G2296 against NAD_83(2011)); status is USABLE
+        # on both, so it is the one field NOT named.
+        (
+            NAD83_NAMED_G2296,
+            ["name", "ellipsoid_name", "citation", "epoch_kind", "reference_epoch", "htdp_frame"],
+        ),
+        # replace(ITRF2020, code=G2296): name, ellipsoid ("GRS 80" against
+        # "WGS 84"), citation and HTDP frame (ITRF2020 against G2296) differ;
+        # both are USABLE and TIME_DEPENDENT with no reference epoch.
+        (G2296_NAMED_ITRF2020, ["name", "ellipsoid_name", "citation", "htdp_frame"]),
+    ],
+    ids=["G2296-as-NAD83", "ITRF2020-as-G2296"],
+)
+def test_require_frame_path_refuses_a_record_that_disagrees_with_its_code(fake, differing):
+    registered = frames.frame_by_code(fake.code)
+    for source, target in ((fake, NAD83_2011), (NAD83_2011, fake), (fake, fake)):
+        with pytest.raises(FrameRecordMismatchError) as caught:
+            require_frame_path(source, target)
+        message = str(caught.value)
+        assert f"passed as {fake.code!r}" in message
+        assert f"its {', '.join(differing)} differ " in message
+        for name in differing:
+            assert f"{name} {getattr(fake, name)!r}"[:60] in message, name
+    # A FrameMismatchError, so every existing catch site refuses it.
+    assert issubclass(FrameRecordMismatchError, FrameMismatchError)
+    assert registered != fake
+
+
+def test_project_point_and_geodetic_position_refuse_the_disagreeing_record():
+    """Both convert entry points that take a frame from a caller."""
+    with pytest.raises(FrameRecordMismatchError):
+        project_point(43.0, -84.5, NAD83_NAMED_G2296, MI_SOUTH)
+    with pytest.raises(FrameRecordMismatchError):
+        convert.geodetic_position(43.0, -84.5, NAD83_NAMED_G2296)
+    with pytest.raises(FrameRecordMismatchError):
+        resolve_frame(G2296_NAMED_ITRF2020)
+
+
+def test_a_geodetic_to_zone_job_on_the_disagreeing_record_refuses(tmp_path):
+    """The reviewer's job: GEODETIC_TO_ZONE, geodetic_frame = G2296-as-NAD83.
+
+    Before the fix this ran as a NAD 83 identity and wrote an archive whose
+    record named the WGS 84 realization beside the NAD 83 code. Now the
+    settings gate refuses it before the file is read, and nothing is written.
+    """
+    settings = _settings(tmp_path, geodetic_frame=NAD83_NAMED_G2296)
+    settings.input_path.write_text("1,43.0,-84.5,200.000,P\n", encoding="utf-8")
+    message = _assert_refused_before_reading_and_nothing_written(
+        settings, FrameRecordMismatchError
+    )
+    assert "ellipsoid_name" in message and "htdp_frame" in message
+
+
+def test_a_vertical_only_geodetic_job_on_the_disagreeing_record_refuses(tmp_path):
+    settings = _settings(
+        tmp_path,
+        direction=Direction.VERTICAL_ONLY,
+        target_zone=None,
+        geodetic_frame=NAD83_NAMED_G2296,
+        vertical_mode=VerticalMode.VERTICAL,
+        source_vertical_datum=NGVD29,
+        target_vertical_datum=NAVD88,
+    )
+    settings.input_path.write_text("1,43.0,-84.5,200.000,P\n", encoding="utf-8")
+    _assert_refused_before_reading_and_nothing_written(settings, FrameRecordMismatchError)
+
+
+def test_a_record_equal_in_value_resolves_and_the_conversion_carries_the_registrys(tmp_path):
+    """The control: equal is not identical, and equal resolves.
+
+    A field-for-field copy of NAD83(2011) - what a registry rebuilding records
+    from data would produce - is a distinct object, resolves to the registry's
+    record, and the conversion carries THAT record, so nothing downstream ever
+    holds a caller's copy.
+    """
+    copy = dataclasses.replace(NAD83_2011)
+    assert copy == NAD83_2011 and copy is not NAD83_2011
+    assert resolve_frame(copy) is NAD83_2011
+    assert require_frame_path(copy, NAD83_2011) is FRAME_TRANSFORMATIONS[(NAD83_2011, NAD83_2011)]
+    assert project_point(43.0, -84.5, copy, MI_SOUTH).frame is NAD83_2011
+    assert convert.geodetic_position(43.0, -84.5, copy).frame is NAD83_2011
+
+    settings = _settings(tmp_path, geodetic_frame=copy)
+    settings.input_path.write_text("1,43.0,-84.5,200.000,P\n", encoding="utf-8")
+    assert len(run(settings).points) == 1
+
+
+def test_an_unregistered_code_is_not_this_checks_business():
+    """A code the registry does not know comes back unchanged: the pair refusal names it."""
+    nad27 = ReferenceFrame(
+        code="NAD27",
+        name="hand-built by this test",
+        ellipsoid_name="Clarke 1866",
+        citation="synthetic",
+        status=FrameStatus.USABLE,
+        epoch_kind=FrameEpochKind.PLATE_FIXED,
+        reference_epoch=1927.0,
+        htdp_frame=None,
+    )
+    assert resolve_frame(nad27) is nad27
+    with pytest.raises(TypeError):
+        resolve_frame(MI_SOUTH)

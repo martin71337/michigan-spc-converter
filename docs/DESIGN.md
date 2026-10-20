@@ -685,11 +685,27 @@ re-derived by the lead):
   HTDP v3.6.0, NAD83(2011)@2010.0 to each realization @2010.0 at 43.82 N
   84.77 W, h 200 m): the realizations from G730 to G2296 spread 2.9 cm north,
   5.2 cm east and 7.5 cm up. The original 1987 (Transit) realization sits
-  1.10 m north of G730. So a bare "WGS 84" is uncertain by up to about 8 cm
-  across the modern realizations and about 1.1 m if it is the original one,
-  before the epoch question. The W2 builder's draft said "centimetres to
-  decimetres", which understated the second case; the message now carries
-  these figures.
+  1.10 m north of G730. So a bare "WGS 84" is uncertain by up to about 9 cm
+  across the modern realizations (the largest pairwise 3-D difference is
+  8.73 cm, measured by interim gate 1's reviewer; the lead first wrote "about
+  8 cm" from the component spreads and was corrected) and about 1.1 m if it
+  is the original one, before the epoch question. The W2 builder's draft said
+  "centimetres to decimetres", which understated the second case; the
+  message now carries these figures.
+- **Interim gate 1** (`review/gate-wgs84-1/output.md`): FINDINGS, seven LOW
+  and four INFO, no CRITICAL, HIGH or MEDIUM, and no wrong number. The
+  reviewer compared 617,164 fresh records against its own HTDP build with 0
+  differences at the printed digit, and found the safety property held over
+  960 `job.run` configurations. L1 to L4, L6's figure and L7 are fixed at the
+  root and pinned with the reviewer's counterexamples; 14 seeds were caught.
+  - **L4:** a frame record that names a registry code but differs from that
+    record in any field is refused (`FrameRecordMismatchError`), never
+    silently substituted. That is the lead's decision.
+  - **L2:** 360 near-tie anchors now see a one-ulp change in the order of
+    operations. Seed S15 is an exact equivalence on every to-NAD 83 path,
+    measured, so only from-NAD 83 records can catch it.
+  - **Carried into W3:** L5, I1 and I2. L6's three advice sentences are a
+    recorded disposition (plan §3.5).
 - **Realization dates for D9's warning:** G1762 from 2013-10-16, G2139 from
   2021-01-03, G2296 from 2024-01-07 (NGA, ICG-17 WG-D presentation, 2023;
   EPSG 9756 and 10607; IGSMAIL-8444).

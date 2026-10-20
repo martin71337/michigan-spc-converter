@@ -69,9 +69,12 @@ Helmert at the input epoch, then velocity in the output frame. A velocity
 model, HTDP's region-6 grid, is therefore part of the build: Helmert-only
 misses by up to 28.5 cm in reverse. **Replicate it, non-closure and all.**
 
-**0.7.1 is still the released version; nothing past W0 is built.** Next: W1
-(`htdp.py` + `htdp_data.py`, anchors, transcription pin, version
-`0.8.0-dev`), then W2 (frames), then interim gate 1. In this container,
+**0.7.1 is still the released version.** W1 is done: `htdp.py` + `htdp_data.py`,
+1,846 anchors, version `0.8.0-dev`, every frozen record and 720 fresh random
+records reproduced at HTDP's printed digit. Next: W2 (frames), then interim
+gate 1. **This container's baseline**: 6 environmental failures, the same with
+and without the work (DESIGN.md #65's five plus #69's half-way-point anchor,
+a last-ulp libm difference); run with `--continue-on-collection-errors`. In this container,
 `apt-get install gfortran` and `gfortran -O0 -std=legacy -w *.f` in a copy of
 `review/wgs84-w0/htdp-v3.6.0/` rebuild the oracle. **Codex is not available
 here**, so gates use an independent Opus reviewer (the owner's fallback).

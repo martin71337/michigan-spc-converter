@@ -1,6 +1,6 @@
 # PLAN: WGS 84 and ITRF positions, to and from NAD 83(2011)
 
-**Status (2026-10-20): W0 DONE. W1 onward not built.** Written by the session
+**Status (2026-10-20): W0 and W1 DONE. W2 onward not built.** W1 (`htdp.py`, `htdp_data.py`, 1,846 anchors) reproduces HTDP on all 19,236 applicable frozen records, and on 720 fresh random records the lead drove through NGS's binary, at every printed digit. Written by the session
 lead at the owner's instruction ("get going on it. follow the established
 development method"). DESIGN.md amendment **#70** records the opening of this
 build, the owner's three scope decisions and what W0 measured. This plan is the
@@ -369,7 +369,7 @@ gate.
 | WP | Contents |
 |---|---|
 | **W0** | Recon, oracle, transcription experiment, this plan, #70. **DONE.** |
-| **W1** | `htdp.py` + `htdp_data.py` + anchors fixture + transcription pin + falsification seeds. Version → `0.8.0-dev`. |
+| **W1** | `htdp.py` + `htdp_data.py` + anchors fixture + transcription pin + falsification seeds. Version → `0.8.0-dev`. **DONE.** |
 | **W2** | `frames.py` records and parameterized paths; refusal successors (the old "WGS 84 is unusable" pins become pins on the bare record, never deleted silently). |
 | | **Interim gate 1** over W1–W2: the arithmetic. |
 | **W3** | `convert.py` + `job.py`: D5–D10, `GEODETIC_TO_GEODETIC`, gates, end-to-end pins. |

@@ -1,0 +1,100 @@
+You are the INDEPENDENT ADVERSARIAL REVIEWER for the CLOSING GATE of the
+WGS 84 build in MCX (Martin Coordinate Exchange), a Michigan State Plane
+coordinate converter used by a licensed professional surveyor. A wrong
+coordinate, or a false sentence in a job record, lands on a sealed survey
+and moves a boundary. You did not write this code and have not seen the
+session lead's reading of it. Find defects; do not approve on trust.
+
+READ-ONLY on the repository except your one output file,
+review/gate-wgs84-closing/output.md. Do not commit. Scratch in
+/tmp/claude-0/closing/.
+
+SCOPE: the WHOLE build, fbcbf4a..HEAD on branch claude/brave-noether-88m7x1:
+- W1-W6;
+- both interim gates and their fixes (review/gate-wgs84-1/,
+  review/gate-wgs84-2/).
+Read the earlier gates' outputs so you do not merely repeat them. Probe the
+places they did not, especially:
+- the GUI (W5);
+- packaging, the self-test and the tripwire (W6);
+- the interactions between packages, which no single gate saw whole.
+
+DESIGN AUTHORITY:
+- docs/PLAN-wgs84.md (D1-D10);
+- docs/DESIGN.md #70 (the build's full record) and the amendments it cites;
+- docs/RELEASE-NOTES-0.8.0.md (DRAFT): every claim in it must be true;
+- docs/REFREEZE-HTDP.md.
+Owner's rules: replicate NOAA (NGS HTDP v3.6.0 is the authority); facts only
+on user surfaces (#50); no silent pass-through between frames.
+
+THE ORACLE: build NGS HTDP v3.6.0 from review/wgs84-w0/htdp-v3.6.0/ with
+gfortran -O0 -std=legacy -w *.f -o htdp.
+- Calendar stdin:
+  printf '4\nout.txt\n<IN>\n<OUT>\n1\n<M D Y>\n1\n<M D Y>\n3\nin.txt\n0\n0\n'
+- in.txt lines: LAT,LON_POS_WEST,EHT,NAME.
+- The NAD83 side is always 1 1 2010.
+- Menus: 1 NAD83, 10 G1762, 11 G2139, 12 G2296, 25 ITRF2014, 26 ITRF2020.
+- The program's NAD 83 projection, geoid and VERTCON readers are
+  independently NCAT/NGS-verified and may serve as the second leg.
+
+PRIORITY SURFACES, ranked:
+1. A WRONG NUMBER ANYWHERE A USER CAN REACH IT, now that the GUI reaches the
+   frames. Drive the REAL GUI widgets headless (QT_QPA_PLATFORM=offscreen;
+   see tests/test_gui_wgs84.py for how) through both tabs:
+   - Single point: every value on the panel, and what Copy all and each
+     copy button put on the clipboard.
+   - Multi point: the table, and the written archive.
+   Compare against the oracle plus the projection, across frames,
+   directions, height kinds, vertical modes, units, longitude conventions,
+   DMS entry and dates.
+   Hunt for stale results: change any control after Convert and see whether
+   a wrong value stays displayed or copyable on the Single point tab.
+2. FALSE SENTENCES on any surface:
+   - job record, audit CSV headings, GUI labels, hints, warnings, refusal
+     messages, release notes, the self-test's printed lines;
+   - for every configuration you can build.
+3. REFUSALS AND SAFETY:
+   - can any path carry a WGS 84/ITRF position into a NAD 83 output, or the
+     reverse, without HTDP;
+   - can any path carry one to or from NATRF2022 / SPCS2022;
+   - can the GUI submit a job the core would refuse, or one it should refuse
+     but does not (an unanswered date, a stray date, a bare WGS 84);
+   - is HtdpRefusal shown on both tabs.
+4. PACKAGING:
+   - does the frozen-bundle self-test actually exercise the public path for
+     checks 12 and 13 (try no-op and identity gates);
+   - does LAZY_IMPORTS cover what the bundle needs;
+   - does gate 6 refuse what it claims;
+   - does the tripwire fail closed on every fetch failure and trip on any
+     new commit;
+   - does check_ngs_windows_binary.py compare what it claims (run it against
+     your own Linux build: it should report full agreement).
+5. TESTS: vacuous pins, values read back from the code's own output, seeds
+   the suite misses. Seed defects into a SCRATCH COPY of the repo.
+6. REGRESSION: every same-frame job (NAD83(2011), NATRF2022, every
+   direction and mode) must be byte-identical to fbcbf4a (use a git worktree,
+   then remove it). The exceptions are the recorded supersessions: the
+   vertical-only geodetic record text (W4b, gate 2 H2). Check that those
+   changed exactly the recorded sentences and nothing else.
+
+DELIVERABLE: review/gate-wgs84-closing/output.md, containing:
+- a findings table. Severities:
+  - CRITICAL: a plausible wrong coordinate reaches a user surface with no
+    refusal;
+  - HIGH: a wrong number or false statement in a reachable configuration;
+  - MEDIUM: a fail-closed defect refusing legitimate work, or a pin gap that
+    would let a HIGH through;
+  - LOW: wording, citation, hygiene;
+  - INFO.
+  Each finding gets a concrete input, the observed result, the expected
+  result and the root cause.
+- the clean surfaces you checked and how, with counts.
+- a final line "VERDICT: APPROVED" or "VERDICT: FINDINGS".
+
+Run the suite with
+  QT_QPA_PLATFORM=offscreen python3 -m pytest -q -p no:cacheprovider --continue-on-collection-errors
+The 6 known environmental failures in this container are:
+- the test_zone_registry collection error;
+- three test_fileio::test_r3_3_*;
+- test_geodetic_dms_export half_way_point_writes;
+- test_projection_engines page_ngs_served.

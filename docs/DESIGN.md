@@ -869,6 +869,32 @@ re-derived by the lead):
       point;
     - whether the released VERTICAL_ONLY geodetic table and panel should
       also drop their N/A grid and combined factor cells, as G2G now does.
+- **W6, packaging** (lead-reviewed):
+  - **Self-test check 12:** WGS84(G2296) at Clare, h 600 m, 2026-10-20, into
+    MI-C through `convert.project_point`, against HTDP's printed NAD 83
+    output projected. It lands 0.0043 mm away, inside a derived per-axis
+    budget of 1.39e-5 m, which the lead reproduced.
+  - **Self-test check 13:** the bare WGS 84 and WGS 84-to-SPCS2022
+    refusals are alive in the bundle. A no-op, identity or permissive public
+    gate fails it.
+  - **13 checks** in all.
+  - **Gate 6** refuses a bundle carrying Fortran source or anything from
+    `review/`.
+  - **Tripwire probe 5** watches `noaa-ngs/HTDP`'s head commit. A fetch
+    failure reports "could not check", never "quiet". Two latent defects in
+    the existing tripwire were fixed:
+    - an error-object crash that exited with the TRIPPED code;
+    - `HTTPException` escaping.
+  - **`docs/REFREEZE-HTDP.md`** comes with a two-way inventory pin over nine
+    artifacts.
+  - **`review/wgs84-w0/check_ngs_windows_binary.py`** is the owner's tool
+    for the still-human HTDP check. It was validated here against the Linux
+    build (2,228 of 2,228 agree) and against an x87 stand-in (last-digit
+    differences only).
+  - **`docs/RELEASE-NOTES-0.8.0.md`** is a DRAFT. It discloses the two
+    inherited false record sentences from 0.4.0 through 0.7.1. The lead
+    removed its em dashes, per the owner's writing preference.
+  - 37 seeds caught. Suite 4,757 in both modes.
 - **Realization dates for D9's warning:** G1762 from 2013-10-16, G2139 from
   2021-01-03, G2296 from 2024-01-07 (NGA, ICG-17 WG-D presentation, 2023;
   EPSG 9756 and 10607; IGSMAIL-8444).

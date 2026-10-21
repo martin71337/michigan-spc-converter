@@ -31,7 +31,16 @@ So the shipped executable answers ``--selftest`` by exercising itself:
    the dispatcher and none of the mathematics; and
 6. the cross-frame refusal is still there. NAD 83(2011) to NATRF2022 must
    refuse by name: a bundle that lost that refusal is a bundle that silently
-   passes coordinates between frames one to two metres apart.
+   passes coordinates between frames one to two metres apart;
+7. one WGS84(G2296) position reaches NAD 83(2011) through the bundle's own
+   transcription of NGS HTDP v3.6.0 and lands, projected into Michigan
+   Central, on the grid coordinate **HTDP's printed output** projects to -
+   record ``P073H600`` of run ``calfwd_2026-10-20`` in
+   ``tests/fixtures/htdp_anchors.py`` (Clare, 600 m, observed 2026-10-20);
+   and
+8. the two WGS 84 refusals are still there: a bare "WGS 84" refuses naming
+   the realizations to choose from, and WGS84(G2296) into an SPCS2022 zone
+   refuses, both asked through the public conversion path.
 
 ``tools/build_release.py`` runs this against the freshly built bundle as a hard
 gate. A bundle that fails its own self-test is not a release.
@@ -47,11 +56,16 @@ program: ``tests/`` is not in the bundle, so a frozen self-test cannot import
 the fixtures, and a self-test that checked the program against numbers the
 program itself produced would be a program agreeing with itself.
 ``tests/test_selftest.py`` pins every constant here to the fixture it came from
-with an exact ``==``, so the two copies cannot drift.
+with an exact ``==``, so the two copies cannot drift. The same holds for the
+SPCS2022 anchor (``tests/fixtures/spcs2022_engine_anchors.py``) and the HTDP
+anchor (``tests/fixtures/htdp_anchors.py``); the HTDP anchor is listed in
+``docs/REFREEZE-HTDP.md`` because it must be recaptured when NGS changes
+HTDP.
 """
 
 from __future__ import annotations
 
+import datetime
 import os
 import sys
 import tempfile
@@ -175,6 +189,112 @@ SPCS2022_ANCHOR_SCALE_FACTOR = 1.000021412
 # between.
 SPCS2022_LINEAR_TOLERANCE_M = 0.0005
 SPCS2022_SCALE_TOLERANCE = 5e-10
+
+# tests/fixtures/htdp_anchors.py, HtdpRun "calfwd_2026-10-20", record
+# "P073H600" - NGS HTDP v3.6.0, github.com/noaa-ngs/HTDP commit
+# 59fdbe6b7cf5fabf79f901801ecdc33e7ca2095c, compiled from its committed source
+# (review/wgs84-w0/htdp-v3.6.0/) and run on 2026-10-20; the run's stdin was
+#
+#     4 / out.txt / 12 / 1 / 1 / 10 20 2026 / 2 / 2010.0 / 3 / in.txt / 0 / 0
+#
+# that is TRFPOS, WGS84(G2296) (menu 12) observed on 2026-10-20 by CALENDAR
+# entry, to NAD 83(2011) (menu 1) at 2010.0. HTDP read the input as
+# "43.820000, 84.770000 (positive west), 600.000" and printed
+# "43.8199914021  84.7699886492  601.071" (htdp.f:3293, 2f16.10,f10.3).
+#
+# **HTDP-derived.** These lines are transcribed from HTDP's own output and
+# MUST be recaptured when NGS changes HTDP (docs/REFREEZE-HTDP.md, which lists
+# this file). tests/test_selftest.py pins every one to the fixture record.
+#
+# Why this record: WGS84(G2296), the realization in force today; entered as a
+# calendar date, the only epoch MCX accepts, on a date inside G2296's period
+# of use (so no realization warning is in play); Clare, the interior Michigan
+# Central point W0 and the lead's independent re-derivation both used; and
+# 600 m, the largest height in the lattice, so a bundle that dropped the
+# height handed to HTDP moves the horizontal result the most (DESIGN.md #70:
+# up to 0.18 mm at 600 m, more than ten times this check's budget).
+HTDP_ANCHOR_RUN_ID = "calfwd_2026-10-20"
+HTDP_ANCHOR_RECORD_NAME = "P073H600"
+HTDP_ANCHOR_FRAME_CODE = "WGS84(G2296)"
+HTDP_ANCHOR_FRAME_MENU = 12
+HTDP_ANCHOR_OBSERVATION_DATE = datetime.date(2026, 10, 20)
+HTDP_ANCHOR_LATITUDE = 43.82
+HTDP_ANCHOR_LONGITUDE = -84.77
+HTDP_ANCHOR_ELLIPSOID_HEIGHT_M = 600.0
+HTDP_ANCHOR_NAD83_LATITUDE = 43.8199914021
+HTDP_ANCHOR_NAD83_LONGITUDE = -84.7699886492
+HTDP_ANCHOR_NAD83_ELLIPSOID_HEIGHT_M = 601.071
+
+# The grid coordinate that position IS in Michigan Central (2112), metres:
+# HTDP's printed NAD 83(2011) latitude and longitude above, projected by this
+# program's SPCS 83 Lambert (convert.from_geodetic, the projection the suite
+# holds to 27 frozen NGS NCAT positions and to Appendix C), written to the
+# micrometre:
+#
+#     from_geodetic(43.8199914021, -84.7699886492, zone 2112)
+#         N =    56,013.19758787472 m  ->    56013.197588
+#         E = 5,967,550.226906335 m   -> 5967550.226906
+#         grid scale factor 1.0001030315, no extent warning
+#
+# So the HTDP side of the comparison is NGS's printed number and nothing this
+# program produced; the projection side is the arithmetic check 9 and the
+# suite already verify against NCAT. tests/test_selftest.py re-derives both
+# figures from the fixture's printed strings and requires them to round to
+# exactly these.
+HTDP_ANCHOR_ZONE_CODE = "2112"
+HTDP_ANCHOR_NORTHING_M = 56013.197588
+HTDP_ANCHOR_EASTING_M = 5967550.226906
+
+# HTDP prints latitude and longitude to 1e-10 degree and the ellipsoid height
+# to 1e-3 m (htdp.f:3293, 2f16.10,f10.3). The transcription reproduces every
+# printed record, so its unrounded result is within half a print unit of the
+# printed one (W0: the worst unrounded residual is exactly half a unit,
+# DESIGN.md #70). tests/test_lambert.py holds the Lambert projection's round
+# trip to 1e-11 degree, the floor this program's own projection arithmetic is
+# held to. Both enter _htdp_anchor_grid_tolerance_m below.
+HTDP_PRINTED_ANGLE_DEG = 1e-10
+HTDP_PRINTED_HEIGHT_M = 1e-3
+PROJECTION_ROUND_TRIP_DEG = 1e-11
+HTDP_ANCHOR_WRITTEN_M = 1e-6
+"""The place HTDP_ANCHOR_NORTHING_M and _EASTING_M are written to above."""
+
+HTDP_GRID_SCALE_BOUND = 1.001
+"""An upper bound on an SPCS 83 Michigan zone's grid scale factor anywhere
+inside its extent (the anchor's own is 1.000103). Generous on purpose: it
+enters the tolerance as a factor of 1.001."""
+
+
+def _htdp_anchor_grid_tolerance_m() -> float:
+    """The budget for check 12's northing and easting, per axis, in metres.
+
+    The expected grid coordinate is HTDP's PRINTED NAD 83 position projected;
+    the bundle's is its UNROUNDED one projected. So the two differ by what the
+    print dropped, plus the projection's own arithmetic, plus the micrometre
+    the expected figures are written to:
+
+    * per angular component: half HTDP's print unit (5e-11 degree) plus the
+      projection's round-trip floor (1e-11 degree), 6e-11 degree;
+    * into metres on the ellipsoid: a degree of latitude or of longitude is
+      never longer than the polar radius of curvature a^2/b allows, which is
+      the largest radius of curvature GRS 80 has anywhere;
+    * into one grid axis: the axis is the north and east errors rotated by
+      the convergence and scaled by k, so it is bounded by k times their sum,
+      twice the per-component figure;
+    * plus half the place the expected figures are written to.
+    """
+    import math
+
+    from michspc.spc.ellipsoid import GRS80
+
+    largest_radius_m = GRS80.a * GRS80.a / GRS80.b
+    angle_deg = 0.5 * HTDP_PRINTED_ANGLE_DEG + PROJECTION_ROUND_TRIP_DEG
+    per_component_m = math.radians(angle_deg) * largest_radius_m
+    return 2.0 * HTDP_GRID_SCALE_BOUND * per_component_m + 0.5 * HTDP_ANCHOR_WRITTEN_M
+
+
+def _htdp_anchor_height_tolerance_m() -> float:
+    """Half HTDP's printed height unit: the height does not pass through a projection."""
+    return 0.5 * HTDP_PRINTED_HEIGHT_M
 
 
 def _zone_to_zone_tolerance_ift() -> float:
@@ -590,6 +710,15 @@ LAZY_IMPORTS: tuple[str, ...] = (
     "michspc.spc.lambert",
     "michspc.spc.tm",
     "michspc.spc.omerc",
+    # NGS HTDP v3.6.0, transcribed (the WGS 84 build, DESIGN.md #70). Both are
+    # statically reachable today - frames.py imports them at module level -
+    # and declared for the reason the vertical-datum modules are: this list is
+    # the names the bundle then PROVES it can import, and a transcription that
+    # later moved behind a function-body import would otherwise go missing
+    # with nothing noticing. check_wgs84_conversion is what proves the
+    # arithmetic, and the velocity grid inside htdp_data, are intact.
+    "michspc.spc.htdp",
+    "michspc.spc.htdp_data",
     # The GUI, which the self-test itself never opens — so nothing else in this
     # process would notice if Qt were missing from the bundle.
     "PySide6.QtCore",
@@ -1020,6 +1149,258 @@ def check_frame_refusal() -> str:
     )
 
 
+def _htdp_anchor_arguments():
+    """The observation epoch and transform height check 12 and 13 hand in."""
+    from michspc.spc.convert import HeightConvention, TransformHeight
+    from michspc.spc.htdp import ObservationEpoch
+
+    return (
+        ObservationEpoch(HTDP_ANCHOR_OBSERVATION_DATE),
+        TransformHeight(HeightConvention.ELLIPSOID, HTDP_ANCHOR_ELLIPSOID_HEIGHT_M),
+    )
+
+
+def check_wgs84_conversion() -> str:
+    """One WGS84(G2296) position into an SPCS 83 zone, against NGS HTDP's own figures.
+
+    The WGS 84 build (docs/PLAN-wgs84.md, DESIGN.md #70) carries a WGS 84 or
+    ITRF position to NAD 83(2011) at 2010.0 by a transcription of NGS's HTDP
+    v3.6.0, ``michspc.spc.htdp``, and projects the result. The transcription
+    is a module of constants and arithmetic that nothing else in this
+    self-test reaches, so a bundle could carry the frames registry and lose
+    the mathematics, or carry a velocity grid altered in packaging, and every
+    other check would pass.
+
+    Through the PUBLIC path a job takes, ``convert.project_point``, which runs
+    the frame gate, applies HTDP once and projects the pivot. The anchor is
+    one record of ``tests/fixtures/htdp_anchors.py``: run
+    ``calfwd_2026-10-20``, record ``P073H600`` (Clare, 600 m), HTDP's
+    calendar-entry run of WGS84(G2296) on 2026-10-20 to NAD 83(2011). The
+    expected grid coordinate is HTDP's PRINTED output projected (the
+    derivation is beside the constants); the expected NAD 83 ellipsoid height
+    is HTDP's printed one. Nothing this program's HTDP produced appears on the
+    expected side.
+
+    Sharp on purpose: the budget is 0.014 mm per axis, so it sees the
+    0.1 mm a GRS 80 ellipsoid on a WGS84(...) frame would cost, the 0.18 mm
+    of a dropped height, the centimetres of a missing velocity, and the
+    1.3 m of no transformation at all.
+    """
+    import math
+
+    from michspc.spc.convert import project_point
+    from michspc.spc.frames import NAD83_2011, frame_by_code
+    from michspc.spc.zones import zone_by_code
+
+    zone = zone_by_code(HTDP_ANCHOR_ZONE_CODE)
+    try:
+        frame = frame_by_code(HTDP_ANCHOR_FRAME_CODE)
+        epoch, height = _htdp_anchor_arguments()
+        converted = project_point(
+            HTDP_ANCHOR_LATITUDE,
+            HTDP_ANCHOR_LONGITUDE,
+            frame,
+            zone,
+            epoch=epoch,
+            height=height,
+        )
+    except Exception as error:  # noqa: BLE001 — any failure is fatal here
+        raise SelfTestError(
+            f"a {HTDP_ANCHOR_FRAME_CODE} conversion that succeeds in the source tree "
+            f"failed in this bundle: {type(error).__name__}: {error}. The "
+            f"frame transformation is michspc.spc.htdp and htdp_data, NGS "
+            f"HTDP v3.6.0 transcribed; without them no WGS 84 or ITRF "
+            f"position can be converted."
+        ) from error
+
+    if not converted.is_transformed or converted.frame.code != NAD83_2011.code:
+        raise SelfTestError(
+            f"this bundle projected a {frame.code} position into "
+            f"{zone.abbrev} without a frame transformation (pivot frame "
+            f"{converted.frame.code}, transformed={converted.is_transformed}). "
+            f"A WGS 84 position placed on the NAD 83 grid unchanged is about "
+            f"1.3 m out in Michigan, and looks entirely ordinary."
+        )
+
+    northing = converted.target_northing
+    easting = converted.target_easting
+    tolerance = _htdp_anchor_grid_tolerance_m()
+    distance = math.hypot(
+        northing - HTDP_ANCHOR_NORTHING_M, easting - HTDP_ANCHOR_EASTING_M
+    )
+    for label, produced, expected in (
+        ("northing", northing, HTDP_ANCHOR_NORTHING_M),
+        ("easting", easting, HTDP_ANCHOR_EASTING_M),
+    ):
+        difference = abs(produced - expected)
+        if difference > tolerance:
+            raise SelfTestError(
+                f"this bundle converted {HTDP_ANCHOR_LATITUDE}, "
+                f"{HTDP_ANCHOR_LONGITUDE}, h {HTDP_ANCHOR_ELLIPSOID_HEIGHT_M} m "
+                f"({frame.code}, observed {HTDP_ANCHOR_OBSERVATION_DATE}) into "
+                f"{zone.abbrev} and produced a {label} of {produced:,.6f} m, "
+                f"where NGS HTDP's printed NAD 83(2011) position projects to "
+                f"{expected:,.6f} m - out by {difference * 1000:.4f} mm, "
+                f"against {tolerance * 1000:.4f} mm; the point landed "
+                f"{distance * 1000:.4f} mm away. The frame transformation in "
+                f"this bundle does not agree with the one the test suite "
+                f"verified against NGS's program."
+            )
+
+    produced_height = converted.target_frame_ellipsoid_height
+    height_tolerance = _htdp_anchor_height_tolerance_m()
+    if produced_height is None or abs(
+        produced_height - HTDP_ANCHOR_NAD83_ELLIPSOID_HEIGHT_M
+    ) > height_tolerance:
+        raise SelfTestError(
+            f"this bundle carried the ellipsoid height "
+            f"{HTDP_ANCHOR_ELLIPSOID_HEIGHT_M} m ({frame.code}) to "
+            f"{produced_height} m in {NAD83_2011.code}, where NGS HTDP prints "
+            f"{HTDP_ANCHOR_NAD83_ELLIPSOID_HEIGHT_M:.3f} m, against half its "
+            f"printed unit, {height_tolerance} m. A GNSS height left in the "
+            f"wrong frame is about a metre wrong under the right label."
+        )
+
+    return (
+        f"{frame.code} {HTDP_ANCHOR_OBSERVATION_DATE} into "
+        f"{zone.abbrev} landed {distance * 1000:.4f} mm from NGS HTDP's "
+        f"printed position projected (budget {tolerance * 1000:.4f} mm per "
+        f"axis), h {produced_height:.4f} m against HTDP's "
+        f"{HTDP_ANCHOR_NAD83_ELLIPSOID_HEIGHT_M:.3f} m"
+    )
+
+
+def check_wgs84_refusals() -> str:
+    """The two WGS 84 refusals are alive in this bundle. Raises, never asserts.
+
+    * **A bare "WGS 84" refuses, naming the realizations to choose from**
+      (docs/PLAN-wgs84.md decision D2). The label leaves the realization
+      unstated - up to about 9 cm across the modern ones, about 1.1 m if it
+      is the original - and it is also what many data collectors print on
+      output that is really NAD 83, 1.3 m away (DESIGN.md #70). The refusal
+      is ``FrameNotUsableError``, and its message must name the three
+      realizations, because the way on is to name one.
+    * **WGS84(G2296) into an SPCS2022 zone refuses**
+      (``FrameTransformationUnavailableError``, decision D3). HTDP does not
+      carry NATRF2022, and going through NAD 83 would need the NAD 83 <->
+      NATRF2022 transformation NGS has not published (DESIGN.md #62).
+
+    **Asked through the PUBLIC path first, as check 11 is** - the 0.7.0
+    closing gate's lesson: a registry that refuses perfectly proves nothing
+    about a ``convert.project_point`` that no longer asks it. Each refusal is
+    asked with the observation epoch and height a real caller would hand in,
+    so a gate that answers every pair with an identity fails here twice over
+    (the identity refuses the stray epoch with the wrong class, or projects).
+    The registry's own answers follow as the second, narrower statement. The
+    CLASS is checked, not only that something was raised: the two classes
+    are siblings under ``FrameMismatchError``, and a bare WGS 84 reported as
+    a missing transformation would tell the user a path might be coming for
+    a label that can never have one.
+
+    That the gate does not simply refuse every WGS 84 position is proved by
+    ``check_wgs84_conversion`` above, through the same entry point.
+    """
+    from michspc.spc.convert import project_point
+    from michspc.spc.frames import (
+        NAD83_2011,
+        NATRF2022,
+        WGS84,
+        WGS84_G1762,
+        WGS84_G2139,
+        WGS84_G2296,
+        FrameNotUsableError,
+        FrameTransformationUnavailableError,
+        require_frame_path,
+    )
+    from michspc.spc.zones import zone_by_code
+
+    realizations = (WGS84_G1762.code, WGS84_G2139.code, WGS84_G2296.code)
+    spcs83_zone = zone_by_code(HTDP_ANCHOR_ZONE_CODE)
+    spcs2022_zone = zone_by_code(SPCS2022_ZONE_CODE)
+
+    cases = (
+        (
+            "a bare WGS 84 position",
+            WGS84,
+            spcs83_zone,
+            HTDP_ANCHOR_LATITUDE,
+            HTDP_ANCHOR_LONGITUDE,
+            FrameNotUsableError,
+        ),
+        (
+            f"a {WGS84_G2296.code} position",
+            WGS84_G2296,
+            spcs2022_zone,
+            SPCS2022_ANCHOR_LATITUDE,
+            SPCS2022_ANCHOR_LONGITUDE,
+            FrameTransformationUnavailableError,
+        ),
+    )
+    for what, frame, zone, latitude, longitude, expected in cases:
+        epoch, height = _htdp_anchor_arguments()
+        try:
+            crossed = project_point(
+                latitude, longitude, frame, zone, epoch=epoch, height=height
+            )
+        except expected as error:
+            if expected is FrameNotUsableError:
+                unnamed = [code for code in realizations if code not in str(error)]
+                if unnamed:
+                    raise SelfTestError(
+                        f"this bundle refused {what} but did not name "
+                        f"{', '.join(unnamed)} as a realization to choose. The "
+                        f"refusal exists to send the user to the realization "
+                        f"the position is actually in; without the names it "
+                        f"only says no. It said: {error}"
+                    ) from error
+            continue
+        except Exception as error:  # noqa: BLE001 — any other outcome is a failure
+            raise SelfTestError(
+                f"projecting {what} into {zone.abbrev} ({zone.frame.code}) "
+                f"raised {type(error).__name__} rather than the "
+                f"{expected.__name__} this program refuses with: {error}. "
+                f"michspc.job and the GUI catch the frame refusals by class, "
+                f"and the two classes tell a user different things."
+            ) from error
+        raise SelfTestError(
+            f"this bundle PROJECTED {what} into {zone.abbrev}, a "
+            f"{zone.frame.code} zone, and returned N "
+            f"{crossed.target_northing:,.3f} m, E "
+            f"{crossed.target_easting:,.3f} m. That coordinate is a metre or "
+            f"more from the right one and looks entirely ordinary. The gate "
+            f"on the public conversion path did not reach this bundle."
+        )
+
+    registry_cases = (
+        (WGS84, NAD83_2011, FrameNotUsableError),
+        (WGS84_G2296, NATRF2022, FrameTransformationUnavailableError),
+        (NATRF2022, WGS84_G2296, FrameTransformationUnavailableError),
+    )
+    for source, target, expected in registry_cases:
+        try:
+            path = require_frame_path(source, target)
+        except expected:
+            continue
+        except Exception as error:  # noqa: BLE001 — any other outcome is a failure
+            raise SelfTestError(
+                f"converting {source.code} to {target.code} raised "
+                f"{type(error).__name__} rather than the {expected.__name__} "
+                f"this program refuses with: {error}."
+            ) from error
+        raise SelfTestError(
+            f"this bundle ACCEPTED a conversion from {source.code} to "
+            f"{target.code} and returned {path!r}. The refusal did not reach "
+            f"this bundle."
+        )
+
+    return (
+        f"a bare {WGS84.code} refused at convert.project_point, naming "
+        f"{', '.join(realizations)}; {WGS84_G2296.code} into "
+        f"{spcs2022_zone.abbrev} refused there too; all three pairs refuse "
+        f"at the registry, by class"
+    )
+
+
 CHECKS: tuple[tuple[str, object], ...] = (
     ("version and application name", check_version),
     ("bundled GEOID18 grid", check_geoid_grid),
@@ -1032,6 +1413,8 @@ CHECKS: tuple[tuple[str, object], ...] = (
     ("end-to-end conversion against NGS NCAT", check_end_to_end_conversion),
     ("SPCS2022 conversion against beta NGS NCAT", check_spcs2022_conversion),
     ("cross-frame refusal", check_frame_refusal),
+    ("WGS 84 (G2296) conversion against NGS HTDP", check_wgs84_conversion),
+    ("WGS 84 refusals", check_wgs84_refusals),
 )
 
 

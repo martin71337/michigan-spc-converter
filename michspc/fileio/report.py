@@ -1058,6 +1058,12 @@ def _vertical_elevation_block(result, transformation) -> list[str]:
 # records, htdp_data's transcription, the job's ObservationEpoch and the
 # points' own TransformHeight - so the record and the arithmetic cannot
 # disagree. Facts only, no caveat prose (the owner's rule, DESIGN.md #50).
+#
+# **HTDP-derived.** The figures this section states as measured - the anchor
+# count, plan D6's height costs and the round-trip bound with its date and
+# height ranges - were measured on NGS HTDP v3.6.0, github.com/noaa-ngs/HTDP
+# commit 59fdbe6b7cf5fabf79f901801ecdc33e7ca2095c, and MUST be re-measured
+# when NGS changes HTDP (docs/REFREEZE-HTDP.md, which lists this file).
 # --------------------------------------------------------------------------
 
 HTDP_ANCHOR_RECORD_COUNT = "1,846"

@@ -216,6 +216,114 @@ def selftest_zone(code):
     return zone_by_code(code)
 
 
+def _htdp_anchor_run_and_record():
+    from tests.fixtures.htdp_anchors import HTDP_RUNS
+
+    (run,) = [r for r in HTDP_RUNS if r.run_id == selftest.HTDP_ANCHOR_RUN_ID]
+    (record,) = [
+        r for r in run.records if r.name == selftest.HTDP_ANCHOR_RECORD_NAME
+    ]
+    return run, record
+
+
+def test_the_selftests_htdp_anchor_is_the_frozen_htdp_record():
+    """The transcription check for check 12's anchor. Exact, like the rest.
+
+    The bundle cannot import ``tests/``, so its HTDP anchor is a second copy
+    of one record of ``tests/fixtures/htdp_anchors.py``. Every field is pinned
+    to the fixture's own string: the frame (menu 12 is WGS84(G2296), MENU1
+    htdp.f:4710-4711), the calendar date of the run, the input HTDP read
+    (positive west, so the longitude's sign flips here) and the output it
+    printed. ``==`` because the claim is "these are the same number"
+    (docs/method/METHOD.md section 4); a re-frozen fixture that left this copy
+    behind fails here, which is what docs/REFREEZE-HTDP.md relies on.
+    """
+    from michspc.spc import frames, htdp
+
+    run, record = _htdp_anchor_run_and_record()
+
+    assert run.kind == "calendar_forward"
+    assert run.frame_in_menu == selftest.HTDP_ANCHOR_FRAME_MENU == 12
+    assert run.frame_out_menu == htdp.NAD83_2011.menu == 1
+    assert htdp.frame_by_menu(run.frame_in_menu) is (
+        frames.frame_by_code(selftest.HTDP_ANCHOR_FRAME_CODE).htdp_frame
+    )
+    assert selftest.HTDP_ANCHOR_FRAME_CODE == frames.WGS84_G2296.code
+    assert run.observation_date == selftest.HTDP_ANCHOR_OBSERVATION_DATE
+    # Calendar entry on the WGS 84 side, 10 20 2026, as the run recorded it.
+    assert "\n1\n10 20 2026\n" in run.stdin
+
+    assert selftest.HTDP_ANCHOR_LATITUDE == float(record.lat_in)
+    assert selftest.HTDP_ANCHOR_LONGITUDE == -float(record.lonw_in)
+    assert selftest.HTDP_ANCHOR_ELLIPSOID_HEIGHT_M == float(record.h_in)
+    assert selftest.HTDP_ANCHOR_NAD83_LATITUDE == float(record.lat_out)
+    assert selftest.HTDP_ANCHOR_NAD83_LONGITUDE == -float(record.lonw_out)
+    assert selftest.HTDP_ANCHOR_NAD83_ELLIPSOID_HEIGHT_M == float(record.h_out)
+
+
+def test_the_selftests_htdp_grid_coordinate_is_htdps_printed_output_projected():
+    """The expected northing and easting are a derivation, re-run here.
+
+    HTDP's PRINTED NAD 83(2011) position, read from the fixture's strings,
+    projected into Michigan Central by ``convert.from_geodetic`` (the SPCS 83
+    Lambert the suite holds to NCAT), must round to the micrometre to exactly
+    the two figures ``michspc/selftest.py`` carries - and with no extent
+    warning, so the anchor is a point the zone is for. Computed in the
+    comment beside the constants: N 56,013.19758787472, E 5,967,550.226906335.
+    """
+    from michspc.spc.convert import from_geodetic
+
+    _run, record = _htdp_anchor_run_and_record()
+    zone = selftest_zone(selftest.HTDP_ANCHOR_ZONE_CODE)
+
+    northing, easting, _convergence, _scale, warnings = from_geodetic(
+        float(record.lat_out), -float(record.lonw_out), zone, "selftest anchor"
+    )
+
+    assert selftest.HTDP_ANCHOR_ZONE_CODE == "2112"
+    assert round(northing, 6) == selftest.HTDP_ANCHOR_NORTHING_M
+    assert round(easting, 6) == selftest.HTDP_ANCHOR_EASTING_M
+    assert warnings == ()
+    assert selftest.HTDP_ANCHOR_WRITTEN_M == 1e-6
+
+
+def test_the_htdp_anchor_tolerances_are_hand_derived():
+    """Hand-derived, from HTDP's print format and the Lambert's round trip.
+
+    HTDP prints 2f16.10,f10.3 (htdp.f:3293): 1e-10 degree and 1e-3 m.
+    tests/test_lambert.py holds the Lambert round trip under 1e-11 degree.
+
+    Grid, per axis:
+
+        angle  = 0.5 * 1e-10 + 1e-11            = 6e-11 degree
+               = 6e-11 * pi / 180               = 1.0471975511965978e-12 rad
+        radius = a^2 / b on GRS 80 (a = 6,378,137 m, 1/f = 298.25722210088,
+                 b = 6,356,752.314140 m)          = 6,399,593.625864 m
+        arc    = 1.0471975511965978e-12 * 6,399,593.625864
+                                                = 6.701639e-6 m
+        axis   = 2 * 1.001 * 6.701639e-6        = 1.341668e-5 m
+        + half the written micrometre, 5e-7     = 1.391668e-5 m
+
+    Height: half the printed millimetre, 5e-4 m. The height does not pass
+    through a projection, so nothing else enters it.
+    """
+    assert selftest.HTDP_PRINTED_ANGLE_DEG == 1e-10
+    assert selftest.HTDP_PRINTED_HEIGHT_M == 1e-3
+    assert selftest.PROJECTION_ROUND_TRIP_DEG == 1e-11
+    assert selftest._htdp_anchor_grid_tolerance_m() == pytest.approx(
+        1.391668e-5, abs=1e-11
+    )
+    assert selftest._htdp_anchor_height_tolerance_m() == 5e-4
+
+
+def test_the_lambert_round_trip_floor_the_tolerance_cites_is_the_suites():
+    """The 1e-11 degree in the tolerance is the bound tests/test_lambert.py enforces."""
+    source = (REPO_ROOT / "tests" / "test_lambert.py").read_text(encoding="utf-8")
+
+    assert "worst_lat < 1e-11" in source
+    assert "worst_lon < 1e-11" in source
+
+
 def test_the_end_to_end_tolerance_is_two_ncat_legs_plus_the_written_place():
     """Hand-derived, in the unit the export is written in.
 
@@ -263,6 +371,8 @@ def test_the_check_registry_holds_every_check_by_name():
         "end-to-end conversion against NGS NCAT",
         "SPCS2022 conversion against beta NGS NCAT",
         "cross-frame refusal",
+        "WGS 84 (G2296) conversion against NGS HTDP",
+        "WGS 84 refusals",
     ]
 
 
@@ -816,6 +926,270 @@ def test_the_frame_refusal_check_passes_only_while_conversion_still_works():
     assert selftest.check_frame_refusal()
 
 
+def test_the_wgs84_check_fails_when_the_coordinate_moves(monkeypatch):
+    """Move the expected northing by 0.1 mm; the check must notice.
+
+    0.1 mm is about what a GRS 80 ellipsoid on a WGS84(...) frame costs
+    (DESIGN.md #70), seven times the 0.0139 mm budget, and far below anything
+    visible in a coordinate. The message must say how far the point landed.
+    """
+    monkeypatch.setattr(
+        selftest, "HTDP_ANCHOR_NORTHING_M", selftest.HTDP_ANCHOR_NORTHING_M + 1e-4
+    )
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_wgs84_conversion()
+    message = str(raised.value)
+    assert "NGS HTDP" in message
+    assert "mm away" in message
+
+
+def test_the_wgs84_check_fails_when_the_height_is_left_in_its_frame(monkeypatch):
+    """A WGS 84 h passed through as NAD 83 is 1.071 m off at this anchor.
+
+    Seeded as the expected height moved by one printed millimetre - twice the
+    half-unit budget - so the check is shown to hold the height to HTDP's
+    print, not merely to the metre.
+    """
+    monkeypatch.setattr(
+        selftest,
+        "HTDP_ANCHOR_NAD83_ELLIPSOID_HEIGHT_M",
+        selftest.HTDP_ANCHOR_NAD83_ELLIPSOID_HEIGHT_M + 1e-3,
+    )
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_wgs84_conversion()
+    assert "ellipsoid height" in str(raised.value)
+
+
+def test_the_wgs84_check_fails_when_no_transformation_runs(monkeypatch):
+    """The defect W3 exists to prevent: the WGS 84 position projected unchanged.
+
+    ``convert._apply_frame_path`` is replaced with one that hands the position
+    back as its own pivot and states no transformation - an identity in
+    everything but name. The coordinate it produces is about 1.3 m out, and
+    the check must say that no transformation ran.
+    """
+    from michspc.spc import convert
+
+    monkeypatch.setattr(
+        convert,
+        "_apply_frame_path",
+        lambda path, latitude, longitude, epoch, height: (latitude, longitude, {}),
+    )
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_wgs84_conversion()
+    assert "without a frame transformation" in str(raised.value)
+
+
+def test_the_wgs84_check_fails_when_the_transcription_is_missing(monkeypatch):
+    """A bundle without michspc.spc.htdp's arithmetic fails by name, not by crash."""
+    from michspc.spc import htdp
+
+    def gone(*args, **kwargs):
+        raise ImportError("No module named 'michspc.spc.htdp_data'")
+
+    monkeypatch.setattr(htdp, "to_nad83", gone)
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_wgs84_conversion()
+    message = str(raised.value)
+    assert "ImportError" in message
+    assert "HTDP v3.6.0" in message
+
+
+def _identity_gate(source, target):
+    from michspc.spc import frames
+
+    return frames.FRAME_TRANSFORMATIONS[(frames.NAD83_2011, frames.NAD83_2011)]
+
+
+def _permissive_gate(source, target):
+    """Every time-dependent-looking source gets the G2296 path: a lost refusal."""
+    from michspc.spc import frames
+
+    if source.is_time_dependent:
+        return frames.FRAME_TRANSFORMATIONS[(frames.WGS84_G2296, frames.NAD83_2011)]
+    return frames.FRAME_TRANSFORMATIONS[(target, target)]
+
+
+def _through_nad83_gate(source, target):
+    """D3's trap: a global frame composed through NAD 83 onto any zone."""
+    from michspc.spc import frames
+
+    if source.is_time_dependent:
+        return frames.require_frame_path(source, frames.NAD83_2011)
+    return frames.require_frame_path(source, target)
+
+
+@pytest.mark.parametrize(
+    "gate,expected",
+    [
+        # The 0.7.0 reviewer's literal no-op: refused at the call site now,
+        # so the check fails on the class.
+        (lambda source, target: None, "TypeError"),
+        # The plausible pass-through: an identity for every pair. The stray
+        # epoch makes the identity refuse, with the wrong class.
+        (_identity_gate, "ValueError"),
+        # A gate that lost the bare-WGS 84 refusal and answers G2296's path.
+        (_permissive_gate, "PROJECTED a bare WGS 84 position"),
+        # A gate that composes G2296 through NAD 83 onto an SPCS2022 zone.
+        (_through_nad83_gate, "PROJECTED a WGS84(G2296) position"),
+    ],
+)
+def test_the_wgs84_refusal_check_fails_when_the_public_gate_is_bypassed(
+    monkeypatch, gate, expected
+):
+    """The 0.7.0 closing gate's lesson, kept: a no-op PUBLIC gate fails a check.
+
+    ``convert`` binds ``require_frame_path`` at its import, so patching that
+    binding leaves the registry refusing perfectly while
+    ``convert.project_point`` stops asking it. Each of four gates a defect
+    could leave behind must make check 13 fail, and the registry half of the
+    check passes throughout - which is the point: only the public half sees
+    these.
+    """
+    from michspc.spc import convert, frames
+
+    monkeypatch.setattr(convert, "require_frame_path", gate)
+    # The registry still refuses - the premise, stated.
+    with pytest.raises(frames.FrameNotUsableError):
+        frames.require_frame_path(frames.WGS84, frames.NAD83_2011)
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_wgs84_refusals()
+    assert expected in str(raised.value)
+
+
+def test_a_no_op_public_gate_fails_at_least_one_whole_selftest_check(monkeypatch):
+    """The same lesson, asked of the whole self-test rather than of one check.
+
+    Under the identity pass-through at ``convert``'s binding every check runs;
+    at least one must fail, and check 13 must be among them. Before 0.7.0's
+    closing gate the equivalent mutation passed every check.
+    """
+    from michspc.spc import convert
+
+    monkeypatch.setattr(convert, "require_frame_path", _identity_gate)
+
+    failed = []
+    for name, check in selftest.CHECKS:
+        if name in {"Qt startup and bundled icon"}:
+            continue  # starts Qt; says nothing about a frame gate
+        try:
+            check()
+        except selftest.SelfTestError:
+            failed.append(name)
+    assert "WGS 84 refusals" in failed
+    assert "cross-frame refusal" in failed
+
+
+def test_the_wgs84_refusal_check_fails_on_the_sibling_class(monkeypatch):
+    """A bare WGS 84 reported as a missing TRANSFORMATION is the wrong refusal.
+
+    The two classes are siblings under ``FrameMismatchError``, and a handler
+    for one catches the other, so only the check can tell them apart: a bare
+    label refused as "no path registered" would tell the user a path might
+    arrive for a label that can never have one (plan decision D2).
+    """
+    from michspc.spc import convert, frames
+
+    real = frames.require_frame_path
+
+    def lost_usability_check(source, target):
+        if source.code == frames.WGS84.code:
+            raise frames.FrameTransformationUnavailableError("no path registered")
+        return real(source, target)
+
+    monkeypatch.setattr(convert, "require_frame_path", lost_usability_check)
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_wgs84_refusals()
+    message = str(raised.value)
+    assert "FrameTransformationUnavailableError" in message
+    assert "FrameNotUsableError" in message
+
+
+def test_the_wgs84_refusal_check_requires_the_realizations_named(monkeypatch):
+    """A refusal that only says no has lost the half that sends the user on.
+
+    The real message names the realizations twice - D2's "Choose the
+    realization ..." sentence and the list of frames this program can carry -
+    so the seed is a refusal of the right class that names none of them.
+    """
+    from michspc.spc import convert, frames
+
+    real = frames.require_frame_path
+
+    def bare_refusal(source, target):
+        if source.code == frames.WGS84.code:
+            raise frames.FrameNotUsableError("WGS84 is not usable.")
+        return real(source, target)
+
+    monkeypatch.setattr(convert, "require_frame_path", bare_refusal)
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_wgs84_refusals()
+    message = str(raised.value)
+    assert "did not name" in message
+    assert "WGS84(G2296)" in message
+
+
+def test_the_wgs84_refusal_check_fails_when_the_registry_accepts(monkeypatch):
+    """The registry half, seeded with the public path left working.
+
+    ``frames.require_frame_path`` is replaced, ``convert``'s own binding is
+    not (imported first, so the binding is fixed - the collection-order
+    lesson of the cross-frame check's tests).
+    """
+    from michspc.spc import convert, frames
+
+    assert convert.require_frame_path is frames.require_frame_path
+    monkeypatch.setattr(frames, "require_frame_path", _identity_gate)
+
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_wgs84_refusals()
+    message = str(raised.value)
+    assert "ACCEPTED" in message
+    assert "WGS84" in message
+
+
+def test_the_wgs84_refusal_check_passes_only_while_conversion_still_works():
+    """A gate that refused every WGS 84 position would pass check 13 alone.
+
+    Check 12 converts a WGS84(G2296) position through the same
+    ``convert.project_point``; both are in CHECKS, so the pair says the gate
+    refuses exactly the pairs it should.
+    """
+    names = [name for name, _check in selftest.CHECKS]
+    assert "WGS 84 (G2296) conversion against NGS HTDP" in names
+    assert "WGS 84 refusals" in names
+    assert selftest.check_wgs84_conversion()
+    assert selftest.check_wgs84_refusals()
+
+
+def test_the_selftest_states_its_own_check_count(tmp_path):
+    """The printed count derives from CHECKS, and CHECKS holds thirteen."""
+    report = tmp_path / "selftest.txt"
+    assert selftest.main(["--selftest", "--report", str(report)]) == 0
+
+    assert len(selftest.CHECKS) == 13
+    last = report.read_text(encoding="utf-8").strip().splitlines()[-1]
+    assert last == f"SELF-TEST PASSED - {len(selftest.CHECKS)} checks."
+
+
+def test_the_htdp_transcription_is_declared_for_the_bundle():
+    """htdp and htdp_data are in LAZY_IMPORTS, and so in the spec's hiddenimports.
+
+    Statically reachable today (frames.py imports both at module level), and
+    declared anyway, on the vertical modules' precedent: the list is what the
+    frozen bundle proves it can import.
+    """
+    assert "michspc.spc.htdp" in selftest.LAZY_IMPORTS
+    assert "michspc.spc.htdp_data" in selftest.LAZY_IMPORTS
+
+
 def test_the_selftest_main_reports_a_failure_and_exits_nonzero(tmp_path, monkeypatch):
     """The driver, not just the checks: a failure must reach the exit code."""
 
@@ -1014,6 +1388,70 @@ def test_the_spec_excludes_nothing():
     empty.
     """
     assert "excludes=[]," in SPEC_SOURCE
+
+
+def test_the_spec_ships_nothing_from_review_and_no_htdp_source():
+    """NGS's HTDP Fortran stays in the repository; the bundle carries only data/ and the icon.
+
+    The source under ``review/wgs84-w0/htdp-v3.6.0/`` is the authority the
+    transcription is verified against (docs/PLAN-wgs84.md section 3.2), and
+    production never reads it: ``michspc/spc/htdp_data.py`` is the
+    transcription. So the spec names nothing under ``review/``, builds its
+    data list from exactly two sources - the NGS grids in ``data/`` and the
+    generated icon - and collects no tree of files wholesale. The built
+    bundle is checked the same way at gate 6 (``foreign_bundle_files``, pinned
+    below on synthetic trees).
+    """
+    # As a path or a path segment; the docstring's "reviewable" is prose.
+    for spelling in ("review/", '"review"', "'review'", "review\\"):
+        assert spelling not in SPEC_SOURCE
+    assert ".f\"" not in SPEC_SOURCE and "htdp" not in SPEC_SOURCE.lower()
+    assert "datas = [(str(path), DATA_DESTINATION) for path in NGS_GRID_SOURCES]" in (
+        SPEC_SOURCE
+    )
+    assert "datas.append((str(ICON_FILE), ICON_DESTINATION))" in SPEC_SOURCE
+    assert SPEC_SOURCE.count("datas.") == 1
+    assert SPEC_SOURCE.count("datas +=") == 0
+    for wholesale in ("Tree(", "collect_data_files", "collect_all"):
+        assert wholesale not in SPEC_SOURCE
+    assert 'NGS_GRID_SOURCES = [REPO_ROOT / "data" / name' in SPEC_SOURCE
+
+
+def test_the_bundle_gate_finds_htdp_source_and_review_files(tmp_path):
+    """The gate-6 rule, on a synthetic bundle: Fortran anywhere, review/ anywhere."""
+    from tools import build_release
+
+    internal = tmp_path / "_internal"
+    (internal / "data").mkdir(parents=True)
+    (internal / "data" / "g2018u3.bin").write_bytes(b"grid")
+    (internal / "michspc" / "spc").mkdir(parents=True)
+    (internal / "michspc" / "spc" / "htdp_data.pyc").write_bytes(b"code")
+    (tmp_path / "mcx.exe").write_bytes(b"MZ")
+
+    assert build_release.foreign_bundle_files(tmp_path) == []
+
+    (internal / "htdp-v3.6.0").mkdir()
+    (internal / "htdp-v3.6.0" / "initvl.f").write_text("      B(1) = 1.0\n")
+    (internal / "review" / "wgs84-w0").mkdir(parents=True)
+    (internal / "review" / "wgs84-w0" / "htdp_truth.json").write_text("{}")
+    (internal / "HTDP.F90").write_text("end\n")
+
+    assert build_release.foreign_bundle_files(tmp_path) == [
+        "_internal/HTDP.F90",
+        "_internal/htdp-v3.6.0/initvl.f",
+        "_internal/review/wgs84-w0/htdp_truth.json",
+    ]
+    assert build_release.foreign_bundle_files(tmp_path / "absent") == []
+
+
+def test_the_bundle_gate_runs_the_foreign_file_check():
+    from tools import build_release
+
+    source = Path(build_release.__file__).read_text(encoding="utf-8")
+    gate = source[source.index("def gate_bundle()") : source.index("FORTRAN_SUFFIXES =")]
+
+    assert "foreign_bundle_files(BUNDLE_DIR)" in gate
+    assert "raise BuildError" in gate[gate.index("foreign_bundle_files(BUNDLE_DIR)") :]
 
 
 # --------------------------------------------------------------------------

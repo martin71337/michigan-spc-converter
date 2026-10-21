@@ -15,7 +15,9 @@ The gates, in order, each one refusing loudly by name:
     3  working tree clean  a release must be reproducible from a commit
     4  test suite          py -m pytest AND py -O -m pytest, both green
     5  icon                regenerated from the committed master artwork
-    6  bundle              PyInstaller, from the committed michspc.spec
+    6  bundle              PyInstaller, from the committed michspc.spec;
+                           every grid in data/ present, and no Fortran source
+                           and nothing from review/ (docs/REFREEZE-HTDP.md)
     7  self-test           the FROZEN bundle checks itself - hard gate
     8  installer           Inno Setup
     9  checksums           SHA-256 of every shipped artifact
@@ -409,11 +411,57 @@ def gate_bundle() -> Path:
             f"not a filename literal."
         )
 
+    # The other direction: what must NOT ship. NGS's HTDP Fortran source is
+    # committed under review/ as the authority the transcription is verified
+    # against (docs/PLAN-wgs84.md section 3.2); the program never reads it,
+    # and a bundle carrying it would be shipping 7 MB of somebody else's
+    # source as though it were part of the program.
+    foreign = foreign_bundle_files(BUNDLE_DIR)
+    if foreign:
+        raise BuildError(
+            f"the bundle carries files that must never ship: "
+            f"{', '.join(foreign)}. Nothing under review/ and no Fortran "
+            f"source belongs in it - HTDP is transcribed into "
+            f"michspc/spc/htdp_data.py, and the Fortran it was read from stays "
+            f"in the repository (docs/REFREEZE-HTDP.md). Find what pulled it "
+            f"into michspc.spec."
+        )
+
     print(
         f"    {FROZEN_EXE} in {time.monotonic() - started:.0f} s; "
         f"bundle {sum(p.stat().st_size for p in BUNDLE_DIR.rglob('*') if p.is_file()):,} bytes"
     )
     return FROZEN_EXE
+
+
+FORTRAN_SUFFIXES = frozenset({".f", ".for", ".f77", ".f90"})
+"""Fortran source suffixes. NGS's HTDP is the only Fortran in the repository."""
+
+NEVER_SHIPPED_DIRECTORIES = frozenset({"review"})
+"""Repository directories whose contents never belong in the bundle: review/
+holds NGS's captured bytes, the HTDP source and the harnesses."""
+
+
+def foreign_bundle_files(bundle_dir: Path) -> list[str]:
+    """Files in a built bundle that must never ship, as bundle-relative paths.
+
+    A Fortran source file anywhere, or anything under a directory named like
+    one of ``NEVER_SHIPPED_DIRECTORIES``. Empty for a correct bundle. A
+    function of its own so the rule is checked by the suite on synthetic
+    trees (``tests/test_selftest.py``), not only on the owner's machine.
+    """
+    if not bundle_dir.exists():
+        return []
+    found: list[str] = []
+    for path in sorted(bundle_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(bundle_dir)
+        if path.suffix.lower() in FORTRAN_SUFFIXES or (
+            NEVER_SHIPPED_DIRECTORIES & {part.lower() for part in relative.parts[:-1]}
+        ):
+            found.append(relative.as_posix())
+    return found
 
 
 def gate_frozen_selftest() -> None:

@@ -58,7 +58,9 @@ PointConversion) — all verified against the code at 0.6.4/H2.
 
 `tools/nsrs_tripwire.py` re-runs the frozen probes (the NATRF2022 REST
 token, the NAPGD2022 vertical token, geoid model id 15, the noaa-ngs
-GitHub repo count) on the 1st of each month at 09:07 via the Windows
+GitHub repo count, and - since the WGS 84 build - the noaa-ngs/HTDP
+default-branch head, whose obligation is `docs/REFREEZE-HTDP.md`, not this
+file) on the 1st of each month at 09:07 via the Windows
 scheduled task **"MCX NSRS tripwire"** (registered on the owner's machine
 2026-08-29; `schtasks /Query /TN "MCX NSRS tripwire"` shows it). Quiet
 months write a dated line under `review/tripwire/`; any change writes

@@ -41,6 +41,7 @@ from michspc.gui import icon, results_model, window as window_module  # noqa: E4
 from michspc.gui.app import build_application  # noqa: E402
 from michspc.gui.window import (  # noqa: E402
     geodetic_choice,
+    is_geodetic,
     INPUT_HINT_GEODETIC,
     INPUT_HINT_UNCHOSEN,
     INPUT_HINT_ZONE,
@@ -223,11 +224,12 @@ def test_zone_dropdowns_are_built_from_the_registry(window):
         # the second separator and the 2022 block, checked in
         # tests/test_gui_frames.py and tests/test_gui_tabs.py.
         assert offered[0] == UNCHOSEN
-        geodetic_count = len(window_module.GEODETIC_CHOICES)
-        assert offered[1 : 1 + geodetic_count] == list(
-            window_module.GEODETIC_CHOICES
-        )
-        first_zone = 1 + geodetic_count + 1  # + the separator between them
+        # SUPERSEDED POSITIONS (DESIGN.md #70, plan W5): the geodetic entries
+        # are two blocks since W5 - plate-fixed, a separator, time-dependent -
+        # so the zones start one item later than H6's single block put them.
+        geodetic = [data for data in offered if is_geodetic(data)]
+        assert geodetic == list(window_module.GEODETIC_CHOICES)
+        first_zone = 1 + len(geodetic) + 2  # + the two separators
         assert offered[first_zone - 1] is None
         assert offered[first_zone : first_zone + len(SPCS83_ZONES)] == list(
             SPCS83_ZONES

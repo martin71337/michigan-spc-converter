@@ -65,6 +65,7 @@ from michspc.gui.controls import (
     FRAME_RESET_STATUS,
     GEOID_MODEL_LABEL,
     INPUT_GEOID_LABEL,
+    OBSERVATION_DATE_LABEL,
     OUTPUT_GEOID_LABEL,
     RED,
     UNCHOSEN,
@@ -73,13 +74,17 @@ from michspc.gui.controls import (
     VERTICAL_MODE_LABEL,
     VERTICAL_SOURCE_LABEL,
     VERTICAL_TARGET_LABEL,
+    combined_factor_is_reported,
     direction_for,
+    frame_settings_fields,
     geodetic_frame_for,
     geoid_combo,
     geoid_models_for_datum,
     is_geodetic,
     longitude_combo,
     longitude_relevance,
+    observation_date_edit,
+    observation_date_relevance,
     refresh_geoid_combo,
     refresh_unit_combo,
     refresh_zone_graying,
@@ -98,9 +103,11 @@ from michspc.gui.dms_entry import DmsEntry
 from michspc.gui.result_panel import ResultPanel
 from michspc.gui.results_model import (
     ResultSection,
+    job_warning_messages,
     single_point_clipboard_text,
     single_point_sections,
     single_point_warnings,
+    warning_count,
 )
 from michspc.job import (
     Direction,
@@ -110,6 +117,7 @@ from michspc.job import (
     VerticalMode,
     run,
 )
+from michspc.spc import htdp
 from michspc.spc.vertical import VerticalDatum
 from michspc.spc.zones import Zone
 
@@ -154,7 +162,23 @@ Vertical the elevation is the value the job exists to convert. A placeholder
 that stayed put would reintroduce the identical falsehood in a more prominent
 place - inside the field rather than behind a hover. ``_update_vertical_rows``
 sets it, and a test asserts it is empty in both vertical modes.
+
+**On a job with no zone it is ``ELEVATION_PLACEHOLDER_ZONELESS``** (work
+package W5 of the WGS 84 build): a geodetic-to-geodetic job has no grid scale
+factor and so no combined factor, and "used for combined scale factor" would
+be false there (``controls.combined_factor_is_reported``).
 """
+
+ELEVATION_PLACEHOLDER_ZONELESS = "optional"
+"""The Horizontal hint on a job with no State Plane zone - geodetic to
+geodetic, the one zone-less Horizontal direction.
+
+The owner's #57 sentence less the clause that is false on that job, and
+nothing added: the conversion still runs without an elevation (a blank Z
+transforms at h = 0, plan decision D6), and it is the only half of the
+sentence that is still true. A layout decision recorded for the owner's
+screen review; the alternative considered was "optional, used for elevation
+factor", which is true but new wording he has not seen."""
 
 # The elevation box had a tooltip here calling the elevation OPTIONAL and
 # explaining that a blank or exactly-zero value reads N/A in the factor
@@ -203,7 +227,8 @@ would otherwise get wrong.
 INCOMPLETE_FORM = (
     "The conversion settings are incomplete, so nothing was run. Choose both "
     "ends of the conversion, type both coordinate values, choose the "
-    "longitude sign convention when geodetic coordinates are involved, and "
+    "longitude sign convention when geodetic coordinates are involved, "
+    "choose the observation date when a WGS 84 or ITRF frame is selected, and "
     "choose both vertical datums when vertical mode is on."
 )
 
@@ -277,6 +302,7 @@ class SinglePointTab(QWidget):
         self._update_unit_offerings()
         self._update_unit_labels()
         self._update_longitude_relevance()
+        self._update_observation_date_relevance()
         self._update_angle_format_relevance()
         self._update_vertical_rows()
         self._update_convert_enabled()
@@ -427,7 +453,26 @@ class SinglePointTab(QWidget):
         self.longitude_combo = longitude_combo(box, self._on_longitude_changed)
 
         grid.addWidget(self.longitude_label, 5, 0)
-        grid.addWidget(self.longitude_combo, 5, 1, 1, 3)
+        grid.addWidget(self.longitude_combo, 5, 1)
+
+        # --- observation date (work package W5 of the WGS 84 build) -------
+        # On the longitude sign's row, the #57 pairing: both are facts about
+        # the typed geodetic position that its numbers do not show, and each
+        # control keeps its own label beside it, so nothing is inferred from
+        # position. Enabled only while a selected side's frame is
+        # time-dependent (``_update_observation_date_relevance``) - grayed,
+        # not hidden, the longitude selector's idiom, because it becomes
+        # relevant again as the selections move. Opens UNANSWERED; gating and
+        # invalidation, like every control that changes the answer
+        # (amendments #26 and #43): a WGS 84 point moves about 17 mm a year
+        # against NAD 83, so a result computed for one date does not describe
+        # another.
+        self.observation_date_label = QLabel(OBSERVATION_DATE_LABEL, box)
+        self.observation_date_edit = observation_date_edit(
+            box, self._on_observation_date_changed
+        )
+        grid.addWidget(self.observation_date_label, 5, 2)
+        grid.addWidget(self.observation_date_edit, 5, 3)
 
         # --- how a latitude and longitude are typed ----------------------
         self.angle_format_label = QLabel(ANGLE_FORMAT_LABEL, box)
@@ -732,6 +777,16 @@ class SinglePointTab(QWidget):
         source_zone = source if isinstance(source, Zone) else None
         target_zone = target if isinstance(target, Zone) else None
 
+        # The WGS 84 build's two fields (work package W5), by the one rule
+        # both tabs share: the output frame of a geodetic-to-geodetic job, and
+        # the observation date when a time-dependent frame is selected - None
+        # back means that date is unanswered, so the form is incomplete.
+        frame_fields = frame_settings_fields(
+            mode, direction, source, target, self.observation_date_edit
+        )
+        if frame_fields is None:
+            return None
+
         common = dict(
             input_path=None,
             output_directory=None,
@@ -759,6 +814,7 @@ class SinglePointTab(QWidget):
         frame = geodetic_frame_for(source, target)
         if frame is not None:
             common["geodetic_frame"] = frame
+        common.update(frame_fields)
 
         if direction is Direction.ZONE_TO_ZONE:
             # A pure zone-to-zone job never consults the longitude convention
@@ -792,6 +848,18 @@ class SinglePointTab(QWidget):
         if source_datum is None or target_datum is None:
             return None
 
+        # Only the From selection counts in this mode (the To dropdown is
+        # hidden), so only a time-dependent INPUT frame asks for the date.
+        frame_fields = frame_settings_fields(
+            VerticalMode.VERTICAL,
+            Direction.VERTICAL_ONLY,
+            source,
+            UNCHOSEN,
+            self.observation_date_edit,
+        )
+        if frame_fields is None:
+            return None
+
         input_unit = unit_for(self.input_unit)
         common = dict(
             input_path=None,
@@ -813,6 +881,7 @@ class SinglePointTab(QWidget):
         frame = geodetic_frame_for(source)
         if frame is not None:
             common["geodetic_frame"] = frame
+        common.update(frame_fields)
 
         if source_zone is not None:
             return JobSettings(**common, longitude_convention=None)
@@ -932,12 +1001,36 @@ class SinglePointTab(QWidget):
         refresh_zone_graying(self.from_zone, target, is_source=True)
         refresh_zone_graying(self.to_zone, source, is_source=False)
 
+    def _update_elevation_hint(self) -> None:
+        """The one owner of the elevation box's placeholder (#57's rule:
+        one method per property).
+
+        Empty in the two vertical modes (#51: the elevation is the value
+        being converted, so "optional" would be false). In Horizontal, the
+        owner's sentence - unless the selections describe a job with no zone,
+        whose combined factor does not exist
+        (``controls.combined_factor_is_reported``, asked of the core's own
+        zoneless rule). Called on every mode change and every direction
+        change, the two things it depends on.
+        """
+        if self.vertical_mode().converts_elevations:
+            text = ""
+        elif combined_factor_is_reported(
+            self.direction(), self.from_zone.currentData()
+        ):
+            text = ELEVATION_PLACEHOLDER
+        else:
+            text = ELEVATION_PLACEHOLDER_ZONELESS
+        self.elevation_edit.setPlaceholderText(text)
+
     def _on_direction_changed(self) -> None:
         self._update_entry_labels()
+        self._update_elevation_hint()
         self._update_zone_graying()
         self._update_unit_offerings()
         self._update_unit_labels()
         self._update_longitude_relevance()
+        self._update_observation_date_relevance()
         self._update_angle_format_relevance()
         self._update_convert_enabled()
         self._invalidate_result()
@@ -1000,6 +1093,17 @@ class SinglePointTab(QWidget):
         self._update_convert_enabled()
         self._invalidate_result()
 
+    def _on_observation_date_changed(self) -> None:
+        """Gating AND invalidation - the longitude convention's pair exactly.
+
+        The date decides where a WGS 84 or ITRF position is against NAD 83 -
+        about 17 mm a year in Michigan - so a result computed for one date
+        does not describe the controls once the date moves (amendments #26 and
+        #43, the stale-result class, at the WGS 84 build's new control).
+        """
+        self._update_convert_enabled()
+        self._invalidate_result()
+
     def _on_vertical_mode_changed(self) -> None:
         """The toggle reveals or hides the datum rows - and, like every
         control that changes what the job IS, discards a displayed result:
@@ -1013,6 +1117,7 @@ class SinglePointTab(QWidget):
         self._reconcile_zone_frames(clear=self.to_zone)
         self._update_zone_graying()
         self._update_longitude_relevance()
+        self._update_observation_date_relevance()
         self._update_convert_enabled()
         self._invalidate_result()
 
@@ -1082,9 +1187,7 @@ class SinglePointTab(QWidget):
         # value being converted, so "optional" would be false, and a
         # placeholder is a more prominent place to be false than a tooltip
         # was.
-        self.elevation_edit.setPlaceholderText(
-            "" if mode.converts_elevations else ELEVATION_PLACEHOLDER
-        )
+        self._update_elevation_hint()
         vertical_only = mode is VerticalMode.VERTICAL
         for widget in (
             self.to_zone_label,
@@ -1203,6 +1306,20 @@ class SinglePointTab(QWidget):
         self.longitude_label.setEnabled(relevant)
         self.longitude_combo.setEnabled(relevant)
 
+    def _update_observation_date_relevance(self) -> None:
+        """The date matters only when a time-dependent frame is selected;
+        ``controls.observation_date_relevance`` owns the rule for all three
+        modes. Grayed, never cleared: a grayed control's value is not sent
+        (``controls.frame_settings_fields``), so a date left in it cannot
+        reach a job that reads none."""
+        relevant = observation_date_relevance(
+            self.vertical_mode(),
+            self.from_zone.currentData(),
+            self.to_zone.currentData(),
+        )
+        self.observation_date_label.setEnabled(relevant)
+        self.observation_date_edit.setEnabled(relevant)
+
     def coordinates_are_typed(self) -> bool:
         """Both coordinate rows answered, on whichever page is showing.
 
@@ -1272,6 +1389,16 @@ class SinglePointTab(QWidget):
             result = run(settings, source=parsed)
             sections = single_point_sections(result)
             warnings = single_point_warnings(result)
+        except htdp.HtdpRefusal as error:
+            # NAMED, not left to the clause below (interim gate 2 of the WGS
+            # 84 build, finding L4): an HTDP refusal - a position outside the
+            # velocity grid, a non-convergence - subclasses neither ValueError
+            # nor FrameMismatchError, so a handler narrowed to those one day
+            # would let it escape the tab. Shown exactly as raised, like
+            # every other refusal; job.run has already named the point and the
+            # position's own frame in it.
+            self._report_failure(error)
+            return False
         except Exception as error:  # noqa: BLE001 - shown in full, then stopped
             self._report_failure(error)
             return False
@@ -1371,8 +1498,13 @@ class SinglePointTab(QWidget):
     # ------------------------------------------------------------------
 
     def status_text(self, result: JobResult) -> str:
-        """"Converted. 1 warning." — one point, so the count is of warnings."""
-        count = len(result.warnings)
+        """"Converted. 1 warning." — one point, so the count is of warnings.
+
+        Every warning the warnings field shows, the job's own included
+        (``results_model.warning_count``): a realization-period warning in the
+        field beside "No warnings." here would be two statements disagreeing.
+        """
+        count = warning_count(result)
         if count == 0:
             return "Converted. No warnings."
         if count == 1:
@@ -1380,7 +1512,7 @@ class SinglePointTab(QWidget):
         return f"Converted. {count} warnings."
 
     def _report_success(self, result: JobResult) -> None:
-        warned = len(result.warnings)
+        warned = warning_count(result)
         self._set_status(self.status_text(result), style=AMBER if warned else "")
         if warned:
             # The message already opens "point 1: ...", because job._convert_row
@@ -1390,7 +1522,12 @@ class SinglePointTab(QWidget):
             # identifier entirely; this tooltip shows the message as the core
             # wrote it, minus the duplicate.
             self.status_label.setToolTip(
-                "\n\n".join(warning.message for _point_id, warning in result.warnings)
+                "\n\n".join(
+                    (
+                        *job_warning_messages(result.job_warnings),
+                        *(warning.message for _point_id, warning in result.warnings),
+                    )
+                )
             )
         else:
             self.status_label.setToolTip("")

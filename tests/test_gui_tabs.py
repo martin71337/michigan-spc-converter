@@ -215,8 +215,11 @@ def test_the_window_asks_controls_for_the_direction_in_every_combination(window)
     ]
     # 1 placeholder + one geodetic entry per offered frame + every zone in the
     # registry. Derived from the registries, so a lost era fails here.
+    # SUPERSEDED COUNT (DESIGN.md #70, plan W5): the five WGS 84 and ITRF
+    # frames are offered since W5, so 1 + 7 + 22 = 30 selectable entries,
+    # where H6 had 1 + 2 + 22 = 25. The rule is unchanged.
     assert len(choices) == 1 + len(GEODETIC_CHOICES) + len(ALL_ZONES)
-    assert len(choices) == 25
+    assert len(choices) == 30
 
     checked = 0
     window.from_zone.blockSignals(True)
@@ -243,7 +246,7 @@ def test_the_window_asks_controls_for_the_direction_in_every_combination(window)
         window.from_zone.blockSignals(False)
         window.to_zone.blockSignals(False)
 
-    assert checked == 625
+    assert checked == 900  # 30 x 30, superseding H6's 25 x 25 = 625
 
     # The two cases the rule singles out, stated outright rather than left
     # implicit in the sweep. A zone to itself is a real job (the units are
@@ -295,30 +298,45 @@ def test_every_registered_zone_is_offered_in_all_four_zone_dropdowns(window):
     for combo in combos:
         offered = [combo.itemData(index) for index in range(combo.count())]
 
-        # 1 placeholder + one geodetic entry per offered frame + a separator +
-        # the SPCS 83 block + a separator + the SPCS2022 block. Written as the
-        # sum, with the two separators counted rather than assumed, so a
-        # missing piece names itself.
+        # 1 placeholder + the plate-fixed geodetic entries + a separator + the
+        # time-dependent geodetic entries + a separator + the SPCS 83 block +
+        # a separator + the SPCS2022 block. Written as the sum, with the three
+        # separators counted rather than assumed, so a missing piece names
+        # itself.
+        #
+        # SUPERSEDED LAYOUT (DESIGN.md #70, plan W5): H6 and #64 had one
+        # geodetic block and two separators, 27 items. W5 offers the five WGS
+        # 84 and ITRF frames in a block of their own below a third separator
+        # (controls.zone_combo says why; the owner reviews it on screen):
+        # 1 + 2 + 1 + 5 + 1 + 3 + 1 + 19 = 33.
+        plate_fixed, time_dependent = controls.geodetic_choice_groups()
         assert combo.count() == (
             1
-            + len(GEODETIC_CHOICES)
+            + len(plate_fixed)
+            + 1
+            + len(time_dependent)
             + 1
             + len(SPCS83_ZONES)
             + 1
             + len(SPCS2022_ZONES)
         )
-        assert combo.count() == 27
+        assert combo.count() == 33
 
         assert offered[0] == UNCHOSEN
-        first_separator = 1 + len(GEODETIC_CHOICES)
-        assert offered[1:first_separator] == list(GEODETIC_CHOICES)
+        first_separator = 1 + len(plate_fixed)
+        assert offered[1:first_separator] == list(plate_fixed)
+        assert offered[first_separator] is None
+        assert combo.itemText(first_separator) == ""
+        global_block = first_separator + 1
+        geodetic_separator = global_block + len(time_dependent)
+        assert offered[global_block:geodetic_separator] == list(time_dependent)
         # The owner's second separator, added at his screen review: the
         # geodetic entries are positions and what follows them are zones, which
         # are not the same kind of answer.
-        assert offered[first_separator] is None
-        assert combo.itemText(first_separator) == ""
+        assert offered[geodetic_separator] is None
+        assert combo.itemText(geodetic_separator) == ""
 
-        first_zone = first_separator + 1
+        first_zone = geodetic_separator + 1
         second_separator = first_zone + len(SPCS83_ZONES)
         assert offered[first_zone:second_separator] == list(SPCS83_ZONES)
         # A separator carries no data at all, which is what makes it a
@@ -354,9 +372,14 @@ def test_neither_separator_can_be_chosen(window):
     """
     from PySide6.QtCore import Qt as _Qt
 
+    # SUPERSEDED POSITIONS (DESIGN.md #70, plan W5): three separators now -
+    # after the plate-fixed geodetic entries, after the time-dependent ones,
+    # and after the SPCS 83 zones - where H6/#64 had two.
+    plate_fixed, time_dependent = controls.geodetic_choice_groups()
     positions = (
-        1 + len(GEODETIC_CHOICES),
-        1 + len(GEODETIC_CHOICES) + 1 + len(SPCS83_ZONES),
+        1 + len(plate_fixed),
+        1 + len(plate_fixed) + 1 + len(time_dependent),
+        1 + len(GEODETIC_CHOICES) + 2 + len(SPCS83_ZONES),
     )
     for combo in (
         window.from_zone,
@@ -389,14 +412,21 @@ def test_the_dropdown_pin_has_something_to_find():
     assert len(SPCS83_ZONES) == 3
     assert len(ALL_ZONES) == 22
 
-    # Two of the declared frames are offered. WGS 84 is declared and NOT
-    # usable, and its absence from the dropdown is the whole point of #58.
+    # Seven of the declared frames are offered. The bare WGS 84 label is
+    # declared and NOT usable, and its absence from the dropdown is the whole
+    # point of #58 and of plan decision D2.
     # SUPERSEDED (DESIGN.md #70, plan W2): eight frames are declared now, not
-    # three - the five WGS 84 / ITRF frames are usable and carry no zone, so
-    # the offered count is still two until W5 changes frames_offered's rule.
+    # three. SUPERSEDED AGAIN (plan W5): the five WGS 84 / ITRF frames carry no
+    # zone but each holds an HTDP path to NAD83(2011), so frames_offered's W5
+    # rule offers them, and the count is seven where W2 left it at two.
     assert len(ALL_FRAMES) == 8
-    assert len(GEODETIC_CHOICES) == 2
+    assert len(GEODETIC_CHOICES) == 7
     assert [choice.frame.code for choice in GEODETIC_CHOICES] == [
         "NAD83(2011)",
         "NATRF2022",
+        "WGS84(G1762)",
+        "WGS84(G2139)",
+        "WGS84(G2296)",
+        "ITRF2014",
+        "ITRF2020",
     ]

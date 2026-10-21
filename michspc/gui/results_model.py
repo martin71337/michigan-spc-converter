@@ -20,18 +20,25 @@ from PySide6.QtGui import QBrush, QColor
 from michspc.fileio import formatting as fmt
 from michspc.fileio import pnezd
 from michspc.fileio.exports import (
-    ELLIPSOID_ELEVATION_HEADING,
+    ellipsoid_elevation_heading,
+    external_frame,
+    geodetic_pair_frames,
+    pivot_frame,
+    transformed_ellipsoid_height_heading,
     vertical_shift_and_sigma_m,
     vertical_shift_heading,
     vertical_sigma_heading,
+    writes_geodetic_coordinates,
 )
 from michspc.gui.controls import zone_label
 from michspc.job import (
     Direction,
     JobResult,
     LongitudeConvention,
+    applied_frame_transformation,
     factors_geoid_model,
     geoid_swap_models,
+    written_geodetic_position,
 )
 from michspc.spc.vertical import HeightKind, require_vertical_pair
 
@@ -76,18 +83,50 @@ the two names move, and only for the one direction whose values are degrees.
 def _geodetic_display_columns(settings) -> bool:
     """Whether the table's coordinate columns hold degrees for this job.
 
-    True for a State-Plane-to-geodetic job, and for a vertical-only job whose
-    input is geodetic: that job's cells reproduce the input positions, so a
-    geodetic input keeps geodetic headings. The same branch
-    ``exports._geodetic_coordinate_columns`` takes for the files, restated
-    here only because this module may not import the file layer's private
-    names; ``row_strings`` renders through the identical formatters either
-    way, so the two cannot show different digits.
+    True for a State-Plane-to-geodetic job, a geodetic-to-geodetic job, and a
+    vertical-only job whose input is geodetic: that job's cells reproduce the
+    input positions, so a geodetic input keeps geodetic headings.
+
+    **The file layer's own rule, asked rather than restated** - work package
+    W5 of the WGS 84 build. This used to be a copy of
+    ``exports._geodetic_coordinate_columns``, made because this module may not
+    import the file layer's private names, and the copy did not grow the
+    GEODETIC_TO_GEODETIC branch W3 added there: that direction's table would
+    have shown latitudes under "Northing" (W4's note). The copy is gone;
+    ``exports.writes_geodetic_coordinates`` is the public name of the one rule.
     """
-    return settings.direction is Direction.ZONE_TO_GEODETIC or (
-        settings.direction is Direction.VERTICAL_ONLY
-        and settings.source_zone is None
-    )
+    return writes_geodetic_coordinates(settings)
+
+
+ZONE_ONLY_COLUMNS: tuple[str, ...] = ("Grid scale factor", "Combined factor")
+"""The two table columns that describe a State Plane zone.
+
+A grid scale factor is a property of a projection, and the combined factor is
+the grid factor times the elevation factor; a job with no zone has neither,
+and its cells could only ever read N/A."""
+
+
+def _shows_zone_columns(settings) -> bool:
+    """Whether the table carries ``ZONE_ONLY_COLUMNS`` for this job.
+
+    False on ``GEODETIC_TO_GEODETIC`` only (work package W5 of the WGS 84
+    build, the lead's finding on the W5 screenshots): latitude and longitude
+    in and out, no zone at either end, so two columns of N/A would read as
+    though a zone could have existed - the single-point panel's rule for the
+    same direction, which shows no grid factor row either.
+
+    **The table's one departure from mirroring the audit CSV's columns.** The
+    CSV is the record and keeps its N/A cells on this direction; the table is
+    a view of it and drops two columns that can never hold a value. Every
+    cell the table does show is still the CSV's own (pinned).
+
+    **Deliberately NOT ``job.is_zoneless``**, which also covers a vertical-only
+    job on geodetic positions. That job's table has shown these two columns,
+    pinned as honest absences (tests/test_gui_vertical_only.py), since 0.4.0;
+    narrowing a released layout is the owner's call, and is flagged for it
+    rather than made here.
+    """
+    return settings.direction is not Direction.GEODETIC_TO_GEODETIC
 
 
 def _elevation_heading(settings, geoid_model_name: str | None) -> str:
@@ -180,14 +219,31 @@ def columns_for(result: JobResult | None) -> tuple[str, ...]:
     columns = list(
         GEODETIC_COLUMNS if _geodetic_display_columns(settings) else COLUMNS
     )
+    path = applied_frame_transformation(settings)
+    if path is not None and _geodetic_display_columns(settings):
+        # A TRANSFORMED job's degrees name their frame, as every latitude and
+        # longitude heading of the audit CSV does (interim gate 2, finding
+        # H1): the table's coordinate cells are the audit CSV's TARGET pair -
+        # ``row_strings`` renders ``output_northing`` / ``output_easting``,
+        # the values the clean export writes - so they are named by the frame
+        # ``exports.geodetic_pair_frames`` states for that pair, the file
+        # layer's one statement of it. On a same-frame job the headings are
+        # untouched to the string.
+        frame = geodetic_pair_frames(path, settings)[1].code
+        columns[NORTHING_COLUMN] = f"{GEODETIC_COLUMNS[NORTHING_COLUMN]} ({frame})"
+        columns[EASTING_COLUMN] = f"{GEODETIC_COLUMNS[EASTING_COLUMN]} ({frame})"
+    if not _shows_zone_columns(settings):
+        columns = [c for c in columns if c not in ZONE_ONLY_COLUMNS]
     if settings.input_height_kind is HeightKind.ELLIPSOID and not (
         settings.vertical_mode.converts_elevations
     ):
         # HORIZONTAL: the cells hold the ellipsoid height, passed through, so
         # the heading says so. "Elevation" over them was h in a column
         # labelled H - about 33 m out (closing gate, HIGH 1). One wording with
-        # the audit CSV's own heading for the same cells (#17).
-        columns[columns.index("Elevation")] = ELLIPSOID_ELEVATION_HEADING
+        # the audit CSV's own heading for the same cells (#17) - and, on a
+        # transformed job, the same frame: ``exports.ellipsoid_elevation_heading``
+        # is the heading the audit CSV's own column carries.
+        columns[columns.index("Elevation")] = ellipsoid_elevation_heading(settings)
     if settings.vertical_mode.converts_elevations:
         at = columns.index("Elevation")
         columns[at] = _elevation_heading(settings, table_geoid_model_name(result))
@@ -262,6 +318,7 @@ def row_strings(result: JobResult) -> tuple[tuple[str, ...], ...]:
     settings = result.settings
     to_geodetic = _geodetic_display_columns(settings)
     vertical = settings.vertical_mode.converts_elevations
+    zone_columns = _shows_zone_columns(settings)
 
     rows: list[tuple[str, ...]] = []
 
@@ -284,6 +341,11 @@ def row_strings(result: JobResult) -> tuple[tuple[str, ...], ...]:
             fmt.factor(point.factors.combined_factor),
             "; ".join(warning.code.value for warning in point.warnings),
         ]
+        if not zone_columns:
+            # The two cells under ``ZONE_ONLY_COLUMNS``, dropped exactly where
+            # ``columns_for`` drops their headings, BEFORE the vertical
+            # insertion below so its index is the same on every layout.
+            del cells[GRID_FACTOR_COLUMN : COMBINED_FACTOR_COLUMN + 1]
 
         if vertical:
             # Directly after the Elevation cell, under the two headings
@@ -552,17 +614,55 @@ def _units_text(unit) -> str:
     return f"{unit.name} ({unit.code})"
 
 
-def _warnings_text(point) -> str:
+def _warnings_text(point, job_warnings=()) -> str:
     """Every warning this point raised, in full, or ``NO_WARNINGS``.
 
     The messages themselves, joined by a blank line, exactly as the multi-point
     table's tooltip does. The refusal-grade wording in this program was written
     to teach; a single-point display has the room, so it shows the sentences
     rather than the warning codes the table has to compress into a cell.
+
+    ``job_warnings`` - ``JobResult.job_warnings``, the warnings about the JOB
+    rather than about any one point (today only the WGS 84 realization period,
+    docs/PLAN-wgs84.md decision D9) - come FIRST, as the job record prints
+    them first, and in the record's own words: ``job_warning_messages``, which
+    is ``warning.message`` exactly as ``report`` writes it. Not in
+    ``JobResult.warnings``, which pairs each entry with the point that raised
+    it, so a display reading only that would never show them (work package
+    W5).
     """
-    if not point.warnings:
+    messages = [
+        *job_warning_messages(job_warnings),
+        *(_without_point_prefix(w.message) for w in point.warnings),
+    ]
+    if not messages:
         return NO_WARNINGS
-    return "\n\n".join(_without_point_prefix(w.message) for w in point.warnings)
+    return "\n\n".join(messages)
+
+
+def job_warning_messages(job_warnings) -> tuple[str, ...]:
+    """The job-level warnings' text: ``warning.message``, as the job record prints it.
+
+    The job-level twin of ``_warnings_text``, and the one place either tab
+    reads that text from, so the Single point warnings field, the Multi point
+    status tooltip and the record's WARNINGS section all carry the same
+    sentence (``report``'s WARNINGS block writes ``warning.message`` under
+    "(the whole job)"). No point prefix to strip: a job-level warning names no
+    point.
+    """
+    return tuple(warning.message for warning in job_warnings)
+
+
+def warning_count(result: JobResult) -> int:
+    """How many warnings a result carries: every point's, and the job's own.
+
+    What both tabs' status lines count and colour by. Counting
+    ``JobResult.warnings`` alone - which excludes ``job_warnings`` by design -
+    would print "No warnings." in the ordinary colour beside a warnings field
+    stating that the positions are dated outside their realization's period of
+    use.
+    """
+    return len(result.warnings) + len(result.job_warnings)
 
 
 def _without_point_prefix(message: str) -> str:
@@ -608,6 +708,13 @@ def _geodetic_values(conversion, positive_west: bool) -> tuple[ResultValue, ...]
     pivot the core stores - in every direction, rather than from the row's own
     columns, and that choice is load-bearing rather than convenient.
 
+    **The pivot, on a same-frame job only.** On a job with a frame
+    transformation the pivot is the NAD83(2011) position and the WGS 84 or
+    ITRF position is a second one (plan decision D5), so the panel shows both,
+    each labelled with its frame, through ``_position_values`` - which this
+    delegates to with no frame, so the same-frame rows are unchanged to the
+    character.
+
     The displayed NUMBER is identical either way: ``LongitudeConvention``'s
     ``to_signed`` and ``from_signed`` are the same exact IEEE negation, so
     ``fmt.longitude(conversion.longitude, positive_west=...)`` and
@@ -627,17 +734,140 @@ def _geodetic_values(conversion, positive_west: bool) -> tuple[ResultValue, ...]
     # cannot go in the file ones: they also write the clean PNEZD export, which
     # is read back before the archive is committed and lands in the surveyor's
     # CAD package. The DMS lines already carry their own symbols.
+    return _position_values(conversion.latitude, conversion.longitude, positive_west)
+
+
+def _framed(label: str, frame_code: str | None, qualifier: str | None = None) -> str:
+    """``Latitude``, or ``Latitude (WGS84(G2296))`` / ``Latitude (WGS84(G2296), DMS)``.
+
+    The audit CSV's own spelling for a frame-named position heading
+    (``exports._frame_named`` and ``frame_transformation_columns``: the frame
+    code first inside the parenthesis, then any qualifier), so the screen and
+    ``<stem>_full.csv`` name the same position the same way (#17) - less the
+    CSV's "neg west", which the panel has never carried (its DMS line's
+    hemisphere letter states the convention). With no frame, the plain label
+    and qualifier exactly as the panel has always spelled them.
+    """
+    if frame_code is None:
+        return label if qualifier is None else f"{label} ({qualifier})"
+    if qualifier is None:
+        return f"{label} ({frame_code})"
+    return f"{label} ({frame_code}, {qualifier})"
+
+
+def _position_values(
+    latitude: float,
+    longitude: float,
+    positive_west: bool,
+    frame_code: str | None = None,
+) -> tuple[ResultValue, ...]:
+    """One signed position's four rows, labelled with its frame when two exist.
+
+    ``frame_code`` is None on every same-frame job - the labels are then the
+    ones this panel has always shown, to the character - and the frame's code
+    on a transformed job, where the panel carries two positions about a metre
+    apart and an unlabelled one would leave the surveyor to guess which frame
+    a copied number is in.
+    """
     return (
-        ResultValue(LATITUDE_LABEL, fmt.latitude_display(conversion.latitude)),
-        ResultValue(LATITUDE_DMS_LABEL, fmt.latitude_dms(conversion.latitude)),
         ResultValue(
-            LONGITUDE_LABEL,
-            fmt.longitude_display(conversion.longitude, positive_west=positive_west),
+            _framed(LATITUDE_LABEL, frame_code), fmt.latitude_display(latitude)
+        ),
+        ResultValue(
+            _framed(LATITUDE_LABEL, frame_code, "DMS"), fmt.latitude_dms(latitude)
+        ),
+        ResultValue(
+            _framed(LONGITUDE_LABEL, frame_code),
+            fmt.longitude_display(longitude, positive_west=positive_west),
         ),
         # No convention flag: a DMS longitude is magnitude plus a hemisphere
         # letter, and the magnitude is the same number either way.
-        ResultValue(LONGITUDE_DMS_LABEL, fmt.longitude_dms(conversion.longitude)),
+        ResultValue(
+            _framed(LONGITUDE_LABEL, frame_code, "DMS"), fmt.longitude_dms(longitude)
+        ),
     )
+
+
+OBSERVATION_DATE_LABEL = "Observation date"
+"""The audit CSV's own heading for the job's one date (``exports.
+frame_transformation_columns``), shown directly under the WGS 84 or ITRF
+position it dates. A position in a time-dependent frame means nothing until
+the date it was observed is stated (``frames.FrameEpochKind``), so a Copy all
+that carried the position without it would paste half a fact."""
+
+
+@dataclass(frozen=True)
+class _Positions:
+    """The geodetic rows of one point: what the panel shows at each end.
+
+    ``input`` and ``output`` are the rows for the position the job READ and
+    the one it WROTE, where those are geodetic; ``pivot`` is the NAD83(2011)
+    position on a transformed job and empty otherwise.
+    """
+
+    input: tuple[ResultValue, ...]
+    output: tuple[ResultValue, ...]
+    pivot: tuple[ResultValue, ...]
+
+
+def _positions(point, positive_west: bool) -> _Positions:
+    """The panel's geodetic rows for this point, each block from its own record.
+
+    Same-frame job: the pivot is the only position, at either end, under the
+    labels the panel has always used, and ``pivot`` is empty (the zone-to-zone
+    layout shows it as its own block, unchanged).
+
+    Transformed job (plan decision D5): the NAD83(2011) pivot -
+    ``conversion.latitude`` / ``longitude`` - and the WGS 84 or ITRF
+    position - ``conversion.external_position`` - are different positions in
+    different frames, and each is shown under its own frame's name, never one
+    under the other's. Which end each one is comes from the path's own records
+    (``exports.external_frame`` / ``pivot_frame``): the external position is
+    the INPUT when the path starts in the time-dependent frame, and the OUTPUT
+    otherwise - the position ``job.written_geodetic_position`` says a geodetic
+    target writes. The observation date follows the external position.
+    """
+    conversion = point.conversion
+    if not conversion.is_transformed:
+        same = _geodetic_values(conversion, positive_west)
+        return _Positions(input=same, output=same, pivot=())
+
+    path = conversion.frame_transformation
+    external = conversion.external_position
+    pivot_rows = _position_values(
+        conversion.latitude,
+        conversion.longitude,
+        positive_west,
+        pivot_frame(path).code,
+    )
+    external_rows = (
+        *_position_values(
+            external.latitude,
+            external.longitude,
+            positive_west,
+            external_frame(path).code,
+        ),
+        ResultValue(
+            OBSERVATION_DATE_LABEL, conversion.observation_epoch.date.isoformat()
+        ),
+    )
+    reads_external = external_frame(path).code == path.source.code
+    # The written end, asked of the core's own rule rather than inferred: a
+    # mismatch here would be the pivot labelled with the WGS 84 frame.
+    writes_external = written_geodetic_position(conversion) == (
+        external.latitude,
+        external.longitude,
+    )
+    if reads_external == writes_external:
+        raise ValueError(
+            f"Point {point.point_id} carries the transformation {path}, but "
+            f"its external position is neither the input nor the output "
+            f"alone. Refused rather than labelling one frame's position with "
+            f"the other's name."
+        )
+    if reads_external:
+        return _Positions(input=external_rows, output=pivot_rows, pivot=pivot_rows)
+    return _Positions(input=pivot_rows, output=external_rows, pivot=pivot_rows)
 
 
 def _grid_values(
@@ -658,7 +888,12 @@ def _grid_values(
     )
 
 
-def _elevation_dependent_values(factors, ellipsoid_input=False) -> tuple[ResultValue, ...]:
+def _elevation_dependent_values(
+    factors,
+    ellipsoid_input=False,
+    pivot_frame_code: str | None = None,
+    has_a_zone: bool = True,
+) -> tuple[ResultValue, ...]:
     """The quantities that exist only because the point had an elevation.
 
     Every one of them is None for a point with no usable elevation, and
@@ -673,6 +908,21 @@ def _elevation_dependent_values(factors, ellipsoid_input=False) -> tuple[ResultV
     row whose label collided when the owner had the "(GNSS," qualifier removed
     (2026-08-11). The reconstruction is still checked, in the audit CSV's own
     "Ellipsoid height (m)" column and by its pin.
+
+    ``pivot_frame_code`` names the frame of that row's h on a transformed job:
+    every geoid model publishes N against NAD83(2011), so H + N is a height in
+    the pivot's frame, and the audit CSV's own column says
+    ``Ellipsoid height (NAD83(2011), m)`` there (``exports._frame_named``).
+    None on a same-frame job, whose label is unchanged.
+
+    ``has_a_zone`` False drops the Combined factor row - the GEODETIC_TO_
+    GEODETIC layout's rule (work package W5): with no zone there is no grid
+    factor, so the combined factor does not exist, and a row of N/A would
+    imply a zone could have produced one. The elevation factor stays: it
+    needs only the height and the geoid. Every other layout passes True and
+    is unchanged to the character - including the vertical-only geodetic
+    layout, released in 0.4.0, whose N/A combined row is its own pinned
+    decision.
     """
     values = [
         ResultValue(GEOID_HEIGHT_LABEL, fmt.geoid_height(factors.geoid_height)),
@@ -680,15 +930,19 @@ def _elevation_dependent_values(factors, ellipsoid_input=False) -> tuple[ResultV
     if not ellipsoid_input:
         values.append(
             ResultValue(
-                ELLIPSOID_HEIGHT_LABEL, fmt.geoid_height(factors.ellipsoid_height)
+                ELLIPSOID_HEIGHT_LABEL
+                if pivot_frame_code is None
+                else _framed("Ellipsoid height", pivot_frame_code, "m"),
+                fmt.geoid_height(factors.ellipsoid_height),
             )
         )
     values.append(
         ResultValue(ELEVATION_FACTOR_LABEL, fmt.factor(factors.elevation_factor))
     )
-    values.append(
-        ResultValue(COMBINED_FACTOR_LABEL, fmt.factor(factors.combined_factor))
-    )
+    if has_a_zone:
+        values.append(
+            ResultValue(COMBINED_FACTOR_LABEL, fmt.factor(factors.combined_factor))
+        )
     return tuple(values)
 
 
@@ -762,6 +1016,15 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
     reading = point.vertical
     swap = point.geoid_swap
     ellipsoid_input = settings.input_height_kind is HeightKind.ELLIPSOID
+    # The frame transformation this point underwent, or None (every
+    # same-frame job, whose every label below is unchanged). On a transformed
+    # job an ellipsoid height is IN a frame (plan decision D6): the input's
+    # in the path's source frame, a horizontal job's output - transformed
+    # with the position - in its target frame, and the factors' H + N in the
+    # pivot's. Each label names its own, as the audit CSV's headings do.
+    path = conversion.frame_transformation
+    positions = _positions(point, positive_west)
+    pivot_code = None if path is None else pivot_frame(path).code
     if reading is not None:
         input_elevation_label = _datum_elevation_label(
             reading.transformation.source,
@@ -778,14 +1041,20 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
         output_elevation_label = ELEVATION_LABEL
 
     if ellipsoid_input:
-        input_elevation_label = (
-            f"{ELLIPSOID_INPUT_LABEL} ({settings.input_unit.code})"
+        input_elevation_label = _framed(
+            ELLIPSOID_INPUT_LABEL,
+            None if path is None else path.source.code,
+            settings.input_unit.code,
         )
         if not settings.vertical_mode.converts_elevations:
             # Horizontal: the Z was written back untouched, so it is still an
-            # ellipsoid height and the label must not promote it.
-            output_elevation_label = (
-                f"{ELLIPSOID_INPUT_LABEL} ({settings.output_unit.code})"
+            # ellipsoid height and the label must not promote it. On a
+            # transformed job it was transformed WITH the position, so it is
+            # the target frame's h (plan decision D6).
+            output_elevation_label = _framed(
+                ELLIPSOID_INPUT_LABEL,
+                None if path is None else path.target.code,
+                settings.output_unit.code,
             )
         elif point.ellipsoid_height is not None:
             # A vertical mode DID derive an elevation. Name the datum the
@@ -799,6 +1068,27 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                 point.ellipsoid_height.geoid_model_name,
             )
     vertical_rows = _vertical_rows(reading, swap, settings.input_unit)
+    if (
+        path is not None
+        and ellipsoid_input
+        and settings.vertical_mode.converts_elevations
+    ):
+        # Plan decision D6 in a vertical mode: the typed h was transformed
+        # with the position before H = h - N was taken, and the Z written is
+        # now the elevation - so the transformed h appears nowhere else on
+        # the panel. Shown first among the rows that explain the output
+        # elevation, under the audit CSV's own heading and formatter for the
+        # same number (``exports.transformed_ellipsoid_height_heading``,
+        # ``formatting.geoid_height``); N/A where no height was typed. In
+        # Horizontal the output elevation row IS this height, already
+        # labelled with its frame, so it is not repeated.
+        vertical_rows = (
+            ResultValue(
+                transformed_ellipsoid_height_heading(path),
+                fmt.geoid_height(conversion.target_frame_ellipsoid_height),
+            ),
+            *vertical_rows,
+        )
 
     if settings.direction is Direction.VERTICAL_ONLY:
         # The vertical-only layouts (the owner's feature, 2026-08-09). The
@@ -830,7 +1120,7 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                         CONVERGENCE_LABEL,
                         fmt.convergence_display(conversion.target_convergence),
                     ),
-                    *_elevation_dependent_values(factors, ellipsoid_input),
+                    *_elevation_dependent_values(factors, ellipsoid_input, pivot_code),
                 ),
             )
         else:
@@ -839,16 +1129,23 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
             # zone could exist. The elevation-dependent values stay: the
             # geoid height and elevation factor need no zone, and the
             # combined factor honestly reads N/A through the formatter.
+            #
+            # A WGS 84 or ITRF input (plan decision D8) shows the typed
+            # position under its own frame and then the NAD83(2011) pivot
+            # every grid was read at - the same point in the frame the geoid
+            # and VERTCON models are published against. Same-frame input shows
+            # its one position, unchanged.
             source = ResultSection(
                 INPUT_TITLE,
                 (
-                    *_geodetic_values(conversion, positive_west),
+                    *positions.input,
+                    *positions.pivot,
                     ResultValue(
                         input_elevation_label,
                         fmt.coordinate(point.row.elevation, settings.input_unit),
                     ),
                     ResultValue(UNITS_LABEL, _units_text(settings.input_unit)),
-                    *_elevation_dependent_values(factors, ellipsoid_input),
+                    *_elevation_dependent_values(factors, ellipsoid_input, pivot_code),
                 ),
             )
         target = ResultSection(
@@ -871,7 +1168,7 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
         source = ResultSection(
             INPUT_TITLE,
             (
-                *_geodetic_values(conversion, positive_west),
+                *positions.input,
                 ResultValue(
                     input_elevation_label,
                     fmt.coordinate(point.row.elevation, settings.input_unit),
@@ -893,6 +1190,10 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                 # The shift and its sigma read directly under the elevation
                 # they explain, before the factors.
                 *vertical_rows,
+                # On a WGS 84 or ITRF input, the NAD83(2011) position the
+                # zone was projected from - where the zone-to-zone layout
+                # shows its own geodetic pivot. Empty on a same-frame job.
+                *positions.pivot,
                 ResultValue(
                     GRID_FACTOR_LABEL, fmt.factor(factors.grid_scale_factor)
                 ),
@@ -900,7 +1201,7 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                     CONVERGENCE_LABEL,
                     fmt.convergence_display(conversion.target_convergence),
                 ),
-                *_elevation_dependent_values(factors, ellipsoid_input),
+                *_elevation_dependent_values(factors, ellipsoid_input, pivot_code),
             ),
         )
         return source, target
@@ -930,22 +1231,72 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                     CONVERGENCE_LABEL,
                     fmt.convergence_display(conversion.target_convergence),
                 ),
-                *_elevation_dependent_values(factors, ellipsoid_input),
+                *_elevation_dependent_values(factors, ellipsoid_input, pivot_code),
             ),
         )
         target = ResultSection(
             OUTPUT_TITLE,
             (
-                *_geodetic_values(conversion, positive_west),
+                *positions.output,
                 ResultValue(
                     output_elevation_label,
                     fmt.coordinate(point.output_elevation, settings.output_unit),
                 ),
                 *vertical_rows,
                 ResultValue(UNITS_LABEL, _units_text(settings.output_unit)),
+                # On a WGS 84 or ITRF target, the NAD83(2011) position the
+                # zone's inverse produced and HTDP carried out - last, as the
+                # intermediate it is. Empty on a same-frame job.
+                *positions.pivot,
             ),
         )
         return source, target
+
+    if settings.direction is Direction.GEODETIC_TO_GEODETIC:
+        # Plan decision D7: latitude and longitude in, latitude and longitude
+        # out, across one HTDP path. No zone anywhere, so no Zone, grid
+        # factor, convergence or combined factor row - a row of N/A would
+        # imply a zone could exist (the Multi point table drops the same two
+        # factor columns on this direction, ``_shows_zone_columns``). Each end shows its own
+        # position under its own frame; the NAD83(2011) pivot IS one of the
+        # two ends, so it is not repeated. The elevation-dependent values
+        # describe the point at the pivot, where the geoid is read, and sit
+        # under OUTPUT with the converted height.
+        source = ResultSection(
+            INPUT_TITLE,
+            (
+                *positions.input,
+                ResultValue(
+                    input_elevation_label,
+                    fmt.coordinate(point.row.elevation, settings.input_unit),
+                ),
+                ResultValue(UNITS_LABEL, _units_text(settings.input_unit)),
+            ),
+        )
+        target = ResultSection(
+            OUTPUT_TITLE,
+            (
+                *positions.output,
+                ResultValue(
+                    output_elevation_label,
+                    fmt.coordinate(point.output_elevation, settings.output_unit),
+                ),
+                *vertical_rows,
+                ResultValue(UNITS_LABEL, _units_text(settings.output_unit)),
+                *_elevation_dependent_values(
+                    factors, ellipsoid_input, pivot_code, has_a_zone=False
+                ),
+            ),
+        )
+        return source, target
+
+    if settings.direction is not Direction.ZONE_TO_ZONE:
+        raise ValueError(
+            f"The single-point display has no layout for a "
+            f"{settings.direction.name} job. Refused rather than drawing it as "
+            f"zone to zone, which would show coordinates from zones the job "
+            f"never had."
+        )
 
     # Zone to zone. The geodetic pivot the conversion passed through is a real
     # computed result and independent of neither end, so it is shown - under
@@ -988,7 +1339,7 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
                 CONVERGENCE_LABEL,
                 fmt.convergence_display(conversion.target_convergence),
             ),
-            *_elevation_dependent_values(factors, ellipsoid_input),
+            *_elevation_dependent_values(factors, ellipsoid_input, pivot_code),
         ),
     )
     return source, target
@@ -1012,7 +1363,7 @@ def single_point_warnings(result: JobResult) -> str:
             f"and this job carries {len(result.points)}. Refused rather than "
             f"showing the first of them."
         )
-    return _warnings_text(result.points[0])
+    return _warnings_text(result.points[0], result.job_warnings)
 
 
 def single_point_clipboard_text(sections: tuple[ResultSection, ...]) -> str:

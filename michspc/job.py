@@ -1635,6 +1635,26 @@ def applied_frame_transformation(settings: JobSettings) -> FrameTransformation |
     return path
 
 
+def is_zoneless(direction: Direction, source_zone) -> bool:
+    """Whether a job of this direction and input zone has no State Plane zone.
+
+    True for ``GEODETIC_TO_GEODETIC``, and for ``VERTICAL_ONLY`` on geodetic
+    positions (``source_zone`` None). Such a job has no grid scale factor, no
+    convergence and no combined factor - nothing to project through - so every
+    zone-only statement about it is false.
+
+    THE one statement of that rule (work package W5 of the WGS 84 build). It
+    was a local in ``report.build_report``, where plan W4b introduced it to
+    withhold the zone-only record sentences; the interface asks it too - the
+    elevation hints that name the combined factor - so the two cannot drift.
+    Takes the direction and the input zone rather than ``JobSettings`` because
+    the interface asks it of a form that is not yet a job.
+    """
+    return direction is Direction.GEODETIC_TO_GEODETIC or (
+        direction is Direction.VERTICAL_ONLY and source_zone is None
+    )
+
+
 def today() -> datetime.date:
     """The day this job runs, for the observation date's future-date check.
 

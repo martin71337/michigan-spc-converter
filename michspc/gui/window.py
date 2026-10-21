@@ -69,6 +69,7 @@ from michspc.gui.controls import (
     GEODETIC_CHOICES,
     GEOID_MODEL_LABEL,
     INPUT_GEOID_LABEL,
+    OBSERVATION_DATE_LABEL,
     OUTPUT_GEOID_LABEL,
     RED,
     UNCHOSEN,
@@ -77,7 +78,9 @@ from michspc.gui.controls import (
     VERTICAL_MODE_LABEL,
     VERTICAL_SOURCE_LABEL,
     VERTICAL_TARGET_LABEL,
+    combined_factor_is_reported,
     direction_for,
+    frame_settings_fields,
     geodetic_choice,
     geodetic_frame_for,
     geoid_combo,
@@ -85,6 +88,8 @@ from michspc.gui.controls import (
     is_geodetic,
     longitude_combo,
     longitude_relevance,
+    observation_date_edit,
+    observation_date_relevance,
     refresh_geoid_combo,
     refresh_unit_combo,
     refresh_zone_graying,
@@ -100,7 +105,7 @@ from michspc.gui.controls import (
     zone_combo,
 )
 from michspc.gui.icon import application_icon
-from michspc.gui.results_model import ResultsModel
+from michspc.gui.results_model import ResultsModel, job_warning_messages, warning_count
 from michspc.gui.single_point import SinglePointTab
 from michspc.job import (
     Direction,
@@ -110,6 +115,7 @@ from michspc.job import (
     VerticalMode,
     run,
 )
+from michspc.spc import htdp
 from michspc.spc.vertical import VerticalDatum
 from michspc.spc.zones import Zone
 
@@ -133,6 +139,22 @@ factor calculations - as on-screen text, not a tooltip (#34's ruling on
 tooltips stands). In the two vertical modes the whole row is hidden: there
 the elevations are the thing being converted, and the record and the panel
 already say so.
+
+**Blank on a job with no zone** (``ELEVATION_NOTE_ZONELESS``, work package W5
+of the WGS 84 build): a geodetic-to-geodetic job has no grid scale factor and
+so no combined factor, and this sentence would be false beside it
+(``controls.combined_factor_is_reported``). Only the note's TEXT moves;
+``_update_vertical_rows`` stays the one owner of its visibility.
+"""
+
+ELEVATION_NOTE_ZONELESS = ""
+"""The note on a zone-less Horizontal job: nothing.
+
+Removing the false clause leaves no sentence - the note says only what the
+elevations are for, and the combined factor was its whole content. The "in
+file" button beside it still says the elevations are read. A layout
+decision for the owner's screen review; the alternative considered was
+"— used for elevation factor", true on that job but wording he has not seen.
 """
 
 UNITS_SNAPPED_STATUS = (
@@ -320,6 +342,7 @@ class MainWindow(QMainWindow):
         self._update_unit_offerings()
         self._update_unit_labels()
         self._update_longitude_relevance()
+        self._update_observation_date_relevance()
         self._update_vertical_rows()
         self._update_convert_enabled()
         self.resize(1000, 640)
@@ -486,7 +509,23 @@ class MainWindow(QMainWindow):
         self.longitude_combo = longitude_combo(box, self._update_convert_enabled)
 
         grid.addWidget(self.longitude_label, 8, 0)
-        grid.addWidget(self.longitude_combo, 8, 1, 1, 3)
+        grid.addWidget(self.longitude_combo, 8, 1)
+
+        # --- observation date (work package W5 of the WGS 84 build) -------
+        # Beside the longitude sign, as on the Single point tab: both state a
+        # fact about the file's positions that the numbers do not show. One
+        # date for the whole file (docs/PLAN-wgs84.md decision D10). Grayed
+        # unless a selected side's frame is time-dependent; opens
+        # UNANSWERED, and gates Convert while it is (settings()). Gating
+        # only, like every other control on this tab: the table describes the
+        # archive a run WROTE, not the controls (``_clear_table``), and that
+        # archive's record states the date it was converted at.
+        self.observation_date_label = QLabel(OBSERVATION_DATE_LABEL, box)
+        self.observation_date_edit = observation_date_edit(
+            box, self._update_convert_enabled
+        )
+        grid.addWidget(self.observation_date_label, 8, 2)
+        grid.addWidget(self.observation_date_edit, 8, 3)
 
         # --- elevations -------------------------------------------------
         # The whole row is HORIZONTAL-mode furniture, hidden by
@@ -731,6 +770,16 @@ class MainWindow(QMainWindow):
         source_zone = source if isinstance(source, Zone) else None
         target_zone = target if isinstance(target, Zone) else None
 
+        # The WGS 84 build's two fields (work package W5), by the one rule
+        # both tabs share: the output frame of a geodetic-to-geodetic job, and
+        # the observation date when a time-dependent frame is selected - None
+        # back means that date is unanswered, so the form is incomplete.
+        frame_fields = frame_settings_fields(
+            mode, direction, source, target, self.observation_date_edit
+        )
+        if frame_fields is None:
+            return None
+
         common = dict(
             input_path=self.input_path,
             output_directory=self.output_directory,
@@ -764,6 +813,7 @@ class MainWindow(QMainWindow):
         frame = geodetic_frame_for(source, target)
         if frame is not None:
             common["geodetic_frame"] = frame
+        common.update(frame_fields)
 
         if direction is Direction.ZONE_TO_ZONE:
             # A pure zone-to-zone job never consults the longitude convention
@@ -799,6 +849,18 @@ class MainWindow(QMainWindow):
         if source_datum is None or target_datum is None:
             return None
 
+        # Only the From selection counts in this mode (the To dropdown is
+        # hidden), so only a time-dependent INPUT frame asks for the date.
+        frame_fields = frame_settings_fields(
+            VerticalMode.VERTICAL,
+            Direction.VERTICAL_ONLY,
+            source,
+            UNCHOSEN,
+            self.observation_date_edit,
+        )
+        if frame_fields is None:
+            return None
+
         input_unit = unit_for(self.input_unit)
         common = dict(
             input_path=self.input_path,
@@ -820,6 +882,7 @@ class MainWindow(QMainWindow):
         frame = geodetic_frame_for(source)
         if frame is not None:
             common["geodetic_frame"] = frame
+        common.update(frame_fields)
 
         if source_zone is not None:
             # The file carries no longitudes and none are written - the
@@ -909,12 +972,31 @@ class MainWindow(QMainWindow):
         refresh_zone_graying(self.from_zone, target, is_source=True)
         refresh_zone_graying(self.to_zone, source, is_source=False)
 
+    def _update_elevation_note(self) -> None:
+        """The one owner of the elevation note's TEXT.
+
+        The owner's sentence, unless the selections describe a job with no
+        zone (``controls.combined_factor_is_reported``, asked of the core's
+        zoneless rule), where it would promise a combined factor that does
+        not exist. Visibility is ``_update_vertical_rows``'s alone (the #57
+        defect was two methods driving one property).
+        """
+        self.elevation_note.setText(
+            ELEVATION_NOTE
+            if combined_factor_is_reported(
+                self.direction(), self.from_zone.currentData()
+            )
+            else ELEVATION_NOTE_ZONELESS
+        )
+
     def _on_direction_changed(self) -> None:
         self._update_input_hint()
+        self._update_elevation_note()
         self._update_zone_graying()
         self._update_unit_offerings()
         self._update_unit_labels()
         self._update_longitude_relevance()
+        self._update_observation_date_relevance()
         self._update_convert_enabled()
 
     def _update_unit_offerings(self) -> None:
@@ -1030,6 +1112,18 @@ class MainWindow(QMainWindow):
         self.longitude_label.setEnabled(relevant)
         self.longitude_combo.setEnabled(relevant)
 
+    def _update_observation_date_relevance(self) -> None:
+        """The date matters only when a time-dependent frame is selected;
+        ``controls.observation_date_relevance`` owns the rule for all three
+        modes, and a grayed control's value is never sent."""
+        relevant = observation_date_relevance(
+            self.vertical_mode(),
+            self.from_zone.currentData(),
+            self.to_zone.currentData(),
+        )
+        self.observation_date_label.setEnabled(relevant)
+        self.observation_date_edit.setEnabled(relevant)
+
     def _on_vertical_mode_changed(self) -> None:
         self._update_vertical_rows()
         # Leaving vertical-only mode brings the To dropdown back, and its
@@ -1041,6 +1135,7 @@ class MainWindow(QMainWindow):
         self._reconcile_zone_frames(clear=self.to_zone)
         self._update_zone_graying()
         self._update_longitude_relevance()
+        self._update_observation_date_relevance()
         self._update_convert_enabled()
 
     def _on_vertical_datum_changed(self) -> None:
@@ -1242,8 +1337,9 @@ class MainWindow(QMainWindow):
                     "The conversion settings are incomplete, so nothing was "
                     "run. Choose an input file, an output folder, both ends of "
                     "the conversion, the longitude sign convention when "
-                    "geodetic coordinates are involved, and both vertical "
-                    "datums when vertical mode is on."
+                    "geodetic coordinates are involved, the observation date "
+                    "when a WGS 84 or ITRF frame is selected, and both "
+                    "vertical datums when vertical mode is on."
                 )
             )
             return False
@@ -1262,6 +1358,14 @@ class MainWindow(QMainWindow):
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         try:
             result = run(settings)
+        except htdp.HtdpRefusal as error:
+            # NAMED, not left to the clause below (interim gate 2 of the WGS
+            # 84 build, finding L4): an HTDP refusal subclasses neither
+            # ValueError nor FrameMismatchError, so a handler narrowed to
+            # those one day would let it escape with the window disabled and
+            # the wait cursor up. Shown in full like every other refusal; the
+            # table was emptied above, so no previous run is left beside it.
+            failure = error
         except Exception as error:  # noqa: BLE001 - shown in full, then stopped
             failure = error
         else:
@@ -1325,23 +1429,36 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def status_text(self, result: JobResult) -> str:
-        """"<n> points converted. <m> warnings." — the owner's wording."""
+        """"<n> points converted. <m> warnings." — the owner's wording.
+
+        ``<m>`` counts the job's own warnings too (``results_model.
+        warning_count``, work package W5): a job dated outside its WGS 84
+        realization's period of use raises that warning once, about every
+        point, and it is not in ``JobResult.warnings``.
+        """
         return (
             f"{len(result.points)} points converted. "
-            f"{len(result.warnings)} warnings."
+            f"{warning_count(result)} warnings."
         )
 
     def _report_success(self, result: JobResult) -> None:
-        warned = len(result.warnings)
+        warned = warning_count(result)
         self._set_status(
             self.status_text(result),
             style=AMBER if warned else "",
         )
         if warned:
+            # The job's own warnings first, in the record's words, as the
+            # record prints them - then each point's, named by its point.
             self.status_label.setToolTip(
                 "\n\n".join(
-                    f"{point_id}: {warning.message}"
-                    for point_id, warning in result.warnings
+                    (
+                        *job_warning_messages(result.job_warnings),
+                        *(
+                            f"{point_id}: {warning.message}"
+                            for point_id, warning in result.warnings
+                        ),
+                    )
                 )
             )
         else:

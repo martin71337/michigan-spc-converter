@@ -91,6 +91,20 @@ def _geodetic_coordinate_columns(settings) -> bool:
     )
 
 
+def writes_geodetic_coordinates(settings) -> bool:
+    """Public name for ``_geodetic_coordinate_columns``: the same rule, one copy.
+
+    The Multi point table reads it (``gui.results_model``) to decide whether
+    its coordinate headings say latitude and longitude, where it used to
+    restate the rule - and the restatement had not grown the
+    GEODETIC_TO_GEODETIC branch this function carries, so that direction's
+    table would have shown degrees under "Northing" and "Easting" (work
+    package W4's note, closed at W5). A wrapper rather than a rename, so no
+    caller inside this module moves.
+    """
+    return _geodetic_coordinate_columns(settings)
+
+
 def _geodetic_source_columns(settings) -> bool:
     """Whether this job's INPUT file's columns two and three hold degrees."""
     return settings.direction in (
@@ -309,6 +323,24 @@ rule.
 """
 
 
+def ellipsoid_elevation_heading(settings) -> str:
+    """The HORIZONTAL ellipsoid-input Z column's heading, named by frame when two exist.
+
+    ``Ellipsoid height`` on a same-frame job, exactly as since #54. On a job
+    with a frame transformation the Z holds the ellipsoid height transformed
+    WITH the position (plan decision D6), so it is in the path's TARGET frame,
+    and the heading says so - ``Ellipsoid height (NAD83(2011))`` - because the
+    two frames' heights at one point differ by about a metre. The one
+    statement of that heading: ``_frame_named`` renames the audit CSV's column
+    with it, and the Multi point table's heading over the same cells is built
+    from it (work package W5), so the two cannot name different frames.
+    """
+    path = applied_frame_transformation(settings)
+    if path is None:
+        return ELLIPSOID_ELEVATION_HEADING
+    return f"{ELLIPSOID_ELEVATION_HEADING} ({path.target.code})"
+
+
 def audit_columns(result: JobResult) -> list[str]:
     """The audit CSV's header row for this job's direction.
 
@@ -452,7 +484,7 @@ def _frame_named(columns: list[str], path: FrameTransformation, settings) -> lis
         "Latitude (DMS)": f"Latitude ({pivot}, DMS)",
         "Longitude (DMS)": f"Longitude ({pivot}, DMS)",
         "Ellipsoid height (m)": f"Ellipsoid height ({pivot}, m)",
-        ELLIPSOID_ELEVATION_HEADING: f"{ELLIPSOID_ELEVATION_HEADING} ({path.target.code})",
+        ELLIPSOID_ELEVATION_HEADING: ellipsoid_elevation_heading(settings),
         f"Ellipsoid height in ({settings.input_unit.code})": (
             f"Ellipsoid height in ({path.source.code}, {settings.input_unit.code})"
         ),
@@ -493,6 +525,17 @@ def geodetic_pair_frames(
     if settings.direction is Direction.VERTICAL_ONLY:
         return path.source, path.source
     return path.source, path.target
+
+
+def transformed_ellipsoid_height_heading(path: FrameTransformation) -> str:
+    """``Ellipsoid height after transformation (NAD83(2011), m)``: HTDP's output h.
+
+    The audit CSV's heading for the ellipsoid height in the path's TARGET
+    frame on an ellipsoid-input job (plan decision D6), and the Single point
+    panel's label for the same number (work package W5), so the two name it
+    one way (#17).
+    """
+    return f"Ellipsoid height after transformation ({path.target.code}, m)"
 
 
 def frame_transformation_columns(path: FrameTransformation, settings) -> list[str]:
@@ -544,7 +587,7 @@ def frame_transformation_columns(path: FrameTransformation, settings) -> list[st
         columns.extend(
             [
                 f"Ellipsoid height before transformation ({path.source.code}, m)",
-                f"Ellipsoid height after transformation ({target}, m)",
+                transformed_ellipsoid_height_heading(path),
             ]
         )
     columns.extend(

@@ -81,8 +81,9 @@ to WRITE until W4 (the write guard). **W4 and W4b are done**: transformed
 jobs write and disclose; vertical-only geodetic records no longer state a zone
 they do not have (inherited from 0.4.0; the release notes must say so). **Interim gate 2 is done**: 2 HIGH, 1 MEDIUM
 and 5 LOW record and pin findings, no wrong number; all fixed, plus three
-from the re-confirmation. Next: W5 (GUI), brief in the lead's scratchpad
-as `w5_brief.txt`; its content is in plan section 3.7. **This container's baseline**: 6 environmental failures, the same with
+from the re-confirmation. **W5 is done**: the five frames, the date control and
+both positions reach both tabs (offscreen previews in `review/wgs84-w5/`).
+Next: W6 (self-test, tripwire, release notes), then the closing gate. **This container's baseline**: 6 environmental failures, the same with
 and without the work (DESIGN.md #65's five plus #69's half-way-point anchor,
 a last-ulp libm difference); run with `--continue-on-collection-errors`. In this container,
 `apt-get install gfortran` and `gfortran -O0 -std=legacy -w *.f` in a copy of

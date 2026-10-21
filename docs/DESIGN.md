@@ -835,6 +835,40 @@ re-derived by the lead):
     - **Interim gate 2 is closed** by the lead's fixes to these three, which
       were small and confined to the narrowed surface. The closing gate
       re-reviews the whole diff.
+- **W5, the GUI** (two builder sessions, a container restart between them;
+  the partial tree was assessed, snapshotted and continued, per METHOD.md
+  §3 on interruptions). The five frames reach all four combos, grouped below
+  a separator after NAD83(2011) and NATRF2022. GEODETIC_TO_GEODETIC is a
+  direction only across an HTDP path; D3 and D4 pairs gray, and refuse if
+  forced. Each tab has an observation-date control: a QDateEdit with an
+  explicit unanswered state ("— choose —", the house placeholder), no
+  default, Convert gated, and enabled only for a time-dependent frame.
+  Single point shows both positions, frame-labelled, and job-level warnings
+  reach both tabs. HtdpRefusal is caught by name. Every Single point
+  control invalidates a displayed result, pinned per control.
+  - **The lead's screen review of the offscreen previews**
+    (`review/wgs84-w5/`) found two defects, both fixed. The Elevations hint
+    claimed a combined factor on G2G; the zoneless rule is now one core
+    statement, `job.is_zoneless`. The G2G table carried zone-only columns
+    that could only read N/A, and it no longer shows them.
+  - **The builder found** a weak pin (S28) and a missing panel row: the
+    transformed ellipsoid height in vertical modes. Both fixed.
+  - 36 falsification seeds, all caught.
+  - **One NAD 83 lat/lon on screen checked against NGS's binary:** G2296
+    42.7325 N 84.5555 W, 2025-06-15, H 200 ft displays 42.73249152 /
+    84.55548930. HTDP prints 42.7324915168 / 84.5554892981.
+  - **The lead's decision, kept from the builder:** the Multi point table
+    is NOT cleared by control changes. #65 made it describe the archive
+    that was written, every other control already behaves so, and that tab
+    has no copy path. The date control gates Convert there, pinned.
+  - **For the owner's screen review:**
+    - the separate group for the five frames;
+    - the date widget, and whether a keyboard-only first answer works
+      (F4 / Alt+Down could not be confirmed offscreen);
+    - the zoneless hints, "optional" on Single point and blank on Multi
+      point;
+    - whether the released VERTICAL_ONLY geodetic table and panel should
+      also drop their N/A grid and combined factor cells, as G2G now does.
 - **Realization dates for D9's warning:** G1762 from 2013-10-16, G2139 from
   2021-01-03, G2296 from 2024-01-07 (NGA, ICG-17 WG-D presentation, 2023;
   EPSG 9756 and 10607; IGSMAIL-8444).

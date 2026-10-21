@@ -18,14 +18,23 @@ through this module.
 
 from __future__ import annotations
 
+import datetime
 import traceback
 from dataclasses import dataclass
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QButtonGroup, QComboBox, QMessageBox, QRadioButton
+from PySide6.QtCore import QDate, QEvent, QObject, Qt
+from PySide6.QtWidgets import (
+    QAbstractSpinBox,
+    QButtonGroup,
+    QComboBox,
+    QDateEdit,
+    QMessageBox,
+    QRadioButton,
+)
 
+from michspc import job as job_module
 from michspc.fileio import geoid
-from michspc.job import Direction, LongitudeConvention, VerticalMode
+from michspc.job import Direction, LongitudeConvention, VerticalMode, is_zoneless
 from michspc.spc.units import ALL_UNITS, INTERNATIONAL_FEET, LinearUnit
 from michspc.spc.convert import require_an_applicable_path
 from michspc.spc.frames import (
@@ -183,25 +192,58 @@ def geodetic_label(frame: ReferenceFrame) -> str:
     return f"{frame.code} geodetic (latitude / longitude)"
 
 
+def _has_a_transformation(source: ReferenceFrame, target: ReferenceFrame) -> bool:
+    """Whether a registered NON-identity path carries ``source`` to ``target``.
+
+    Asked of the frame registry (``frames.require_frame_path``), the same
+    function ``job.run`` refuses on, and through
+    ``convert.require_an_applicable_path``, the same point ``job.run`` applies
+    or refuses a path at - so the interface cannot offer a transformation the
+    pipeline would not run. An identity record is not a transformation: the
+    same frame at both ends converts nothing.
+    """
+    try:
+        path = require_an_applicable_path(require_frame_path(source, target))
+    except FrameMismatchError:
+        return False
+    return not path.is_identity
+
+
 def frames_offered(frames=ALL_FRAMES, zones=ALL_ZONES) -> tuple[ReferenceFrame, ...]:
     """Every frame a geodetic entry is offered for, in declaration order.
 
     Two conditions, both necessary, and each one keeps out a different wrong
     entry:
 
-    * **usable** - ``ALL_FRAMES`` carries WGS 84 precisely so this program can
-      refuse it by name (``frames.FrameNotUsableError``). Offering it would put
-      the one frame the registry has no path for into the dropdown that decides
-      the frame, which is the exact mistake #58 was written about;
-    * **referenced by at least one registered zone** - a usable frame with no
-      zones is a frame nothing can be converted INTO or out of, so its geodetic
-      entry could only ever pair with the placeholder or with itself, and
-      geodetic-to-geodetic is not a conversion (``direction_for``). The entry
-      would be a question with no answer.
+    * **usable** - ``ALL_FRAMES`` carries the bare WGS 84 label precisely so
+      this program can refuse it by name (``frames.FrameNotUsableError``,
+      docs/PLAN-wgs84.md decision D2). Offering it would put a label naming no
+      realization and no epoch into the dropdown that decides the frame, which
+      is the exact mistake #58 was written about;
+    * **connected to a zone** - either referenced by at least one registered
+      zone, or holding a registered NON-identity path to a frame that is
+      (``_has_a_transformation``, which asks the frame registry). A usable
+      frame with neither is a frame nothing can be converted INTO or out of,
+      so its geodetic entry could only ever pair with the placeholder or with
+      itself, and the same frame at both ends is not a conversion
+      (``direction_for``). The entry would be a question with no answer.
 
-    Derived, so a frame arriving in the registry with zones on it appears here
-    with no interface change - the ``zone_combo`` property - and a frame whose
-    status changes to not-usable disappears the same way.
+    **The second branch is work package W5 of the WGS 84 build**
+    (docs/PLAN-wgs84.md section 3.7, DESIGN.md #70). The five WGS 84 and ITRF
+    frames carry no zone - no State Plane zone is defined on a global frame -
+    but each holds an NGS HTDP v3.6.0 path to NAD83(2011), which carries the
+    three SPCS 83 zones, so a WGS 84 position can be converted into one of
+    them, out of one, or to NAD83(2011) geodetic. Until W5 this rule was
+    "carries a zone" alone and kept all five out of every dropdown, which was
+    the #41 rule (disclosure before reachability) doing its job while W3 and
+    W4 built the arithmetic and the records. Both have landed.
+
+    Derived, so a frame arriving in the registry with zones on it, or with a
+    path to one, appears here with no interface change - the ``zone_combo``
+    property - and a frame whose status changes to not-usable disappears the
+    same way. NATRF2022 against the five is not a path (plan decision D3), and
+    neither is one global frame against another (D4); neither is needed for
+    the five to be offered, because each reaches NAD83(2011).
 
     The two registries are parameters defaulting to themselves. Nothing in the
     program passes them: it is a seam for the pin, which has to be able to ask
@@ -211,10 +253,15 @@ def frames_offered(frames=ALL_FRAMES, zones=ALL_ZONES) -> tuple[ReferenceFrame, 
     believed rather than checked.
     """
     with_zones = {zone.frame.code for zone in zones}
+    zoned = [frame for frame in frames if frame.code in with_zones]
     return tuple(
         frame
         for frame in frames
-        if frame.is_usable and frame.code in with_zones
+        if frame.is_usable
+        and (
+            frame.code in with_zones
+            or any(_has_a_transformation(frame, other) for other in zoned)
+        )
     )
 
 
@@ -244,8 +291,32 @@ def geodetic_choice(frame: ReferenceFrame) -> GeodeticChoice:
         raise KeyError(
             f"No geodetic dropdown entry exists for {frame!r}. The frames "
             f"offered are: {offered} (see controls.frames_offered - a frame "
-            f"must be usable and must carry at least one registered zone)."
+            f"must be usable and must carry at least one registered zone, or "
+            f"hold a registered transformation to a frame that does)."
         ) from None
+
+
+def geodetic_choice_groups() -> tuple[
+    tuple[GeodeticChoice, ...], tuple[GeodeticChoice, ...]
+]:
+    """``(plate-fixed choices, time-dependent choices)``, each in declaration order.
+
+    The two blocks ``zone_combo`` separates. Split on the frame record's own
+    ``is_time_dependent`` - the question every frame must answer
+    (``frames.FrameEpochKind``) - so a frame cannot land in the wrong block by
+    being typed into the wrong list.
+    """
+    return (
+        tuple(c for c in GEODETIC_CHOICES if not c.frame.is_time_dependent),
+        tuple(c for c in GEODETIC_CHOICES if c.frame.is_time_dependent),
+    )
+
+
+UNANSWERED_TEXT = "— choose —"
+"""What every control that opens unanswered shows: the zone dropdowns' and
+the vertical datum dropdowns' placeholder, and the observation date's special
+value text. One spelling, so a surveyor learns one sign for "not yet
+answered" (docs/DESIGN.md amendment #17's one-wording rule)."""
 
 
 def zone_combo(parent, on_change) -> QComboBox:
@@ -257,13 +328,32 @@ def zone_combo(parent, on_change) -> QComboBox:
     The order, and why it is this order:
 
     1. the unanswered placeholder;
-    2. one geodetic entry per offered frame, in ``ALL_FRAMES`` declaration
-       order (``frames_offered``), each naming its own datum (#58);
+    2. one geodetic entry per offered PLATE-FIXED frame - NAD83(2011) and
+       NATRF2022 - in ``ALL_FRAMES`` declaration order (``frames_offered``),
+       each naming its own datum (#58);
     3. a separator;
-    4. ``SPCS83_ZONES``, the three zones every Michigan job has used since
-       0.1.0 — first, because they are today's work;
+    4. one geodetic entry per offered TIME-DEPENDENT frame - the three WGS 84
+       realizations and the two ITRFs - in the same declaration order
+       (``geodetic_choice_groups``);
     5. a separator;
-    6. ``SPCS2022_ZONES``, the nineteen zones of the modernized design.
+    6. ``SPCS83_ZONES``, the three zones every Michigan job has used since
+       0.1.0 — first, because they are today's work;
+    7. a separator;
+    8. ``SPCS2022_ZONES``, the nineteen zones of the modernized design.
+
+    **Items 3 and 4 are work package W5 of the WGS 84 build, and the separator
+    between the two geodetic groups is a layout decision for the owner's
+    screen review** (docs/PLAN-wgs84.md section 3.7). Its reasons: the five
+    global entries are a different KIND of answer from the two above them - a
+    position in them means nothing until the date it was observed is stated,
+    which is why choosing one asks a further question (the observation date);
+    and the commonest wrong pick this build can invite is one row off - the
+    NAD83(2011) entry every existing job uses against a WGS 84 realization
+    1.3 m away (plan section 6). A rule between the two groups puts a visible
+    boundary at exactly that slip. The groups are split by the frame record's
+    own ``is_time_dependent``, never by a typed list, and the separator is
+    emitted only when the group below it has members, so the list never
+    carries an empty block.
 
     **The separators are the only things in this dropdown that carry no
     meaning**, and they are here because the three blocks they divide are three
@@ -303,9 +393,14 @@ def zone_combo(parent, on_change) -> QComboBox:
     to know which side the user just moved to know which side to clear.
     """
     combo = QComboBox(parent)
-    combo.addItem("— choose —", UNCHOSEN)
-    for choice in GEODETIC_CHOICES:
+    combo.addItem(UNANSWERED_TEXT, UNCHOSEN)
+    plate_fixed, time_dependent = geodetic_choice_groups()
+    for choice in plate_fixed:
         combo.addItem(choice.label, choice)
+    if time_dependent:
+        combo.insertSeparator(combo.count())
+        for choice in time_dependent:
+            combo.addItem(choice.label, choice)
     combo.insertSeparator(combo.count())
     for zone in SPCS83_ZONES:
         combo.addItem(zone_label(zone), zone)
@@ -618,7 +713,7 @@ def vertical_datum_combo(parent, on_change) -> QComboBox:
     dropdown, owns which pairs convert.
     """
     combo = QComboBox(parent)
-    combo.addItem("— choose —", UNCHOSEN)
+    combo.addItem(UNANSWERED_TEXT, UNCHOSEN)
     for datum in ALL_VERTICAL_DATUMS:
         if datum.is_usable:
             # "National Geodetic Vertical Datum of 1929 (NGVD29)" - the
@@ -780,9 +875,10 @@ def refresh_geoid_combo(combo, models) -> None:
 def direction_for(source_data, target_data) -> Direction | None:
     """The job this pair of dropdowns describes, or None if it is not one.
 
-    Returns None while either side is unanswered, and for the one
-    combination that is not a conversion: geodetic to geodetic, which has
-    no zone at either end and nothing to project through.
+    Returns None while either side is unanswered, and for the geodetic pairs
+    that are not a conversion: geodetic to geodetic with no registered
+    transformation between the two frames, which has no zone at either end and
+    nothing to project through.
 
     A zone to ITSELF is deliberately not in that list. It returns
     ``ZONE_TO_ZONE`` and runs, because it is a real job: the units are
@@ -791,12 +887,29 @@ def direction_for(source_data, target_data) -> Direction | None:
     even the identity case produces the per-point scale, convergence and
     combined factors that the audit CSV and the job record exist to report.
 
-    **Geodetic to geodetic returns None whatever the two frames are**, and H6
-    changes nothing about that: with two frames offered it is now possible to
-    select NAD83(2011) geodetic against NATRF2022 geodetic, which reads like a
-    datum transformation and is not one this program has - there is no zone at
-    either end to project through, and the frame bridge is unpublished
-    (DESIGN.md #62). It is not a conversion, so it is not a direction.
+    **Geodetic to geodetic is ``GEODETIC_TO_GEODETIC`` exactly when the frame
+    registry holds a NON-identity transformation between the two frames**
+    (docs/PLAN-wgs84.md decision D7, work package W5) - the ten NGS HTDP paths
+    between NAD83(2011) and the five WGS 84 and ITRF frames, which is HTDP's
+    own core use and the conversion most people asking for "WGS 84" need. Asked
+    of the registry (``_has_a_transformation``), never of a list here.
+
+    SUPERSEDES H6's "geodetic to geodetic returns None whatever the two frames
+    are", which was true while no transformation existed. It still returns
+    None for every other geodetic pair, and each for the reason it always had:
+
+    * the same frame at both ends - an identity converts nothing;
+    * NAD83(2011) against NATRF2022 - reads like a datum transformation and is
+      not one this program has; the frame bridge is unpublished (DESIGN.md
+      #62);
+    * a WGS 84 or ITRF frame against NATRF2022 (plan decision D3) - HTDP does
+      not carry NATRF2022;
+    * one global frame against another (plan decision D4) - no zone lives on
+      either, and refusing that neighbouring problem is a recorded decision.
+
+    None there means the pair describes no job and Convert is not offered; the
+    graying (``selection_is_compatible``) already keeps the user from choosing
+    it, from the same registry.
 
     **A cross-frame pair that IS a direction - a NAD83(2011) geodetic entry
     against an SPCS2022 zone - is answered here rather than refused.** The rule
@@ -816,6 +929,8 @@ def direction_for(source_data, target_data) -> Direction | None:
     if source_data == UNCHOSEN or target_data == UNCHOSEN:
         return None
     if is_geodetic(source_data) and is_geodetic(target_data):
+        if _has_a_transformation(source_data.frame, target_data.frame):
+            return Direction.GEODETIC_TO_GEODETIC
         return None
     if is_geodetic(source_data):
         return Direction.GEODETIC_TO_ZONE
@@ -886,9 +1001,9 @@ def frames_have_a_path(source: ReferenceFrame, target: ReferenceFrame) -> bool:
     (a WGS 84 position into an SPCS 83 zone, an SPCS 83 zone out to WGS 84) -
     and False for a registered path whose method the pipeline could not run.
     Under W2 it answered False for all ten, because the guard then refused
-    them. No frame on either end of such a pair is offered in a dropdown yet
-    (``frames_offered``, until work package W5), so this is the rule kept
-    true rather than a visible change.
+    them. Since work package W5 the five frames are offered in the dropdowns
+    (``frames_offered``), so this answer is now what grays - or leaves
+    choosable - every pairing of a WGS 84 or ITRF entry.
     """
     try:
         require_an_applicable_path(require_frame_path(source, target))
@@ -980,9 +1095,11 @@ def geodetic_frame_for(*sides) -> ReferenceFrame | None:
     or source alone in vertical-only mode - and the first geodetic one
     answers.
 
-    First-wins is safe rather than lucky: the only pair with two geodetic
-    sides is geodetic-to-geodetic, and ``direction_for`` has already made that
-    not a job, so no caller reaches this with two frames in play.
+    First-wins is the rule, and since work package W5 it is load-bearing
+    rather than incidental: the only pair with two geodetic sides is
+    ``GEODETIC_TO_GEODETIC``, whose ``geodetic_frame`` is the INPUT frame - the
+    source, which is read first - and whose output frame both tabs state
+    separately as ``target_geodetic_frame`` (``target_geodetic_frame_for``).
 
     None means "no end of this job is geodetic", which is a zone-to-zone job:
     ``geodetic_frame`` is unread there, and the settings keep their default
@@ -994,11 +1111,49 @@ def geodetic_frame_for(*sides) -> ReferenceFrame | None:
     return None
 
 
+def target_geodetic_frame_for(direction, target_data) -> ReferenceFrame | None:
+    """The OUTPUT frame of a geodetic-to-geodetic job, and None for every other.
+
+    What ``JobSettings.target_geodetic_frame`` is threaded from, on both tabs.
+    The core requires it on ``GEODETIC_TO_GEODETIC`` and refuses it by name on
+    every other direction - a second geodetic frame stated beside a job with
+    one geodetic end is a frame the record could print and the conversion
+    never used - so this answers None unless the direction is that one.
+    """
+    if direction is Direction.GEODETIC_TO_GEODETIC and is_geodetic(target_data):
+        return target_data.frame
+    return None
+
+
+def combined_factor_is_reported(direction, source_data) -> bool:
+    """Whether the job this form describes reports a combined scale factor.
+
+    What the two horizontal elevation hints ask before naming it - the Single
+    point placeholder (#57) and the Multi point note (#48), both "used for
+    combined scale factor". A job with no State Plane zone has no grid scale
+    factor and so no combined factor, and a hint promising one there is a
+    false sentence on screen: the W4b class on the record, and interim gate 2's
+    H2, reaching the interface through the GEODETIC_TO_GEODETIC direction W5
+    makes reachable (the lead's finding on the W5 screenshots).
+
+    Asked of ``job.is_zoneless``, the rule the job record withholds its
+    zone-only sentences on, so the screen and the record cannot disagree about
+    which jobs have a zone. ``direction`` None - a form not yet describing a
+    job - answers True: the hint keeps the owner's wording until the
+    selections say otherwise, exactly as it opens.
+    """
+    if direction is None:
+        return True
+    source_zone = source_data if isinstance(source_data, Zone) else None
+    return not is_zoneless(direction, source_zone)
+
+
 def longitude_is_relevant(direction) -> bool:
     """The selector matters only when geodetic coordinates are involved."""
     return direction in (
         Direction.GEODETIC_TO_ZONE,
         Direction.ZONE_TO_GEODETIC,
+        Direction.GEODETIC_TO_GEODETIC,
     )
 
 
@@ -1014,6 +1169,241 @@ def longitude_relevance(mode, source_data, direction) -> bool:
     if mode is VerticalMode.VERTICAL:
         return is_geodetic(source_data)
     return longitude_is_relevant(direction)
+
+
+OBSERVATION_DATE_LABEL = "Observation date:"
+
+OBSERVATION_DATE_FORMAT = "yyyy-MM-dd"
+"""How the date control shows a date: ISO 8601, year first.
+
+Not the platform's short date. ``03/04/2025`` is the 4th of March to one
+reader and the 3rd of April to another, and a date read the wrong way round
+is a position moved by a month of plate motion with nothing on screen to
+show it. ``2025-03-04`` reads one way only, and it is the form the job
+record and the audit CSV print the date in (``datetime.date.isoformat``), so
+the screen and the files spell it identically (#17)."""
+
+OBSERVATION_DATE_UNANSWERED = QDate(1752, 9, 14)
+"""The sentinel the date control holds while it is unanswered.
+
+Qt's own default minimum date for a ``QDateTimeEdit``. It is set as the
+control's MINIMUM, which is what makes Qt show ``UNANSWERED_TEXT`` in place
+of a date (``QAbstractSpinBox.specialValueText`` is shown exactly when the
+value equals the minimum) - so the unanswered state is not a date that might
+be mistaken for one: no date is displayed at all. ``observation_date_for``
+reads this value as None, and no real date can equal it, because every date
+the control can hold is at or after the minimum and only the minimum itself is
+the sentinel.
+
+Every date after it can be chosen. The core refuses what HTDP cannot compute
+(a year before 1907, in HTDP's own words) and what has not happened yet (a
+date after the day the job runs), and the interface shows those refusals
+rather than pre-empting them with a second rule (docs/PLAN-wgs84.md decision
+D9)."""
+
+
+class _CalendarOpensOnToday(QObject):
+    """Opens an unanswered date control's calendar on this month's page.
+
+    Left alone, Qt opens the calendar on the page of the control's current
+    value - September 1752, the sentinel - and a surveyor would page forward
+    nearly three centuries to reach his job. This moves the PAGE shown and
+    nothing else: no date is selected, the control stays unanswered, and
+    closing the calendar without clicking a day leaves it unanswered. Today is
+    where the page opens, never what the control holds (the brief's rule, and
+    the longitude convention's core rule: no default answer).
+
+    "Today" is ``job.today`` - the later of the local and UTC dates, the same
+    clock the core's future-date refusal reads - so the page shown and the
+    refusal cannot disagree about which month is current.
+    """
+
+    def __init__(self, edit) -> None:
+        super().__init__(edit)
+        self._edit = edit
+
+    def eventFilter(self, watched, event) -> bool:  # noqa: N802 - Qt's name
+        if event.type() == QEvent.Type.Show and not self._edit.is_answered():
+            today = job_module.today()
+            watched.setCurrentPage(today.year, today.month)
+        return False
+
+
+class ObservationDateEdit(QDateEdit):
+    """The observation date control: a calendar date, opening unanswered.
+
+    A native ``QDateEdit`` with its calendar popup (the owner's decision 3:
+    the epoch is entered as a calendar date), shown in ISO form
+    (``OBSERVATION_DATE_FORMAT``), and opening on ``OBSERVATION_DATE_UNANSWERED``
+    so that it displays ``UNANSWERED_TEXT`` and holds no date at all.
+
+    **No default date, and that is the whole care this control needs**
+    (docs/PLAN-wgs84.md section 3.7). A Michigan point moves about 17 mm a
+    year against NAD 83 in a WGS 84 or ITRF frame, so a date is a fact about
+    the data, and a preselected one - today's, say - would be an answer to a
+    question the surveyor was never asked, wrong by a year's motion for a
+    year-old file and looking exactly like a right one. The longitude
+    convention's core rule (docs/DESIGN.md section 7), applied here without
+    #29's exception.
+
+    **Three things are changed from the stock widget, and only in the
+    unanswered state**, each because the stock behaviour there would answer
+    the question or appear to:
+
+    * stepping is off - the Up and Down keys, Page Up and Down, the wheel and
+      the context menu's Step items would otherwise step the sentinel's YEAR
+      section to 1753-09-14, a plausible-looking date nobody chose;
+    * typed keys are swallowed - Qt appends them to the placeholder text
+      ("— choose —2025") without ever reading them as a date, so the box
+      would show something resembling an answer while holding none;
+    * the calendar opens on this month's page (``_CalendarOpensOnToday``).
+
+    So the first answer comes from the calendar. Once answered, the control is
+    the stock widget: each section can be typed over or stepped, and the
+    calendar opens on the date chosen. Measured on the offscreen platform and
+    pinned (tests/test_gui_wgs84.py).
+    """
+
+    def is_answered(self) -> bool:
+        """Whether a date has been chosen (anything but the sentinel)."""
+        return self.date() != self.minimumDate()
+
+    def stepEnabled(self):  # noqa: N802 - Qt's name
+        if not self.is_answered():
+            return QAbstractSpinBox.StepEnabledFlag.StepNone
+        return super().stepEnabled()
+
+    def stepBy(self, steps: int) -> None:  # noqa: N802 - Qt's name
+        if not self.is_answered():
+            return
+        super().stepBy(steps)
+
+    def keyPressEvent(self, event) -> None:  # noqa: N802 - Qt's name
+        if not self.is_answered():
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def wheelEvent(self, event) -> None:  # noqa: N802 - Qt's name
+        if not self.is_answered():
+            # Handed on, so a wheel over the unanswered box scrolls whatever
+            # contains it rather than stepping a date into existence.
+            event.ignore()
+            return
+        super().wheelEvent(event)
+
+
+def observation_date_edit(parent, on_change) -> ObservationDateEdit:
+    """The observation date control, one per tab, opening unanswered.
+
+    Built here so both tabs get the *same* control - the ``longitude_combo``
+    rule - and the handler is passed in because the tabs share no state
+    (docs/DESIGN.md amendment #26). It rides ``dateChanged``, which fires
+    exactly once per change of the held date, from the calendar, a typed
+    section or a step alike.
+    """
+    edit = ObservationDateEdit(parent)
+    edit.setDisplayFormat(OBSERVATION_DATE_FORMAT)
+    edit.setCalendarPopup(True)
+    edit.setMinimumDate(OBSERVATION_DATE_UNANSWERED)
+    edit.setSpecialValueText(UNANSWERED_TEXT)
+    # Set BEFORE the connection, so building the control does not fire the
+    # handler on a tab that is still constructing itself.
+    edit.setDate(OBSERVATION_DATE_UNANSWERED)
+    calendar = edit.calendarWidget()
+    calendar.installEventFilter(_CalendarOpensOnToday(edit))
+    # NO TOOLTIP (#34, #51): the label and the unanswered text are the whole
+    # control.
+    edit.dateChanged.connect(on_change)
+    return edit
+
+
+def observation_date_for(edit) -> datetime.date | None:
+    """The date the control holds, or None while it is unanswered.
+
+    The sentinel is None, never a date: ``OBSERVATION_DATE_UNANSWERED`` is how
+    the control says "not yet", and a reader that returned it as 1752-09-14
+    would hand the core a date nobody chose. Refuses a control that is not the
+    one ``observation_date_edit`` builds rather than guessing how its
+    "unanswered" is spelled - the ``height_kind_for`` contract.
+    """
+    if not isinstance(edit, ObservationDateEdit):
+        raise TypeError(
+            f"observation_date_for needs the control observation_date_edit "
+            f"builds; got {type(edit).__name__}. Another date widget has no "
+            f"unanswered state this function knows how to read, and a "
+            f"guessed one would send the core a date nobody chose."
+        )
+    if not edit.is_answered():
+        return None
+    value = edit.date().toPython()
+    if isinstance(value, datetime.datetime) or not isinstance(value, datetime.date):
+        raise TypeError(
+            f"The date control returned {type(value).__name__} ({value!r}) "
+            f"where a datetime.date was expected."
+        )
+    return value
+
+
+def observation_date_relevance(mode, source_data, target_data) -> bool:
+    """Whether the observation date governs anything right now.
+
+    True exactly when a SELECTED side's frame is time-dependent - a WGS 84
+    realization or an ITRF, asked of the frame record (``frame_of`` and
+    ``ReferenceFrame.is_time_dependent``), never of a list of names. Zones are
+    never time-dependent: no zone is defined on a global frame.
+
+    In vertical-only mode the To dropdown is hidden and no output system
+    exists, so only the From selection counts - the ``longitude_relevance``
+    rule for the same mode. A hidden To selection must not ask for a date.
+
+    The core is the authority and asks the same question of the PATH
+    (``job._time_dependent_frames_read``): it requires a date when the path
+    reads a time-dependent frame and refuses one by name when it does not. So
+    this decides two things only - whether the control is enabled, and whether
+    the tab sends its value - and the tab sends nothing when this is False,
+    which is what keeps a stray date out of a job that reads none.
+    """
+    sides = (
+        (source_data,) if mode is VerticalMode.VERTICAL else (source_data, target_data)
+    )
+    for data in sides:
+        frame = frame_of(data)
+        if frame is not None and frame.is_time_dependent:
+            return True
+    return False
+
+
+def frame_settings_fields(mode, direction, source_data, target_data, date_edit):
+    """The WGS 84 build's two settings fields this form states, or None if incomplete.
+
+    One rule for both tabs (work package W5), so they cannot thread the fields
+    differently:
+
+    * ``target_geodetic_frame`` - stated only on ``GEODETIC_TO_GEODETIC``
+      (``target_geodetic_frame_for``), the one direction with two geodetic
+      ends. Every other direction leaves it at None, its default, which the
+      core requires there.
+    * ``observation_date`` - stated only when a selected side's frame is
+      time-dependent (``observation_date_relevance``), and then REQUIRED: an
+      unanswered date returns None, so ``settings()`` returns None and Convert
+      is not offered - the core's own rule, met before it is asked. Otherwise
+      left at None, because the core refuses a date stated for a job that
+      reads none (a stray field would print an epoch into a record of a
+      conversion that used none).
+
+    Returns a dict to merge into the ``JobSettings`` keyword arguments.
+    """
+    fields: dict = {}
+    target_frame = target_geodetic_frame_for(direction, target_data)
+    if target_frame is not None:
+        fields["target_geodetic_frame"] = target_frame
+    if observation_date_relevance(mode, source_data, target_data):
+        date = observation_date_for(date_edit)
+        if date is None:
+            return None
+        fields["observation_date"] = date
+    return fields
 
 
 def show_failure_dialog(parent, error: BaseException, title: str) -> None:

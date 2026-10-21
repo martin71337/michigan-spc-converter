@@ -29,6 +29,7 @@ from michspc.job import (
     factors_geoid_model,
     factors_use_source_era,
     geoid_swap_models,
+    is_zoneless,
 )
 from michspc.spc import htdp, htdp_data
 from michspc.spc.convert import HeightConvention, WarningCode
@@ -1981,10 +1982,9 @@ def build_report(result: JobResult) -> str:
     # #42 finding-3 class: until W4b the vertical-only geodetic record printed
     # the SPCS 83 projection prose, "inside its zone" and "moved between
     # zones" about a job with no zone).
-    zoneless = geodetic_to_geodetic or (
-        settings.direction is Direction.VERTICAL_ONLY
-        and settings.source_zone is None
-    )
+    # ``job.is_zoneless`` is the one statement of it, shared with the
+    # interface's elevation hints (work package W5).
+    zoneless = is_zoneless(settings.direction, settings.source_zone)
     # The model that derived H from h, or None when the Z column already held
     # elevations. Resolved through the same job-layer rule the computation
     # used, so the record cannot name a model the conversion did not read.

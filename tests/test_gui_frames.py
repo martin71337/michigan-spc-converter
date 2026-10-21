@@ -37,9 +37,11 @@ import os
 # later change is ignored (docs/method/TOOLING.md).
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+import datetime  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 import pytest  # noqa: E402
+from PySide6.QtCore import QDate  # noqa: E402
 
 from michspc.gui import controls  # noqa: E402
 from michspc.gui.app import build_application  # noqa: E402
@@ -81,6 +83,12 @@ from tests.fixtures.vertcon_anchors import NGVD29_TO_NAVD88_ANCHORS  # noqa: E40
 
 NAD = controls.geodetic_choice(NAD83_2011)
 NAT = controls.geodetic_choice(NATRF2022)
+GLOBAL = tuple(
+    controls.geodetic_choice(frame)
+    for frame in ALL_FRAMES
+    if frame.is_usable and frame.is_time_dependent
+)
+"""The five WGS 84 and ITRF entries, offered since work package W5."""
 
 STATEWIDE_2022 = zone_by_code("260001")
 """Michigan's statewide SPCS2022 zone - the only one covering the whole state,
@@ -261,7 +269,11 @@ def test_only_usable_frames_that_carry_zones_are_offered():
     """
     offered = controls.frames_offered()
 
-    assert offered == (NAD83_2011, NATRF2022)
+    # SUPERSEDED (DESIGN.md #70, plan W5): the five WGS 84 and ITRF frames
+    # carry no zone but each holds an HTDP path to NAD83(2011), so the W5
+    # rule offers them after the two zone-carrying frames, in declaration
+    # order. H6's expectation was (NAD83_2011, NATRF2022).
+    assert offered == (NAD83_2011, NATRF2022, *_FIVE)
     assert WGS84 in ALL_FRAMES
     assert WGS84.is_usable is False
     assert WGS84 not in offered
@@ -328,15 +340,36 @@ def test_a_not_usable_frame_never_reaches_a_dropdown(window):
         window.single_point.to_zone,
     ):
         labels = [combo.itemText(i) for i in range(combo.count())]
-        assert WGS84.code not in "".join(labels)
+        # SUPERSEDED FORM (DESIGN.md #70, plan W5): "WGS84" is now a prefix
+        # of three offered codes - WGS84(G1762), (G2139), (G2296) - so the
+        # H6 substring test ("WGS84" in no label) would fail on the very
+        # realizations W5 offers. What must never appear is the BARE label:
+        # no entry is labelled with it, and none carries its record.
+        assert controls.geodetic_label(WGS84) not in labels
+        for label in labels:
+            assert not label.startswith(f"{WGS84.code} ")
         for index in range(combo.count()):
             data = combo.itemData(index)
             if controls.is_geodetic(data):
                 assert data.frame.is_usable
+                assert data.frame is not WGS84
 
 
-def test_the_wgs84_and_itrf_frames_reach_no_dropdown_yet(window):
-    """Plan W2 item 8: usable, but carrying no zone, so ``frames_offered`` keeps
+def test_the_wgs84_and_itrf_frames_reach_every_dropdown(window):
+    """SUPERSEDED BY W5 (DESIGN.md #70, docs/PLAN-wgs84.md section 3.7).
+
+    This stood as ``test_the_wgs84_and_itrf_frames_reach_no_dropdown_yet``:
+    plan W2 item 8, the five frames usable but carrying no zone, kept out of
+    every dropdown until W3/W4 applied and disclosed the transformation (the
+    #41 rule). W4 has landed, and W5 changes ``frames_offered``'s rule
+    deliberately - a frame holding a registered non-identity path to a frame
+    that carries zones is offered - so each of the five now has an entry in
+    all four dropdowns, labelled from its own record (#58). The path
+    assertions below are unchanged.
+
+    The W2 docstring, kept for the record:
+
+    Plan W2 item 8: usable, but carrying no zone, so ``frames_offered`` keeps
     them out - and the interface must not reach them before W3/W4 apply and
     disclose the transformation. W5 changes the rule, deliberately.
 
@@ -365,15 +398,15 @@ def test_the_wgs84_and_itrf_frames_reach_no_dropdown_yet(window):
         "ITRF2020",
     ]
     offered = controls.frames_offered()
-    assert offered == (NAD83_2011, NATRF2022)
+    assert offered == (NAD83_2011, NATRF2022, *five)
     assert [choice.frame for choice in controls.GEODETIC_CHOICES] == [
         NAD83_2011,
         NATRF2022,
+        *five,
     ]
     for frame in five:
-        assert frame not in offered
-        with pytest.raises(KeyError):
-            controls.geodetic_choice(frame)
+        assert frame in offered
+        assert controls.geodetic_choice(frame).frame is frame
         # Registered in the core and applied by it since W3; the interface
         # agrees with job.run, which accepts both directions.
         assert frames.require_frame_path(frame, NAD83_2011) is not None
@@ -389,9 +422,15 @@ def test_the_wgs84_and_itrf_frames_reach_no_dropdown_yet(window):
         window.single_point.from_zone,
         window.single_point.to_zone,
     ):
-        labels = "".join(combo.itemText(i) for i in range(combo.count()))
+        labels = [combo.itemText(i) for i in range(combo.count())]
         for frame in five:
-            assert frame.code not in labels
+            choice = controls.geodetic_choice(frame)
+            position = combo.findData(choice)
+            assert position >= 0, f"{frame.code} is not offered"
+            # Derived, never typed (#58): "WGS84(G2296) geodetic (latitude /
+            # longitude)", from the record's own code.
+            assert labels[position] == f"{frame.code} geodetic (latitude / longitude)"
+            assert labels[position] == controls.geodetic_label(frame)
         for index in range(combo.count()):
             data = combo.itemData(index)
             if controls.is_geodetic(data):
@@ -438,16 +477,34 @@ def test_direction_for_refuses_data_that_is_not_a_selection():
         controls.direction_for("geodetic", MI_SOUTH)
 
 
-def test_geodetic_to_geodetic_is_not_a_conversion_in_any_frame_pair():
-    """Unchanged rule, extended to the pairs H6 made selectable.
+def test_geodetic_to_geodetic_is_a_conversion_only_across_an_htdp_path():
+    """SUPERSEDED BY W5 (DESIGN.md #70, plan decision D7).
 
-    NAD83(2011) geodetic against NATRF2022 geodetic reads like a datum
-    transformation. It is not one this program has - there is no zone at either
-    end to project through, and the frame bridge is unpublished (#62).
+    This stood as ``test_geodetic_to_geodetic_is_not_a_conversion_in_any_frame_
+    pair`` - "unchanged rule, extended to the pairs H6 made selectable" - and
+    asserted None for every geodetic pair. Since W5, a geodetic pair holding a
+    registered NON-identity path is ``GEODETIC_TO_GEODETIC``: exactly the ten
+    HTDP pairs, each of the five frames to and from NAD83(2011). Every other
+    pair is still None, which is the half of the H6 pin that stands:
+    NAD83(2011) against NATRF2022 (the unpublished bridge, #62), a global
+    frame against NATRF2022 (D3), two global frames (D4), and any frame
+    against itself.
     """
+    ten = {(f.code, NAD83_2011.code) for f in _FIVE} | {
+        (NAD83_2011.code, f.code) for f in _FIVE
+    }
+    assert len(ten) == 10
+    seen = set()
     for source in controls.GEODETIC_CHOICES:
         for target in controls.GEODETIC_CHOICES:
-            assert controls.direction_for(source, target) is None
+            direction = controls.direction_for(source, target)
+            pair = (source.frame.code, target.frame.code)
+            if pair in ten:
+                assert direction is Direction.GEODETIC_TO_GEODETIC, pair
+                seen.add(pair)
+            else:
+                assert direction is None, pair
+    assert seen == ten
 
 
 # ==========================================================================
@@ -468,7 +525,14 @@ def test_the_chosen_geodetic_entry_states_its_frame_in_the_settings(
     default, and which is one to two metres away.
     """
     page = pages(window)[which]
-    zone = MI_SOUTH if choice.frame is NAD83_2011 else STATEWIDE_2022
+    # SUPERSEDED ZONE CHOICE (DESIGN.md #70, plan W5): the parametrization
+    # now runs over all seven offered entries. A NATRF2022 entry pairs with a
+    # 2022 zone; NAD83(2011) and the five WGS 84 / ITRF frames pair with an
+    # SPCS 83 zone - the five reach it through HTDP's path to NAD83(2011),
+    # and have no path to NATRF2022 (plan decision D3). H6's rule
+    # ("MI_SOUTH if NAD83(2011) else the statewide 2022 zone") would pair the
+    # five with a zone they cannot reach, which the graying now clears.
+    zone = STATEWIDE_2022 if choice.frame is NATRF2022 else MI_SOUTH
 
     if which == "multi":
         source = tmp_path / "in.csv"
@@ -478,6 +542,12 @@ def test_the_chosen_geodetic_entry_states_its_frame_in_the_settings(
     else:
         page.first_edit.setText("43.0")
         page.second_edit.setText("-84.5")
+    # A time-dependent frame needs its observation date before the form is a
+    # job (plan section 3.7); a plate-fixed one must not be sent one.
+    page.observation_date_edit.setDate(QDate(2025, 6, 15))
+    expected_date = (
+        datetime.date(2025, 6, 15) if choice.frame.is_time_dependent else None
+    )
 
     # Geodetic in.
     choose(page.from_zone, choice)
@@ -486,6 +556,7 @@ def test_the_chosen_geodetic_entry_states_its_frame_in_the_settings(
     assert settings is not None
     assert settings.direction is Direction.GEODETIC_TO_ZONE
     assert settings.geodetic_frame is choice.frame
+    assert settings.observation_date == expected_date
 
     # Geodetic out - the frame of the written latitudes and longitudes.
     if which == "single":
@@ -497,6 +568,7 @@ def test_the_chosen_geodetic_entry_states_its_frame_in_the_settings(
     assert settings is not None
     assert settings.direction is Direction.ZONE_TO_GEODETIC
     assert settings.geodetic_frame is choice.frame
+    assert settings.observation_date == expected_date
 
 
 @pytest.mark.parametrize("which", ["single", "multi"])
@@ -703,17 +775,23 @@ def test_choosing_one_frame_grays_every_entry_of_the_other(window, which, end):
     chooser = page.from_zone if end == "from" else page.to_zone
     other = page.to_zone if end == "from" else page.from_zone
 
-    # An SPCS 83 selection at one end.
+    # An SPCS 83 selection at one end. The five WGS 84 / ITRF entries stay
+    # choosable: each holds an HTDP path to and from NAD83(2011).
     choose(chooser, MI_SOUTH)
     assert set(grayed(other)) == {NAT, *SPCS2022_ZONES}
     assert item_is_enabled(other, NAD)
     assert item_is_enabled(other, controls.UNCHOSEN)
     for zone in SPCS83_ZONES:
         assert item_is_enabled(other, zone)
+    for choice in GLOBAL:
+        assert item_is_enabled(other, choice)
 
     # A 2022 selection at the same end grays the mirror set.
+    # SUPERSEDED SET (DESIGN.md #70, plan W5): the mirror set now includes
+    # the five WGS 84 / ITRF entries, which have no path to NATRF2022 (plan
+    # decision D3) and were not in any dropdown when H6 wrote {NAD, SPCS 83}.
     choose(chooser, STATEWIDE_2022)
-    assert set(grayed(other)) == {NAD, *SPCS83_ZONES}
+    assert set(grayed(other)) == {NAD, *SPCS83_ZONES, *GLOBAL}
     assert item_is_enabled(other, NAT)
     assert item_is_enabled(other, controls.UNCHOSEN)
     for zone in SPCS2022_ZONES:
@@ -735,8 +813,10 @@ def test_a_geodetic_entry_grays_the_other_frames_entries_too(window, which):
     assert set(grayed(page.to_zone)) == {NAT, *SPCS2022_ZONES}
     assert item_is_enabled(page.to_zone, NAD)
 
+    # SUPERSEDED SET (DESIGN.md #70, plan W5): as above, the five WGS 84 /
+    # ITRF entries join NATRF2022's mirror set (D3).
     choose(page.from_zone, NAT)
-    assert set(grayed(page.to_zone)) == {NAD, *SPCS83_ZONES}
+    assert set(grayed(page.to_zone)) == {NAD, *SPCS83_ZONES, *GLOBAL}
     assert item_is_enabled(page.to_zone, NAT)
 
 
@@ -1294,13 +1374,21 @@ def test_a_natrf2022_vertical_only_job_converts_and_writes(window, tmp_path):
 
 
 # --------------------------------------------------------------------------
-# Work package W3 of the WGS 84 build: the interface stays out of reach.
+# Work package W3 of the WGS 84 build kept the interface out of reach; W5
+# makes it reachable.
 #
-# W3 connects HTDP's frame transformation to job.run and adds
+# W3 connected HTDP's frame transformation to job.run and added
 # Direction.GEODETIC_TO_GEODETIC, observation_date and target_geodetic_frame
-# to the core. W4 has not built the disclosure and W5 has not built the
-# controls, so the #41 rule - disclosure before reachability - means no
-# interface path may reach any of it yet (docs/PLAN-wgs84.md, W3 item 8).
+# to the core. While W4 had not built the disclosure, the #41 rule -
+# disclosure before reachability - meant no interface path could reach any of
+# it, and the two pins that stood here held that:
+# ``test_no_interface_path_builds_a_geodetic_to_geodetic_job`` and
+# ``test_no_interface_module_names_the_w3_fields_or_direction``. W4 and W4b
+# have landed and interim gate 2 is closed, so W5 makes them reachable
+# deliberately (docs/PLAN-wgs84.md section 3.7). Both pins are SUPERSEDED BY
+# NAME by the two below, which hold what replaces them: the direction is
+# reached exactly across the ten HTDP pairs, and the two fields are stated in
+# ONE place both tabs share.
 # --------------------------------------------------------------------------
 
 
@@ -1309,35 +1397,56 @@ _FIVE = tuple(
 )
 
 
-def test_no_interface_path_builds_a_geodetic_to_geodetic_job():
-    """``direction_for`` still answers None for geodetic against geodetic.
+def test_the_interface_builds_a_geodetic_to_geodetic_job_only_across_htdp():
+    """Successor to ``test_no_interface_path_builds_a_geodetic_to_geodetic_job``.
 
-    For every pair of geodetic selections - the two the dropdowns offer, and
-    choices FORGED for the five time-dependent frames, which no dropdown
-    holds - so the answer cannot depend on what happens to be offered today.
-    W5 changes this, deliberately.
+    For every pair of geodetic selections - the seven the dropdowns offer -
+    ``direction_for`` answers GEODETIC_TO_GEODETIC exactly where the frame
+    registry holds a non-identity HTDP path (each of the five frames to and
+    from NAD83(2011): ten pairs), and None everywhere else. Asked of the
+    registry, so a frame's entry cannot be given a direction its frames lack.
     """
     offered = list(controls.GEODETIC_CHOICES)
-    forged = [controls.GeodeticChoice(frame=frame) for frame in _FIVE]
-    for source in offered + forged:
-        for target in offered + forged:
-            assert controls.direction_for(source, target) is None
-    assert controls.frames_offered() == (NAD83_2011, NATRF2022)
+    assert [choice.frame for choice in offered] == [
+        NAD83_2011,
+        NATRF2022,
+        *_FIVE,
+    ]
+    count = 0
+    for source in offered:
+        for target in offered:
+            direction = controls.direction_for(source, target)
+            try:
+                path = frames.require_frame_path(source.frame, target.frame)
+            except frames.FrameMismatchError:
+                path = None
+            if path is not None and not path.is_identity:
+                assert direction is Direction.GEODETIC_TO_GEODETIC
+                count += 1
+            else:
+                assert direction is None, (source.frame.code, target.frame.code)
+    assert count == 10
 
 
-def test_no_interface_module_names_the_w3_fields_or_direction():
-    """A source scan: nothing under michspc/gui sets the W3 settings or direction.
+def test_the_w3_fields_are_stated_in_one_place_both_tabs_share():
+    """Successor to ``test_no_interface_module_names_the_w3_fields_or_direction``.
 
-    ``JobSettings`` defaults ``observation_date`` and ``target_geodetic_frame``
-    to None and nothing in the interface names ``GEODETIC_TO_GEODETIC``, so
-    every job either tab can build is a same-frame job - which the write guard
-    and job.run both let through unchanged.
+    A source scan, as before, now holding the opposite fact: the interface
+    DOES state ``observation_date`` and ``target_geodetic_frame``, and it
+    states each exactly once - in ``controls.frame_settings_fields``, which
+    both tabs call - so the two tabs cannot thread either field differently.
+    Neither tab module assigns either field itself.
     """
     gui = Path(controls.__file__).resolve().parent
-    for source in sorted(gui.glob("*.py")):
-        text = source.read_text(encoding="utf-8")
-        for name in ("GEODETIC_TO_GEODETIC", "target_geodetic_frame", "observation_date"):
-            assert name not in text, f"{source.name} names {name}"
+    controls_text = (gui / "controls.py").read_text(encoding="utf-8")
+    assert controls_text.count('fields["observation_date"]') == 1
+    assert controls_text.count('fields["target_geodetic_frame"]') == 1
+    for name in ("window.py", "single_point.py"):
+        text = (gui / name).read_text(encoding="utf-8")
+        assert "frame_settings_fields(" in text, name
+        for field_name in ("observation_date", "target_geodetic_frame"):
+            assert f"{field_name}=" not in text, (name, field_name)
+            assert f'"{field_name}"' not in text, (name, field_name)
 
 
 @pytest.mark.parametrize("which", ["single", "multi"])

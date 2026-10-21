@@ -85,7 +85,7 @@ from the re-confirmation. **W5 is done**: the five frames, the date control and
 both positions reach both tabs (offscreen previews in `review/wgs84-w5/`).
 **W6 is done**: self-test 13 checks, HTDP tripwire probe,
 `docs/REFREEZE-HTDP.md`, the Windows htdp.exe checker, and DRAFT notes
-`docs/RELEASE-NOTES-0.8.0.md`. Next: the closing gate over fbcbf4a..HEAD. **This container's baseline**: 6 environmental failures, the same with
+`docs/RELEASE-NOTES-0.8.0.md`. **The closing gate is done and APPROVED** over fbcbf4a..HEAD (1 MEDIUM, 7 LOW, then 3 LOW and a final 2 LOW of release-notes wording; no wrong number in any gate of this build; `review/gate-wgs84-closing/`). Next is the owner's: screen review, `review/wgs84-w0/check_ngs_windows_binary.py` with NGS's htdp.exe, one real WGS 84/PPP dataset, the clean-profile install, then `py tools/build_release.py --acknowledge-ngs-beta`. Open product questions for him are in DESIGN.md #70 (the ITRF early-date warning, the screen-review items). **This container's baseline**: 6 environmental failures, the same with
 and without the work (DESIGN.md #65's five plus #69's half-way-point anchor,
 a last-ulp libm difference); run with `--continue-on-collection-errors`. In this container,
 `apt-get install gfortran` and `gfortran -O0 -std=legacy -w *.f` in a copy of

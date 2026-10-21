@@ -1,6 +1,6 @@
 # PLAN: WGS 84 and ITRF positions, to and from NAD 83(2011)
 
-**Status (2026-10-20): W0 to W4 and interim gate 1 DONE.** Transformed jobs now write, and every output states the transformation. W4b and interim gate 2 are done too (fixes plus a narrowing re-confirmation). W5 (the GUI) and W6 (packaging) are done too. Next: the closing gate. W2 registers the five frames and ten HTDP paths, and every one of them REFUSES at `convert.require_a_connected_path` and at the job's settings gate until W3 connects the arithmetic. W1 (`htdp.py`, `htdp_data.py`, 1,846 anchors) reproduces HTDP on all 19,236 applicable frozen records, and on 720 fresh random records the lead drove through NGS's binary, at every printed digit. Written by the session
+**Status (2026-10-20): W0 to W4 and interim gate 1 DONE.** Transformed jobs now write, and every output states the transformation. W4b and interim gate 2 are done too (fixes plus a narrowing re-confirmation). W5 (the GUI) and W6 (packaging) are done too. **The closing gate is done** (1 MEDIUM, 7 LOW, then 3 LOW and 2 LOW wording in the re-confirmations, no wrong number; all fixed, APPROVED, `review/gate-wgs84-closing/`). What remains is human, on the owner's machine: screen review, NGS's Windows htdp.exe against the anchors, one real dataset, the clean-profile install, and the release build. W2 registers the five frames and ten HTDP paths, and every one of them REFUSES at `convert.require_a_connected_path` and at the job's settings gate until W3 connects the arithmetic. W1 (`htdp.py`, `htdp_data.py`, 1,846 anchors) reproduces HTDP on all 19,236 applicable frozen records, and on 720 fresh random records the lead drove through NGS's binary, at every printed digit. Written by the session
 lead at the owner's instruction ("get going on it. follow the established
 development method"). DESIGN.md amendment **#70** records the opening of this
 build, the owner's three scope decisions and what W0 measured. This plan is the
@@ -408,7 +408,7 @@ gate.
 | | **Interim gate 2** over W3–W4: the integration and the records. **DONE** (`review/gate-wgs84-2/`). |
 | **W5** | GUI, both tabs. **DONE.** |
 | **W6** | Self-test 12–13, LAZY_IMPORTS, tripwire probe, release notes DRAFT. **DONE.** |
-| | **Closing gate** over the full diff; narrowing re-confirmation until APPROVED. |
+| | **Closing gate** over the full diff; narrowing re-confirmation until APPROVED. **DONE** (`review/gate-wgs84-closing/`). |
 
 **Reviewer.** Codex CLI is not installed in this cloud container. Every gate
 here runs under an independent Opus reviewer, blind to the lead's reading,

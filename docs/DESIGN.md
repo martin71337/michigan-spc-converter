@@ -948,6 +948,17 @@ re-derived by the lead):
       same record says no combined factor exists. That is a fact about a
       format, not a claim that a value was computed. Re-raised without new
       evidence, so it is recorded again, not changed.
+  - **Final narrow check of the release notes** (`review/gate-wgs84-closing/
+    final-notes-check.md`): the rewritten pair bullets are true on both tabs
+    (416 GUI checks, 0 problems, with a compatible control pair failing 42
+    of 52 so the harness can see a wrong result; 70 `job.run` refusals, each
+    naming the frame). Two LOW, both stale wording: the "still to do" list
+    still named the closing gate (F1), and the Corrected section said "in
+    either case" over three items (F2). One INFO: item 3 omitted L7's
+    geoid-swap phrase. All three fixed at the reviewer's own wording; a
+    narrowing re-check of that diff (`final-notes-recheck.md`) returned
+    APPROVED. **The closing gate is closed.** No gate of this build found a
+    wrong number.
 - **Realization dates for D9's warning:** G1762 from 2013-10-16, G2139 from
   2021-01-03, G2296 from 2024-01-07 (NGA, ICG-17 WG-D presentation, 2023;
   EPSG 9756 and 10607; IGSMAIL-8444).

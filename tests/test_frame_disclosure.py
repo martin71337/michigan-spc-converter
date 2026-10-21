@@ -310,7 +310,7 @@ def test_g2z_writes_htdps_pivot_projected(written):
     """WGS84(G2296) in, MI-S out, orthometric Z.
 
     Expected northing and easting: the L5 record's PRINTED NAD 83 output
-    (42.9999914437 N, 84.4999892421 W for G2296) projected by the program's
+    (42.9999914726 N, 84.4999892398 W for G2296) projected by the program's
     NCAT-verified projection, within GRID_CELL_M - two independent legs. The
     audit's pivot cells are that print within DD_CELL_DEG; its external
     position is the input as given, 43.0 / -84.5, exactly; the Z is the
@@ -377,7 +377,7 @@ def test_the_flagship_g2g_with_vertical_writes_nad83_and_navd88(written):
 
     Expected, all from the L5 record for G2296 (HTDP's print) and the
     program's GEOID18 reader at that printed pivot: the DD file's position is
-    HTDP's 42.9999914437 N, 84.4999892421 W within DD_CELL_DEG; the DMS file
+    HTDP's 42.9999914726 N, 84.4999892398 W within DD_CELL_DEG; the DMS file
     within DMS_CELL_DEG; the elevation is h(NAD 83) - N = 166.099 - (-33.085)
     = 199.184 m within HEIGHT_M plus half the 4-place unit. The reviewer's
     unguarded seed (gate 1, L5) wrote 198.085 m.
@@ -760,7 +760,26 @@ Software           NGS HTDP v3.6.0 (April 7, 2025), github.com/noaa-ngs/HTDP
 
 """
 
+# RECORDED SUPERSESSION - DESIGN.md #70, interim gate 2 finding L3: the
+# frozen W4 text stated W0's bound as though it held at every date. It was
+# measured to hold over observation dates 1990-01-01 to 2035-12-31 (the
+# lead's re-measurement, review/wgs84-gate2/, extending W0's 1997.0 to 2026.8),
+# and now says so;
+# the representative jobs are dated 2025-06-15, inside that range, so no
+# further sentence follows. W4's text is kept as _ROUND_TRIP_AT_W4 for the
+# respelling of G2G_NO_GEOID_AT_W4 below.
 _ROUND_TRIP = """\
+Round trip         HTDP's forward and reverse transformations are not exact
+                   inverses. Measured on HTDP's own arithmetic, unrounded, for
+                   observation dates from 1990-01-01 to 2035-12-31, a Michigan
+                   position carried out and back fails to return by up to
+                   9.2e-6 m north, 6.4e-5 m east and 4.3e-6 m up
+                   (review/wgs84-w0/RECON.md section 5, review/wgs84-gate2/,
+                   DESIGN.md #70). This program reproduces HTDP's arithmetic,
+                   and so its round trip too.
+"""
+
+_ROUND_TRIP_AT_W4 = """\
 Round trip         HTDP's forward and reverse transformations are not exact
                    inverses. Measured on HTDP's own arithmetic, unrounded, a
                    Michigan position carried out and back fails to return by
@@ -1369,10 +1388,105 @@ G2G_NO_GEOID_AT_W4 = {
 }
 
 
-def _g2g_no_geoid_digests(root: Path) -> dict[str, str]:
+# --------------------------------------------------------------------------
+# RECORDED SUPERSESSION - DESIGN.md #70, interim gate 2 (findings H1, L2, L3).
+#
+# Three of the gate's fixes reach these two jobs, and nothing else does:
+#
+# * H1 - the four Source / Target degree headings of the audit CSV now name
+#   their frame, and the record's FILES WRITTEN sentence says exactly what
+#   is pinned true ("Every latitude, longitude and ellipsoid height column
+#   names its frame", where it said "Every position and ...");
+# * L3 - the Round trip paragraph names the epochs W0 measured over;
+# * L2 - on the REVERSE job (NAD83(2011) to G1762, dated outside G1762's
+#   period) the realization warning speaks of the OUTPUT realization.
+#
+# The digests are NOT re-frozen - that would discard the cross-version
+# property for every other byte - but, on #66/#68's and W4b's precedent, each
+# gate-2 passage, which must occur exactly once where it is expected, is
+# respelled back to its W4 text before the digest
+# (test_the_gate_2_respelling_is_exact pins the counts).
+# --------------------------------------------------------------------------
+
+_FILES_WRITTEN_SENTENCE = (
+    "    DMS, and the velocity HTDP applied. Every latitude, longitude and\n"
+    "    ellipsoid height column names its frame.\n",
+    "    DMS, and the velocity HTDP applied. Every position and ellipsoid height\n"
+    "    column names its frame.\n",
+)
+
+GATE2_RESPELLING = {
+    "g2g_no_geoid_reverse/in_GEODETIC_README.txt": (
+        (_ROUND_TRIP, _ROUND_TRIP_AT_W4),
+        _FILES_WRITTEN_SENTENCE,
+        (
+            "    This job writes its positions in WGS84(G1762), the realization "
+            "requested as its output, at the observation date 2025-06-15 - outside "
+            "WGS84(G1762)'s period of use, which is from 2013-10-16 to 2021-01-02 "
+            "(NGA replaced it with WGS84(G2139) on 2021-01-03). The date is after "
+            "NGA had replaced WGS84(G1762) with WGS84(G2139), so WGS84(G1762) was "
+            "not the realization in use on that date. The job is converted as "
+            "requested. Check that WGS84(G1762) is the realization wanted for "
+            "positions observed on that date.\n",
+            "    The positions are stated in WGS84(G1762) and dated 2025-06-15, "
+            "outside WGS84(G1762)'s period of use, which is from 2013-10-16 to "
+            "2021-01-02 (NGA replaced it with WGS84(G2139) on 2021-01-03). The "
+            "date is after NGA had replaced WGS84(G1762) with WGS84(G2139), so a "
+            "receiver on that date was not broadcasting it. Software can "
+            "legitimately keep labelling output with an older realization, so the "
+            "job is converted as stated - but a file labelled with the wrong "
+            "realization looks exactly like this. Check which realization the "
+            "positions are in.\n",
+        ),
+    ),
+    "g2g_no_geoid_forward/in_GEODETIC_README.txt": (
+        (_ROUND_TRIP, _ROUND_TRIP_AT_W4),
+        _FILES_WRITTEN_SENTENCE,
+    ),
+    "g2g_no_geoid_reverse/in_GEODETIC_full.csv": (
+        (
+            'Source latitude (NAD83(2011)),"Source longitude (NAD83(2011), as in file)"',
+            "Source latitude,Source longitude (as in file)",
+        ),
+        (
+            'Target latitude (WGS84(G1762)),"Target longitude (WGS84(G1762), as written)"',
+            "Target latitude,Target longitude (as written)",
+        ),
+    ),
+    "g2g_no_geoid_forward/in_GEODETIC_full.csv": (
+        (
+            'Source latitude (WGS84(G2296)),"Source longitude (WGS84(G2296), as in file)"',
+            "Source latitude,Source longitude (as in file)",
+        ),
+        (
+            'Target latitude (NAD83(2011)),"Target longitude (NAD83(2011), as written)"',
+            "Target latitude,Target longitude (as written)",
+        ),
+    ),
+}
+"""``{member: ((gate-2 text, W4 text), ...)}`` for the two G2G jobs."""
+
+
+def _respelled_as_w4(key: str, body: bytes) -> tuple[bytes, int]:
+    """``body`` with every gate-2 passage for ``key`` put back to its W4
+    spelling, and how many were found; a passage occurring twice is refused."""
+    text = body.decode("utf-8")
+    found = 0
+    for new, old in GATE2_RESPELLING.get(key, ()):
+        count = text.count(new)
+        if count > 1:
+            raise AssertionError(f"gate-2 passage occurs {count} times in {key}: {new[:60]!r}")
+        if count == 1:
+            text = text.replace(new, old)
+            found += 1
+    return text.encode("utf-8"), found
+
+
+def _g2g_no_geoid_digests(root: Path, *, respell: bool = True) -> dict[str, str]:
     """Two HORIZONTAL geodetic-to-geodetic jobs with geoid_model=None - no
     geoid read anywhere - every member digested, the record's timestamp and
-    temporary root normalised."""
+    temporary root normalised, and (unless ``respell`` is False) the gate-2
+    passages respelled as W4 wrote them (GATE2_RESPELLING)."""
     import hashlib
 
     jobs = {
@@ -1398,20 +1512,54 @@ def _g2g_no_geoid_digests(root: Path) -> dict[str, str]:
                     text = re.sub(r"^Generated          .*$", "Generated          <normalised>",
                                   body.decode(), flags=re.M)
                     body = text.replace(str(root), "<ROOT>").encode()
-                digests[f"{name}/{member}"] = hashlib.sha256(body).hexdigest()
+                key = f"{name}/{member}"
+                if respell:
+                    body, _found = _respelled_as_w4(key, body)
+                digests[key] = hashlib.sha256(body).hexdigest()
     return digests
 
 
 def test_g2g_reading_no_geoid_is_byte_identical_to_w4(tmp_path):
     """A horizontal G2G job that reads no geoid ran no vertical work, so W4b
-    adds no check to it: all four members of both jobs are W4's bytes, and
-    its METHOD is W4's _G2G_METHOD exactly."""
+    adds no check to it: all four members of both jobs are W4's bytes - but
+    for interim gate 2's passages, respelled (GATE2_RESPELLING) - and its
+    METHOD is W4's _G2G_METHOD exactly."""
     assert _g2g_no_geoid_digests(tmp_path) == G2G_NO_GEOID_AT_W4
     archive = next((tmp_path / "g2g_no_geoid_reverse").glob("*.zip"))
     text = _record(archive)
     method = text.index("METHOD\n")
     assert text[method:text.index("FRAME TRANSFORMATION", method)] == _G2G_METHOD
     assert "geoid height service" not in text
+
+
+def test_the_gate_2_respelling_is_exact(tmp_path):
+    """Anti-vacuity and confinement, as test_the_w4b_respelling_is_exact is:
+    every gate-2 passage is found exactly where GATE2_RESPELLING expects it
+    (3 + 2 in the records, 2 + 2 in the audit CSVs), so the raw members no
+    longer match W4's digests while the respelled ones do; the DD and DMS
+    members have no passage and are compared exactly as written."""
+    (tmp_path / "raw").mkdir()
+    (tmp_path / "respelled").mkdir()
+    raw = _g2g_no_geoid_digests(tmp_path / "raw", respell=False)
+    respelled = _g2g_no_geoid_digests(tmp_path / "respelled")
+    assert respelled == G2G_NO_GEOID_AT_W4
+    for key in G2G_NO_GEOID_AT_W4:
+        if key in GATE2_RESPELLING:
+            assert raw[key] != G2G_NO_GEOID_AT_W4[key], key
+        else:
+            assert raw[key] == G2G_NO_GEOID_AT_W4[key], key
+    for key, passages in GATE2_RESPELLING.items():
+        name, member = key.split("/", 1)
+        archive = next((tmp_path / "raw" / name).glob("*.zip"))
+        with zipfile.ZipFile(archive) as opened:
+            body = opened.read(member)
+        if member.endswith("README.txt"):
+            text = re.sub(r"^Generated          .*$", "Generated          <normalised>",
+                          body.decode(), flags=re.M)
+            body = text.replace(str(tmp_path / "raw"), "<ROOT>").encode()
+        respelled_body, found = _respelled_as_w4(key, body)
+        assert found == len(passages), key
+        assert _respelled_as_w4(key, respelled_body) == (respelled_body, 0), key
 
 
 def test_g2g_record_describes_its_own_files_and_factors(written):
@@ -1496,7 +1644,10 @@ def _appended(external, target, ellipsoid_source=None):
     ]
 
 
-EXPECTED_HEADERS = {
+EXPECTED_HEADERS_AT_W4 = {
+    # The headers W4 froze. RECORDED SUPERSESSION below
+    # (test_the_audit_header_is_exactly_this): interim gate 2 renamed four of
+    # them, and nothing else.
     "g2z": [
         "Point", "Source zone", "Source latitude", "Source longitude (as in file)",
         "Target zone", "Target northing", "Target easting", "Elevation", "Units",
@@ -1531,10 +1682,46 @@ EXPECTED_HEADERS = {
 }
 
 
-@pytest.mark.parametrize("name", list(EXPECTED_HEADERS))
+GATE2_H1_RENAMES = {
+    # The frame each degree pair HOLDS, per direction (exports.
+    # geodetic_pair_frames): the Source pair is the input, at the path's
+    # source end; the Target pair is the written position, at its target end.
+    # g2z: WGS84(G2296) input, MI-S grid out - only the Source pair is degrees.
+    "g2z": {
+        "Source latitude": "Source latitude (WGS84(G2296))",
+        "Source longitude (as in file)": "Source longitude (WGS84(G2296), as in file)",
+    },
+    # z2g: MI-S grid in, WGS84(G2296) written - only the Target pair.
+    "z2g": {
+        "Target latitude": "Target latitude (WGS84(G2296))",
+        "Target longitude (as written)": "Target longitude (WGS84(G2296), as written)",
+    },
+    # g2g_forward: WGS84(G2296) in, NAD83(2011) written - both pairs.
+    "g2g_forward": {
+        "Source latitude": "Source latitude (WGS84(G2296))",
+        "Source longitude (as in file)": "Source longitude (WGS84(G2296), as in file)",
+        "Target latitude": "Target latitude (NAD83(2011))",
+        "Target longitude (as written)": "Target longitude (NAD83(2011), as written)",
+    },
+}
+
+
+@pytest.mark.parametrize("name", list(EXPECTED_HEADERS_AT_W4))
 def test_the_audit_header_is_exactly_this(written, name):
+    """RECORDED SUPERSESSION - DESIGN.md #70, interim gate 2 finding H1.
+
+    W4 froze these headers with the four Source / Target degree headings
+    naming no frame, beside a record sentence saying every position column
+    named its frame; the pin enshrined the false half. They now name the
+    frame their cells are in. Pinned as W4's header with EXACTLY those
+    renames and no other change, so the supersession is confined: every other
+    heading is W4's, in W4's position.
+    """
     _result, archive = written[name]
-    assert _csv_rows(member_text(archive, "_full.csv"))[0] == EXPECTED_HEADERS[name]
+    header = _csv_rows(member_text(archive, "_full.csv"))[0]
+    renames = GATE2_H1_RENAMES[name]
+    assert header == [renames.get(c, c) for c in EXPECTED_HEADERS_AT_W4[name]]
+    assert sum(1 for c in EXPECTED_HEADERS_AT_W4[name] if c in renames) == len(renames)
 
 
 _PIVOT_RENAMES = {
@@ -1558,24 +1745,39 @@ _SUPPLIED_HEIGHT_RENAMES = {
 }
 
 
+_PAIR_RENAMES = {
+    # Interim gate 2, H1: the degree pairs, each by the frame its cells hold.
+    "g2z": GATE2_H1_RENAMES["g2z"],
+    "z2g": GATE2_H1_RENAMES["z2g"],
+    # vertical_only: ITRF2020 input, and the Target pair MIRRORS it, so both
+    # pairs are ITRF2020 - not the NAD83(2011) the path ends in.
+    "vertical_only": {
+        "Source latitude": "Source latitude (ITRF2020)",
+        "Source longitude (as in file)": "Source longitude (ITRF2020, as in file)",
+        "Target latitude": "Target latitude (ITRF2020)",
+        "Target longitude (as written)": "Target longitude (ITRF2020, as written)",
+    },
+}
+
+
 @pytest.mark.parametrize("name", list(_SUPPLIED_HEIGHT_RENAMES))
 def test_the_shared_columns_keep_their_positions(written, name):
     """Against the SAME job on NAD83(2011) with no date - the same-frame job
     of the same shape - every column keeps its index: the five NAD 83
-    headings and the supplied height's are renamed in place, and every new
-    column follows Description. (Geodetic to geodetic has no same-frame
-    shape: D7 refuses one.)"""
+    headings, the supplied height's and (since interim gate 2, H1) the degree
+    pairs' are renamed in place, and every new column follows Description.
+    (Geodetic to geodetic has no same-frame shape: D7 refuses one.)"""
     result, archive = written[name]
     header = _csv_rows(member_text(archive, "_full.csv"))[0]
     same_settings = dataclasses.replace(
         result.settings, geodetic_frame=NAD83_2011, observation_date=None
     )
     same = exports.audit_columns(dataclasses.replace(result, settings=same_settings))
-    renames = {**_PIVOT_RENAMES, **_SUPPLIED_HEIGHT_RENAMES[name]}
+    renames = {**_PIVOT_RENAMES, **_SUPPLIED_HEIGHT_RENAMES[name], **_PAIR_RENAMES[name]}
     assert header[: len(same)] == [renames.get(c, c) for c in same]
     assert sum(1 for c in same if c in renames) == len(_PIVOT_RENAMES) + len(
         _SUPPLIED_HEIGHT_RENAMES[name]
-    )
+    ) + len(_PAIR_RENAMES[name])
     assert same[-1] == "Description"
     assert header[len(same)] == "Frame transformation"
 
@@ -1934,3 +2136,428 @@ def test_the_vertical_check_counts_are_the_fixtures():
     assert words[len(GEOID_ANCHORS)] == report.GEOID_ANCHOR_COUNT.lower()
     assert words[len(GEOID12B_ANCHORS)] == report.GEOID_ANCHOR_COUNT.lower()
     assert words[len(BENCHMARK_ANCHORS)] == report.BENCHMARK_ANCHOR_COUNT
+
+
+# ==========================================================================
+# 8. Interim gate 2 of the WGS 84 build (review/gate-wgs84-2/output.md):
+#    H1, H2 and L3 - three record sentences made true and pinned.
+# ==========================================================================
+
+# --------------------------------------------------------------------------
+# H1: "Every latitude, longitude and ellipsoid height column names its
+# frame." The root pin: on every transformed direction, under both height
+# kinds and every mode the direction takes, each such heading names exactly
+# one frame, and that frame is the one its CELLS hold - found by matching
+# each cell against the point's NAD83(2011) and WGS 84 / ITRF values, which
+# are about a metre apart (~9e-6 deg, ~1.1 m in h), far beyond every written
+# precision (5e-9 deg DD, 1.4e-9 deg DMS, 0.5 mm h).
+# --------------------------------------------------------------------------
+
+_FRAME_CODES = [NAD83_2011.code] + FIVE_IDS
+"""Every frame a transformed job's heading can name; no code contains another."""
+
+_H1_GEODETIC_POINTS = ((43.0, 84.5, "165.000"), (42.4, 83.2, "250.000"))
+"""Two NAD 83 / input positions in MI-S's area, longitude positive west, with
+ellipsoid-or-orthometric Z values far from zero (a 0 Z is "not recorded")."""
+
+_NAD83_SOUTH_2 = project_point(42.4, -83.2, NAD83_2011, MI_SOUTH)
+
+
+def _h1_rows(direction, convention) -> str:
+    if direction is Direction.ZONE_TO_GEODETIC:
+        grid = (_NAD83_SOUTH, _NAD83_SOUTH_2)
+        return "".join(
+            f"{n},{g.target_northing!r},{g.target_easting!r},{z},P{n}\n"
+            for n, (g, (_lat, _lon, z)) in enumerate(zip(grid, _H1_GEODETIC_POINTS), 1)
+        )
+    sign = -1.0 if convention is LongitudeConvention.NEGATIVE_WEST else 1.0
+    return "".join(
+        f"{n},{lat},{sign * lon},{z},P{n}\n"
+        for n, (lat, lon, z) in enumerate(_H1_GEODETIC_POINTS, 1)
+    )
+
+
+def _h1_jobs():
+    """(id, direction, frame, kind, mode, convention) over every transformed
+    direction x both height kinds x every mode it takes, the frame rotating
+    through all five and the longitude convention alternating."""
+    jobs = []
+    shapes = [
+        (Direction.GEODETIC_TO_ZONE, "g2z"),
+        (Direction.ZONE_TO_GEODETIC, "z2g"),
+        (Direction.GEODETIC_TO_GEODETIC, "g2g_forward"),
+        (Direction.GEODETIC_TO_GEODETIC, "g2g_reverse"),
+        (Direction.VERTICAL_ONLY, "vo"),
+    ]
+    counter = 0
+    for direction, label in shapes:
+        modes = (
+            (VerticalMode.VERTICAL,)
+            if direction is Direction.VERTICAL_ONLY
+            else (VerticalMode.HORIZONTAL, VerticalMode.HORIZONTAL_AND_VERTICAL)
+        )
+        for kind in (HeightKind.ORTHOMETRIC, HeightKind.ELLIPSOID):
+            for mode in modes:
+                frame = FIVE[counter % len(FIVE)]
+                convention = (
+                    LongitudeConvention.POSITIVE_WEST
+                    if counter % 2
+                    else LongitudeConvention.NEGATIVE_WEST
+                )
+                counter += 1
+                jobs.append(
+                    (f"{label}-{kind.name}-{mode.name}-{frame.code}", direction,
+                     label, frame, kind, mode, convention)
+                )
+    return jobs
+
+
+_H1_JOBS = _h1_jobs()
+
+
+def _h1_write(folder: Path, direction, label, frame, kind, mode, convention):
+    fields = dict(
+        direction=direction,
+        geodetic_frame=frame,
+        input_height_kind=kind,
+        vertical_mode=mode,
+        longitude_convention=convention,
+        target_zone=MI_SOUTH if direction is Direction.GEODETIC_TO_ZONE else None,
+    )
+    if direction is Direction.ZONE_TO_GEODETIC:
+        fields.update(source_zone=MI_SOUTH)
+    if label == "g2g_forward":
+        fields.update(target_geodetic_frame=NAD83_2011)
+    if label == "g2g_reverse":
+        fields.update(geodetic_frame=NAD83_2011, target_geodetic_frame=frame)
+    if mode is not VerticalMode.HORIZONTAL:
+        fields.update(source_vertical_datum=NAVD88, target_vertical_datum=NAVD88)
+    return _write_job(folder, _h1_rows(direction, convention), **fields)
+
+
+def _cell_degrees(cell: str, heading: str, settings) -> float:
+    """A latitude or longitude cell, signed negative west, read by the test."""
+    if "DMS" in heading:
+        return _dms_degrees(cell)
+    value = float(cell)
+    if "longitude" not in heading.lower() or "neg west" in heading:
+        return value
+    # "as in file" / "as written": the job's own convention, which the
+    # record's Longitude line names.
+    assert "as in file" in heading or "as written" in heading, heading
+    return settings.longitude_convention.to_signed(value)
+
+
+def _frames_holding(kind: str, heading: str, value: float, point, path, settings) -> list[str]:
+    """Which frames' value for this point the cell equals, at its precision.
+
+    The candidates are the point's NAD83(2011) and WGS 84 / ITRF values from
+    its conversion record (each pinned against HTDP's print in sections 1-2),
+    except one: the NAD 83 h of an ORTHOMETRIC job, which no transformation
+    produced, is derived here as H + N - the Z (an elevation, unshifted on
+    these NAVD 88 to NAVD 88 jobs) plus GEOID18 read at the pivot by the
+    program's NGS-anchored reader - because N is published against NAD 83.
+    """
+    conversion = point.conversion
+    external = conversion.external_position
+    pivot_code = exports.pivot_frame(path).code
+    external_code = exports.external_frame(path).code
+    if kind == "lat":
+        candidates = {pivot_code: conversion.latitude, external_code: external.latitude}
+        tolerance = DMS_CELL_DEG if "DMS" in heading else 0.5e-8 + 1e-12
+    elif kind == "lon":
+        candidates = {pivot_code: conversion.longitude, external_code: external.longitude}
+        tolerance = DMS_CELL_DEG if "DMS" in heading else 0.5e-8 + 1e-12
+    else:
+        nad83_h = conversion.pivot_ellipsoid_height
+        if nad83_h is None:
+            nad83_h = point.row.elevation + geoid.geoid_height(
+                conversion.latitude, conversion.longitude, geoid.default_grid(geoid.GEOID18_MODEL)
+            )
+        candidates = {pivot_code: nad83_h, external_code: external.ellipsoid_height}
+        # The coarsest written height is 3 places (formatting.geoid_height):
+        # half its unit, plus 1e-6 m for the separation's float sum.
+        tolerance = 0.5e-3 + 1e-6
+    return sorted(
+        code for code, held in candidates.items()
+        if held is not None and abs(value - held) <= tolerance
+    )
+
+
+def _check_every_position_heading(result, archive) -> list[str]:
+    """The record sentence, checked heading by heading against the cells.
+    Returns the headings checked."""
+    settings = result.settings
+    path = applied_frame_transformation(settings)
+    rows = _csv_rows(member_text(archive, "_full.csv"))
+    header, body = rows[0], rows[1:]
+    assert len(body) == len(result.points)
+    checked = []
+    for index, heading in enumerate(header):
+        lowered = heading.lower()
+        kind = (
+            "lat" if "latitude" in lowered
+            else "lon" if "longitude" in lowered
+            else "h" if "ellipsoid height" in lowered
+            else None
+        )
+        if kind is None:
+            continue
+        named = [code for code in _FRAME_CODES if code in heading]
+        assert len(named) == 1, f"{heading!r} names {named or 'no frame'}"
+        for point, row in zip(result.points, body):
+            cell = row[index]
+            if cell in ("", fmt.NOT_AVAILABLE):
+                continue
+            value = (
+                float(cell) if kind == "h" else _cell_degrees(cell, heading, settings)
+            )
+            held = _frames_holding(kind, heading, value, point, path, settings)
+            assert held == named, (heading, point.point_id, cell, held)
+        checked.append(heading)
+    return checked
+
+
+@pytest.mark.parametrize(
+    "job_id,direction,label,frame,kind,mode,convention",
+    _H1_JOBS,
+    ids=[job[0] for job in _H1_JOBS],
+)
+def test_every_position_and_height_heading_names_the_frame_its_cells_hold(
+    tmp_path, job_id, direction, label, frame, kind, mode, convention
+):
+    """Interim gate 2, H1: the record's sentence, made true and pinned at the root."""
+    result, archive = _h1_write(tmp_path, direction, label, frame, kind, mode, convention)
+    record = " ".join(_record(archive).split())
+    assert "Every latitude, longitude and ellipsoid height column names its frame." in record
+    assert "Every position and ellipsoid height column" not in record
+    checked = _check_every_position_heading(result, archive)
+    # Anti-vacuity: the pivot's four, the external position's four and the
+    # factors' h always; the degree pairs wherever they hold degrees - which
+    # are exactly the four headings the gate found unnamed.
+    assert len(checked) >= 9, checked
+    geodetic_source = direction is not Direction.ZONE_TO_GEODETIC
+    geodetic_target = direction is not Direction.GEODETIC_TO_ZONE
+    assert any(h.startswith("Source latitude (") for h in checked) is geodetic_source
+    assert any(h.startswith("Source longitude (") for h in checked) is geodetic_source
+    assert any(h.startswith("Target latitude (") for h in checked) is geodetic_target
+    assert any(h.startswith("Target longitude (") for h in checked) is geodetic_target
+    if kind is HeightKind.ELLIPSOID:
+        assert any("before transformation" in h for h in checked)
+        assert any("after transformation" in h for h in checked)
+
+
+def test_the_vertical_only_target_pair_carries_the_input_frame(written):
+    """The reviewer's VERTICAL_ONLY case, ITRF2020 with ``1,43.0,84.5,165.000``:
+    the Target pair mirrors the input, so it is ITRF2020's - the frame of the
+    path's FIRST end - not the NAD83(2011) the path ends in; the cells are the
+    input exactly (43.0, 84.5 positive west, the file's own convention)."""
+    _result, archive = written["vertical_only"]
+    audit = _audit(archive)
+    assert audit[0]["Target latitude (ITRF2020)"] == "43.00000000"
+    assert audit[0]["Target longitude (ITRF2020, as written)"] == "84.50000000"
+    assert audit[0]["Source latitude (ITRF2020)"] == "43.00000000"
+    assert "Target latitude (NAD83(2011))" not in audit[0]
+
+
+def test_the_reviewers_z2g_g2139_job_names_every_position_heading(tmp_path):
+    """The reviewer's own H1 input: ZONE_TO_GEODETIC from MI-S to WGS84(G2139),
+    2019-03-01, ELLIPSOID heights - the Target pair is WGS84(G2139)'s."""
+    result, archive = _write_job(
+        tmp_path,
+        f"1,{_NAD83_SOUTH.target_northing!r},{_NAD83_SOUTH.target_easting!r},165.000,P\n",
+        direction=Direction.ZONE_TO_GEODETIC,
+        source_zone=MI_SOUTH,
+        target_zone=None,
+        geodetic_frame=WGS84_G2139,
+        observation_date=datetime.date(2019, 3, 1),
+        input_height_kind=HeightKind.ELLIPSOID,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+    )
+    header = _csv_rows(member_text(archive, "_full.csv"))[0]
+    assert header[5:7] == [
+        "Target latitude (WGS84(G2139))",
+        "Target longitude (WGS84(G2139), as written)",
+    ]
+    _check_every_position_heading(result, archive)
+
+
+# --------------------------------------------------------------------------
+# H2: the Factor height paragraph names only the factors that exist.
+# --------------------------------------------------------------------------
+
+def _flat(archive: Path) -> str:
+    return " ".join(_record(archive).split())
+
+
+_ZONELESS_FACTOR_HEIGHT = (
+    # job.factors_use_source_era's configuration (a NAVD 88 to NGVD 29 job
+    # whose only model, GEOID18, is NAVD 88's) on a job with no zone: no grid
+    # scale factor, so no combined factor - the summary's own words below.
+    "Factor height The elevation factor was computed from the SOURCE-datum "
+    "(NAVD88) height, not from the shifted height the Z column carries."
+)
+_ZONE_FACTOR_HEIGHT = (
+    "Factor height The elevation and combined factors were computed from the "
+    "SOURCE-datum (NAVD88) height, not from the shifted height the Z column "
+    "carries."
+)
+
+
+def test_the_reviewers_vertical_only_nad83_job_states_no_combined_factor(tmp_path):
+    """Gate 2, H2 job (a) - reachable from the released 0.7.1 GUI: VERTICAL_ONLY,
+    NAD83(2011) geodetic, NAVD88 to NGVD29, GEOID18, ``1,43.0,84.5,165.000``,
+    positive west."""
+    result, archive = _vo_geodetic(
+        tmp_path, rows="1,43.0,84.5,165.000\n", target_vertical_datum=NGVD29
+    )
+    flat = _flat(archive)
+    assert result.combined_factors == () and result.points[0].factors.elevation_factor is not None
+    assert _ZONELESS_FACTOR_HEIGHT in flat
+    assert "combined factors were computed" not in flat
+    assert "No combined factors exist for this job" in flat
+
+
+def test_the_reviewers_g2g_job_states_no_combined_factor(tmp_path):
+    """Gate 2, H2 job (b): GEODETIC_TO_GEODETIC from WGS84(G2296) to
+    NAD83(2011), 2025-06-15, HORIZONTAL_AND_VERTICAL, NAVD88 to NGVD29."""
+    result, archive = _write_job(
+        tmp_path,
+        "1,43.0,84.5,165.000,P\n",
+        direction=Direction.GEODETIC_TO_GEODETIC,
+        target_zone=None,
+        target_geodetic_frame=NAD83_2011,
+        vertical_mode=VerticalMode.HORIZONTAL_AND_VERTICAL,
+        source_vertical_datum=NAVD88,
+        target_vertical_datum=NGVD29,
+    )
+    flat = _flat(archive)
+    assert result.combined_factors == () and result.points[0].factors.elevation_factor is not None
+    assert _ZONELESS_FACTOR_HEIGHT in flat
+    assert "combined factors were computed" not in flat
+    assert "No combined factors exist for this job" in flat
+
+
+@pytest.mark.parametrize("shape", ["g2z", "vo_zone"])
+def test_the_zone_jobs_factor_height_wording_is_unchanged(tmp_path, shape):
+    """The control: a job WITH a zone has a combined factor, and keeps the
+    paragraph's wording since #41 - a NAD 83 geodetic job into MI-S, and a
+    vertical-only job on MI-S grid input (factors under the input zone)."""
+    fields = dict(
+        geodetic_frame=NAD83_2011,
+        observation_date=None,
+        vertical_mode=VerticalMode.HORIZONTAL_AND_VERTICAL,
+        source_vertical_datum=NAVD88,
+        target_vertical_datum=NGVD29,
+    )
+    rows = "1,43.0,84.5,165.000,P\n"
+    if shape == "vo_zone":
+        fields.update(
+            direction=Direction.VERTICAL_ONLY, source_zone=MI_SOUTH, target_zone=None,
+            vertical_mode=VerticalMode.VERTICAL, longitude_convention=None,
+        )
+        rows = f"1,{_NAD83_SOUTH.target_northing!r},{_NAD83_SOUTH.target_easting!r},165.000,P\n"
+    result, archive = _write_job(tmp_path, rows, **fields)
+    assert result.combined_factors
+    assert _ZONE_FACTOR_HEIGHT in _flat(archive)
+
+
+# --------------------------------------------------------------------------
+# L3: the round-trip bound states the epochs it was measured over, and says
+# when a job's date is outside them.
+# --------------------------------------------------------------------------
+
+def test_the_round_trip_range_is_the_committed_measurement():
+    """1990-01-01 to 2035-12-31, and the stated bound covers what was measured.
+
+    Interim gate 2, L3, superseding the W0-range pin: the range and the bound
+    are held to ``review/wgs84-gate2/roundtrip_range_output.txt``, the lead's
+    measurement through ``michspc.spc.htdp`` (which reproduces HTDP at every
+    printed digit). The stated figures, 9.2e-6 / 6.4e-5 / 4.3e-6 m, are W0's
+    (RECON.md section 5); the measurement must not exceed any of them.
+    """
+    output = (
+        REPO / "review" / "wgs84-gate2" / "roundtrip_range_output.txt"
+    ).read_text(encoding="utf-8").splitlines()
+    fields = {line.split()[0]: line.split()[1] for line in output}
+    assert fields["first"] == report.ROUND_TRIP_MEASURED_FROM.isoformat() == "1990-01-01"
+    assert fields["last"] == report.ROUND_TRIP_MEASURED_TO.isoformat() == "2035-12-31"
+    assert int(fields["positions"]) == 83
+    for key, stated in (("worst_north_m", 9.2e-6), ("worst_east_m", 6.4e-5), ("worst_up_m", 4.3e-6)):
+        assert float(fields[key]) <= stated, key
+    assert (
+        "for observation dates from 1990-01-01 to 2035-12-31"
+        in " ".join(report.ROUND_TRIP_NON_CLOSURE.split())
+    )
+    assert "up to 9.2e-6 m north, 6.4e-5 m east and 4.3e-6 m up" in report.ROUND_TRIP_NON_CLOSURE
+
+
+_OUTSIDE = (
+    "This job's observation date, {date}, is outside that range: the bound "
+    "stated was measured for observation dates 1990-01-01 to 2035-12-31 and "
+    "does not cover this date."
+)
+
+
+@pytest.mark.parametrize(
+    "date,decimal",
+    [
+        # The reviewer's "before about 1985" case.
+        (datetime.date(1950, 6, 15), None),
+        # One day before the range starts.
+        (datetime.date(1989, 12, 31), None),
+    ],
+)
+def test_a_date_outside_the_measured_range_says_the_bound_does_not_cover_it(
+    tmp_path, monkeypatch, date, decimal
+):
+    from michspc import job as job_module
+
+    monkeypatch.setattr(job_module, "today", lambda: datetime.date(2026, 10, 21))
+    _result, archive = _write_job(
+        tmp_path, "1,43.0,84.5,165.000,P\n", geodetic_frame=ITRF2020, observation_date=date
+    )
+    flat = _flat(archive)
+    assert " ".join(_ROUND_TRIP.split()) in flat
+    assert _OUTSIDE.format(date=date.isoformat()) in flat
+
+
+@pytest.mark.parametrize(
+    "date",
+    [
+        datetime.date(1990, 1, 1),  # the range's first day
+        datetime.date(2026, 10, 20),
+        datetime.date(2026, 10, 21),  # W0's range ended the day before
+        L5_DATE,
+    ],
+)
+def test_a_date_inside_the_measured_range_adds_nothing(tmp_path, monkeypatch, date):
+    from michspc import job as job_module
+
+    monkeypatch.setattr(job_module, "today", lambda: datetime.date(2026, 10, 21))
+    _result, archive = _write_job(
+        tmp_path, "1,43.0,84.5,165.000,P\n", geodetic_frame=ITRF2020, observation_date=date
+    )
+    flat = _flat(archive)
+    assert " ".join(_ROUND_TRIP.split()) in flat
+    assert "does not cover this date" not in flat
+
+
+def test_the_day_after_the_measured_range_says_the_bound_does_not_cover_it(
+    tmp_path, monkeypatch
+):
+    """2036-01-01, the first day past ROUND_TRIP_MEASURED_TO (2035-12-31).
+
+    The job's clock is set to 2036-06-01 so the date is not refused as in the
+    future; the sentence must then name the date and the measured range.
+    """
+    from michspc import job as job_module
+
+    monkeypatch.setattr(job_module, "today", lambda: datetime.date(2036, 6, 1))
+    _result, archive = _write_job(
+        tmp_path,
+        "1,43.0,84.5,165.000,P\n",
+        geodetic_frame=ITRF2020,
+        observation_date=datetime.date(2036, 1, 1),
+    )
+    assert _OUTSIDE.format(date="2036-01-01") in _flat(archive)

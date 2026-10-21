@@ -1193,6 +1193,24 @@ def test_outside_the_transcribed_window_is_refused(lat, lon, why):
     assert "ITRF2020" in message, why
 
 
+@pytest.mark.parametrize("same_day", [False, True])
+def test_a_refusal_names_the_position_by_its_own_frame(same_day):
+    """Interim gate 2 of the WGS 84 build, finding L4: out of NAD 83 the
+    position refused is the NAD 83 one HTDP was handed, and the refusal names
+    NAD 83's frame - it named the target frame before. 44.0 N 93.0 W is west
+    of the window (I = 35 < 37, as above). The position travels as data too,
+    with the reason free of advice, for a caller that knows its origin."""
+    epoch = htdp.ObservationEpoch(datetime.date(2010, 1, 1)) if same_day else EPOCH_2020
+    with pytest.raises(htdp.HtdpVelocityGridError) as raised:
+        htdp.from_nad83(44.0, -93.0, 0.0, htdp.WGS84_G2296, epoch)
+    message = str(raised.value)
+    assert f"({htdp.NAD83_2011.name})" in message
+    assert f"({htdp.WGS84_G2296.name})" not in message
+    assert raised.value.position_frame == htdp.NAD83_2011.name
+    assert (raised.value.latitude, raised.value.longitude) == (44.0, -93.0)
+    assert raised.value.reason in message and "Check" not in raised.value.reason
+
+
 def test_the_window_refuses_on_the_same_day_too():
     # HTDP does no velocity lookup on the same day (htdp.f:3276-3283); this
     # program refuses the same positions anyway, so acceptance never depends

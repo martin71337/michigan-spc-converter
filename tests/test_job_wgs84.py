@@ -1186,3 +1186,295 @@ def test_a_same_frame_job_still_writes(tmp_path):
     _write(settings, ["1,43.0,84.5,200.0,A\n"])
     written = exports.write_all(run(settings))
     assert all(path.exists() for path in written.values())
+
+
+# ==========================================================================
+# Interim gate 2 of the WGS 84 build (review/gate-wgs84-2/output.md):
+# M1, L1, L2 and L4.
+# ==========================================================================
+
+# --------------------------------------------------------------------------
+# M1: an ELLIPSOID job in a vertical mode on a path OUT of NAD 83 - the one
+# case where the pivot h and the target-frame h differ, so H = h - N with the
+# wrong one would go unseen. The reviewer's job: NAD 83 43.0 N 84.5 W at
+# h = 165.000 m into WGS84(G2296), 2025-06-15, NAVD88 to NAVD88.
+#
+# Expected, derived: on a path out of NAD 83 the NAD 83 h IS the supplied one
+# (HTDP is handed it; convert.PointConversion.pivot_ellipsoid_height), so
+# H = 165.000 - N, with N read through the program's NGS-anchored GEOID18
+# reader at the NAD 83 position, 43.0 / -84.5: N = -33.085 (asserted, 3
+# places), so H = 165.000 + 33.085 = 198.085 m. The reviewer's seed S07
+# (the target-frame h, HTDP's 163.901 for G2296, L5_REVERSE_RECORDS) wrote
+# 163.901 + 33.085 = 196.986 m, 1.099 m low.
+# --------------------------------------------------------------------------
+
+def _m1_separation() -> float:
+    separation = geoid.geoid_height(43.0, -84.5, geoid.default_grid(geoid.GEOID18_MODEL))
+    assert f"{separation:.3f}" == "-33.085"
+    return separation
+
+
+def _m1_check(tmp_path, settings, lines):
+    _write(settings, lines)
+    result = run(settings)
+    (point,) = result.points
+    separation = _m1_separation()
+    # The pivot the separation is read at is 43.0 / -84.5 itself (to the
+    # projection round trip, 1e-11 deg, on the grid input) - a 1e-11 deg move
+    # changes N by far less than 1e-9 m.
+    assert abs(point.output_elevation - (165.0 - separation)) <= 1e-6
+    assert abs(point.output_elevation - 198.085) <= 0.0006
+    assert abs(point.output_elevation - 196.986) > 1.0  # not seed S07's
+    # The written file carries it too, at its 4 places.
+    archive = exports.write_all(result)["archive"]
+    (row,) = [
+        line for line in member_text(archive, "_DD.csv").splitlines() if line
+    ]
+    assert abs(float(row.split(",")[3]) - (165.0 - separation)) <= 0.5e-4 + 1e-6
+    return point
+
+
+def test_z2g_ellipsoid_in_a_vertical_mode_uses_the_nad83_h(tmp_path):
+    """M1, the reviewer's own job: ZONE_TO_GEODETIC MI-S -> WGS84(G2296)."""
+    grid = project_point(43.0, -84.5, NAD83_2011, MI_SOUTH)
+    settings = _settings(
+        tmp_path,
+        direction=Direction.ZONE_TO_GEODETIC,
+        source_zone=MI_SOUTH,
+        target_zone=None,
+        geodetic_frame=WGS84_G2296,
+        input_height_kind=HeightKind.ELLIPSOID,
+        vertical_mode=VerticalMode.HORIZONTAL_AND_VERTICAL,
+        source_vertical_datum=NAVD88,
+        target_vertical_datum=NAVD88,
+        observation_date=L5_DATE,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+    )
+    point = _m1_check(
+        tmp_path, settings,
+        [f"1,{grid.target_northing!r},{grid.target_easting!r},165.000,P\n"],
+    )
+    # And the target-frame h really is the other number (HTDP's print).
+    assert f"{point.conversion.target_frame_ellipsoid_height:.3f}" == L5R[WGS84_G2296.code].h_out
+
+
+def test_g2g_reverse_ellipsoid_in_a_vertical_mode_uses_the_nad83_h(tmp_path):
+    """M1: GEODETIC_TO_GEODETIC NAD83(2011) -> WGS84(G2296), the same position."""
+    settings = _settings(
+        tmp_path,
+        direction=Direction.GEODETIC_TO_GEODETIC,
+        target_zone=None,
+        geodetic_frame=NAD83_2011,
+        target_geodetic_frame=WGS84_G2296,
+        input_height_kind=HeightKind.ELLIPSOID,
+        vertical_mode=VerticalMode.HORIZONTAL_AND_VERTICAL,
+        source_vertical_datum=NAVD88,
+        target_vertical_datum=NAVD88,
+        observation_date=L5_DATE,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+    )
+    point = _m1_check(tmp_path, settings, ["1,43.0,-84.5,165.000,P\n"])
+    assert f"{point.conversion.target_frame_ellipsoid_height:.3f}" == L5R[WGS84_G2296.code].h_out
+
+
+# --------------------------------------------------------------------------
+# L1: the "today" seam's UTC half. In a UTC container the two clocks are one,
+# and west of UTC (Michigan) the later is UTC, so a test against the local
+# date alone cannot tell max from min. The clocks are set apart here.
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize(
+    "local,utc",
+    [
+        # A Michigan evening: local is still the 20th, UTC already the 21st.
+        (datetime.date(2026, 10, 20), datetime.date(2026, 10, 21)),
+        # East of UTC after midnight local: the local clock is the later.
+        (datetime.date(2026, 10, 21), datetime.date(2026, 10, 20)),
+    ],
+)
+def test_today_is_the_later_of_the_local_and_utc_dates(monkeypatch, local, utc):
+    monkeypatch.setattr(job, "_local_and_utc_dates", lambda: (local, utc))
+    assert job.today() == datetime.date(2026, 10, 21)
+
+
+def test_an_evening_session_dated_in_utc_is_not_refused_as_future(tmp_path, monkeypatch):
+    """The property #70 records: local 2026-10-20, UTC 2026-10-21 - a GNSS
+    processor dates the session 2026-10-21, and the job accepts it; the 22nd,
+    after both clocks, is still refused, naming the 21st."""
+    monkeypatch.setattr(
+        job,
+        "_local_and_utc_dates",
+        lambda: (datetime.date(2026, 10, 20), datetime.date(2026, 10, 21)),
+    )
+    settings = _settings(
+        tmp_path,
+        observation_date=datetime.date(2026, 10, 21),
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+    )
+    _write(settings, ["1,43.0,-84.5,165.000,P\n"])
+    assert len(run(settings).points) == 1
+    later = dataclasses.replace(settings, observation_date=datetime.date(2026, 10, 22))
+    with pytest.raises(ValueError, match=r"after the day this job runs \(2026-10-21\)"):
+        run(later)
+
+
+# --------------------------------------------------------------------------
+# L2: the realization-period warning, true in each direction. The reviewer's
+# input: MI-S to WGS84(G2139) on 2019-03-01 - before G2139's period began
+# (2021-01-03, the PERIOD_CASES table above; it ended 2024-01-06, the day
+# before G2296 began).
+# --------------------------------------------------------------------------
+
+_G2139_SPAN = (
+    "from 2021-01-03 to 2024-01-06 (NGA replaced it with WGS84(G2296) on 2024-01-07)"
+)
+
+
+def test_the_period_warning_on_a_path_out_of_nad83_names_the_output(tmp_path):
+    grid = project_point(43.0, -84.5, NAD83_2011, MI_SOUTH)
+    settings = _settings(
+        tmp_path,
+        direction=Direction.ZONE_TO_GEODETIC,
+        source_zone=MI_SOUTH,
+        target_zone=None,
+        geodetic_frame=WGS84_G2139,
+        observation_date=datetime.date(2019, 3, 1),
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+    )
+    _write(settings, [f"1,{grid.target_northing!r},{grid.target_easting!r},165.000,P\n"])
+    (warning,) = run(settings).job_warnings
+    assert warning.code is WarningCode.REALIZATION_OUTSIDE_PERIOD_OF_USE
+    assert warning.message == (
+        "This job writes its positions in WGS84(G2139), the realization "
+        "requested as its output, at the observation date 2019-03-01 - outside "
+        f"WGS84(G2139)'s period of use, which is {_G2139_SPAN}. The date is "
+        "before NGA put WGS84(G2139) into use, so WGS84(G2139) was not the "
+        "realization in use on that date. The job is converted as requested. "
+        "Check that WGS84(G2139) is the realization wanted for positions "
+        "observed on that date."
+    )
+    assert "stated in" not in warning.message
+
+
+def test_the_period_warning_on_a_path_into_nad83_names_the_input(tmp_path):
+    """The same frame and date the other way: WGS84(G2139) geodetic into MI-S.
+    The positions ARE stated in G2139 here, so the label is the question."""
+    settings = _settings(
+        tmp_path,
+        target_zone=MI_SOUTH,
+        geodetic_frame=WGS84_G2139,
+        observation_date=datetime.date(2019, 3, 1),
+    )
+    _write(settings, ["1,43.0,84.5,165.000,P\n"])
+    (warning,) = run(settings).job_warnings
+    assert warning.message == (
+        "The positions are stated in WGS84(G2139) and dated 2019-03-01, outside "
+        f"WGS84(G2139)'s period of use, which is {_G2139_SPAN}. The date is "
+        "before NGA put WGS84(G2139) into use, so a receiver on that date was "
+        "not broadcasting it. Reprocessed data can legitimately carry a later "
+        "realization, so the job is converted as stated - but a file labelled "
+        "with the wrong realization looks exactly like this. Check which "
+        "realization the positions are in."
+    )
+
+
+def test_the_period_warning_on_g2g_reverse_names_the_output(tmp_path):
+    settings = _settings(
+        tmp_path,
+        direction=Direction.GEODETIC_TO_GEODETIC,
+        target_zone=None,
+        geodetic_frame=NAD83_2011,
+        target_geodetic_frame=WGS84_G2139,
+        observation_date=datetime.date(2019, 3, 1),
+    )
+    _write(settings, ["1,43.0,84.5,165.000,P\n"])
+    (warning,) = run(settings).job_warnings
+    assert warning.message.startswith("This job writes its positions in WGS84(G2139)")
+
+
+# --------------------------------------------------------------------------
+# L4: an HTDP refusal through job.run names the point and the refused
+# position's OWN frame, with advice that fits where the position came from.
+# --------------------------------------------------------------------------
+
+def test_the_reviewers_grid_row_outside_the_velocity_window_names_the_point(tmp_path):
+    """The reviewer's row ``1,0,0,,a``, ZONE_TO_GEODETIC MI-S -> WGS84(G2296).
+
+    MI-S's grid origin inverts to a NAD 83 position far west of Michigan -
+    derived here by the program's NCAT-verified inverse, 32.026364 N
+    127.914179 W - whose velocity lookup is outside the window. That position
+    is the NAD83(2011) pivot, handed to HTDP on the way OUT of NAD 83, so the
+    refusal names NAD83(2011), the point, and the zone and unit - and gives
+    no longitude-sign advice, the file having held no longitude.
+    """
+    pivot = convert.to_geodetic(0.0, 0.0, MI_SOUTH)
+    latitude, longitude = pivot[0], pivot[1]
+    assert (f"{latitude:.6f}", f"{longitude:.6f}") == ("32.026364", "-127.914179")
+    settings = _settings(
+        tmp_path,
+        direction=Direction.ZONE_TO_GEODETIC,
+        source_zone=MI_SOUTH,
+        target_zone=None,
+        geodetic_frame=WGS84_G2296,
+        observation_date=L5_DATE,
+        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+    )
+    _write(settings, ["1,0,0,,a\n"])
+    with pytest.raises(htdp.HtdpVelocityGridError) as raised:
+        run(settings)
+    message = str(raised.value)
+    assert isinstance(raised.value, htdp.HtdpRefusal)
+    assert message.startswith(
+        "point 1: cannot transform the position the file's Michigan South "
+        "northing and easting give - latitude 32.026364, longitude -127.914179 "
+        "(signed, negative west), in NAD83(2011) - to WGS84(G2296): its "
+        "velocity-model lookup position"
+    ), message
+    assert message.endswith(
+        "Check that the point is in Michigan, and that the file holds Michigan "
+        "South coordinates in m."
+    ), message
+    assert "(WGS84(G2296))" not in message
+    assert "longitude is negative west" not in message
+    assert "longitudes are written" not in message
+    # The refused position, as data, is the pivot.
+    assert (raised.value.latitude, raised.value.longitude) == (latitude, longitude)
+
+
+@pytest.mark.parametrize(
+    "overrides,frame_code",
+    [
+        # WGS84(G2296) geodetic into MI-S, 84.5 read as EAST under the
+        # negative-west convention: the input itself is refused, in its frame.
+        (dict(longitude_convention=LongitudeConvention.NEGATIVE_WEST), "WGS84(G2296)"),
+        # NAD83(2011) geodetic out to G2296: the input is the NAD 83 position.
+        (
+            dict(
+                direction=Direction.GEODETIC_TO_GEODETIC,
+                target_zone=None,
+                geodetic_frame=NAD83_2011,
+                target_geodetic_frame=WGS84_G2296,
+                longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+            ),
+            "NAD83(2011)",
+        ),
+    ],
+    ids=["g2z-into-nad83", "g2g-out-of-nad83"],
+)
+def test_a_geodetic_row_outside_the_window_names_the_point_and_the_convention(
+    tmp_path, overrides, frame_code
+):
+    settings = _settings(tmp_path, observation_date=L5_DATE, **overrides)
+    _write(settings, ["7,43.0,84.5,165.000,P\n"])
+    with pytest.raises(htdp.HtdpVelocityGridError) as raised:
+        run(settings)
+    message = str(raised.value)
+    assert message.startswith(
+        "point 7: cannot transform the position the file supplied - latitude "
+        f"43.000000, longitude 84.500000 (signed, negative west), in {frame_code} - "
+    ), message
+    assert message.endswith(
+        "Check that the point is in Michigan, and that the file's longitudes are "
+        "written negative west, as this job states: a longitude written in the "
+        "other convention lands on the other side of the world."
+    ), message

@@ -1646,10 +1646,23 @@ def today() -> datetime.date:
     date in UTC. Taking the later of the two means a date that is today in
     either clock is never refused as being in the future, and a date after
     both still is.
+
+    The two clocks are read through ``_local_and_utc_dates``, so the suite can
+    set them apart and pin the "later of the two" rule itself (interim gate 2,
+    finding L1): in a UTC container they are one clock, and west of UTC -
+    Michigan - the later is UTC, so no test of ``today`` against the local
+    date alone can tell ``max`` from ``min``.
     """
-    local = datetime.date.today()
-    utc = datetime.datetime.now(datetime.timezone.utc).date()
+    local, utc = _local_and_utc_dates()
     return max(local, utc)
+
+
+def _local_and_utc_dates() -> tuple[datetime.date, datetime.date]:
+    """``(local date, UTC date)`` now: ``today``'s two clocks, and nothing else."""
+    return (
+        datetime.date.today(),
+        datetime.datetime.now(datetime.timezone.utc).date(),
+    )
 
 
 def _time_dependent_frames_read(
@@ -1697,6 +1710,9 @@ def _require_the_observation_date(
       can keep labelling with an older one. No warning for
       ITRF, which has no NGA period of use. Raised once for the job
       (``JobResult.job_warnings``), because one date covers every point.
+      Worded per direction: on a path INTO NAD83(2011) the realization is the
+      input's label, on a path OUT of it the output the job was asked for
+      (interim gate 2, finding L2).
     """
     date = settings.observation_date
     if date is not None and (
@@ -1772,27 +1788,49 @@ def _require_the_observation_date(
             if period.last_day is not None
             else f"from {period.first_day.isoformat()}, with no end yet"
         )
-        why = (
-            f"before NGA put {frame.code} into use, so a receiver on that date "
-            f"was not broadcasting it. Reprocessed data can legitimately carry "
-            f"a later realization"
+        when = (
+            f"before NGA put {frame.code} into use"
             if date < period.first_day
-            else f"after NGA had replaced {frame.code} with "
-            f"{period.succeeded_by}, so a receiver on that date was not "
-            f"broadcasting it. Software can legitimately keep labelling output "
-            f"with an older realization"
+            else f"after NGA had replaced {frame.code} with {period.succeeded_by}"
         )
+        if frame is frame_path.source:
+            # Into NAD83(2011): the realization is the one the INPUT is
+            # labelled with, and the question is whether the label is right.
+            why = (
+                f"{when}, so a receiver on that date was not broadcasting it. "
+                + (
+                    "Reprocessed data can legitimately carry a later realization"
+                    if date < period.first_day
+                    else "Software can legitimately keep labelling output with "
+                    "an older realization"
+                )
+            )
+            message = (
+                f"The positions are stated in {frame.code} and dated "
+                f"{date.isoformat()}, outside {frame.code}'s period of use, "
+                f"which is {span}. The date is {why}, so the job is converted "
+                f"as stated - but a file labelled with the wrong realization "
+                f"looks exactly like this. Check which realization the "
+                f"positions are in."
+            )
+        else:
+            # Out of NAD83(2011): the input is NAD 83 and carries no
+            # realization label at all; the realization is the OUTPUT the
+            # job was asked for (interim gate 2, finding L2 - the one message
+            # used to say the positions were "stated in" it).
+            message = (
+                f"This job writes its positions in {frame.code}, the "
+                f"realization requested as its output, at the observation "
+                f"date {date.isoformat()} - outside {frame.code}'s period of "
+                f"use, which is {span}. The date is {when}, so {frame.code} "
+                f"was not the realization in use on that date. The job is "
+                f"converted as requested. Check that {frame.code} is the "
+                f"realization wanted for positions observed on that date."
+            )
         warnings.append(
             ConversionWarning(
                 code=WarningCode.REALIZATION_OUTSIDE_PERIOD_OF_USE,
-                message=(
-                    f"The positions are stated in {frame.code} and dated "
-                    f"{date.isoformat()}, outside {frame.code}'s period of use, "
-                    f"which is {span}. The date is {why}, so the job is "
-                    f"converted as stated - but a file labelled with the wrong "
-                    f"realization looks exactly like this. Check which "
-                    f"realization the positions are in."
-                ),
+                message=message,
             )
         )
     return epoch, tuple(warnings)
@@ -2332,6 +2370,79 @@ def _unconverted_ellipsoid_z_sentence(conversion: PointConversion) -> str:
     )
 
 
+def _point_named_htdp_refusal(
+    error: htdp.HtdpRefusal,
+    context: str,
+    settings: JobSettings,
+    frame_path: FrameTransformation | None,
+    geodetic_input: bool,
+) -> htdp.HtdpRefusal:
+    """An HTDP refusal raised for one row, restated for that row.
+
+    Interim gate 2 of the WGS 84 build, finding L4: through ``job.run`` the
+    velocity-window refusal named no point - one bad row refused a whole
+    file with nothing to find it by - and on a path out of NAD 83 it labelled
+    the NAD83(2011) pivot with the target frame and advised checking a
+    longitude sign the file never held. The frame is now the position's own
+    (the path's SOURCE end, the position ``convert`` hands HTDP in either
+    direction), the point is named, and the advice is the one that applies
+    to where the position came from: the file's longitude convention on a
+    geodetic input, the zone and unit on a grid input.
+
+    **The type is kept**: a ``HtdpVelocityGridError`` comes back as one, and
+    every other ``HtdpRefusal`` as its own class, with this row's context
+    prefixed. Chosen over wrapping in ``ValueError`` (which the per-row
+    refusals around it raise) because every caller that already catches the
+    HTDP family - by ``HtdpRefusal`` or by the subclass - keeps catching it,
+    and a refusal of the TRANSFORMATION stays distinguishable from a refusal
+    of the file's contents. The cost, recorded for W5: ``HtdpRefusal``
+    subclasses neither ``ValueError`` nor ``FrameMismatchError``, so the GUI
+    must catch it explicitly. Both tabs catch ``Exception`` around
+    ``job.run`` today and show its message in full, so nothing escapes; W5
+    must keep it that way.
+    """
+    if (
+        not isinstance(error, htdp.HtdpVelocityGridError)
+        or error.reason is None
+        or frame_path is None
+        or frame_path.is_identity
+        or error.position_frame != frame_path.source.htdp_frame.name
+    ):
+        # The defect-only node refusal, any other HTDP refusal, or a
+        # position whose frame is not the one this function would name:
+        # HTDP's own words, which name their own frame, with the point.
+        return type(error)(f"{context}: {error}")
+    frame = frame_path.source
+    if geodetic_input:
+        origin = "the position the file supplied"
+        advice = (
+            f"Check that the point is in Michigan, and that the file's "
+            f"longitudes are written {settings.longitude_convention.value}, "
+            f"as this job states: a longitude written in the other convention "
+            f"lands on the other side of the world."
+        )
+    else:
+        origin = (
+            f"the position the file's {settings.source_zone.name} northing "
+            f"and easting give"
+        )
+        advice = (
+            f"Check that the point is in Michigan, and that the file holds "
+            f"{settings.source_zone.name} coordinates in "
+            f"{settings.input_unit.code}."
+        )
+    return htdp.HtdpVelocityGridError(
+        f"{context}: cannot transform {origin} - latitude "
+        f"{error.latitude:.6f}, longitude {error.longitude:.6f} (signed, "
+        f"negative west), in {frame.code} - to {frame_path.target.code}: "
+        f"{error.reason} {advice}",
+        latitude=error.latitude,
+        longitude=error.longitude,
+        position_frame=error.position_frame,
+        reason=error.reason,
+    )
+
+
 def _convert_row(
     row: pnezd.PnezdRow,
     settings: JobSettings,
@@ -2373,140 +2484,152 @@ def _convert_row(
         else {}
     )
 
-    if geodetic_input:
-        # The file's "northing" and "easting" columns hold latitude and
-        # longitude. The longitude is normalised to the program's signed
-        # convention here, at the boundary, and nowhere else.
-        latitude = row.northing
-        longitude = settings.longitude_convention.to_signed(row.easting)
-        _require_geodetic_in_range(
-            latitude, longitude, row.easting, settings, context
-        )
-        if settings.direction is Direction.GEODETIC_TO_ZONE:
-            conversion = project_point(
-                latitude,
-                longitude,
-                settings.geodetic_frame,
-                settings.target_zone,
-                context,
-                **transform_arguments,
+    # An HTDP refusal names the point and the position's own frame, and
+    # advises only what applies to where that position came from (interim
+    # gate 2 of the WGS 84 build, finding L4): HTDP itself knows neither
+    # the row nor whether its input was typed into the file or derived from
+    # a grid coordinate.
+    try:
+        if geodetic_input:
+            # The file's "northing" and "easting" columns hold latitude and
+            # longitude. The longitude is normalised to the program's signed
+            # convention here, at the boundary, and nowhere else.
+            latitude = row.northing
+            longitude = settings.longitude_convention.to_signed(row.easting)
+            _require_geodetic_in_range(
+                latitude, longitude, row.easting, settings, context
             )
-            output_unit = settings.output_unit
-            output_northing = output_unit.from_meters(conversion.target_northing)
-            output_easting = output_unit.from_meters(conversion.target_easting)
-        elif settings.direction is Direction.GEODETIC_TO_GEODETIC:
-            # Plan decision D7. No zone: the output columns are the position
-            # in the TARGET frame, in the file's own longitude convention.
-            conversion = geodetic_to_geodetic(
-                latitude,
-                longitude,
-                settings.geodetic_frame,
-                settings.target_geodetic_frame,
-                context,
-                **transform_arguments,
-            )
-            out_latitude, out_longitude = written_geodetic_position(conversion)
-            output_northing = out_latitude
-            output_easting = settings.longitude_convention.from_signed(
-                out_longitude
-            )
-        else:
-            # VERTICAL_ONLY, geodetic input. No zone exists anywhere in this
-            # job, and none is fabricated: the position record carries the
-            # pivot for the grid lookups and None for every zone-derived
-            # quantity, so the grid scale and combined factors downstream are
-            # honestly absent rather than invented. The output coordinate
-            # columns are the INPUT values, unchanged - the mirror this
-            # direction promises - including the longitude exactly as the
-            # file wrote it, in its own convention.
-            #
-            # On a WGS 84 or ITRF input (plan decision D8) the position record's
-            # pivot is the input carried to NAD83(2011) - what every grid is
-            # read at - while the columns still mirror the input exactly.
-            conversion = geodetic_position(
-                latitude,
-                longitude,
-                settings.geodetic_frame,
-                context,
-                **transform_arguments,
-            )
-            output_northing = row.northing
-            output_easting = row.easting
-    else:
-        northing_m = settings.input_unit.to_meters(row.northing)
-        easting_m = settings.input_unit.to_meters(row.easting)
-
-        if easting_looks_wrong_for_zone(easting_m, settings.source_zone):
-            warnings.append(
-                ConversionWarning(
-                    code=WarningCode.EASTING_UNLIKE_SELECTED_ZONE,
-                    message=(
-                        f"{context}: an easting of {row.easting:,.3f} "
-                        f"{settings.input_unit.code} does not look like "
-                        f"{settings.source_zone.name} data, whose eastings sit "
-                        f"near {settings.input_unit.from_meters(settings.source_zone.definition.easting_origin):,.0f} "
-                        # "this file" was wrong the moment a typed point could
-                        # raise this warning: the single-point tab has no file,
-                        # and this is the likeliest warning a typed point
-                        # produces. Worded for both callers (closing review
-                        # gate, docs/DESIGN.md amendment #26).
-                        f"{settings.input_unit.code}. Check that the source "
-                        f"zone and the input units are the ones these "
-                        f"coordinates are actually in - selecting the wrong "
-                        f"source zone is the easiest mistake to make with this "
-                        f"program."
-                    ),
+            if settings.direction is Direction.GEODETIC_TO_ZONE:
+                conversion = project_point(
+                    latitude,
+                    longitude,
+                    settings.geodetic_frame,
+                    settings.target_zone,
+                    context,
+                    **transform_arguments,
                 )
-            )
-
-        if settings.direction is Direction.ZONE_TO_GEODETIC:
-            # Within one frame, zone_to_geodetic IS convert_point with the
-            # source zone at both ends, the call this branch always made. Into
-            # a WGS 84 or ITRF frame it carries the pivot there with HTDP, and
-            # the columns written are that frame's position, not the pivot's.
-            conversion = zone_to_geodetic(
-                northing_m,
-                easting_m,
-                settings.source_zone,
-                settings.geodetic_frame,
-                context,
-                **transform_arguments,
-            )
-            out_latitude, out_longitude = written_geodetic_position(conversion)
-            output_northing = out_latitude
-            output_easting = settings.longitude_convention.from_signed(
-                out_longitude
-            )
-        elif settings.direction is Direction.VERTICAL_ONLY:
-            # VERTICAL_ONLY, zone input. The pivot latitude and longitude the
-            # grid lookups need come from inverse-projecting through the
-            # INPUT zone - the same machinery, and the same source-zone-twice
-            # call, ZONE_TO_GEODETIC uses above, so the factors sit under the
-            # input zone exactly as that direction's do (there is no target
-            # zone in either). The output coordinate columns are the INPUT
-            # values, unchanged: the settings guarantee output_unit equals
-            # input_unit, so no re-expression could be hiding in them.
-            conversion = convert_point(
-                northing_m,
-                easting_m,
-                settings.source_zone,
-                settings.source_zone,
-                context,
-            )
-            output_northing = row.northing
-            output_easting = row.easting
+                output_unit = settings.output_unit
+                output_northing = output_unit.from_meters(conversion.target_northing)
+                output_easting = output_unit.from_meters(conversion.target_easting)
+            elif settings.direction is Direction.GEODETIC_TO_GEODETIC:
+                # Plan decision D7. No zone: the output columns are the position
+                # in the TARGET frame, in the file's own longitude convention.
+                conversion = geodetic_to_geodetic(
+                    latitude,
+                    longitude,
+                    settings.geodetic_frame,
+                    settings.target_geodetic_frame,
+                    context,
+                    **transform_arguments,
+                )
+                out_latitude, out_longitude = written_geodetic_position(conversion)
+                output_northing = out_latitude
+                output_easting = settings.longitude_convention.from_signed(
+                    out_longitude
+                )
+            else:
+                # VERTICAL_ONLY, geodetic input. No zone exists anywhere in this
+                # job, and none is fabricated: the position record carries the
+                # pivot for the grid lookups and None for every zone-derived
+                # quantity, so the grid scale and combined factors downstream are
+                # honestly absent rather than invented. The output coordinate
+                # columns are the INPUT values, unchanged - the mirror this
+                # direction promises - including the longitude exactly as the
+                # file wrote it, in its own convention.
+                #
+                # On a WGS 84 or ITRF input (plan decision D8) the position record's
+                # pivot is the input carried to NAD83(2011) - what every grid is
+                # read at - while the columns still mirror the input exactly.
+                conversion = geodetic_position(
+                    latitude,
+                    longitude,
+                    settings.geodetic_frame,
+                    context,
+                    **transform_arguments,
+                )
+                output_northing = row.northing
+                output_easting = row.easting
         else:
-            conversion = convert_point(
-                northing_m,
-                easting_m,
-                settings.source_zone,
-                settings.target_zone,
-                context,
-            )
-            output_northing = settings.output_unit.from_meters(
-                conversion.target_northing
-            )
-            output_easting = settings.output_unit.from_meters(conversion.target_easting)
+            northing_m = settings.input_unit.to_meters(row.northing)
+            easting_m = settings.input_unit.to_meters(row.easting)
+
+            if easting_looks_wrong_for_zone(easting_m, settings.source_zone):
+                warnings.append(
+                    ConversionWarning(
+                        code=WarningCode.EASTING_UNLIKE_SELECTED_ZONE,
+                        message=(
+                            f"{context}: an easting of {row.easting:,.3f} "
+                            f"{settings.input_unit.code} does not look like "
+                            f"{settings.source_zone.name} data, whose eastings sit "
+                            f"near {settings.input_unit.from_meters(settings.source_zone.definition.easting_origin):,.0f} "
+                            # "this file" was wrong the moment a typed point could
+                            # raise this warning: the single-point tab has no file,
+                            # and this is the likeliest warning a typed point
+                            # produces. Worded for both callers (closing review
+                            # gate, docs/DESIGN.md amendment #26).
+                            f"{settings.input_unit.code}. Check that the source "
+                            f"zone and the input units are the ones these "
+                            f"coordinates are actually in - selecting the wrong "
+                            f"source zone is the easiest mistake to make with this "
+                            f"program."
+                        ),
+                    )
+                )
+
+            if settings.direction is Direction.ZONE_TO_GEODETIC:
+                # Within one frame, zone_to_geodetic IS convert_point with the
+                # source zone at both ends, the call this branch always made. Into
+                # a WGS 84 or ITRF frame it carries the pivot there with HTDP, and
+                # the columns written are that frame's position, not the pivot's.
+                conversion = zone_to_geodetic(
+                    northing_m,
+                    easting_m,
+                    settings.source_zone,
+                    settings.geodetic_frame,
+                    context,
+                    **transform_arguments,
+                )
+                out_latitude, out_longitude = written_geodetic_position(conversion)
+                output_northing = out_latitude
+                output_easting = settings.longitude_convention.from_signed(
+                    out_longitude
+                )
+            elif settings.direction is Direction.VERTICAL_ONLY:
+                # VERTICAL_ONLY, zone input. The pivot latitude and longitude the
+                # grid lookups need come from inverse-projecting through the
+                # INPUT zone - the same machinery, and the same source-zone-twice
+                # call, ZONE_TO_GEODETIC uses above, so the factors sit under the
+                # input zone exactly as that direction's do (there is no target
+                # zone in either). The output coordinate columns are the INPUT
+                # values, unchanged: the settings guarantee output_unit equals
+                # input_unit, so no re-expression could be hiding in them.
+                conversion = convert_point(
+                    northing_m,
+                    easting_m,
+                    settings.source_zone,
+                    settings.source_zone,
+                    context,
+                )
+                output_northing = row.northing
+                output_easting = row.easting
+            else:
+                conversion = convert_point(
+                    northing_m,
+                    easting_m,
+                    settings.source_zone,
+                    settings.target_zone,
+                    context,
+                )
+                output_northing = settings.output_unit.from_meters(
+                    conversion.target_northing
+                )
+                output_easting = settings.output_unit.from_meters(
+                    conversion.target_easting
+                )
+    except htdp.HtdpRefusal as error:
+        raise _point_named_htdp_refusal(
+            error, context, settings, frame_path, geodetic_input
+        ) from error
 
     # Elevation is orthometric height: it does not change with the horizontal
     # zone. Only its unit changes - and it changes in EVERY direction,

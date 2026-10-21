@@ -764,6 +764,55 @@ re-derived by the lead):
   before digesting, on #66/#68's precedent, so the old digest still holds
   every other byte. 14 + 2 seeds caught. **Released 0.7.1 carries the false
   sentences; the next release's notes must say so.**
+- **Interim gate 2** (`review/gate-wgs84-2/output.md`; independent Opus
+  reviewer, blind; interrupted by a usage limit after its report was
+  written). **FINDINGS: 2 HIGH, 1 MEDIUM, 5 LOW, 5 INFO, no CRITICAL, and no
+  wrong number.** 1,500 random transformed jobs (about 6,700 points) went
+  through the real file path against the reviewer's own HTDP build plus the
+  projection, geoid and VERTCON legs, and nothing differed. 37,620 points
+  produced no false verifier refusal.
+  - **H1:** the record said every position column names its frame, and four
+    audit headings did not. They now name the frame their cells hold, on
+    transformed jobs only (VERTICAL_ONLY's Target pair carries the input
+    frame). The sentence now reads "Every latitude, longitude and ellipsoid
+    height column names its frame", which is the lead's acceptance of the
+    builder's narrower, true wording. An 18-job root pin checks every such
+    heading against the frame its cells hold.
+  - **H2:** "The elevation and combined factors were computed from the
+    SOURCE-datum height" printed on zone-less jobs. The sentence has been
+    there since #41, so **it is also in released 0.7.1** on VERTICAL_ONLY NAD
+    83 geodetic jobs with a modeled shift. The release notes must say so. It
+    now says "The elevation factor was computed ...". The builder swept every
+    sentence in report.py naming a factor, convergence or zone.
+    - **The lead's decision:** the "Precision written" format lines (scale
+      and combined factors to 8 places, convergence to 0.01") stay on
+      zone-less jobs. They state a column's format, not a computed value,
+      and the same record says those columns read N/A.
+  - **M1:** a pin gap, now closed. ELLIPSOID jobs in a vertical mode on paths
+    OUT of NAD 83 are pinned at the reviewer's input: NAVD 88 198.085 against
+    the seed's 196.986.
+  - **L1:** the UTC half of the today() seam is now pinned.
+  - **L2:** the realization warning is now true for either direction.
+  - **L4:** an HTDP refusal inside job.run now names the point and the
+    position's own frame. **W5's GUI must catch `HtdpRefusal`.**
+  - **L5:** two stale docstring numbers.
+  - **L3, the round-trip bound's date range.** The builder qualified it with
+    W0's range, 1997.0 to 2026.8. That range ends the day before this build's
+    date, so every new job would have said its date was outside it. **The
+    lead re-measured** (`review/wgs84-gate2/roundtrip_range.py` and its
+    committed output): 458,160 round trips through `michspc.spc.htdp` over
+    1990-01-01 to 2035-12-31. The sample was W0's 83 in-box positions, heights
+    0 and 600 m, all five frames, both ways, and six days a year at the
+    year's ends and middle. A daily sweep at the box corners showed the
+    two-clock sawtooth peaks at the year's ends. Worst values: 8.519e-6 m
+    north, 5.921e-5 m east, 1.886e-6 m up, all inside W0's stated 9.2e-6 /
+    6.4e-5 / 4.3e-6 m. By 2040-12-31 the east figure reaches 6.92e-5 m, so
+    the stated range ends at 2035-12-31.
+  - **The INFO items:**
+    - I1, I2, I4 and I5 are by design or pre-existing.
+    - **I3 is the owner's question:** an ITRF job with a mistyped year (1925
+      for 2025) moves about 1.7 m with no warning, because D9 gives ITRF no
+      period warning.
 - **Realization dates for D9's warning:** G1762 from 2013-10-16, G2139 from
   2021-01-03, G2296 from 2024-01-07 (NGA, ICG-17 WG-D presentation, 2023;
   EPSG 9756 and 10607; IGSMAIL-8444).

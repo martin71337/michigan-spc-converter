@@ -134,7 +134,31 @@ class HtdpVelocityGridError(HtdpRefusal):
 
     Never extrapolated: a velocity read off the edge of the transcription
     would be a number this program made up, presented as NGS's.
+
+    Carries the refused position as data - ``latitude`` and ``longitude``
+    (decimal degrees, negative west, as ``transform`` took them),
+    ``position_frame`` (the name of the frame THAT position is in: the
+    transform's source) and ``reason`` (why it was refused, without advice) -
+    so a caller that knows where the position came from can say so in its
+    own words (interim gate 2 of the WGS 84 build, finding L4: ``job.run``
+    names the point, and gives advice only where it applies). All four are
+    None on the defect-only refusal of ``_window_node``.
     """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        latitude: float | None = None,
+        longitude: float | None = None,
+        position_frame: str | None = None,
+        reason: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.latitude = latitude
+        self.longitude = longitude
+        self.position_frame = position_frame
+        self.reason = reason
 
 
 class HtdpConvergenceError(HtdpRefusal):
@@ -791,6 +815,12 @@ def _window_cell(
 ) -> tuple[int, int, float, float]:
     """GRDWEI's cell for a lookup position, or a refusal. ``htdp.f:1542-1631``.
 
+    ``frame``, ``latitude`` and ``longitude`` are for the refusal only: the
+    position ``transform`` was handed, in ITS OWN frame - the transform's
+    source. Until interim gate 2 (finding L4) the frame passed was whichever
+    end was not NAD 83, which on a path out of NAD 83 labelled a NAD83(2011)
+    position with the target frame.
+
     This stands in for ``GETREG`` (``htdp.f:277-303``) as well, and it may: a
     position strictly south of region 6's 50.0 N edge and inside the
     transcribed window lies strictly inside region 6 and in none of regions 1
@@ -833,17 +863,25 @@ def _window_cell(
         lon_w_high = 360.0 - (htdp_data.GRID6_LOWER_EAST_LONGITUDE + (i_high - 1) * stepx)
         lat_low = htdp_data.GRID6_LOWER_LATITUDE + (j_low - 1) * stepy
         lat_high = htdp_data.GRID6_LOWER_LATITUDE + (j_high - 1) * stepy
+        reason = (
+            f"its velocity-model lookup position, {posy:.6f} N "
+            f"{360.0 - posx:.6f} W in ITRF2008, is {where}. This program "
+            f"carries HTDP's velocity grid only from {lat_low:.1f} N to "
+            f"{lat_high:.1f} N (north edge excluded) and {lon_w_low:.1f} W to "
+            f"{lon_w_high:.1f} W - Michigan with at least a degree of margin "
+            f"- and it never extrapolates."
+        )
         raise HtdpVelocityGridError(
             f"Cannot transform the position at latitude {latitude:.6f}, "
-            f"longitude {longitude:.6f} ({frame.name}): its velocity-model "
-            f"lookup position, {posy:.6f} N {360.0 - posx:.6f} W in ITRF2008, "
-            f"is {where}. This program carries HTDP's velocity grid only "
-            f"from {lat_low:.1f} N to {lat_high:.1f} N (north edge excluded) "
-            f"and {lon_w_low:.1f} W to {lon_w_high:.1f} W - Michigan with at "
-            f"least a degree of margin - and it never extrapolates. Check "
+            f"longitude {longitude:.6f} ({frame.name}): {reason} Check "
             f"that the position is in Michigan and that its longitude is "
-            f"negative west: a positive-west longitude typed as east lands "
-            f"on the other side of the world."
+            f"negative west, as this function takes it: a positive-west "
+            f"longitude passed as negative west lands on the other side of "
+            f"the world.",
+            latitude=latitude,
+            longitude=longitude,
+            position_frame=frame.name,
+            reason=reason,
         )
 
     # GRDWEI's weights would be computed from posx/posy here; returned to the
@@ -1109,13 +1147,11 @@ def transform(
 
     if source == NAD83_2011:
         epoch1, epoch2 = NAD83_2011_EPOCH, observed
-        other = target
     else:
         epoch1, epoch2 = observed, NAD83_2011_EPOCH
-        other = source
 
     try:
-        return _trfpos(lat, lon, eht, source, epoch1, target, epoch2, other)
+        return _trfpos(lat, lon, eht, source, epoch1, target, epoch2)
     except HtdpConvergenceError as failure:
         raise HtdpConvergenceError(
             f"Cannot transform the position at latitude {lat!r}, longitude "
@@ -1132,12 +1168,11 @@ def _trfpos(
     epoch1: ObservationEpoch,
     target: HtdpFrame,
     epoch2: ObservationEpoch,
-    other: HtdpFrame,
 ) -> HtdpResult:
     """One record of TRFPOS file option 3. ``htdp.f:3175-3294``.
 
-    Arguments already validated by ``transform``. ``other`` is whichever of
-    the two frames is not NAD 83, for messages.
+    Arguments already validated by ``transform``. A refusal names the input
+    position by ``source``, the frame it is in (interim gate 2, finding L4).
     """
     date1 = epoch1.decimal_year
     min1 = epoch1.minutes
@@ -1171,7 +1206,7 @@ def _trfpos(
     velocity: HtdpVelocity | None
     if min1 != min2:  # htdp.f:3245
         vn, ve, vu = _predv(
-            ylat1, ylon1, eht1, date1, iopt1, ellipsoid2, other, lat, lon
+            ylat1, ylon1, eht1, date1, iopt1, ellipsoid2, source, lat, lon
         )  # htdp.f:3249-3250
         vx, vy, vz = _tovxyz(ylat1, elon1, vn, ve, vu)  # htdp.f:3255
         vx, vy, vz = _vtranf(position_table, xyz, (vx, vy, vz), iopt1, iopt2)  # :3265
@@ -1188,7 +1223,7 @@ def _trfpos(
         # point's acceptance never depends on the date. The lookup is computed
         # exactly as PREDV would and discarded: no number below depends on it.
         _, rlat, rlon = _lookup_position(ylat1, ylon1, eht1, date1, iopt1, ellipsoid2)
-        _window_cell(rlat, rlon, other, lat, lon)
+        _window_cell(rlat, rlon, source, lat, lon)
         ylatt, ylont, ehtnew = ylat1, ylon1, eht1
         velocity = None
 

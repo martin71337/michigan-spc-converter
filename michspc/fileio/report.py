@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import statistics
 import textwrap
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 from michspc import APP_NAME, __version__
 from michspc.fileio import formatting as fmt
@@ -572,8 +572,15 @@ def _labelled_paragraph(label: str, text: str) -> list[str]:
     return lines
 
 
-def _vertical_method_block(settings, transformation, result) -> list[str]:
+def _vertical_method_block(
+    settings, transformation, result, *, zoneless: bool
+) -> list[str]:
     """The METHOD section's account of the vertical transformation.
+
+    ``zoneless`` is ``build_report``'s one flag for a job with no State Plane
+    zone at either end, passed in rather than re-derived, so the Factor height
+    paragraph cannot name a combined factor on a job that has none by a rule
+    of its own (interim gate 2 of the WGS 84 build, finding H2).
 
     Everything quotable is quoted from the registry record (``spc/vertical``),
     which derives its words from the same ``sign`` the computation multiplies
@@ -646,11 +653,22 @@ def _vertical_method_block(settings, transformation, result) -> list[str]:
         # for the per-side shape it is the input-side model, which is the
         # only model such a job has.
         factor_model = factors_geoid_model(settings, transformation)
+        # A job with no zone has no grid scale factor and so no combined
+        # factor - its SCALE FACTOR SUMMARY says exactly that - so the
+        # paragraph names only the factor that exists, in the words W4b gave
+        # the ELLIPSOID HEIGHT block and ELEVATIONS. Until interim gate 2
+        # (H2) it said "The elevation and combined factors were computed"
+        # here on every job, zone-less ones included, since #41.
+        factors = (
+            "The elevation factor was"
+            if zoneless
+            else "The elevation and combined factors were"
+        )
         add("")
         lines.extend(
             _labelled_paragraph(
                 "Factor height",
-                f"The elevation and combined factors were computed from the "
+                f"{factors} computed from the "
                 f"SOURCE-datum ({transformation.source.code}) height, not "
                 f"from the shifted height the Z column carries. The "
                 f"{factor_model.name} separations are defined "
@@ -1078,16 +1096,56 @@ Keyed by ``HeightConvention``, whose own value is the convention's name in
 every output, so a convention added later without a sentence here refuses in
 ``_frame_transformation_block`` rather than printing nothing about it."""
 
+ROUND_TRIP_MEASURED_FROM = date(1990, 1, 1)
+ROUND_TRIP_MEASURED_TO = date(2035, 12, 31)
+"""The observation dates the stated round-trip bound is measured to hold over.
+
+Interim gate 2, finding L3: the figure had been stated as though it held at
+every date the program accepts, back to 1907; the reviewer measured 1.13e-4 m
+east at 1950 and 2.06e-4 m at 1908. W0 measured it over 1997.0 to 2026.8 only
+(RECON.md section 5), which ends the day before this build's own date, so
+every new job would have printed that its date was outside it. The lead
+re-measured over 1990-01-01 to 2035-12-31 through ``michspc.spc.htdp``:
+458,160 round trips (W0's 83 in-box positions, heights 0 and 600 m, all five
+frames, both ways, six days a year at the year's ends and middle, where the
+two clocks' sawtooth peaks), worst 8.519e-6 m north, 5.921e-5 m east and
+1.886e-6 m up - inside the 9.2e-6 / 6.4e-5 / 4.3e-6 m W0 stated
+(``review/wgs84-gate2/roundtrip_range.py`` and its committed output; the
+suite holds these constants and the stated figures to that output). Past
+2035 the east figure grows past 6.4e-5 m (6.92e-5 m by 2040-12-31 at the
+north-west corner), so the range stops there."""
+
 ROUND_TRIP_NON_CLOSURE = (
     "HTDP's forward and reverse transformations are not exact inverses. "
-    "Measured on HTDP's own arithmetic, unrounded, a Michigan position "
-    "carried out and back fails to return by up to 9.2e-6 m north, 6.4e-5 m "
-    "east and 4.3e-6 m up (review/wgs84-w0/RECON.md section 5, DESIGN.md "
+    "Measured on HTDP's own arithmetic, unrounded, for observation dates "
+    "from 1990-01-01 to 2035-12-31, a Michigan position carried out and back "
+    "fails to return by up to 9.2e-6 m north, 6.4e-5 m east and 4.3e-6 m up "
+    "(review/wgs84-w0/RECON.md section 5, review/wgs84-gate2/, DESIGN.md "
     "#70). This program reproduces HTDP's arithmetic, and so its round trip "
     "too."
 )
-"""W0's measurement of HTDP's own non-closure, as a fact (plan section 2.1:
-replicated, not smoothed, on the owner's standing rule)."""
+"""HTDP's own non-closure, as a fact (plan section 2.1: replicated, not
+smoothed, on the owner's standing rule), with the dates it is measured to
+hold over (``ROUND_TRIP_MEASURED_FROM`` / ``_TO``)."""
+
+
+def _round_trip_paragraph(epoch: htdp.ObservationEpoch) -> str:
+    """``ROUND_TRIP_NON_CLOSURE``, and on a job dated outside the epochs it was
+    measured over, the fact that it does not cover this job's date.
+
+    A fact, not a caveat (DESIGN.md #50): the figure was measured for a range
+    of dates, this date is or is not in it, and the record says which when
+    it is not. No figure is offered for the date, because none was measured.
+    """
+    if ROUND_TRIP_MEASURED_FROM <= epoch.date <= ROUND_TRIP_MEASURED_TO:
+        return ROUND_TRIP_NON_CLOSURE
+    return (
+        f"{ROUND_TRIP_NON_CLOSURE} This job's observation date, "
+        f"{epoch.date.isoformat()}, is outside that range: the bound stated "
+        f"was measured for observation dates "
+        f"{ROUND_TRIP_MEASURED_FROM.isoformat()} to "
+        f"{ROUND_TRIP_MEASURED_TO.isoformat()} and does not cover this date."
+    )
 
 
 def _htdp_software() -> str:
@@ -1497,7 +1555,7 @@ def _frame_transformation_block(result, path, *, verified: bool) -> list[str]:
             )
         )
     add("")
-    lines.extend(_labelled_paragraph("Round trip", ROUND_TRIP_NON_CLOSURE))
+    lines.extend(_labelled_paragraph("Round trip", _round_trip_paragraph(epoch)))
     if verified:
         add("")
         lines.extend(
@@ -2108,7 +2166,11 @@ def build_report(result: JobResult) -> str:
         )
 
     if vertical:
-        lines.extend(_vertical_method_block(settings, transformation, result))
+        lines.extend(
+            _vertical_method_block(
+                settings, transformation, result, zoneless=zoneless
+            )
+        )
         if swap_models is not None:
             lines.extend(_geoid_swap_method_block(swap_models))
 
@@ -2572,6 +2634,13 @@ def build_report(result: JobResult) -> str:
             if settings.input_height_kind is HeightKind.ELLIPSOID
             else ""
         )
+        # The last sentence is a claim about every heading of the audit CSV,
+        # and it is pinned against the CELLS (tests/test_frame_disclosure.py,
+        # interim gate 2 finding H1): each latitude, longitude and ellipsoid
+        # height heading must name the frame its values are in. It said
+        # "Every position" until that gate - false then of the four Source /
+        # Target degree headings, and still not a claim the grid northings
+        # could meet, which are in the zone their row's zone cell names.
         lines.extend(
             textwrap.wrap(
                 f"For this job it also carries, per point and after "
@@ -2579,7 +2648,8 @@ def build_report(result: JobResult) -> str:
                 f"observation date and its decimal year, the height "
                 f"convention, the {external} position in decimal degrees and "
                 f"in DMS,{heights} and the velocity HTDP applied. Every "
-                f"position and ellipsoid height column names its frame.",
+                f"latitude, longitude and ellipsoid height column names its "
+                f"frame.",
                 width=78,
                 initial_indent="    ",
                 subsequent_indent="    ",

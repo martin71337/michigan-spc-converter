@@ -346,6 +346,13 @@ constants module is a transcription the suite verifies, the way
   displayed result.** This is #26's and #43's CRITICAL class, pinned and
   falsified per control.
 - The Single point panel shows both positions when a transformation ran.
+- **An HTDP refusal must be caught and shown** (interim gate 2, finding L4).
+  `job.run` raises `htdp.HtdpRefusal` subclasses (a position outside the
+  velocity window is `HtdpVelocityGridError`), restated per row with the
+  point and the refused position's own frame. `HtdpRefusal` subclasses
+  neither `ValueError` nor `FrameMismatchError`, so a handler written for
+  those does not catch it. Both tabs catch `Exception` around `job.run`
+  today; W5 must keep that, or catch `htdp.HtdpRefusal` by name, and pin it.
 
 ### 3.8 Packaging, self-test, tripwire
 

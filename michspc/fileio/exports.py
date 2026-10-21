@@ -15,7 +15,8 @@ geodetic-to-geodetic one (docs/PLAN-wgs84.md decision D7).
 **A frame transformation is disclosed, never implied** (docs/PLAN-wgs84.md
 section 3.6, work package W4). On a job whose positions were carried between
 NAD83(2011) and a WGS 84 or ITRF frame by HTDP, the audit CSV names the frame
-of every position and ellipsoid height it holds and carries the transformation's
+of every latitude, longitude and ellipsoid height it holds (a grid northing and
+easting are in the zone their row names) and carries the transformation's
 per-point facts in columns appended after Description; the job record states
 the transformation in its FRAME TRANSFORMATION block; and each file is
 verified against the position THAT FILE states - the target frame's, which on
@@ -435,9 +436,16 @@ def _frame_named(columns: list[str], path: FrameTransformation, settings) -> lis
     * on a HORIZONTAL ellipsoid-input job, the Z column - the ellipsoid height
       transformed with the position, so in the path's TARGET frame (plan D6);
     * on a vertical ellipsoid-input job, ``Ellipsoid height in`` - the height
-      exactly as the file supplied it, so in the path's SOURCE frame.
+      exactly as the file supplied it, so in the path's SOURCE frame;
+    * the Source and Target latitude and longitude pairs, wherever they hold
+      degrees (interim gate 2 of the WGS 84 build, finding H1: until then
+      these four were the only position headings on a transformed job that
+      named no frame, beside a record sentence saying every one did). Each
+      pair is named by the frame its cells are in, which
+      ``geodetic_pair_frames`` states per direction.
     """
     pivot = pivot_frame(path).code
+    source_pair, target_pair = geodetic_pair_frames(path, settings)
     renames = {
         "Latitude": f"Latitude ({pivot})",
         "Longitude (neg west)": f"Longitude ({pivot}, neg west)",
@@ -449,7 +457,42 @@ def _frame_named(columns: list[str], path: FrameTransformation, settings) -> lis
             f"Ellipsoid height in ({path.source.code}, {settings.input_unit.code})"
         ),
     }
+    # Only where the pair holds degrees: a grid pair keeps its 0.1.0 heading,
+    # and the Source zone / Target zone cell beside it names its zone.
+    if _geodetic_source_columns(settings):
+        latitude, longitude = SOURCE_COLUMNS_GEODETIC
+        renames[latitude] = f"Source latitude ({source_pair.code})"
+        renames[longitude] = f"Source longitude ({source_pair.code}, as in file)"
+    if _geodetic_coordinate_columns(settings):
+        latitude, longitude = TARGET_COLUMNS_GEODETIC
+        renames[latitude] = f"Target latitude ({target_pair.code})"
+        renames[longitude] = f"Target longitude ({target_pair.code}, as written)"
     return [renames.get(column, column) for column in columns]
+
+
+def geodetic_pair_frames(
+    path: FrameTransformation, settings
+) -> tuple[ReferenceFrame, ReferenceFrame]:
+    """``(Source pair's frame, Target pair's frame)`` on a transformed job.
+
+    What the two degree pairs of the audit CSV actually HOLD, per direction
+    (interim gate 2, H1), each meaningful only where that pair holds degrees:
+
+    * the Source pair is the input file's own position, and on every
+      transformed direction the input is at the path's SOURCE end - a WGS 84
+      or ITRF input carried to NAD83(2011) (GEODETIC_TO_ZONE, the forward
+      GEODETIC_TO_GEODETIC, VERTICAL_ONLY), or a NAD83(2011) input carried out
+      (the reverse GEODETIC_TO_GEODETIC);
+    * the Target pair is ``job.written_geodetic_position`` - the path's TARGET
+      end - on ZONE_TO_GEODETIC and GEODETIC_TO_GEODETIC; but on
+      VERTICAL_ONLY it MIRRORS the input (the direction's promise:
+      ``job._convert_row`` copies the row's own columns), so it is in the
+      SOURCE frame there, not the target - the NAD83(2011) pivot the grids
+      were read at has its own columns, ``Latitude (NAD83(2011))`` and on.
+    """
+    if settings.direction is Direction.VERTICAL_ONLY:
+        return path.source, path.source
+    return path.source, path.target
 
 
 def frame_transformation_columns(path: FrameTransformation, settings) -> list[str]:
@@ -461,9 +504,15 @@ def frame_transformation_columns(path: FrameTransformation, settings) -> list[st
     either. Per point, for the reason "Source vertical datum" is (#42): a row
     cut out of this file still states what was done to it.
 
-    * ``Frame transformation`` - the path, ``WGS84(G2296) -> NAD83(2011)``;
-      so the source columns are in its first frame and the target columns in
-      its second.
+    * ``Frame transformation`` - the path, ``WGS84(G2296) -> NAD83(2011)``:
+      its first frame is the frame the input was in, its second the frame
+      the job converted to. Which frame each position column holds is not
+      left to that: every latitude, longitude and ellipsoid height heading
+      names its own frame (``_frame_named``). The Source pair holds the
+      input, in the first frame; the Target pair is in the second, except on
+      VERTICAL_ONLY, whose Target pair mirrors the input and so is in the
+      first (``geodetic_pair_frames``). A grid pair is in the zone its row's
+      zone cell names.
     * ``Observation date`` and ``Observation epoch (decimal year)`` - the
       job's one date (plan D10) and HTDP's decimal year for it, exactly.
     * ``Height convention`` - which height HTDP was handed (plan D6).

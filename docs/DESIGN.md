@@ -928,6 +928,26 @@ re-derived by the lead):
     - I2 (the date keeps its last answer) and I4 (the ITRF date question)
       are the owner's.
   - Over 50 seeds were caught. Suite 4,793 in both modes; self-test 13/13.
+  - **Narrowing re-confirmation** (`review/gate-wgs84-closing/reconfirm-
+    output.md`): every fix confirmed at the root, with real pins (21 seeds).
+    The reviewer re-ran 600 jobs of its own against `c14a22d`: zone records
+    unchanged to the character. It also re-ran the gate's GUI sweeps, 250
+    Single point configurations and 120 Multi point jobs, with no problem.
+    Three new LOW findings:
+    - **N1:** the L6 rewrite still said a forced SPCS2022 pair "is refused at
+      Convert". The interface grays such pairs and, if moving one end strands
+      the other, clears it with `FRAME_RESET_STATUS` (#64). The lead
+      rewrote both pair bullets to say exactly that.
+    - **N3:** stale lines in the DRAFT notes (the closing gate "has not run",
+      4,757 tests, only two gates listed), corrected by the lead. The
+      "Corrected" section now lists L7's sentences as a third item.
+    - **N2:** the "Precision written" lines (scale and combined factors to 8
+      places, convergence to 0.01") print on zone-less records. **The
+      lead's decision of interim gate 2 stands:** they state the format of
+      columns every audit CSV carries, which read N/A on such jobs, and the
+      same record says no combined factor exists. That is a fact about a
+      format, not a claim that a value was computed. Re-raised without new
+      evidence, so it is recorded again, not changed.
 - **Realization dates for D9's warning:** G1762 from 2013-10-16, G2139 from
   2021-01-03, G2296 from 2024-01-07 (NGA, ICG-17 WG-D presentation, 2023;
   EPSG 9756 and 10607; IGSMAIL-8444).

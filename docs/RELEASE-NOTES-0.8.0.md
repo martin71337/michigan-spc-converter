@@ -1,8 +1,9 @@
 # MCX 0.8.0 (DRAFT)
 
 **DRAFT. Not released.** The version literal still carries its `-dev` marker
-(`0.8.0-dev`), nothing is tagged, the closing review gate over the whole build
-has not run, and the owner has not seen the new controls on a real screen.
+(`0.8.0-dev`), nothing is tagged, and the owner has not seen the new
+controls on a real screen. The closing review gate over the whole build has
+run, and its findings are fixed (below, under Verified).
 The release build is made on the owner's machine. This file is written so that
 what the release claims can be checked against what was actually verified.
 
@@ -130,14 +131,15 @@ does:
   carry NATRF2022, and going through NAD 83 would need the NAD 83 ⇄
   NATRF2022 transformation NGS has not published
   (`docs/DEFERRED-NATRF2022-BRIDGE.md`). Such a pair is grayed in the
-  dropdowns. If one is selected anyway, a pair with an SPCS2022 zone is
-  refused at Convert by name, and a pair with NATRF2022 geodetic is no
-  conversion at all, so Convert stays unavailable.
+  dropdowns, so it cannot be chosen. If changing one end would leave the
+  other end's existing selection in such a pair, the other end is cleared
+  and the status line reads "Cleared: no published transformation between
+  those reference frames.", so Convert is not offered. A job that states
+  such a pair is refused by name.
 - **Realization to realization, and ITRF to ITRF.** No zone is defined on any
   of these frames, so the only conversion offered for a position in one is to
-  or from NAD 83(2011). Such a pair is grayed in the dropdowns, is no
-  conversion if selected anyway (Convert stays unavailable), and a job that
-  states one is refused by name.
+  or from NAD 83(2011). Such a pair is grayed and cleared exactly as above,
+  and a job that states one is refused by name.
 - **A position outside HTDP's velocity grid as MCX carries it** (Michigan
   with at least a degree of margin on every side): refused at Convert, never
   extrapolated, naming the point.
@@ -149,7 +151,7 @@ does:
   such a job and its date is not sent; a job that states one anyway is
   refused by name.
 
-## Corrected: two false sentences in earlier job records
+## Corrected: false sentences in earlier job records
 
 **Present in 0.4.0 through 0.7.1, and corrected here. No number was ever
 wrong in either case**; both are sentences in the job record
@@ -169,6 +171,10 @@ wrong in either case**; both are sentences in the job record
    SOURCE-datum height". A job with no zone has no combined factor, and the
    same record said so in its scale factor summary. It now says "The
    elevation factor was computed ...".
+3. **The same vertical-only geodetic jobs** named "the geoid model the
+   factors were computed from" and "H ... as used for the factors" in their
+   FILES WRITTEN and METHOD sections. They now name the elevation factor,
+   the one factor such a job has.
 
 Every other existing job's files are unchanged byte for byte, apart from
 two lines at the top of the job record: `Generated`, the time the job ran,
@@ -207,7 +213,7 @@ monthly tripwire now watches NGS's HTDP repository for that change.
   converts one WGS 84 (G2296) position into Michigan Central against HTDP's
   own printed output projected, and proves the bare-WGS 84 and
   WGS 84-to-SPCS2022 refusals are alive in the shipped binary.
-- **4,757 automated tests pass in both run modes** in the cloud container
+- **4,793 automated tests pass in both run modes** in the cloud container
   this was built in, where six tests fail for the container's own reasons
   and fail identically without this build's work (DESIGN.md #65 and #69);
   the owner's machine runs the suite again as gate 4 of the release build.
@@ -217,10 +223,14 @@ monthly tripwire now watches NGS's HTDP repository for that change.
 - **The gates ran under an independent Opus reviewer**, blind to the build's
   own reading, because the Codex reviewer the method names was not available
   in the cloud container this release was built in (the owner's standing
-  fallback). Two interim gates ran: the first returned seven LOW findings,
-  the second two HIGH, one MEDIUM and five LOW, none of them a wrong number;
-  all are fixed, each pinned at the reviewer's own input. A Codex
-  re-confirmation on the owner's machine is his option.
+  fallback). Two interim gates and a closing gate ran. The first interim
+  gate returned seven LOW findings; the second two HIGH, one MEDIUM and five
+  LOW; the closing gate one MEDIUM and seven LOW. None was a wrong number.
+  All are fixed, each pinned at the reviewer's own input, and each gate's
+  fixes passed a narrowing re-confirmation. The closing gate's reviewer
+  drove the real interface on both tabs, 2,050 Single point configurations
+  and 540 Multi point jobs, against its own HTDP build with no mismatch. A
+  Codex re-confirmation on the owner's machine is his option.
 
 ## Not verified yet: still to do before this ships
 

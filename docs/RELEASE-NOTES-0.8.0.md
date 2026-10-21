@@ -154,7 +154,7 @@ does:
 ## Corrected: false sentences in earlier job records
 
 **Present in 0.4.0 through 0.7.1, and corrected here. No number was ever
-wrong in either case**; both are sentences in the job record
+wrong in any of them**; all are sentences in the job record
 (`<job>_README.txt`) that described work the job did not do.
 
 1. **A vertical-only job on geodetic input** (latitude and longitude in, the
@@ -173,8 +173,9 @@ wrong in either case**; both are sentences in the job record
    elevation factor was computed ...".
 3. **The same vertical-only geodetic jobs** named "the geoid model the
    factors were computed from" and "H ... as used for the factors" in their
-   FILES WRITTEN and METHOD sections. They now name the elevation factor,
-   the one factor such a job has.
+   FILES WRITTEN and METHOD sections, and "the geoid model the Z column and
+   the factors are stated against" when the job changed geoid models. They
+   now name the elevation factor, the one factor such a job has.
 
 Every other existing job's files are unchanged byte for byte, apart from
 two lines at the top of the job record: `Generated`, the time the job ran,
@@ -256,7 +257,7 @@ monthly tripwire now watches NGS's HTDP repository for that change.
   from.
 - **The clean-profile install proof**: install on a clean profile and run
   one real job end to end.
-- **The closing review gate** over the whole build, then the release build:
-  `py tools/build_release.py --acknowledge-ngs-beta` on the owner's machine.
+- **The release build**: `py tools/build_release.py --acknowledge-ngs-beta`
+  on the owner's machine.
 
 Verify the download against `SHA256SUMS.txt` on this page.

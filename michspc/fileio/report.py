@@ -1115,11 +1115,24 @@ suite holds these constants and the stated figures to that output). Past
 2035 the east figure grows past 6.4e-5 m (6.92e-5 m by 2040-12-31 at the
 north-west corner), so the range stops there."""
 
+ROUND_TRIP_HEIGHT_FROM_M = -250.0
+ROUND_TRIP_HEIGHT_TO_M = 610.0
+"""The heights handed to HTDP that the stated round-trip bound holds over.
+
+Interim gate 2 re-confirmation, N1: the non-closure grows linearly with the
+height handed to HTDP (HTDP's velocity-to-angle radii carry no height term,
+RECON.md section 5), and the east figure passes 6.4e-5 m at about 690 m. The
+lead's measurement (``review/wgs84-gate2/roundtrip_range.py``) runs at -250,
+0 and 650 m, so the ends of a linear growth bound every height between, and
+the stated range sits inside it: Michigan's highest ground is about 603 m,
+and -250 m leaves room for lakebed points below the ellipsoid."""
+
 ROUND_TRIP_NON_CLOSURE = (
     "HTDP's forward and reverse transformations are not exact inverses. "
     "Measured on HTDP's own arithmetic, unrounded, for observation dates "
-    "from 1990-01-01 to 2035-12-31, a Michigan position carried out and back "
-    "fails to return by up to 9.2e-6 m north, 6.4e-5 m east and 4.3e-6 m up "
+    "from 1990-01-01 to 2035-12-31 and heights handed to HTDP from -250 m to "
+    "610 m, a Michigan position carried out and back fails to return by up "
+    "to 9.2e-6 m north, 6.4e-5 m east and 4.3e-6 m up "
     "(review/wgs84-w0/RECON.md section 5, review/wgs84-gate2/, DESIGN.md "
     "#70). This program reproduces HTDP's arithmetic, and so its round trip "
     "too."
@@ -1129,23 +1142,42 @@ smoothed, on the owner's standing rule), with the dates it is measured to
 hold over (``ROUND_TRIP_MEASURED_FROM`` / ``_TO``)."""
 
 
-def _round_trip_paragraph(epoch: htdp.ObservationEpoch) -> str:
-    """``ROUND_TRIP_NON_CLOSURE``, and on a job dated outside the epochs it was
-    measured over, the fact that it does not cover this job's date.
+def _round_trip_paragraph(epoch: htdp.ObservationEpoch, points=()) -> str:
+    """``ROUND_TRIP_NON_CLOSURE``, and the facts of where this job falls
+    outside what it was measured over: the observation date, and the count of
+    points handed HTDP a height outside the measured height range.
 
-    A fact, not a caveat (DESIGN.md #50): the figure was measured for a range
-    of dates, this date is or is not in it, and the record says which when
-    it is not. No figure is offered for the date, because none was measured.
+    A fact, not a caveat (DESIGN.md #50): the figure was measured for ranges
+    of dates and heights, this job is or is not in them, and the record says
+    which when it is not. No figure is offered outside them, because none was
+    measured.
     """
-    if ROUND_TRIP_MEASURED_FROM <= epoch.date <= ROUND_TRIP_MEASURED_TO:
-        return ROUND_TRIP_NON_CLOSURE
-    return (
-        f"{ROUND_TRIP_NON_CLOSURE} This job's observation date, "
-        f"{epoch.date.isoformat()}, is outside that range: the bound stated "
-        f"was measured for observation dates "
-        f"{ROUND_TRIP_MEASURED_FROM.isoformat()} to "
-        f"{ROUND_TRIP_MEASURED_TO.isoformat()} and does not cover this date."
+    text = ROUND_TRIP_NON_CLOSURE
+    if not ROUND_TRIP_MEASURED_FROM <= epoch.date <= ROUND_TRIP_MEASURED_TO:
+        text += (
+            f" This job's observation date, {epoch.date.isoformat()}, is "
+            f"outside that range: the bound stated was measured for "
+            f"observation dates {ROUND_TRIP_MEASURED_FROM.isoformat()} to "
+            f"{ROUND_TRIP_MEASURED_TO.isoformat()} and does not cover this "
+            f"date."
+        )
+    outside = sum(
+        1
+        for point in points
+        if not (
+            ROUND_TRIP_HEIGHT_FROM_M
+            <= point.conversion.transform_height.height_for_transform_m
+            <= ROUND_TRIP_HEIGHT_TO_M
+        )
     )
+    if outside:
+        text += (
+            f" {outside} of this job's {len(points)} points were handed HTDP "
+            f"a height outside {ROUND_TRIP_HEIGHT_FROM_M:g} m to "
+            f"{ROUND_TRIP_HEIGHT_TO_M:g} m, so the bound stated "
+            f"does not cover them."
+        )
+    return text
 
 
 def _htdp_software() -> str:
@@ -1274,8 +1306,19 @@ def _method_without_a_zone(result, path, transformation, swap_models) -> list[st
             _labelled_paragraph(
                 "Authority",
                 f"{_htdp_software()} - the frame transformation, which is the "
-                f"whole of this job's conversion. No State Plane coordinate "
-                f"system and no map projection is involved.",
+                f"whole of this job's "
+                + (
+                    # Interim gate 2 re-confirmation, N3: on a vertical-mode
+                    # job the elevation is converted too (VERTCON, or
+                    # H = h - N), so HTDP is the whole of the HORIZONTAL
+                    # conversion only.
+                    "horizontal conversion; the elevation conversion is "
+                    "stated below. "
+                    if settings.vertical_mode.converts_elevations
+                    else "conversion. "
+                )
+                + "No State Plane coordinate system and no map projection is "
+                "involved.",
             )
         )
         add("")
@@ -1555,7 +1598,9 @@ def _frame_transformation_block(result, path, *, verified: bool) -> list[str]:
             )
         )
     add("")
-    lines.extend(_labelled_paragraph("Round trip", _round_trip_paragraph(epoch)))
+    lines.extend(
+        _labelled_paragraph("Round trip", _round_trip_paragraph(epoch, result.points))
+    )
     if verified:
         add("")
         lines.extend(

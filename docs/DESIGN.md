@@ -813,6 +813,28 @@ re-derived by the lead):
     - **I3 is the owner's question:** an ITRF job with a mistyped year (1925
       for 2025) moves about 1.7 m with no warning, because D9 gives ITRF no
       period warning.
+  - **Narrowing re-confirmation** (`review/gate-wgs84-2/reconfirm-output.md`):
+    all eight fixes confirmed at the root with real pins, and no wrong
+    number. The reviewer checked 90 transformed jobs heading by heading
+    (3,450 cells), 77 zone-less records, and its own 4.03-million-round-trip
+    daily sweep, which reproduced the lead's worst figures. It found three
+    new items, all fixed by the lead, pinned and falsified (four seeds
+    caught):
+    - **N1 (LOW):** the round-trip bound was qualified by date but not by
+      height. The non-closure grows linearly with the height handed to HTDP,
+      and the east figure passes 6.4e-5 m at about 690 m. The harness now
+      runs at -250, 0 and 650 m: 687,240 round trips, worst 8.908e-6 /
+      6.193e-5 / 1.884e-6 m. The record states the bound for heights from
+      -250 m to 610 m (Michigan's ground reaches about 603 m), and counts the
+      points handed a height outside that range.
+    - **N2 (INFO):** the fallback branch of the HTDP point-naming refusal is
+      now pinned by a forced non-convergence.
+    - **N3 (LOW, from W4):** the geodetic-to-geodetic Authority line said
+      HTDP is "the whole of this job's conversion" on vertical-mode jobs. It
+      now says "the whole of this job's horizontal conversion".
+    - **Interim gate 2 is closed** by the lead's fixes to these three, which
+      were small and confined to the narrowed surface. The closing gate
+      re-reviews the whole diff.
 - **Realization dates for D9's warning:** G1762 from 2013-10-16, G2139 from
   2021-01-03, G2296 from 2024-01-07 (NGA, ICG-17 WG-D presentation, 2023;
   EPSG 9756 and 10607; IGSMAIL-8444).

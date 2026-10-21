@@ -771,9 +771,10 @@ Software           NGS HTDP v3.6.0 (April 7, 2025), github.com/noaa-ngs/HTDP
 _ROUND_TRIP = """\
 Round trip         HTDP's forward and reverse transformations are not exact
                    inverses. Measured on HTDP's own arithmetic, unrounded, for
-                   observation dates from 1990-01-01 to 2035-12-31, a Michigan
-                   position carried out and back fails to return by up to
-                   9.2e-6 m north, 6.4e-5 m east and 4.3e-6 m up
+                   observation dates from 1990-01-01 to 2035-12-31 and heights
+                   handed to HTDP from -250 m to 610 m, a Michigan position
+                   carried out and back fails to return by up to 9.2e-6 m
+                   north, 6.4e-5 m east and 4.3e-6 m up
                    (review/wgs84-w0/RECON.md section 5, review/wgs84-gate2/,
                    DESIGN.md #70). This program reproduces HTDP's arithmetic,
                    and so its round trip too.
@@ -2483,6 +2484,15 @@ def test_the_round_trip_range_is_the_committed_measurement():
     assert fields["first"] == report.ROUND_TRIP_MEASURED_FROM.isoformat() == "1990-01-01"
     assert fields["last"] == report.ROUND_TRIP_MEASURED_TO.isoformat() == "2035-12-31"
     assert int(fields["positions"]) == 83
+    # N1: the measured heights bound the stated range. The non-closure is
+    # linear in the height handed to HTDP, so the measured ends bound every
+    # height between them.
+    measured = [float(h) for h in fields["heights_m"].split(",")]
+    assert min(measured) <= report.ROUND_TRIP_HEIGHT_FROM_M == -250.0
+    assert max(measured) >= report.ROUND_TRIP_HEIGHT_TO_M == 610.0
+    assert "heights handed to HTDP from -250 m to 610 m" in " ".join(
+        report.ROUND_TRIP_NON_CLOSURE.split()
+    )
     for key, stated in (("worst_north_m", 9.2e-6), ("worst_east_m", 6.4e-5), ("worst_up_m", 4.3e-6)):
         assert float(fields[key]) <= stated, key
     assert (
@@ -2561,3 +2571,88 @@ def test_the_day_after_the_measured_range_says_the_bound_does_not_cover_it(
         observation_date=datetime.date(2036, 1, 1),
     )
     assert _OUTSIDE.format(date="2036-01-01") in _flat(archive)
+
+
+# --------------------------------------------------------------------------
+# Interim gate 2 re-confirmation, N1: the bound states the heights it was
+# measured over, and the record counts the points handed HTDP a height
+# outside them.
+# --------------------------------------------------------------------------
+
+
+def test_a_point_handed_a_height_outside_the_range_is_counted(tmp_path, monkeypatch):
+    """Two ELLIPSOID points: h = 700 m (above the 610 m end, where the reviewer
+    measured the east non-closure past 6.4e-5 m) and h = 165 m (inside). An
+    ellipsoid Z is the height HTDP is handed (plan D6), so exactly 1 of 2 is
+    outside."""
+    from michspc import job as job_module
+
+    monkeypatch.setattr(job_module, "today", lambda: datetime.date(2026, 10, 21))
+    _result, archive = _write_job(
+        tmp_path,
+        "1,43.0,84.5,700.000,HIGH\n2,43.0,84.5,165.000,P\n",
+        geodetic_frame=ITRF2020,
+        observation_date=L5_DATE,
+        input_height_kind=HeightKind.ELLIPSOID,
+    )
+    flat = _flat(archive)
+    assert (
+        "1 of this job's 2 points were handed HTDP a height outside -250 m to "
+        "610 m, so the bound stated does not cover them." in flat
+    )
+
+
+def test_heights_inside_the_range_add_nothing(tmp_path, monkeypatch):
+    """h = 165 m and a blank Z (handed h = 0, plan D6): both inside."""
+    from michspc import job as job_module
+
+    monkeypatch.setattr(job_module, "today", lambda: datetime.date(2026, 10, 21))
+    _result, archive = _write_job(
+        tmp_path,
+        "1,43.0,84.5,165.000,P\n2,43.0,84.5,,BLANK\n",
+        geodetic_frame=ITRF2020,
+        observation_date=L5_DATE,
+        input_height_kind=HeightKind.ELLIPSOID,
+    )
+    assert "does not cover them" not in _flat(archive)
+
+
+# --------------------------------------------------------------------------
+# Interim gate 2 re-confirmation, N3: on a vertical-mode geodetic-to-geodetic
+# job HTDP is the whole of the HORIZONTAL conversion only - VERTCON (or
+# H = h - N) converts the elevation.
+# --------------------------------------------------------------------------
+
+
+def test_a_vertical_mode_g2g_job_says_htdp_is_the_horizontal_conversion(tmp_path):
+    """The reviewer's job: G2296 -> NAD83(2011), H+V, NAVD 88 -> NGVD 29."""
+    _result, archive = _write_job(
+        tmp_path,
+        "1,43.0,84.5,200.000,P\n",
+        direction=Direction.GEODETIC_TO_GEODETIC,
+        target_zone=None,
+        target_geodetic_frame=NAD83_2011,
+        vertical_mode=VerticalMode.HORIZONTAL_AND_VERTICAL,
+        source_vertical_datum=NAVD88,
+        target_vertical_datum=NGVD29,
+    )
+    flat = " ".join(_record(archive).split())
+    assert (
+        "the frame transformation, which is the whole of this job's "
+        "horizontal conversion; the elevation conversion is stated below."
+        in flat
+    )
+    assert "whole of this job's conversion." not in flat
+
+
+def test_a_horizontal_g2g_job_keeps_the_whole_conversion_wording(tmp_path):
+    """HORIZONTAL mode: no elevation is converted, so HTDP is the whole of it."""
+    _result, archive = _write_job(
+        tmp_path,
+        "1,43.0,84.5,200.000,P\n",
+        direction=Direction.GEODETIC_TO_GEODETIC,
+        target_zone=None,
+        target_geodetic_frame=NAD83_2011,
+    )
+    flat = " ".join(_record(archive).split())
+    assert "the frame transformation, which is the whole of this job's conversion." in flat

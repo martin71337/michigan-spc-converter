@@ -7,8 +7,9 @@ Through michspc.spc.htdp, which reproduces NGS HTDP v3.6.0's printed output on
 every frozen record (W1, interim gate 1), so this measures HTDP's own
 arithmetic, unrounded. A position is carried out and back both ways
 (to NAD 83 and back, and from NAD 83 and back) for every in-box position of
-W0's lattice (review/wgs84-w0/htdp_truth.json), at heights 0 and 600 m
-(Michigan's highest ground is about 603 m), for all five frames.
+W0's lattice (review/wgs84-w0/htdp_truth.json), at heights -250, 0 and
+650 m (the non-closure is linear in the height handed to HTDP, so the ends
+bound every height between; Michigan's highest ground is about 603 m)
 
 Dates: the Helmert runs on the calendar-year fraction and the velocity on
 whole days in Julian years, so the non-closure has a within-year sawtooth that
@@ -30,6 +31,7 @@ sys.path.insert(0, str(REPO))
 from michspc.spc import htdp  # noqa: E402
 
 FIRST, LAST = datetime.date(1990, 1, 1), datetime.date(2035, 12, 31)
+HEIGHTS = (-250.0, 0.0, 650.0)
 FRAMES = (htdp.WGS84_G1762, htdp.WGS84_G2139, htdp.WGS84_G2296, htdp.ITRF2014, htdp.ITRF2020)
 
 
@@ -55,7 +57,7 @@ def main() -> None:
     for date in dates:
         epoch = htdp.ObservationEpoch(date)
         for lat, lon in positions:
-            for height in (0.0, 600.0):
+            for height in HEIGHTS:
                 for frame in FRAMES:
                     start = (lat, lon, height)
                     for out, back in ((htdp.to_nad83, htdp.from_nad83), (htdp.from_nad83, htdp.to_nad83)):
@@ -71,6 +73,7 @@ def main() -> None:
         f"first {FIRST.isoformat()}",
         f"last {LAST.isoformat()}",
         f"positions {len(positions)}",
+        f"heights_m {','.join(f'{h:g}' for h in HEIGHTS)}",
         f"round_trips {count}",
     ]
     for i, axis in enumerate(("north", "east", "up")):

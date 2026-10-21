@@ -1478,3 +1478,36 @@ def test_a_geodetic_row_outside_the_window_names_the_point_and_the_convention(
         "written negative west, as this job states: a longitude written in the "
         "other convention lands on the other side of the world."
     ), message
+
+
+# --------------------------------------------------------------------------
+# Interim gate 2 re-confirmation, N2: the fallback branch of
+# _point_named_htdp_refusal - every HTDP refusal other than the velocity-
+# window one keeps its own class and is prefixed with its point.
+# --------------------------------------------------------------------------
+
+
+def test_any_other_htdp_refusal_keeps_its_class_and_names_the_point(
+    tmp_path, monkeypatch
+):
+    """An FRMXYZ non-convergence (HTDP's STOP 666) cannot be reached from a
+    Michigan position, so it is forced: htdp.to_nad83, which convert.py calls
+    by attribute, raises HtdpConvergenceError("forced"). The job's restatement
+    must be the same class, read "point 2: forced", and leave HTDP's own words
+    untouched; the first row converts before the second is refused."""
+    real = htdp.to_nad83
+    calls = {"n": 0}
+
+    def flaky(*args, **kwargs):
+        calls["n"] += 1
+        if calls["n"] == 2:
+            raise htdp.HtdpConvergenceError("forced")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(htdp, "to_nad83", flaky)
+    settings = _settings(tmp_path)
+    _write(settings, ["1,43.0,84.5,165.000,P\n", "2,43.1,84.6,165.000,Q\n"])
+    with pytest.raises(htdp.HtdpConvergenceError) as raised:
+        run(settings)
+    assert type(raised.value) is htdp.HtdpConvergenceError
+    assert str(raised.value) == "point 2: forced"

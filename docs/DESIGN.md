@@ -895,6 +895,39 @@ re-derived by the lead):
     inherited false record sentences from 0.4.0 through 0.7.1. The lead
     removed its em dashes, per the owner's writing preference.
   - 37 seeds caught. Suite 4,757 in both modes.
+- **The closing gate** (`review/gate-wgs84-closing/output.md`; independent
+  Opus reviewer, blind, over the whole build). **FINDINGS: 1 MEDIUM, 7 LOW,
+  5 INFO, no CRITICAL, no HIGH, and no wrong number on any surface.** The
+  reviewer drove the real GUI headless: 2,050 Single point configurations
+  (39,591 panel rows, every copy path) and 540 Multi point jobs against its
+  own HTDP build, with 0 mismatches. Stale results cleared on every control.
+  400 core and 250 GUI same-frame configurations were byte-identical to
+  `fbcbf4a` apart from the recorded W4b and H2 passages.
+  - **M1:** a pin gap of gate 2 M1's class, on the screen. The vertical-mode
+    panel row "Ellipsoid height after transformation" on paths OUT of NAD 83
+    was untested, and a seed showing the NAD 83 h under the WGS 84 label
+    (1.1 m) left the suite green. It is now pinned at HTDP's frozen print,
+    together with every other row whose value differs between the two
+    frames.
+  - **L1, L2:** two more pin gaps, now closed.
+  - **L3, with I3:** core messages that spoke of "the file" on the
+    Single point tab, a longitude-convention line that is false under DMS
+    entry, and a refused position printed as "275.4 W". They are now true on
+    both tabs.
+  - **L4:** gate 6 now refuses any bundled file byte-identical to a file
+    under `review/`, whatever its name.
+  - **L5:** tripwire probes 1 to 3 report "could not check" on a
+    captive-portal or non-JSON page.
+  - **L6:** three overstatements in the release notes.
+  - **L7:** "the factors" on zone-less records, missed by gate 2's sweep and
+    also present in released 0.7.1. The digest pin is respelled, not
+    re-frozen.
+  - **I5:** the "in file" tooltip now matches the height kind.
+  - Left as recorded:
+    - I1, the same-frame graying inconsistency, is harmless.
+    - I2 (the date keeps its last answer) and I4 (the ITRF date question)
+      are the owner's.
+  - Over 50 seeds were caught. Suite 4,793 in both modes; self-test 13/13.
 - **Realization dates for D9's warning:** G1762 from 2013-10-16, G2139 from
   2021-01-03, G2296 from 2024-01-07 (NGA, ICG-17 WG-D presentation, 2023;
   EPSG 9756 and 10607; IGSMAIL-8444).

@@ -34,6 +34,7 @@ from __future__ import annotations
 import csv
 import datetime
 import os
+import re
 
 # MUST precede any Qt import: the platform plugin is chosen at import time and a
 # later change is ignored (docs/method/TOOLING.md).
@@ -48,8 +49,9 @@ from PySide6.QtTest import QTest  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
 from michspc import job as job_module  # noqa: E402
-from michspc.fileio import exports, formatting as fmt  # noqa: E402
+from michspc.fileio import exports, formatting as fmt, geoid  # noqa: E402
 from michspc.gui import controls, results_model  # noqa: E402
+from michspc.gui import single_point as single_point_module  # noqa: E402
 from michspc.gui.app import build_application  # noqa: E402
 from michspc.gui.single_point import INCOMPLETE_FORM  # noqa: E402
 from michspc.gui.window import MainWindow  # noqa: E402
@@ -72,8 +74,13 @@ from michspc.spc.frames import (  # noqa: E402
 )
 from michspc.spc.units import INTERNATIONAL_FEET, METERS  # noqa: E402
 from michspc.spc.vertical import NAVD88, HeightKind  # noqa: E402
+from michspc.spc.convert import project_point  # noqa: E402
 from michspc.spc.zones import MI_CENTRAL, MI_SOUTH, zone_by_code  # noqa: E402
 from tests.conftest import member_text  # noqa: E402
+from tests.fixtures.htdp_w3_anchors import (  # noqa: E402
+    L5_RECORDS,
+    L5_REVERSE_RECORDS,
+)
 
 NAD = controls.geodetic_choice(NAD83_2011)
 NAT = controls.geodetic_choice(NATRF2022)
@@ -1322,3 +1329,491 @@ def test_a_horizontal_panel_does_not_repeat_the_transformed_height(tab):
     typed_wgs84_to_zone(tab)
     labels = [v.label for s in tab.sections for v in s.values]
     assert not any("after transformation" in label for label in labels)
+
+
+# ==========================================================================
+# 9. The closing gate of the WGS 84 build (review/gate-wgs84-closing/
+#    output.md): the panel rows whose value differs between the two frames,
+#    pinned on the paths OUT of NAD 83 against HTDP's own print.
+# ==========================================================================
+
+L5 = {record.frame_code: record for record in L5_RECORDS}
+L5R = {record.frame_code: record for record in L5_REVERSE_RECORDS}
+
+_NAD83_SOUTH = project_point(43.0, -84.5, NAD83_2011, MI_SOUTH)
+"""An INPUT, not an expected value: interim gate 1's L5 position, NAD 83
+43.0 N 84.5 W, projected into Michigan South and typed with repr so the box
+holds the doubles exactly. The tab inverts it back to 43.0 / -84.5 within
+1e-11 degree (the projection round trip W3 measured), far inside every
+tolerance below."""
+
+HTDP_H_TOLERANCE_M = 0.0005 + 0.00005
+"""A 4-place metre cell (``formatting.coordinate``) against HTDP's 3-place
+print of the same h: half HTDP's printed unit plus half the cell's."""
+
+
+def _out_of_nad83_job(tab, case: str, mode: str) -> None:
+    """The reviewer's M1 configuration: NAD 83 in, WGS84(G2296) out.
+
+    ``case`` "z2g": Michigan South grid in (the L5 position); "g2g-reverse":
+    NAD83(2011) geodetic in, 43.0 / -84.5 typed negative west - the
+    reviewer's exact input. ``mode`` "hv" is Horizontal + Vertical, NAVD88 to
+    NAVD88, GEOID18; "h" is Horizontal. ELLIPSOID, metres, h 165.000 m,
+    observed 2025-06-15.
+    """
+    choose(tab.from_zone, MI_SOUTH if case == "z2g" else NAD)
+    choose(tab.to_zone, G2296)
+    if mode == "hv":
+        tab.mode_vertical.setChecked(True)
+        choose(tab.vertical_source_combo, NAVD88)
+        choose(tab.vertical_target_combo, NAVD88)
+        choose(tab.geoid_combo, geoid.GEOID18_MODEL)
+    choose(tab.height_kind_combo, HeightKind.ELLIPSOID)
+    choose(tab.input_unit, METERS)
+    choose(tab.output_unit, METERS)
+    choose(tab.longitude_combo, LongitudeConvention.NEGATIVE_WEST)
+    if case == "z2g":
+        tab.first_edit.setText(repr(_NAD83_SOUTH.target_northing))
+        tab.second_edit.setText(repr(_NAD83_SOUTH.target_easting))
+    else:
+        tab.first_edit.setText("43.0")
+        tab.second_edit.setText("-84.5")
+    tab.elevation_edit.setText("165.000")
+    answer_date(tab, OBSERVED)
+    expected_mode = (
+        VerticalMode.HORIZONTAL_AND_VERTICAL if mode == "hv" else VerticalMode.HORIZONTAL
+    )
+    assert tab.settings().vertical_mode is expected_mode
+    assert tab.convert() is True, tab.shown_failures
+    assert tab.result.points[0].conversion.is_transformed
+
+
+@pytest.mark.parametrize("case", ["z2g", "g2g-reverse"])
+def test_a_vertical_mode_panel_out_of_nad83_shows_htdps_target_frame_h(tab, case):
+    """Closing gate, M1: the "after transformation" row on a path OUT of NAD 83.
+
+    The row's only earlier pin ran G2G forward, INTO NAD 83, where the
+    target-frame h and the pivot h are one number - so the reviewer's seed
+    (the row fed ``pivot_ellipsoid_height``) left the suite green while the
+    panel showed the NAD 83 h, 165.000 m, under the WGS84(G2296) label.
+
+    Expected: HTDP's own print, the frozen L5 reverse record for G2296
+    (``htdp_w3_anchors``: NAD 83(2011) 43.0 N 84.5 W h 165.000 at 1 1 2010
+    to WGS84(G2296) at 6 15 2025): h_out "163.901". The row is rendered by
+    ``formatting.geoid_height`` (3 places, the audit CSV's formatter), so it
+    must read HTDP's printed string exactly: the program reproduces HTDP at
+    its printed digit (W1), and 163.901 is not near a rounding boundary of
+    its own print. The seed's value, the NAD 83 h, is "165.000": 1.099 m out.
+    """
+    _out_of_nad83_job(tab, case, "hv")
+    truth = L5R[WGS84_G2296.code]
+    out = rows_of(tab.sections[1])
+    label = "Ellipsoid height after transformation (WGS84(G2296), m)"
+    assert truth.h_out == "163.901"
+    assert out[label] == truth.h_out
+    assert out[label] != "165.000"
+    # And in the clipboard: Copy all carries the shown row.
+    assert tab.copy_all() is True
+    assert f"{label}\t163.901" in tab.clipboard[-1]
+
+
+@pytest.mark.parametrize("case", ["z2g", "g2g-reverse"])
+@pytest.mark.parametrize("mode", ["h", "hv"])
+def test_the_output_position_out_of_nad83_is_htdps_target_frame_position(
+    tab, case, mode
+):
+    """Closing gate, M1's sweep: the OUTPUT position rows on the paths out of
+    NAD 83, the other panel rows whose value differs between the two frames.
+
+    Their earlier pins compared the rows with the core's own
+    ``external_position``; these compare them with HTDP's print, the L5
+    reverse record for G2296: 43.0000085274 N, 84.5000107604 W.
+
+    * DD rows, 8 places (``formatting.latitude_display``): 43.0000085274 to
+      8 places is 43.00000853 (ninth digit 7, nowhere near a half); the
+      longitude is shown in the job's negative-west convention,
+      -84.5000107604 -> -84.50001076 (ninth digit 0).
+    * DMS rows, 5 places of a second: 0.0000085274 deg x 3600 = 0.03069864"
+      -> 00.03070"; 0.0000107604 deg x 3600 = 0.03873744" -> 00.03874". Each
+      is more than 2e-6" from its rounding boundary, where HTDP's half-unit
+      print (0.5e-10 deg) is 1.8e-7".
+    * The NAD83(2011) pivot rows still read the L5 input itself, 43.0 / -84.5.
+
+    The pivot shown under the G2296 label - the seed class - is 0.95 m away
+    and fails every one of them.
+    """
+    _out_of_nad83_job(tab, case, mode)
+    out = rows_of(tab.sections[1])
+    rows = {**rows_of(tab.sections[0]), **out}
+    assert out["Latitude (WGS84(G2296))"] == "43.00000853°"
+    assert out["Longitude (WGS84(G2296))"] == "-84.50001076°"
+    assert out["Latitude (WGS84(G2296), DMS)"] == "43°00'00.03070\"N"
+    assert out["Longitude (WGS84(G2296), DMS)"] == "84°30'00.03874\"W"
+    assert out["Observation date"] == "2025-06-15"
+    assert rows["Latitude (NAD83(2011))"] == "43.00000000°"
+    assert rows["Longitude (NAD83(2011))"] == "-84.50000000°"
+
+
+@pytest.mark.parametrize("case", ["z2g", "g2g-reverse"])
+def test_a_horizontal_panel_out_of_nad83_shows_htdps_target_frame_h(tab, case):
+    """Closing gate, M1's sweep: in Horizontal the OUTPUT Z of an ELLIPSOID job
+    IS the target-frame h (plan D6), and its only panel pin ran G2Z, into
+    NAD 83.
+
+    Expected: HTDP's printed 163.901 m (L5 reverse record, G2296), within
+    HTDP_H_TOLERANCE_M of the 4-place cell; not the NAD 83 h typed, 165.000,
+    which is 1.099 m from it.
+    """
+    _out_of_nad83_job(tab, case, "h")
+    truth = L5R[WGS84_G2296.code]
+    out = rows_of(tab.sections[1])
+    shown = out["Ellipsoid height (WGS84(G2296), m)"]
+    assert abs(float(shown) - float(truth.h_out)) <= HTDP_H_TOLERANCE_M
+    assert rows_of(tab.sections[0])["Ellipsoid height (NAD83(2011), m)"] == "165.0000"
+
+
+def test_the_multi_point_table_out_of_nad83_holds_htdps_target_frame_values(
+    window, tmp_path
+):
+    """Closing gate, M1's sweep on the table: Michigan South in, WGS84(G2296)
+    out, ELLIPSOID, Horizontal - the table's three coordinate cells against
+    HTDP's print rather than against the written file alone.
+
+    Input: the L5 position's MI-S grid in metres, h 165.000, negative west.
+    Expected (L5 reverse record, G2296): latitude 43.0000085274 to the
+    table's 8 places (``formatting.latitude``) = "43.00000853"; longitude
+    -84.5000107604 -> "-84.50001076"; the Z cell is the target-frame h, within
+    HTDP_H_TOLERANCE_M of HTDP's 163.901 - not the NAD 83 165.000.
+    """
+    file_job(
+        window,
+        tmp_path,
+        f"1,{_NAD83_SOUTH.target_northing!r},{_NAD83_SOUTH.target_easting!r},"
+        f"165.000,P\n",
+    )
+    choose(window.from_zone, MI_SOUTH)
+    choose(window.to_zone, G2296)
+    choose(window.height_kind_combo, HeightKind.ELLIPSOID)
+    choose(window.input_unit, METERS)
+    choose(window.output_unit, METERS)
+    choose(window.longitude_combo, LongitudeConvention.NEGATIVE_WEST)
+    answer_date(window, OBSERVED)
+    assert window.convert() is True, window.shown_failures
+    truth = L5R[WGS84_G2296.code]
+    headings = table_headings(window)
+    cells = dict(zip(headings, table_cells(window)))
+    assert cells["Latitude (WGS84(G2296))"] == "43.00000853"
+    assert cells["Longitude (WGS84(G2296))"] == "-84.50001076"
+    z = cells[headings[results_model.ELEVATION_COLUMN]]
+    assert abs(float(z) - float(truth.h_out)) <= HTDP_H_TOLERANCE_M
+
+
+@pytest.mark.parametrize("which", ["single", "multi"])
+def test_the_date_follows_a_mode_change_on_both_tabs(window, which):
+    """Closing gate, L2: a MODE change re-decides whether the date is asked.
+
+    The reviewer's sequence: From NAD83(2011) geodetic, To WGS84(G2296) -
+    a G2G job reading a time-dependent target, so the date is enabled. In
+    vertical-only mode only From counts, and NAD83(2011) is plate-fixed, so
+    the date grays. Back to Horizontal, To counts again and the date must be
+    enabled again; Horizontal + Vertical reads both ends too. The Multi point
+    tab's mode handler was unpinned: without the refresh the date stayed
+    grayed in Horizontal and Convert could never be enabled (a fail-closed
+    dead end).
+    """
+    page = pages(window)[which]
+    edit = page.observation_date_edit
+    choose(page.from_zone, NAD)
+    choose(page.to_zone, G2296)
+    assert edit.isEnabled() is True
+    page.mode_vertical_only.setChecked(True)
+    assert edit.isEnabled() is False
+    page.mode_horizontal.setChecked(True)
+    assert page.to_zone.currentData() == G2296  # the pair still reaches
+    assert edit.isEnabled() is True
+    assert page.observation_date_label.isEnabled() is True
+    page.mode_vertical_only.setChecked(True)
+    assert edit.isEnabled() is False
+    page.mode_vertical.setChecked(True)
+    assert edit.isEnabled() is True
+
+
+def test_a_vertical_only_wgs84_panel_shows_both_positions(tab):
+    """Closing gate, L1: the release notes say the Single point tab shows both
+    positions, each under its frame, when a transformation ran - and on a
+    vertical-only job on ITRF2020 input the NAD83(2011) pivot rows were
+    unpinned (the reviewer's seed C8 dropped them, suite green).
+
+    Input: VERTICAL, From ITRF2020, NAVD88 -> NAVD88, ELLIPSOID h 165.000 m,
+    43.0 / 84.5 typed positive west, observed 2025-06-15 - interim gate 1's
+    L5 position, whose HTDP print is frozen (L5 record for ITRF2020: NAD 83
+    42.9999914716 N, 84.4999892398 W, h 166.099).
+
+    Expected INPUT rows, in order: the ITRF2020 position as typed
+    (43.00000000, 84.50000000, DMS 43°00'00.00000"N / 84°30'00.00000"W),
+    its observation date, then the NAD83(2011) pivot from HTDP's print:
+    * 42.9999914716 to 8 places = 42.99999147 (ninth digit 1);
+    * 84.4999892398 to 8 places = 84.49998924 (ninth digit 9, the tail
+      .98 rounds the eighth up; 4.8e-9 deg from the boundary, HTDP's
+      half-unit print is 5e-11);
+    * DMS latitude: 1 - 0.9999914716 = 0.0000085284 deg = 0.03070224",
+      so 59.96929776" -> 42°59'59.96930"N;
+    * DMS longitude: 0.4999892398 deg = 29' 59.96126328" -> 84°29'59.96126"W.
+    """
+    tab.mode_vertical_only.setChecked(True)
+    choose(tab.from_zone, I2020)
+    choose(tab.vertical_source_combo, NAVD88)
+    choose(tab.vertical_target_combo, NAVD88)
+    choose(tab.height_kind_combo, HeightKind.ELLIPSOID)
+    choose(tab.input_unit, METERS)
+    tab.first_edit.setText("43.0")
+    tab.second_edit.setText("84.5")
+    tab.elevation_edit.setText("165.000")
+    answer_date(tab, OBSERVED)
+    assert tab.settings().direction is Direction.VERTICAL_ONLY
+    assert tab.convert() is True, tab.shown_failures
+    source = tab.sections[0]
+    labels = [value.label for value in source.values]
+    assert labels[:9] == [
+        "Latitude (ITRF2020)",
+        "Latitude (ITRF2020, DMS)",
+        "Longitude (ITRF2020)",
+        "Longitude (ITRF2020, DMS)",
+        "Observation date",
+        "Latitude (NAD83(2011))",
+        "Latitude (NAD83(2011), DMS)",
+        "Longitude (NAD83(2011))",
+        "Longitude (NAD83(2011), DMS)",
+    ]
+    inp = rows_of(source)
+    assert inp["Latitude (ITRF2020)"] == "43.00000000°"
+    assert inp["Longitude (ITRF2020)"] == "84.50000000°"
+    assert inp["Latitude (NAD83(2011))"] == "42.99999147°"
+    assert inp["Longitude (NAD83(2011))"] == "84.49998924°"
+    assert inp["Latitude (NAD83(2011), DMS)"] == "42°59'59.96930\"N"
+    assert inp["Longitude (NAD83(2011), DMS)"] == "84°29'59.96126\"W"
+    assert L5[ITRF2020.code].lat_out == "42.9999914716"
+    # Copy all carries both.
+    assert tab.copy_all() is True
+    assert "Latitude (NAD83(2011))\t42.99999147°" in tab.clipboard[-1]
+    assert "Latitude (ITRF2020)\t43.00000000°" in tab.clipboard[-1]
+
+
+# --------------------------------------------------------------------------
+# Closing gate, L3 and I3: the core's user-facing sentences are true on BOTH
+# tabs - the Single point tab has no file, and on its DMS page the hemisphere
+# letter, not the longitude convention, decides a sign.
+# --------------------------------------------------------------------------
+
+_LOOKUP = re.compile(
+    r"its velocity-model lookup position in ITRF2008, latitude (-?\d+\.\d{6}), "
+    r"longitude (-?\d+\.\d{6}) \(signed, negative west\), is outside the part "
+    r"of HTDP's velocity grid this program carries\. "
+)
+"""The refused lookup position, in the program's own convention: signed
+degrees with the convention named, as the refused input position before it
+is (I3). Before the fix it read "-42.732484 N 84.555496 W" and, for an east
+input, "275.444520 W"."""
+
+LOOKUP_NEAR_INPUT_DEG = 1e-4
+"""The ITRF2008 lookup position is the input moved by the frame difference -
+about a metre in Michigan (0.95 m at the L5 position), 1e-5 degree - so
+within 1e-4 degree of the refused input in each coordinate, sign included.
+A 0-360 longitude (275.44 for 84.56 E) or a lost sign misses by degrees."""
+
+_SIGN_ADVICE = (
+    "Check that the point is in Michigan, and that its latitude and longitude "
+    "carry the right signs: this job reads longitudes written {convention}, "
+    "and a latitude or longitude whose sign is the wrong way round lands on "
+    "the other side of the world."
+)
+
+
+def _typed_dms(tab, latitude, longitude) -> None:
+    tab.angle_format.setCurrentIndex(
+        tab.angle_format.findData(single_point_module.DMS_PAGE)
+    )
+    for entry, (degrees, minutes, seconds, letter) in (
+        (tab.first_dms, latitude),
+        (tab.second_dms, longitude),
+    ):
+        entry.degrees.setText(degrees)
+        entry.minutes.setText(minutes)
+        entry.seconds.setText(seconds)
+        entry.hemisphere.setCurrentIndex(entry.hemisphere.findData(letter))
+
+
+def _refusal_on(window, which, tmp_path, *, dms, decimal, row, convention):
+    """Run one G2296 -> MI-S job dated 2025-06-15 that HTDP refuses; the
+    message shown. ``dms`` (Single point) is typed on the DMS page, ``decimal``
+    on the decimal page, ``row`` is the Multi point file's line."""
+    page = pages(window)[which]
+    if which == "multi":
+        file_job(window, tmp_path, row)
+    choose(page.from_zone, G2296)
+    choose(page.to_zone, MI_SOUTH)
+    choose(page.longitude_combo, convention)
+    if which == "single":
+        if dms is not None:
+            _typed_dms(page, *dms)
+        else:
+            page.first_edit.setText(decimal[0])
+            page.second_edit.setText(decimal[1])
+    answer_date(page, OBSERVED)
+    assert page.convert() is False
+    (shown,) = page.shown_failures
+    return shown
+
+
+@pytest.mark.parametrize("which", ["single", "multi"])
+def test_the_htdp_refusal_of_a_south_latitude_is_true_on_both_tabs(
+    window, which, tmp_path
+):
+    """The reviewer's L3 (a): Single point, DMS 42°43'57" S, 84°33'19.8" W,
+    positive west (the tab's preselect), G2296 -> MI-S, 2025-06-15. On the
+    Multi point tab the same position as a file row, -42.7325, 84.5555.
+
+    The DMS entry composes 42 + 43/60 + 57/3600 = 42.7325 S and
+    84 + 33/60 + 19.8/3600 = 84.5555 W: signed, -42.7325 / -84.5555. A
+    south latitude is outside HTDP's velocity window, so the refusal names
+    point 1 and that signed position.
+
+    Expected, the same words on both tabs: "the supplied position" (not
+    "the position the file supplied" - the tab has no file); the lookup
+    position signed with its convention named (I3), within
+    LOOKUP_NEAR_INPUT_DEG of the input; and advice that asks for the SIGNS
+    to be checked rather than presuming the longitude convention decided
+    them - on the DMS page the S letter decided this one.
+    """
+    shown = _refusal_on(
+        window,
+        which,
+        tmp_path,
+        dms=(("42", "43", "57", "S"), ("84", "33", "19.8", "W")),
+        decimal=None,
+        row="1,-42.7325,84.5555,200.0,A\n",
+        convention=LongitudeConvention.POSITIVE_WEST,
+    )
+    assert shown.startswith(
+        "point 1: cannot transform the supplied position - latitude -42.732500, "
+        "longitude -84.555500 (signed, negative west), in WGS84(G2296) - to "
+        "NAD83(2011): "
+    ), shown
+    lookup = _LOOKUP.search(shown)
+    assert lookup is not None, shown
+    assert abs(float(lookup.group(1)) - -42.7325) <= LOOKUP_NEAR_INPUT_DEG
+    assert abs(float(lookup.group(2)) - -84.5555) <= LOOKUP_NEAR_INPUT_DEG
+    assert shown.endswith(_SIGN_ADVICE.format(convention="positive west")), shown
+    assert "file" not in shown
+    # Not the old "-42.732484 N 84.555496 W in ITRF2008": a negative number
+    # with a hemisphere letter. (The window's own bounds, "40.5 N to 50.0 N",
+    # are positive magnitudes with their letters, and true.)
+    assert re.search(r"-\d+\.\d+ [NS]", shown) is None, shown
+    assert " W in ITRF2008" not in shown
+
+
+@pytest.mark.parametrize("which", ["single", "multi"])
+def test_the_htdp_refusal_of_an_east_longitude_prints_it_signed(
+    window, which, tmp_path
+):
+    """I3: G2296, longitude +84.5555 under NEGATIVE west - 84.5555 E, in
+    China - so the refused position and its lookup are east.
+
+    Expected: the input "latitude 42.732500, longitude 84.555500 (signed,
+    negative west)", and the lookup printed the same way, POSITIVE (east),
+    within LOOKUP_NEAR_INPUT_DEG of +84.5555 - where it read "275.444520 W",
+    HTDP's 0-360 west longitude. The advice names the job's convention,
+    negative west.
+    """
+    shown = _refusal_on(
+        window,
+        which,
+        tmp_path,
+        dms=None,
+        decimal=("42.7325", "84.5555"),
+        row="1,42.7325,84.5555,200.0,A\n",
+        convention=LongitudeConvention.NEGATIVE_WEST,
+    )
+    assert shown.startswith(
+        "point 1: cannot transform the supplied position - latitude 42.732500, "
+        "longitude 84.555500 (signed, negative west), in WGS84(G2296) - to "
+        "NAD83(2011): "
+    ), shown
+    lookup = _LOOKUP.search(shown)
+    assert lookup is not None, shown
+    assert abs(float(lookup.group(1)) - 42.7325) <= LOOKUP_NEAR_INPUT_DEG
+    assert abs(float(lookup.group(2)) - 84.5555) <= LOOKUP_NEAR_INPUT_DEG
+    assert "275." not in shown
+    assert shown.endswith(_SIGN_ADVICE.format(convention="negative west")), shown
+
+
+@pytest.mark.parametrize("which", ["single", "multi"])
+def test_the_realization_warning_is_true_on_both_tabs(window, which, tmp_path):
+    """The reviewer's L3 (b): WGS84(G2139) -> MI-S at 2019-03-01, before
+    G2139 came into use (2021-01-03), on a path INTO NAD 83.
+
+    Expected, character for character the same on both tabs and stated as
+    facts true for typed and file input alike: G2139 "was not the realization
+    in use on that date" (it said "a receiver on that date was not
+    broadcasting it" - receivers broadcast nothing), and "positions labelled
+    with the wrong realization look exactly like this" (it said "a file").
+    The span is frames.realization_period_of_use's, as the core pin derives.
+    """
+    page = pages(window)[which]
+    if which == "multi":
+        file_job(window, tmp_path, "1,42.7325,84.5555,200.0,A\n")
+    else:
+        page.first_edit.setText(LATITUDE_TEXT)
+        page.second_edit.setText(LONGITUDE_TEXT)
+    choose(page.from_zone, G2139)
+    choose(page.to_zone, MI_SOUTH)
+    answer_date(page, datetime.date(2019, 3, 1))
+    assert page.convert() is True, page.shown_failures
+    (warning,) = page.result.job_warnings
+    assert warning.message == (
+        "The positions are stated in WGS84(G2139) and dated 2019-03-01, outside "
+        "WGS84(G2139)'s period of use, which is from 2021-01-03 to 2024-01-06 "
+        "(NGA replaced it with WGS84(G2296) on 2024-01-07). The date is before "
+        "NGA put WGS84(G2139) into use, so WGS84(G2139) was not the realization "
+        "in use on that date. Reprocessed data can legitimately carry a later "
+        "realization, so the job is converted as stated - but positions "
+        "labelled with the wrong realization look exactly like this. Check "
+        "which realization the positions are in."
+    )
+    if which == "single":
+        assert page.warnings_label.text() == warning.message
+    else:
+        assert page.status_label.toolTip().startswith(warning.message)
+
+
+# --------------------------------------------------------------------------
+# Closing gate, I5: the Multi point "in file" tooltip names the height kind.
+# --------------------------------------------------------------------------
+
+
+def test_the_in_file_tooltip_says_what_kind_of_height_is_read(window):
+    """Shown in Horizontal only (#48). It said "Orthometric heights are read
+    from the file's Z column" on ELLIPSOID jobs too (since 0.6.0) - false
+    there. Each kind's sentence, and it follows the control both ways.
+
+    Expected: the ORTHOMETRIC wording is the one #48 pinned, unchanged
+    ("not converted between vertical datums", "re-expresses", no
+    "unchanged"); the ELLIPSOID wording says ellipsoid heights are read and
+    are not converted to elevations, and names neither "Orthometric" nor
+    "elevation" as what is read.
+    """
+    tip = window.elevation_in_file.toolTip
+    choose(window.height_kind_combo, HeightKind.ORTHOMETRIC)
+    assert tip().startswith("Orthometric heights are read from the file's Z column.")
+    assert "not converted between vertical datums" in tip()
+    assert "re-expresses" in tip() and "unchanged" not in tip()
+
+    choose(window.height_kind_combo, HeightKind.ELLIPSOID)
+    assert tip().startswith("Ellipsoid heights are read from the file's Z column.")
+    assert "Orthometric" not in tip()
+    assert "not converted to elevations in this mode" in tip()
+    assert "transformed with the position when the job changes frame" in tip()
+    assert "re-expresses" in tip() and "unchanged" not in tip()
+
+    choose(window.height_kind_combo, HeightKind.ORTHOMETRIC)
+    assert tip().startswith("Orthometric heights are read")

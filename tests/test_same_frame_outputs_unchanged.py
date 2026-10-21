@@ -253,6 +253,51 @@ W4B_RESPELLING = (
 """(W4b text, frozen W3 text) for each passage W4b rewrote on vo_geodetic."""
 
 
+# --------------------------------------------------------------------------
+# RECORDED SUPERSESSION - the closing gate of the WGS 84 build, finding L7.
+#
+# The FILES WRITTEN branch for a vertical job said "the geoid model the
+# factors were computed from" on a zone-less job, which has one factor (the
+# same record says "No combined factors exist for this job"): the H2 sweep of
+# interim gate 2 matched the zone-only words and missed "the factors". It is
+# also in released 0.7.1. It now names the elevation factor, as does the
+# METHOD block's "H = orthometric height as used for the factors" line, which
+# the sweep of report.py for the plural found on the same jobs. Exactly as W4b
+# and gate 2 did, the digest is NOT re-frozen: these two passages, each of
+# which must occur exactly once and only on vo_geodetic, are respelled back
+# to their W3 text before the digest
+# (``test_the_closing_gate_respelling_is_exact``).
+# --------------------------------------------------------------------------
+
+CLOSING_RESPELLING = (
+    (
+        "                   H = orthometric height as used for the elevation factor\n",
+        "                   H = orthometric height as used for the factors\n",
+    ),
+    (
+        "    the elevation factor was computed from.\n",
+        "    the factors were computed from.\n",
+    ),
+)
+"""(closing-gate text, frozen W3 text) for the two passages L7 rewrote: the
+FILES WRITTEN clause the reviewer found, and the METHOD block's ``H =`` line
+the sweep of report.py for "factors" found beside it."""
+
+
+def _respelled_before_the_closing_gate(text: str) -> tuple[str, int]:
+    """``text`` with the L7 passage put back to its W3 spelling, and how many
+    passages were found; refused if one occurs more than once."""
+    found = 0
+    for new, old in CLOSING_RESPELLING:
+        count = text.count(new)
+        if count > 1:
+            raise AssertionError(f"L7 passage occurs {count} times: {new[:60]!r}")
+        if count == 1:
+            text = text.replace(new, old)
+            found += 1
+    return text, found
+
+
 def _respelled_as_w3(text: str) -> tuple[str, int]:
     """``text`` with every W4b passage put back to its W3 spelling, and how
     many passages were found. Each passage is replaced only when it occurs
@@ -281,6 +326,7 @@ def _normalised(member: str, body: bytes, root: Path) -> bytes:
         "No State\nPlane coordinate system is involved in this job." in text
     ):
         text, _found = _respelled_as_w3(text)
+        text, _found = _respelled_before_the_closing_gate(text)
     return text.encode("utf-8")
 
 
@@ -385,6 +431,8 @@ def test_the_w4b_respelling_is_exact(tmp_path):
     vo = records["vo_geodetic"]
     respelled, found = _respelled_as_w3(vo)
     assert found == len(W4B_RESPELLING) == 8
+    # The closing gate's one passage (L7) on top, pinned on its own below.
+    respelled, _closing = _respelled_before_the_closing_gate(respelled)
     assert hashlib.sha256(vo.encode("utf-8")).hexdigest() != FROZEN_AT_W3[
         "vo_geodetic/in_VERTICAL_README.txt"
     ]
@@ -396,3 +444,38 @@ def test_the_w4b_respelling_is_exact(tmp_path):
         if name == "vo_geodetic":
             continue
         assert _respelled_as_w3(text) == (text, 0), name
+
+
+def test_the_closing_gate_respelling_is_exact(tmp_path):
+    """L7's respelling, held to the same three rules as W4b's:
+
+    * on vo_geodetic each new passage is present exactly once, and the old
+      "the factors were computed from." and "as used for the factors" are
+      gone - a zone-less job has one
+      factor - so the raw record differs from its frozen digest;
+    * W4b's respelling ALONE no longer restores the digest; W4b's plus this
+      one does, byte for byte (asserted in test_the_w4b_respelling_is_exact);
+    * on every other job neither the new passage occurs nor does the
+      respelling touch anything - the zone jobs keep "the factors" (the
+      vertical zone jobs here, g2z_hv and vo_zone, carry it unchanged).
+    """
+    records = _records(tmp_path)
+    vo = records["vo_geodetic"]
+    assert vo.count("the elevation factor was computed from.") == 1
+    assert vo.count("as used for the elevation factor\n") == 1
+    assert "the factors were computed from." not in vo
+    assert "as used for the factors\n" not in vo
+    w3_only, _found = _respelled_as_w3(vo)
+    assert hashlib.sha256(w3_only.encode("utf-8")).hexdigest() != FROZEN_AT_W3[
+        "vo_geodetic/in_VERTICAL_README.txt"
+    ]
+    respelled, found = _respelled_before_the_closing_gate(w3_only)
+    assert found == len(CLOSING_RESPELLING) == 2
+    assert _respelled_before_the_closing_gate(respelled) == (respelled, 0)
+    for name, text in records.items():
+        if name == "vo_geodetic":
+            continue
+        assert _respelled_before_the_closing_gate(text) == (text, 0), name
+    for name in ("g2z_hv", "vo_zone"):
+        assert "    the factors were computed from.\n" in records[name], name
+        assert "as used for the factors\n" in records[name], name

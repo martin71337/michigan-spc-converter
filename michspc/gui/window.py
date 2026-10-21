@@ -116,7 +116,7 @@ from michspc.job import (
     run,
 )
 from michspc.spc import htdp
-from michspc.spc.vertical import VerticalDatum
+from michspc.spc.vertical import HeightKind, VerticalDatum
 from michspc.spc.zones import Zone
 
 WINDOW_TITLE = f"{APP_NAME} - {APP_FULL_NAME}"
@@ -156,6 +156,30 @@ file" button beside it still says the elevations are read. A layout
 decision for the owner's screen review; the alternative considered was
 "— used for elevation factor", true on that job but wording he has not seen.
 """
+
+ELEVATIONS_IN_FILE_TOOLTIPS = {
+    HeightKind.ORTHOMETRIC: (
+        "Orthometric heights are read from the file's Z column. They are "
+        "not converted between vertical datums in this mode; a differing "
+        "output unit re-expresses the value. A blank or 0.00 Z means "
+        "'not recorded' and its factor columns read N/A."
+    ),
+    HeightKind.ELLIPSOID: (
+        "Ellipsoid heights are read from the file's Z column. They are not "
+        "converted to elevations in this mode: the Z column is written as an "
+        "ellipsoid height, transformed with the position when the job "
+        "changes frame, and a differing output unit re-expresses the value. "
+        "A blank or 0.00 Z means 'not recorded' and its factor columns read "
+        "N/A."
+    ),
+}
+"""The "in file" button's tooltip, one per height kind (closing gate of the
+WGS 84 build, I5). The button is shown in Horizontal mode only (#48), and the
+sentence said "Orthometric heights are read" on ELLIPSOID jobs too, since
+the height-kind control arrived (0.6.0) - false there. Each wording claims
+only what holds in every Horizontal job of its kind: an ellipsoid Z passes
+through as an ellipsoid height (the owner's rule, #54), moved only by a frame
+transformation (plan decision D6) or a unit."""
 
 UNITS_SNAPPED_STATUS = (
     "The chosen zone does not publish that unit, so the unit was changed and "
@@ -545,12 +569,8 @@ class MainWindow(QMainWindow):
         # output unit re-expresses the value (900.000 ift is written as
         # 274.3200 m; the height is the same, the number is not). The Codex
         # cross-check's counterexample, DESIGN.md #48.
-        self.elevation_in_file.setToolTip(
-            "Orthometric heights are read from the file's Z column. They are "
-            "not converted between vertical datums in this mode; a differing "
-            "output unit re-expresses the value. A blank or 0.00 Z means "
-            "'not recorded' and its factor columns read N/A."
-        )
+        # Per height kind (I5): set by _update_elevation_tooltip, here and on
+        # every change of the height-kind control below.
         self.elevation_note = QLabel(ELEVATION_NOTE, box)
         # The geoid model dropdown, replacing the static "Geoid: GEOID18
         # (auto)" label (WP-V8, plan section 4.3). Visible in BOTH modes: the
@@ -571,6 +591,10 @@ class MainWindow(QMainWindow):
         self.height_kind_combo.currentIndexChanged.connect(
             self._update_convert_enabled
         )
+        self.height_kind_combo.currentIndexChanged.connect(
+            self._update_elevation_tooltip
+        )
+        self._update_elevation_tooltip()
         self.elevation_in_file.toggled.connect(
             self._update_elevation_dependent_enabled
         )
@@ -1239,6 +1263,12 @@ class MainWindow(QMainWindow):
             self.output_unit,
         ):
             widget.setVisible(not vertical_only)
+
+    def _update_elevation_tooltip(self) -> None:
+        """The "in file" tooltip names the kind of height the job reads (I5)."""
+        self.elevation_in_file.setToolTip(
+            ELEVATIONS_IN_FILE_TOOLTIPS[self.height_kind_combo.currentData()]
+        )
 
     def _update_elevation_dependent_enabled(self) -> None:
         """Gray the controls that only matter when elevations are read.

@@ -50,13 +50,25 @@ HTDP_MOVED = json.dumps(
 ORG_QUIET = json.dumps([{"name": f"repo{n}"} for n in range(tripwire.FROZEN_REPO_COUNT)])
 
 
+NGS_QUIET = {
+    tripwire.PROBES[0][1]: json.dumps({"error": "Invalid outputDatum"}, indent=2),
+    tripwire.PROBES[1][1]: json.dumps({"error": "Invalid output vertical Datum"}, indent=2),
+    tripwire.PROBES[2][1]: json.dumps(
+        {"error": "No suitable Geoid model found for model 15"}, indent=2
+    ),
+}
+"""The three NGS probes' frozen answers, in the shape NGS served them
+(review/nsrs-n0/raw/ncat/rest_35.json and raw/geoid_api/*__model_15.json: a
+JSON object whose one ``error`` field is the refusal)."""
+
+
 def answers(**overrides):
     """A fetch that answers every probe quietly, except where overridden.
 
     ``overrides`` maps a URL to a body string or to an exception instance to
     raise, so each test changes exactly one probe.
     """
-    table = {url: fragment for _name, url, fragment in tripwire.PROBES}
+    table = dict(NGS_QUIET)
     table[tripwire.GITHUB_ORG_URL] = ORG_QUIET
     table[tripwire.HTDP_HEAD_URL] = HTDP_QUIET
     table.update(overrides)
@@ -292,3 +304,70 @@ def test_the_htdp_probe_reads_the_documented_fields_and_nothing_else():
     sha, description = tripwire.htdp_head(json.dumps({"sha": FROZEN}))
     assert sha == FROZEN
     assert description == "date ?, '(no message)'"
+
+
+# ==========================================================================
+# Closing gate of the WGS 84 build, L5: probes 1 to 3 held to the same rule.
+# ==========================================================================
+
+CAPTIVE_PORTAL = "<html><head><title>hotel wifi</title></head><body>Sign in to the hotel wifi</body></html>"
+"""The reviewer's input: a captive portal's page where NGS's JSON should be.
+Before the fix probes 1 to 3 tested only ``fragment in body``, so this
+TRIPPED them (exit 1, the REVIEW-NEEDED notice and the message box)."""
+
+
+@pytest.mark.parametrize("probe", range(len(tripwire.PROBES)))
+def test_a_captive_portal_on_an_ngs_probe_is_could_not_check(tmp_path, probe):
+    """Expected: exit 2, PROBE FAILED for that probe, no notice, no box - and
+    the other four probes still quiet, so the 2 is this probe's alone."""
+    name, url, _fragment = tripwire.PROBES[probe]
+    code, report, review, notices = run(tmp_path, answers(**{url: CAPTIVE_PORTAL}))
+
+    assert code == 2
+    assert f"PROBE FAILED  {name}" in report
+    assert "TRIPPED" not in report
+    assert review is None and notices == []
+    assert report.count("  quiet         ") == len(tripwire.PROBES) + 1
+
+
+@pytest.mark.parametrize(
+    "body",
+    ["", "{}", json.dumps(["Invalid outputDatum"]), json.dumps("Invalid outputDatum")],
+    ids=["empty", "empty-object", "a-list", "a-string"],
+)
+def test_an_ngs_answer_that_is_not_an_object_is_could_not_check(tmp_path, body):
+    """Not the documented JSON object - and ``{}`` is the beta host's fail-open
+    shape (TOOLING.md) - so none of these answers the question. The list and
+    the string even CONTAIN the frozen text, which the old substring test
+    took as quiet."""
+    name, url, _fragment = tripwire.PROBES[0]
+    code, report, review, _notices = run(tmp_path, answers(**{url: body}))
+
+    assert code == 2
+    assert f"PROBE FAILED  {name}" in report
+    assert "quiet         frame bridge" not in report
+    assert review is None
+
+
+def test_a_well_formed_ngs_answer_that_differs_still_trips(tmp_path):
+    """Anti-overreach: the wire must still fire. A JSON object that is not the
+    frozen refusal - a different refusal, or an answer - trips each probe."""
+    for name, url, _fragment in tripwire.PROBES:
+        for body in (
+            json.dumps({"error": "Invalid inputDatum"}),
+            json.dumps({"destLat": "43.0", "destLon": "-84.5"}),
+        ):
+            code, report, review, _notices = run(tmp_path, answers(**{url: body}))
+            assert code == 1, (name, body)
+            assert f"*** TRIPPED   {name}" in report
+            (tmp_path / "REVIEW-NEEDED.txt").unlink()
+
+
+def test_the_ngs_probes_quiet_only_on_the_frozen_refusal_field():
+    """``ngs_refusal_unchanged`` on the frozen bodies themselves."""
+    for _name, url, fragment in tripwire.PROBES:
+        assert tripwire.ngs_refusal_unchanged(NGS_QUIET[url], fragment) is True
+    # The refusal text outside the error field is not the refusal.
+    assert tripwire.ngs_refusal_unchanged(
+        json.dumps({"message": "Invalid outputDatum"}), "Invalid outputDatum"
+    ) is False

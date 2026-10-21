@@ -2656,3 +2656,86 @@ def test_a_horizontal_g2g_job_keeps_the_whole_conversion_wording(tmp_path):
     )
     flat = " ".join(_record(archive).split())
     assert "the frame transformation, which is the whole of this job's conversion." in flat
+
+
+# ==========================================================================
+# Closing gate of the WGS 84 build, L7: "the factors" on a zone-less job.
+# ==========================================================================
+
+_ZONELESS_VERTICAL_JOBS = {
+    # The reviewer's first input: VO on ITRF2014 geodetic, NGVD 29 -> NAVD 88,
+    # GEOID18 (the default model).
+    "vo_itrf2014_ngvd29": dict(
+        direction=Direction.VERTICAL_ONLY,
+        target_zone=None,
+        geodetic_frame=ITRF2014,
+        vertical_mode=VerticalMode.VERTICAL,
+        source_vertical_datum=NGVD29,
+        target_vertical_datum=NAVD88,
+    ),
+    # The reviewer's second: any G2G job in Horizontal + Vertical.
+    "g2g_hv": dict(
+        direction=Direction.GEODETIC_TO_GEODETIC,
+        target_zone=None,
+        target_geodetic_frame=NAD83_2011,
+        vertical_mode=VerticalMode.HORIZONTAL_AND_VERTICAL,
+        source_vertical_datum=NGVD29,
+        target_vertical_datum=NAVD88,
+    ),
+}
+
+
+@pytest.mark.parametrize("name", sorted(_ZONELESS_VERTICAL_JOBS))
+def test_a_zoneless_vertical_record_names_its_one_factor(tmp_path, name):
+    """FILES WRITTEN on a zone-less vertical job: "the geoid model the
+    elevation factor was computed from" - a zone-less job has ONE factor, and
+    the same record says "No combined factors exist for this job". It said
+    "the factors were computed from" (also in released 0.7.1 on VO-geodetic).
+    """
+    _result, archive = _write_job(
+        tmp_path, "1,43.0,84.5,200.000,P\n", **_ZONELESS_VERTICAL_JOBS[name]
+    )
+    record = _record(archive)
+    assert "No combined factors exist for this job" in record
+    flat = " ".join(record.split())
+    assert "the geoid model the elevation factor was computed from." in flat
+    assert "the factors" not in flat
+
+
+@pytest.mark.parametrize("zoneless", [True, False])
+def test_a_geoid_swap_record_names_the_factor_it_has(tmp_path, zoneless):
+    """The swap branch of the same paragraph (NAVD 88 -> NAVD 88, GEOID12B
+    in, GEOID18 out): on a zone-less job (VO on ITRF2020 geodetic) "the geoid
+    model the Z column and the elevation factor are stated against"; on a
+    zone job (VO on MI-S) the sentence keeps "the factors", which are the
+    grid, elevation and combined factors there.
+    """
+    fields = dict(
+        direction=Direction.VERTICAL_ONLY,
+        target_zone=None,
+        vertical_mode=VerticalMode.VERTICAL,
+        source_vertical_datum=NAVD88,
+        target_vertical_datum=NAVD88,
+        source_geoid_model=geoid.GEOID12B_MODEL,
+    )
+    if zoneless:
+        rows = "1,43.0,84.5,200.000,P\n"
+        fields.update(geodetic_frame=ITRF2020)
+    else:
+        rows = (
+            f"1,{_NAD83_SOUTH.target_northing!r},{_NAD83_SOUTH.target_easting!r},"
+            f"200.000,P\n"
+        )
+        fields.update(
+            source_zone=MI_SOUTH,
+            geodetic_frame=NAD83_2011,
+            observation_date=None,
+            longitude_convention=None,
+        )
+    _result, archive = _write_job(tmp_path, rows, **fields)
+    flat = " ".join(_record(archive).split())
+    if zoneless:
+        assert "the Z column and the elevation factor are stated against." in flat
+        assert "the factors" not in flat
+    else:
+        assert "the Z column and the factors are stated against." in flat

@@ -1816,8 +1816,15 @@ def _require_the_observation_date(
         if frame is frame_path.source:
             # Into NAD83(2011): the realization is the one the INPUT is
             # labelled with, and the question is whether the label is right.
+            # Worded for both tabs (closing gate of the WGS 84 build, finding
+            # L3): the Single point tab has no file, and the realization is a
+            # property of the positions however they arrived. The sentence
+            # states what the period of use means - the realization in use on
+            # the date - and no more: it once said "a receiver on that date
+            # was not broadcasting it", and receivers broadcast nothing.
             why = (
-                f"{when}, so a receiver on that date was not broadcasting it. "
+                f"{when}, so {frame.code} was not the realization in use on "
+                f"that date. "
                 + (
                     "Reprocessed data can legitimately carry a later realization"
                     if date < period.first_day
@@ -1829,9 +1836,9 @@ def _require_the_observation_date(
                 f"The positions are stated in {frame.code} and dated "
                 f"{date.isoformat()}, outside {frame.code}'s period of use, "
                 f"which is {span}. The date is {why}, so the job is converted "
-                f"as stated - but a file labelled with the wrong realization "
-                f"looks exactly like this. Check which realization the "
-                f"positions are in."
+                f"as stated - but positions labelled with the wrong "
+                f"realization look exactly like this. Check which realization "
+                f"the positions are in."
             )
         else:
             # Out of NAD83(2011): the input is NAD 83 and carries no
@@ -2433,22 +2440,34 @@ def _point_named_htdp_refusal(
         # HTDP's own words, which name their own frame, with the point.
         return type(error)(f"{context}: {error}")
     frame = frame_path.source
+    # Worded for BOTH tabs (closing gate of the WGS 84 build, finding L3).
+    # The Single point tab reaches this refusal with a typed point, so the
+    # sentences name no file. And on its DMS entry the hemisphere letter, not
+    # the longitude convention, decides the sign, so the advice does not
+    # presume the convention decided it: it asks for the signs to be checked
+    # - the refused position above is printed signed, so a wrong one is
+    # visible - and states the job's convention as the fact it is (the DMS
+    # page composes its text in that convention too, ``fileio.dms``). Chosen
+    # over telling the core how the point was typed: no computation reads the
+    # entry form, and a settings field nothing computes from is the
+    # stray-field class this module refuses elsewhere.
     if geodetic_input:
-        origin = "the position the file supplied"
+        origin = "the supplied position"
         advice = (
-            f"Check that the point is in Michigan, and that the file's "
-            f"longitudes are written {settings.longitude_convention.value}, "
-            f"as this job states: a longitude written in the other convention "
-            f"lands on the other side of the world."
+            f"Check that the point is in Michigan, and that its latitude and "
+            f"longitude carry the right signs: this job reads longitudes "
+            f"written {settings.longitude_convention.value}, and a latitude "
+            f"or longitude whose sign is the wrong way round lands on the "
+            f"other side of the world."
         )
     else:
         origin = (
-            f"the position the file's {settings.source_zone.name} northing "
-            f"and easting give"
+            f"the position the {settings.source_zone.name} northing and "
+            f"easting give"
         )
         advice = (
-            f"Check that the point is in Michigan, and that the file holds "
-            f"{settings.source_zone.name} coordinates in "
+            f"Check that the point is in Michigan, and that the northing and "
+            f"easting are {settings.source_zone.name} coordinates in "
             f"{settings.input_unit.code}."
         )
     return htdp.HtdpVelocityGridError(

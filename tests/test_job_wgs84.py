@@ -1370,12 +1370,16 @@ def test_the_period_warning_on_a_path_into_nad83_names_the_input(tmp_path):
     assert warning.message == (
         "The positions are stated in WGS84(G2139) and dated 2019-03-01, outside "
         f"WGS84(G2139)'s period of use, which is {_G2139_SPAN}. The date is "
-        "before NGA put WGS84(G2139) into use, so a receiver on that date was "
-        "not broadcasting it. Reprocessed data can legitimately carry a later "
-        "realization, so the job is converted as stated - but a file labelled "
-        "with the wrong realization looks exactly like this. Check which "
-        "realization the positions are in."
+        "before NGA put WGS84(G2139) into use, so WGS84(G2139) was not the "
+        "realization in use on that date. Reprocessed data can legitimately "
+        "carry a later realization, so the job is converted as stated - but "
+        "positions labelled with the wrong realization look exactly like "
+        "this. Check which realization the positions are in."
     )
+    # Closing gate, L3: true on the Single point tab too - no file, and no
+    # receiver said to broadcast anything.
+    assert "file" not in warning.message
+    assert "receiver" not in warning.message
 
 
 def test_the_period_warning_on_g2g_reverse_names_the_output(tmp_path):
@@ -1425,15 +1429,16 @@ def test_the_reviewers_grid_row_outside_the_velocity_window_names_the_point(tmp_
     message = str(raised.value)
     assert isinstance(raised.value, htdp.HtdpRefusal)
     assert message.startswith(
-        "point 1: cannot transform the position the file's Michigan South "
+        "point 1: cannot transform the position the Michigan South "
         "northing and easting give - latitude 32.026364, longitude -127.914179 "
         "(signed, negative west), in NAD83(2011) - to WGS84(G2296): its "
         "velocity-model lookup position"
     ), message
     assert message.endswith(
-        "Check that the point is in Michigan, and that the file holds Michigan "
-        "South coordinates in m."
+        "Check that the point is in Michigan, and that the northing and "
+        "easting are Michigan South coordinates in m."
     ), message
+    assert "file" not in message  # closing gate, L3
     assert "(WGS84(G2296))" not in message
     assert "longitude is negative west" not in message
     assert "longitudes are written" not in message
@@ -1470,14 +1475,17 @@ def test_a_geodetic_row_outside_the_window_names_the_point_and_the_convention(
         run(settings)
     message = str(raised.value)
     assert message.startswith(
-        "point 7: cannot transform the position the file supplied - latitude "
+        "point 7: cannot transform the supplied position - latitude "
         f"43.000000, longitude 84.500000 (signed, negative west), in {frame_code} - "
     ), message
     assert message.endswith(
-        "Check that the point is in Michigan, and that the file's longitudes are "
-        "written negative west, as this job states: a longitude written in the "
-        "other convention lands on the other side of the world."
+        "Check that the point is in Michigan, and that its latitude and "
+        "longitude carry the right signs: this job reads longitudes written "
+        "negative west, and a latitude or longitude whose sign is the wrong "
+        "way round lands on the other side of the world."
     ), message
+    # Closing gate, L3: no file named (the Single point tab reaches this).
+    assert "file" not in message
 
 
 # --------------------------------------------------------------------------

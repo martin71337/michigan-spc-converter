@@ -863,9 +863,17 @@ def _window_cell(
         lon_w_high = 360.0 - (htdp_data.GRID6_LOWER_EAST_LONGITUDE + (i_high - 1) * stepx)
         lat_low = htdp_data.GRID6_LOWER_LATITUDE + (j_low - 1) * stepy
         lat_high = htdp_data.GRID6_LOWER_LATITUDE + (j_high - 1) * stepy
+        # The lookup position in the program's own convention, signed
+        # degrees with the convention named, as every other refusal states a
+        # position (closing gate of the WGS 84 build, I3): HTDP's 0-360
+        # longitude printed as "275.444520 W" for an east input, and a south
+        # latitude as "-42.732484 N". ``posx`` is east longitude in degrees;
+        # folded to [-180, 180) it is the signed negative-west longitude.
+        lookup_longitude = (posx + 180.0) % 360.0 - 180.0
         reason = (
-            f"its velocity-model lookup position, {posy:.6f} N "
-            f"{360.0 - posx:.6f} W in ITRF2008, is {where}. This program "
+            f"its velocity-model lookup position in ITRF2008, latitude "
+            f"{posy:.6f}, longitude {lookup_longitude:.6f} (signed, negative "
+            f"west), is {where}. This program "
             f"carries HTDP's velocity grid only from {lat_low:.1f} N to "
             f"{lat_high:.1f} N (north edge excluded) and {lon_w_low:.1f} W to "
             f"{lon_w_high:.1f} W - Michigan with at least a degree of margin "

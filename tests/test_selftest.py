@@ -1428,7 +1428,11 @@ def test_the_bundle_gate_finds_htdp_source_and_review_files(tmp_path):
     (internal / "michspc" / "spc" / "htdp_data.pyc").write_bytes(b"code")
     (tmp_path / "mcx.exe").write_bytes(b"MZ")
 
-    assert build_release.foreign_bundle_files(tmp_path) == []
+    review = tmp_path.parent / f"{tmp_path.name}-review"
+    (review / "wgs84-w0").mkdir(parents=True)
+    (review / "wgs84-w0" / "notes.md").write_text("synthetic review file\n")
+
+    assert build_release.foreign_bundle_files(tmp_path, review) == []
 
     (internal / "htdp-v3.6.0").mkdir()
     (internal / "htdp-v3.6.0" / "initvl.f").write_text("      B(1) = 1.0\n")
@@ -1436,12 +1440,81 @@ def test_the_bundle_gate_finds_htdp_source_and_review_files(tmp_path):
     (internal / "review" / "wgs84-w0" / "htdp_truth.json").write_text("{}")
     (internal / "HTDP.F90").write_text("end\n")
 
-    assert build_release.foreign_bundle_files(tmp_path) == [
+    assert build_release.foreign_bundle_files(tmp_path, review) == [
         "_internal/HTDP.F90",
         "_internal/htdp-v3.6.0/initvl.f",
         "_internal/review/wgs84-w0/htdp_truth.json",
     ]
-    assert build_release.foreign_bundle_files(tmp_path / "absent") == []
+    assert build_release.foreign_bundle_files(tmp_path / "absent", review) == []
+
+
+def test_the_bundle_gate_finds_a_review_file_copied_under_another_name(tmp_path):
+    """Closing gate of the WGS 84 build, L4 - the reviewer's own case.
+
+    Two files copied from the REAL ``review/wgs84-w0/`` into a synthetic
+    bundle under names that pass both name rules: ``htdp_truth.json`` as
+    ``_internal/data/htdp_truth.json`` and HTDP's ``README.md`` as
+    ``_internal/htdp/README.md`` (no Fortran suffix, no ``review``
+    component). Before the fix the gate returned ``[]`` for this tree.
+
+    Expected: both refused, by content, each naming the review/ file it is a
+    byte-for-byte copy of; and the gate's default ``review_dir`` is the
+    repository's own review/ folder, so the build checks against it.
+    """
+    from tools import build_release
+
+    source = build_release.REPO_ROOT / "review" / "wgs84-w0"
+    internal = tmp_path / "_internal"
+    (internal / "data").mkdir(parents=True)
+    (internal / "htdp").mkdir()
+    (internal / "data" / "g2018u3.bin").write_bytes(b"grid")
+    (internal / "data" / "htdp_truth.json").write_bytes(
+        (source / "htdp_truth.json").read_bytes()
+    )
+    (internal / "htdp" / "README.md").write_bytes(
+        (source / "htdp-v3.6.0" / "README.md").read_bytes()
+    )
+
+    assert build_release.REVIEW_DIR == build_release.REPO_ROOT / "review"
+    assert build_release.foreign_bundle_files(tmp_path) == [
+        "_internal/data/htdp_truth.json (a copy of review/wgs84-w0/htdp_truth.json)",
+        "_internal/htdp/README.md (a copy of review/wgs84-w0/htdp-v3.6.0/README.md)",
+    ]
+
+
+def test_the_provenance_rule_matches_content_not_size(tmp_path):
+    """Anti-overreach, on a synthetic review/ tree: a renamed copy is refused;
+    a file of the SAME SIZE with different bytes is not (the size is only the
+    prefilter); and an empty file is not, though review/ has an empty file
+    too - an empty file is a copy of every empty file and proves nothing.
+    """
+    from tools import build_release
+
+    review = tmp_path / "review-tree"
+    (review / "gate").mkdir(parents=True)
+    (review / "gate" / "truth.csv").write_bytes(b"1,43.0,84.5\n")
+    (review / "gate" / "empty.txt").write_bytes(b"")
+    bundle = tmp_path / "bundle"
+    (bundle / "_internal").mkdir(parents=True)
+    (bundle / "_internal" / "renamed.dat").write_bytes(b"1,43.0,84.5\n")
+    (bundle / "_internal" / "same_size.dat").write_bytes(b"1,43.0,84.6\n")
+    (bundle / "_internal" / "marker.typed").write_bytes(b"")
+
+    assert build_release.foreign_bundle_files(bundle, review) == [
+        "_internal/renamed.dat (a copy of review-tree/gate/truth.csv)",
+    ]
+
+
+def test_the_bundle_gate_refuses_to_check_without_review():
+    """Fail closed: with no review/ to compare against, the provenance rule
+    would pass every bundle unread, so gate 6 stops instead."""
+    from tools import build_release
+
+    source = Path(build_release.__file__).read_text(encoding="utf-8")
+    gate = source[source.index("def gate_bundle()") : source.index("FORTRAN_SUFFIXES =")]
+    check = gate.index("if not REVIEW_DIR.is_dir():")
+    assert check < gate.index("foreign_bundle_files(BUNDLE_DIR)")
+    assert "raise BuildError" in gate[check : gate.index("foreign_bundle_files(BUNDLE_DIR)")]
 
 
 def test_the_bundle_gate_runs_the_foreign_file_check():

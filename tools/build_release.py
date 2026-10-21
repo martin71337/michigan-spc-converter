@@ -416,12 +416,19 @@ def gate_bundle() -> Path:
     # against (docs/PLAN-wgs84.md section 3.2); the program never reads it,
     # and a bundle carrying it would be shipping 7 MB of somebody else's
     # source as though it were part of the program.
+    if not REVIEW_DIR.is_dir():
+        # The provenance rule compares against review/; without it that rule
+        # would pass every bundle without having looked.
+        raise BuildError(
+            f"{REVIEW_DIR} is missing, so the bundle cannot be checked for "
+            f"copies of its files. Build from a full checkout."
+        )
     foreign = foreign_bundle_files(BUNDLE_DIR)
     if foreign:
         raise BuildError(
             f"the bundle carries files that must never ship: "
-            f"{', '.join(foreign)}. Nothing under review/ and no Fortran "
-            f"source belongs in it - HTDP is transcribed into "
+            f"{', '.join(foreign)}. No file from review/, under any name, "
+            f"and no Fortran source belongs in it: HTDP is transcribed into "
             f"michspc/spc/htdp_data.py, and the Fortran it was read from stays "
             f"in the repository (docs/REFREEZE-HTDP.md). Find what pulled it "
             f"into michspc.spec."
@@ -441,17 +448,67 @@ NEVER_SHIPPED_DIRECTORIES = frozenset({"review"})
 """Repository directories whose contents never belong in the bundle: review/
 holds NGS's captured bytes, the HTDP source and the harnesses."""
 
+REVIEW_DIR = REPO_ROOT / "review"
+"""The repository's review/ folder, whose every file is compared by content
+with every file of the bundle (``foreign_bundle_files``)."""
 
-def foreign_bundle_files(bundle_dir: Path) -> list[str]:
+
+def _sha256_of(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def foreign_bundle_files(bundle_dir: Path, review_dir: Path = REVIEW_DIR) -> list[str]:
     """Files in a built bundle that must never ship, as bundle-relative paths.
 
-    A Fortran source file anywhere, or anything under a directory named like
-    one of ``NEVER_SHIPPED_DIRECTORIES``. Empty for a correct bundle. A
-    function of its own so the rule is checked by the suite on synthetic
-    trees (``tests/test_selftest.py``), not only on the owner's machine.
+    Three rules, any one of which refuses a file:
+
+    * a Fortran source file anywhere (by suffix, any case);
+    * anything under a directory named like one of
+      ``NEVER_SHIPPED_DIRECTORIES``;
+    * **provenance**: a file whose SHA-256 equals that of any file under
+      ``review_dir`` - whatever it is called and wherever it sits. A copy of
+      ``review/wgs84-w0/htdp_truth.json`` renamed into ``_internal/data/``
+      passes both name rules; it does not pass this one, and its entry says
+      which review/ file it is (closing gate of the WGS 84 build, finding L4:
+      the claim "nothing from review/" was a check of names only).
+
+    A zero-byte file is exempt from the provenance rule: it is byte-identical
+    to every other empty file, so its digest says nothing about where it came
+    from. Only bundle files whose size equals some review/ file's are hashed,
+    so the review/ folder (well over 100 MB) is not read for a bundle that
+    shares nothing with it.
+
+    Empty for a correct bundle. A function of its own so the rule is checked
+    by the suite on synthetic trees (``tests/test_selftest.py``), not only on
+    the owner's machine.
     """
     if not bundle_dir.exists():
         return []
+    review_by_size: dict[int, list[Path]] = {}
+    if review_dir.is_dir():
+        for path in sorted(review_dir.rglob("*")):
+            if path.is_file():
+                size = path.stat().st_size
+                if size:
+                    review_by_size.setdefault(size, []).append(path)
+    review_digests: dict[Path, str] = {}
+
+    def review_copy_of(path: Path) -> str | None:
+        candidates = review_by_size.get(path.stat().st_size)
+        if not candidates:
+            return None
+        digest = _sha256_of(path)
+        for candidate in candidates:
+            if candidate not in review_digests:
+                review_digests[candidate] = _sha256_of(candidate)
+            if review_digests[candidate] == digest:
+                return candidate.relative_to(review_dir.parent).as_posix()
+        return None
+
     found: list[str] = []
     for path in sorted(bundle_dir.rglob("*")):
         if not path.is_file():
@@ -461,6 +518,10 @@ def foreign_bundle_files(bundle_dir: Path) -> list[str]:
             NEVER_SHIPPED_DIRECTORIES & {part.lower() for part in relative.parts[:-1]}
         ):
             found.append(relative.as_posix())
+            continue
+        copy_of = review_copy_of(path)
+        if copy_of is not None:
+            found.append(f"{relative.as_posix()} (a copy of {copy_of})")
     return found
 
 

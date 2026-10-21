@@ -2195,7 +2195,12 @@ def build_report(result: JobResult) -> str:
         # the height between datums BEFORE the factors are computed, so the H
         # here is the height the factors actually used, which the audit CSV
         # carries per point.
-        add("                   H = orthometric height as used for the factors")
+        # A zone-less job has one factor (closing gate of the WGS 84 build,
+        # L7's sweep): the same plural the FILES WRITTEN clause carried.
+        if zoneless:
+            add("                   H = orthometric height as used for the elevation factor")
+        else:
+            add("                   H = orthometric height as used for the factors")
         add("                   N = geoid height, interpolated from the grid above")
         if not zoneless:
             # A job with no zone has no grid scale factor to multiply.
@@ -2706,17 +2711,30 @@ def build_report(result: JobResult) -> str:
                 subsequent_indent="    ",
             )
         )
+    # A zone-less job has ONE factor, the elevation factor (the record's own
+    # scale factor summary says "No combined factors exist for this job"),
+    # so its two closing clauses name it - the H2 sweep of interim gate 2,
+    # which matched the zone-only words and missed "the factors" here
+    # (closing gate of the WGS 84 build, finding L7; also in released 0.7.1
+    # on vertical-only geodetic jobs). Zone jobs keep their sentences to the
+    # character.
     if vertical and swap_models is not None:
         add("    For this job it also carries, per point: both vertical datums,")
         add("    the elevation before the geoid change, the geoid change applied")
         add("    (the Vertical shift column; the Shift sigma column reads N/A),")
         add("    the source geoid model, and the geoid model the Z column and")
-        add("    the factors are stated against.")
+        if zoneless:
+            add("    the elevation factor are stated against.")
+        else:
+            add("    the factors are stated against.")
     elif vertical:
         add("    For this vertical job it also carries, per point: both vertical")
         add("    datums, the source-datum elevation before the shift, the modeled")
         add("    shift applied, its one-sigma uncertainty, and the geoid model")
-        add("    the factors were computed from.")
+        if zoneless:
+            add("    the elevation factor was computed from.")
+        else:
+            add("    the factors were computed from.")
         if settings.source_geoid_model is not None:
             add("    The Source geoid model column names the model the input")
             add("    elevations were stated against.")

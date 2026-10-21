@@ -36,12 +36,18 @@ quiet month either).
 
 **Fail-closed, the way docs/method/TOOLING.md's NGS hazards require.** A
 probe is "quiet" only when the answer positively matches the frozen
-expectation: the frozen refusal text, a list of exactly the frozen number of
-repositories, or a well-formed 40-hex commit equal to the frozen one.  A fetch
-that errors, a body that is not the JSON shape the API documents (a captive
-portal's HTML, a proxy's error object, a rate-limit message), or a commit
-field that is not a commit, is "could not check" - PROBE FAILED, exit 2 -
-never quiet, and never silently skipped.
+expectation: a JSON object whose ``error`` field carries the frozen refusal
+text, a list of exactly the frozen number of repositories, or a well-formed
+40-hex commit equal to the frozen one.  A fetch that errors, a body that is
+not the JSON shape the API documents (a captive portal's HTML, an empty
+body, an empty object, a proxy's error object or a rate-limit message where
+GitHub's listing or commit is expected), or a commit field that is not a
+commit, is "could not check" - PROBE FAILED, exit 2 - never quiet, and never
+silently skipped.  Only a well-formed answer that differs from the frozen
+one TRIPS: for probes 1 to 3, a non-empty JSON object that is not the frozen
+refusal (closing gate of the WGS 84 build, finding L5: those three probes
+used to look for the refusal text anywhere in the body, so a captive
+portal's page tripped the wire and raised the message box).
 
 Deliberately stdlib-only and read-only toward NGS and GitHub: five GETs a
 month.
@@ -121,6 +127,29 @@ def _fetch(url: str) -> str:
     )
     with urllib.request.urlopen(request, timeout=TIMEOUT_S) as response:
         return response.read().decode("utf-8", "replace")
+
+
+def ngs_refusal_unchanged(body: str, expected_fragment: str) -> bool:
+    """Whether an NCAT or geoid-service answer is still the frozen refusal.
+
+    True: the body is a JSON object whose ``error`` field contains the frozen
+    refusal text (the shape frozen in review/nsrs-n0/raw, e.g.
+    ``{"error": "Invalid outputDatum"}``) - quiet. False: a non-empty JSON
+    object that is not that refusal - an answer, and a different one, so the
+    probe trips. Anything else is not an answer to the question and raises:
+    a body that is not JSON (a captive portal's HTML, an empty body) raises
+    ``ValueError`` from the parse, and JSON that is not an object, or an
+    empty object (the beta host's fail-open ``{}``, TOOLING.md), raises
+    ``ProbeFailed``. Both are "could not check".
+    """
+    data = json.loads(body)
+    if not isinstance(data, dict) or not data:
+        raise ProbeFailed(
+            f"the answer is not the JSON object the service documents; it "
+            f"begins {body[:200]!r}"
+        )
+    error = data.get("error")
+    return isinstance(error, str) and expected_fragment in error
 
 
 def github_repo_names(body: str) -> list[str]:
@@ -206,11 +235,12 @@ def main(fetch=None, report_dir: Path | None = None, today: str | None = None,
     for name, url, expected_fragment in PROBES:
         try:
             body = fetch(url)
-        except FETCH_FAILURES as error:
+            unchanged = ngs_refusal_unchanged(body, expected_fragment)
+        except (*FETCH_FAILURES, ProbeFailed) as error:
             failed.append(f"{name}: probe failed ({error})")
             lines.append(f"  PROBE FAILED  {name}: {error}")
             continue
-        if expected_fragment in body:
+        if unchanged:
             lines.append(f"  quiet         {name}")
         else:
             tripped.append(f"{name}: NGS no longer answers the frozen "

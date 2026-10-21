@@ -117,26 +117,37 @@ used it.
 
 ## What is refused
 
-Each of these refuses at Convert, by name, and never passes coordinates
-through unchanged:
+None of these ever passes coordinates through unchanged. What each one
+does:
 
 - **A bare "WGS 84".** A position labelled only "WGS 84" may be in any
   realization (about 9 cm apart across the modern ones, about 1.1 m from the
   original 1987 one), or may be NAD 83 output mislabelled by a data
-  collector, 1.3 m away. The refusal names the realizations to choose from.
+  collector, 1.3 m away. It is not offered in any dropdown, and a job that
+  states it is refused by name, the refusal naming the realizations to
+  choose from.
 - **WGS 84 or ITRF against NATRF2022 or an SPCS2022 zone.** HTDP does not
   carry NATRF2022, and going through NAD 83 would need the NAD 83 ⇄
   NATRF2022 transformation NGS has not published
-  (`docs/DEFERRED-NATRF2022-BRIDGE.md`).
+  (`docs/DEFERRED-NATRF2022-BRIDGE.md`). Such a pair is grayed in the
+  dropdowns. If one is selected anyway, a pair with an SPCS2022 zone is
+  refused at Convert by name, and a pair with NATRF2022 geodetic is no
+  conversion at all, so Convert stays unavailable.
 - **Realization to realization, and ITRF to ITRF.** No zone is defined on any
   of these frames, so the only conversion offered for a position in one is to
-  or from NAD 83(2011). Such a pair is grayed in the dropdowns.
+  or from NAD 83(2011). Such a pair is grayed in the dropdowns, is no
+  conversion if selected anyway (Convert stays unavailable), and a job that
+  states one is refused by name.
 - **A position outside HTDP's velocity grid as MCX carries it** (Michigan
-  with at least a degree of margin on every side): refused, never
+  with at least a degree of margin on every side): refused at Convert, never
   extrapolated, naming the point.
-- **A WGS 84 or ITRF job with no observation date, or a future one; and an
-  observation date on a job with no WGS 84 or ITRF frame**, where it would
-  answer a question the job never asks.
+- **A WGS 84 or ITRF job with no observation date, or a future one.** Convert
+  stays unavailable until a date is entered, and a future date is refused at
+  Convert.
+- **An observation date on a job with no WGS 84 or ITRF frame**, where it
+  would answer a question the job never asks. The date control is grayed for
+  such a job and its date is not sent; a job that states one anyway is
+  refused by name.
 
 ## Corrected: two false sentences in earlier job records
 
@@ -159,7 +170,9 @@ wrong in either case**; both are sentences in the job record
    same record said so in its scale factor summary. It now says "The
    elevation factor was computed ...".
 
-Every other existing job's files are unchanged, byte for byte.
+Every other existing job's files are unchanged byte for byte, apart from
+two lines at the top of the job record: `Generated`, the time the job ran,
+which differs on every run, and `Software`, which names this release.
 
 ## Built against NGS's beta products
 
@@ -175,9 +188,11 @@ monthly tripwire now watches NGS's HTDP repository for that change.
 - **HTDP's own output, at its printed digit.** NGS's source was compiled and
   run (gfortran, x86_64). MCX reproduces 1,846 of HTDP's printed records,
   every offered frame in both directions and the round trip at every
-  calendar-equivalent epoch, plus 382 records chosen to sit within an ulp or
-  so of HTDP's rounding or at the velocity grid's edge, every one to
-  1e-10 degree and 1 mm, compared component by component. W0's transcription
+  calendar-equivalent epoch, to 1e-10 degree and 1 mm, compared component
+  by component. A further 382 records were chosen to sit within an ulp or
+  so of HTDP's rounding or at the velocity grid's edge: MCX reproduces the
+  374 it transforms to the same tolerance, and refuses the other 8, which
+  lie just outside the grid's edge, as it must. W0's transcription
   matched 45,408 of 45,408 records, and 720 fresh random records were matched
   when the transcription was built.
 - **The transcription is checked against the Fortran itself**: the suite

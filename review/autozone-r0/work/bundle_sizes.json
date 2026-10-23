@@ -1,0 +1,60 @@
+{
+ "TIGER": {
+  "county_vertices": 72545,
+  "county_arc_vertices": 72502,
+  "state_outline_vertices": 10721,
+  "spcs83_zone_vertices": 14309,
+  "ldp_by_county_vertices": 35855,
+  "ldp_by_county_parts": {
+   "261008": 1,
+   "261007": 1,
+   "261002": 1,
+   "261003": 1,
+   "261004": 1,
+   "261017": 1,
+   "261015": 1,
+   "261011": 1,
+   "261012": 1,
+   "261001": 1,
+   "261006": 1,
+   "261009": 1,
+   "261010": 1,
+   "261005": 1,
+   "261016": 1,
+   "261013": 1,
+   "261014": 1
+  },
+  "county_arcs_vertices_simplified_1m": 68857,
+  "county_arcs_vertices_simplified_5m": 65983,
+  "county_arcs_vertices_simplified_10m": 64683
+ },
+ "MGF": {
+  "county_vertices": 93326,
+  "county_arc_vertices": 93278,
+  "state_outline_vertices": 16062,
+  "spcs83_zone_vertices": 19378,
+  "ldp_by_county_vertices": 45714,
+  "ldp_by_county_parts": {
+   "261006": 1,
+   "261014": 1,
+   "261008": 1,
+   "261011": 1,
+   "261005": 1,
+   "261016": 1,
+   "261004": 1,
+   "261007": 1,
+   "261012": 1,
+   "261013": 1,
+   "261015": 1,
+   "261003": 1,
+   "261017": 1,
+   "261009": 1,
+   "261001": 1,
+   "261010": 1,
+   "261002": 1
+  },
+  "county_arcs_vertices_simplified_1m": 85036,
+  "county_arcs_vertices_simplified_5m": 81259,
+  "county_arcs_vertices_simplified_10m": 79917
+ }
+}

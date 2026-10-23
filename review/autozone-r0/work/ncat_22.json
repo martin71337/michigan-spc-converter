@@ -1,0 +1,762 @@
+[
+ {
+  "tag": "22L0 f=0.500 d=-15",
+  "lat": 43.29411581,
+  "lon": -85.31878031,
+  "ncat_zone": "MI L45G-261008 (Multizone complete)",
+  "raw": "spcs2022_000.html",
+  "northing": "283508.506 m",
+  "sha256": "61773191d695293ec5bd374d2c2680f2773e52f39a195cf570c1b6711d7e3307",
+  "messages": []
+ },
+ {
+  "tag": "22L0 f=0.500 d=+15",
+  "lat": 43.29438593,
+  "lon": -85.31877585,
+  "ncat_zone": "MI L51N-261009 (Multizone complete)",
+  "raw": "spcs2022_001.html",
+  "northing": "58914.038 m",
+  "sha256": "af1f28cf46d43debb57d21fa4ccefe00616eccdb2ccffcbea8eed1d32cced5fd",
+  "messages": []
+ },
+ {
+  "tag": "22L0 f=0.500 d=-50",
+  "lat": 43.29380068,
+  "lon": -85.31878553,
+  "ncat_zone": "MI L45G-261008 (Multizone complete)",
+  "raw": "spcs2022_002.html",
+  "northing": "283473.494 m",
+  "sha256": "cf044458d567121a4544b9320fb0fa1ff9ce0832f69728cd67bc289e9573721f",
+  "messages": []
+ },
+ {
+  "tag": "22L0 f=0.500 d=+50",
+  "lat": 43.29470106,
+  "lon": -85.31877063,
+  "ncat_zone": "MI L51N-261009 (Multizone complete)",
+  "raw": "spcs2022_003.html",
+  "northing": "58949.050 m",
+  "sha256": "856c6c6561d9d5b87e0529666bdddfa1112677af1c8919bdbc679982dcdb3f13",
+  "messages": []
+ },
+ {
+  "tag": "22L0 f=0.500 d=-500",
+  "lat": 43.28974895,
+  "lon": -85.31885254,
+  "ncat_zone": "MI L45G-261008 (Multizone complete)",
+  "raw": "spcs2022_004.html",
+  "northing": "283023.341 m",
+  "sha256": "70f304485ac94dd2aaa913b871b52ebfa6951d758f1b30b29a14b50065e0c4fa",
+  "messages": []
+ },
+ {
+  "tag": "22L0 f=0.500 d=+500",
+  "lat": 43.29875278,
+  "lon": -85.31870361,
+  "ncat_zone": "MI L51N-261009 (Multizone complete)",
+  "raw": "spcs2022_005.html",
+  "northing": "59399.208 m",
+  "sha256": "c6dad256112f4672dd3b7d52a1ea74f9b120fbcc22faf2bab55b2acce8a588b0",
+  "messages": []
+ },
+ {
+  "tag": "22L1 f=0.500 d=-15",
+  "lat": 43.25375432,
+  "lon": -83.35205927,
+  "ncat_zone": "MI L21F-261003 (Multizone complete)",
+  "raw": "spcs2022_006.html",
+  "northing": "115502.445 m",
+  "sha256": "93bb9b95a89cf1d71a7f9965f391736f90d288e1b0a0f1d3424d7947f14552f0",
+  "messages": []
+ },
+ {
+  "tag": "22L1 f=0.500 d=+15",
+  "lat": 43.25374614,
+  "lon": -83.35242863,
+  "ncat_zone": "MI L25S-261004 (Multizone complete)",
+  "raw": "spcs2022_007.html",
+  "northing": "190173.410 m",
+  "sha256": "403ee0612fd66a465f7bbd9f54ff8924f867517835dfa2168a3610328ed250cd",
+  "messages": []
+ },
+ {
+  "tag": "22L1 f=0.500 d=-50",
+  "lat": 43.25376386,
+  "lon": -83.35162835,
+  "ncat_zone": "MI L21F-261003 (Multizone complete)",
+  "raw": "spcs2022_008.html",
+  "northing": "115503.525 m",
+  "sha256": "21cb84b2c2d6c84e25cc211585ef809475ecc0098a3339951c7df62b38964598",
+  "messages": []
+ },
+ {
+  "tag": "22L1 f=0.500 d=+50",
+  "lat": 43.2537366,
+  "lon": -83.35285955,
+  "ncat_zone": "MI L25S-261004 (Multizone complete)",
+  "raw": "spcs2022_009.html",
+  "northing": "190172.225 m",
+  "sha256": "f0cdae1c94c965669e4d62db564e7e301ac5defcc9dd22caeeadf661c9a46a51",
+  "messages": []
+ },
+ {
+  "tag": "22L1 f=0.500 d=-500",
+  "lat": 43.25388638,
+  "lon": -83.34608795,
+  "ncat_zone": "MI L21F-261003 (Multizone complete)",
+  "raw": "spcs2022_010.html",
+  "northing": "115517.411 m",
+  "sha256": "369efa78df325175142436b240aae6d433dec806d6f93b311796a7c26460d38f",
+  "messages": []
+ },
+ {
+  "tag": "22L1 f=0.500 d=+500",
+  "lat": 43.25361375,
+  "lon": -83.35839992,
+  "ncat_zone": "MI L25S-261004 (Multizone complete)",
+  "raw": "spcs2022_011.html",
+  "northing": "190156.982 m",
+  "sha256": "fab0a7f686792c577c385e0db09537e757cdc4268cf833e1f0d6bc708f1ebf35",
+  "messages": []
+ },
+ {
+  "tag": "22L2 f=0.500 d=-15",
+  "lat": 42.21176893,
+  "lon": -83.54368434,
+  "ncat_zone": "MI L11A-261001 (Multizone complete)",
+  "raw": "spcs2022_012.html",
+  "northing": "101420.926 m",
+  "sha256": "bf07f954ecac1c1efe81022bdf3eed6868810e389d0f67216dac5555e73acda3",
+  "messages": []
+ },
+ {
+  "tag": "22L2 f=0.500 d=+15",
+  "lat": 42.2117698,
+  "lon": -83.54332091,
+  "ncat_zone": "MI L15D-261002 (Multizone complete)",
+  "raw": "spcs2022_013.html",
+  "northing": "223503.205 m",
+  "sha256": "e707d46c21da6134868944867785cd4174dc3e36c87356fdb982c307347a2236",
+  "messages": []
+ },
+ {
+  "tag": "22L2 f=0.500 d=-50",
+  "lat": 42.21176791,
+  "lon": -83.54410835,
+  "ncat_zone": "MI L11A-261001 (Multizone complete)",
+  "raw": "spcs2022_014.html",
+  "northing": "101420.584 m",
+  "sha256": "9c6ee9dfa96dd8725fa08f82f4d20da67a4121bb21a2149f6c2a45ea83674b18",
+  "messages": []
+ },
+ {
+  "tag": "22L2 f=0.500 d=+50",
+  "lat": 42.21177082,
+  "lon": -83.5428969,
+  "ncat_zone": "MI L15D-261002 (Multizone complete)",
+  "raw": "spcs2022_015.html",
+  "northing": "223503.157 m",
+  "sha256": "32e99f5df16f5f08ffcdad311b4cfb92c789beb4560d04d518cd00d070098174",
+  "messages": []
+ },
+ {
+  "tag": "22L2 f=0.500 d=-500",
+  "lat": 42.21175464,
+  "lon": -83.54955985,
+  "ncat_zone": "MI L11A-261001 (Multizone complete)",
+  "raw": "spcs2022_016.html",
+  "northing": "101416.190 m",
+  "sha256": "eb86b7b1483f753d0876e55c02d096e7716840dd27f67adb2f5564873191f2d4",
+  "messages": []
+ },
+ {
+  "tag": "22L2 f=0.500 d=+500",
+  "lat": 42.21178377,
+  "lon": -83.5374454,
+  "ncat_zone": "MI L15D-261002 (Multizone complete)",
+  "raw": "spcs2022_017.html",
+  "northing": "223502.536 m",
+  "sha256": "ade75dcd175e04fc65798591332ba34b7055bf9dc124e7efc6e9f36e3a34f623",
+  "messages": []
+ },
+ {
+  "tag": "22L3 f=0.500 d=-15",
+  "lat": 45.98610334,
+  "lon": -87.24269134,
+  "ncat_zone": "MI U21E-261014 (Multizone complete)",
+  "raw": "spcs2022_018.html",
+  "northing": "93128.911 m",
+  "sha256": "3cf242420da9bff28c82cf46c7653f789779b451dfe596e685c2cc6ff40d4d73",
+  "messages": []
+ },
+ {
+  "tag": "22L3 f=0.500 d=+15",
+  "lat": 45.98610334,
+  "lon": -87.24307866,
+  "ncat_zone": "MI U31Q-261015 (Multizone complete)",
+  "raw": "spcs2022_019.html",
+  "northing": "143002.955 m",
+  "sha256": "c7b9991078576ccdd305a5e5643a17ada2a6bd2281b19b428556647330a96b3f",
+  "messages": []
+ },
+ {
+  "tag": "22L3 f=0.500 d=-50",
+  "lat": 45.98610334,
+  "lon": -87.24223946,
+  "ncat_zone": "MI U21E-261014 (Multizone complete)",
+  "raw": "spcs2022_020.html",
+  "northing": "93128.629 m",
+  "sha256": "9d660e4888dbac9eff17109cb20bd36e030e53c5abd9d66385f970ce9fdf8419",
+  "messages": []
+ },
+ {
+  "tag": "22L3 f=0.500 d=+50",
+  "lat": 45.98610334,
+  "lon": -87.24353054,
+  "ncat_zone": "MI U31Q-261015 (Multizone complete)",
+  "raw": "spcs2022_021.html",
+  "northing": "143002.798 m",
+  "sha256": "3deee5d99b98c140f65409f62dde5c357ac2271de8d4e6710a8084715a222826",
+  "messages": []
+ },
+ {
+  "tag": "22L3 f=0.500 d=-500",
+  "lat": 45.98610316,
+  "lon": -87.23642964,
+  "ncat_zone": "MI U21E-261014 (Multizone complete)",
+  "raw": "spcs2022_022.html",
+  "northing": "93124.996 m",
+  "sha256": "708211b8911113595de8c8310670c9915492be5ca6eb4c051dc55f355c22f2c7",
+  "messages": []
+ },
+ {
+  "tag": "22L3 f=0.500 d=+500",
+  "lat": 45.98610316,
+  "lon": -87.24934035,
+  "ncat_zone": "MI U31Q-261015 (Multizone complete)",
+  "raw": "spcs2022_023.html",
+  "northing": "143000.780 m",
+  "sha256": "037bc31a31607c8a200a3f8609d6942fde1b9272fa5c27c11cb26937eb6adcbb",
+  "messages": []
+ },
+ {
+  "tag": "22L4 f=0.500 d=-15",
+  "lat": 42.42103028,
+  "lon": -85.49611956,
+  "ncat_zone": "MI L41Z-261007 (Multizone complete)",
+  "raw": "spcs2022_024.html",
+  "northing": "111871.957 m",
+  "sha256": "19c09caff7e09ff2f2cdfef208be76b21c79be1ada0b653a1816c202c01dc57a",
+  "messages": []
+ },
+ {
+  "tag": "22L4 f=0.500 d=+15",
+  "lat": 42.42130031,
+  "lon": -85.49610873,
+  "ncat_zone": "MI L45G-261008 (Multizone complete)",
+  "raw": "spcs2022_025.html",
+  "northing": "186589.483 m",
+  "sha256": "4de0d04d142111b60d580c3f368c49d524a940df223571e86c38cbb2ef81ea86",
+  "messages": []
+ },
+ {
+  "tag": "22L4 f=0.500 d=-50",
+  "lat": 42.42071524,
+  "lon": -85.4961322,
+  "ncat_zone": "MI L41Z-261007 (Multizone complete)",
+  "raw": "spcs2022_026.html",
+  "northing": "111836.958 m",
+  "sha256": "f84643c31f89c0c650868a7fc3ba02e701d072702d575e304c88811b1b164e58",
+  "messages": []
+ },
+ {
+  "tag": "22L4 f=0.500 d=+50",
+  "lat": 42.42161536,
+  "lon": -85.49609609,
+  "ncat_zone": "MI L45G-261008 (Multizone complete)",
+  "raw": "spcs2022_027.html",
+  "northing": "186624.476 m",
+  "sha256": "c7cc65aabd939183d4eb8754e793d6f5ec8a8c5919daeaa1defc50d07c7ac975",
+  "messages": []
+ },
+ {
+  "tag": "22L4 f=0.500 d=-500",
+  "lat": 42.41666469,
+  "lon": -85.49629472,
+  "ncat_zone": "MI L41Z-261007 (Multizone complete)",
+  "raw": "spcs2022_028.html",
+  "northing": "111386.976 m",
+  "sha256": "c057454d98e14ddf8988a186c3864f4ce788740cdaac13a9d62d274e55ae9425",
+  "messages": []
+ },
+ {
+  "tag": "22L4 f=0.500 d=+500",
+  "lat": 42.4256659,
+  "lon": -85.49593355,
+  "ncat_zone": "MI L45G-261008 (Multizone complete)",
+  "raw": "spcs2022_029.html",
+  "northing": "187074.376 m",
+  "sha256": "aaa59b6ec728ed181172825624153986b36798d9995357d3590da8658b44fea2",
+  "messages": []
+ },
+ {
+  "tag": "22L5 f=0.500 d=-15",
+  "lat": 45.19861376,
+  "lon": -84.18423481,
+  "ncat_zone": "MI L35T-261006 (Multizone complete)",
+  "raw": "spcs2022_030.html",
+  "northing": "229252.386 m",
+  "sha256": "6af40bbd04b89bf6c4c5ece23a72286f54c35dd5a458978b1a4846201c6b15e3",
+  "messages": []
+ },
+ {
+  "tag": "22L5 f=0.500 d=+15",
+  "lat": 45.19888375,
+  "lon": -84.18423223,
+  "ncat_zone": "MI L65C-261012 (Multizone complete)",
+  "raw": "spcs2022_031.html",
+  "northing": "162625.141 m",
+  "sha256": "3a73a1f379df066558fef022786421f7bb13371167ea1a255db5d239477ba7a6",
+  "messages": []
+ },
+ {
+  "tag": "22L5 f=0.500 d=-50",
+  "lat": 45.19829878,
+  "lon": -84.18423782,
+  "ncat_zone": "MI L35T-261006 (Multizone complete)",
+  "raw": "spcs2022_032.html",
+  "northing": "229217.379 m",
+  "sha256": "05bd560b877eff6d27e2da2107ec463970889c50830b201e1c8405c86b30ef23",
+  "messages": []
+ },
+ {
+  "tag": "22L5 f=0.500 d=+50",
+  "lat": 45.19919874,
+  "lon": -84.18422921,
+  "ncat_zone": "MI L65C-261012 (Multizone complete)",
+  "raw": "spcs2022_033.html",
+  "northing": "162660.150 m",
+  "sha256": "3358d2685e1b4566fef77ac1b07e2e0f855ce74d2def2bab7944c9d16e8fa167",
+  "messages": []
+ },
+ {
+  "tag": "22L5 f=0.500 d=-500",
+  "lat": 45.19424895,
+  "lon": -84.18427655,
+  "ncat_zone": "MI L35T-261006 (Multizone complete)",
+  "raw": "spcs2022_034.html",
+  "northing": "228767.282 m",
+  "sha256": "171de35c7ed90eb0c6024ed0b08580fc9217a3584b52e99b271aaf8bffa59dee",
+  "messages": []
+ },
+ {
+  "tag": "22L5 f=0.500 d=+500",
+  "lat": 45.20324856,
+  "lon": -84.18419047,
+  "ncat_zone": "MI L65C-261012 (Multizone complete)",
+  "raw": "spcs2022_035.html",
+  "northing": "163110.252 m",
+  "sha256": "a10bf2608d841bfd80423295fb94073e73b21dfb251a503ba36f11d44078b873",
+  "messages": []
+ },
+ {
+  "tag": "22L6 f=0.500 d=-15",
+  "lat": 46.47739556,
+  "lon": -88.11639274,
+  "ncat_zone": "MI U31Q-261015 (Multizone complete)",
+  "raw": "spcs2022_036.html",
+  "northing": "197682.667 m",
+  "sha256": "60c7586e7bbda472f0c5b2506d148da8372832eda857fd27b27960eb2699c1b5",
+  "messages": []
+ },
+ {
+  "tag": "22L6 f=0.500 d=+15",
+  "lat": 46.47739474,
+  "lon": -88.1167835,
+  "ncat_zone": "MI U41H-261016 (Multizone complete)",
+  "raw": "spcs2022_037.html",
+  "northing": "108682.040 m",
+  "sha256": "f263f234e618b65b8bf85af3e9bc82abc45386b805ab1314123e319e63a993a5",
+  "messages": []
+ },
+ {
+  "tag": "22L6 f=0.500 d=-50",
+  "lat": 46.47739652,
+  "lon": -88.11593685,
+  "ncat_zone": "MI U31Q-261015 (Multizone complete)",
+  "raw": "spcs2022_038.html",
+  "northing": "197682.545 m",
+  "sha256": "381b2f27e579131b88aa2eec0c8583fedbbf087823d3b9d1772719f4b95bc552",
+  "messages": []
+ },
+ {
+  "tag": "22L6 f=0.500 d=+50",
+  "lat": 46.47739377,
+  "lon": -88.11723938,
+  "ncat_zone": "MI U41H-261016 (Multizone complete)",
+  "raw": "spcs2022_039.html",
+  "northing": "108681.806 m",
+  "sha256": "7ecfc9d30f793e68b0d20d136d7d442e46fefc5fc95f456b1e81e49443b37750",
+  "messages": []
+ },
+ {
+  "tag": "22L6 f=0.500 d=-500",
+  "lat": 46.47740868,
+  "lon": -88.11007543,
+  "ncat_zone": "MI U31Q-261015 (Multizone complete)",
+  "raw": "spcs2022_040.html",
+  "northing": "197680.974 m",
+  "sha256": "46653b8efcca2b3d33ea836578f939aca701dcac12373f550fef94caf46e3d76",
+  "messages": []
+ },
+ {
+  "tag": "22L6 f=0.500 d=+500",
+  "lat": 46.47738124,
+  "lon": -88.1231008,
+  "ncat_zone": "MI U41H-261016 (Multizone complete)",
+  "raw": "spcs2022_041.html",
+  "northing": "108678.819 m",
+  "sha256": "8ab33d88e096ae5066abbf381a3604ab86ac9765e4c7ee0457ce542e0e6ca269",
+  "messages": []
+ },
+ {
+  "tag": "22L7 f=0.500 d=-15",
+  "lat": 44.5078988,
+  "lon": -84.08500362,
+  "ncat_zone": "MI L31R-261005 (Multizone complete)",
+  "raw": "spcs2022_042.html",
+  "northing": "104860.596 m",
+  "sha256": "e7a6c5aed266e271141ec5971e11bec33b051d5dda2f902a71582174570d67b7",
+  "messages": []
+ },
+ {
+  "tag": "22L7 f=0.500 d=+15",
+  "lat": 44.50816884,
+  "lon": -84.08500702,
+  "ncat_zone": "MI L35T-261006 (Multizone complete)",
+  "raw": "spcs2022_043.html",
+  "northing": "152513.037 m",
+  "sha256": "dab21ae71c21c2f406fb0d2c7a2c792658dc4c0708dad697ad9d8ee21d88f4e2",
+  "messages": []
+ },
+ {
+  "tag": "22L7 f=0.500 d=-50",
+  "lat": 44.50758377,
+  "lon": -84.08499965,
+  "ncat_zone": "MI L31R-261005 (Multizone complete)",
+  "raw": "spcs2022_044.html",
+  "northing": "104825.588 m",
+  "sha256": "a68a28104e151c85a66182c9dcc273afda1f88e2cb5a9730f5355b764e300abc",
+  "messages": []
+ },
+ {
+  "tag": "22L7 f=0.500 d=+50",
+  "lat": 44.50848387,
+  "lon": -84.085011,
+  "ncat_zone": "MI L35T-261006 (Multizone complete)",
+  "raw": "spcs2022_045.html",
+  "northing": "152548.046 m",
+  "sha256": "5b4f4dbd8036f454d3fd69c7d226f7061f092846f9a2a77cb0ea014d113fd7d1",
+  "messages": []
+ },
+ {
+  "tag": "22L7 f=0.500 d=-500",
+  "lat": 44.50353328,
+  "lon": -84.08494859,
+  "ncat_zone": "MI L31R-261005 (Multizone complete)",
+  "raw": "spcs2022_046.html",
+  "northing": "104375.475 m",
+  "sha256": "9e6375a8c2233c36c295c25574344c0124d48070251e604cf5b0eb35460a4d77",
+  "messages": []
+ },
+ {
+  "tag": "22L7 f=0.500 d=+500",
+  "lat": 44.51253436,
+  "lon": -84.08506206,
+  "ncat_zone": "MI L35T-261006 (Multizone complete)",
+  "raw": "spcs2022_047.html",
+  "northing": "152998.169 m",
+  "sha256": "ebb050222ab287c61e67795e2af9c137bc2734c7e82652197074e0b9083c046a",
+  "messages": []
+ },
+ {
+  "tag": "22L8 f=0.500 d=-15",
+  "lat": 46.6315836,
+  "lon": -88.9900852,
+  "ncat_zone": "MI U41H-261016 (Multizone complete)",
+  "raw": "spcs2022_048.html",
+  "northing": "125952.909 m",
+  "sha256": "9a0f21d70c011a0842c0f729a604d2e7b2e0481e7270d8118cc0f128797dc39e",
+  "messages": []
+ },
+ {
+  "tag": "22L8 f=0.500 d=+15",
+  "lat": 46.631586,
+  "lon": -88.99047699,
+  "ncat_zone": "MI U51B-261017 (Multizone complete)",
+  "raw": "spcs2022_049.html",
+  "northing": "106939.372 m",
+  "sha256": "7ea4ada13a69f0d57089fef0e7a22bb603d4cf8b8b16a2e83044f9df50aa14a0",
+  "messages": []
+ },
+ {
+  "tag": "22L8 f=0.500 d=-50",
+  "lat": 46.6315808,
+  "lon": -88.98962811,
+  "ncat_zone": "MI U41H-261016 (Multizone complete)",
+  "raw": "spcs2022_050.html",
+  "northing": "125952.336 m",
+  "sha256": "af3004dda750bf9de511eaee64f8681e5dbb0e9d19afe71257860a8ee87b2d9e",
+  "messages": []
+ },
+ {
+  "tag": "22L8 f=0.500 d=+50",
+  "lat": 46.63158879,
+  "lon": -88.99093408,
+  "ncat_zone": "MI U51B-261017 (Multizone complete)",
+  "raw": "spcs2022_051.html",
+  "northing": "106939.367 m",
+  "sha256": "d87f5871aee2976815303dc5247ace23ca4925f3664b69f7b85a06a52aa723d3",
+  "messages": []
+ },
+ {
+  "tag": "22L8 f=0.500 d=-500",
+  "lat": 46.6315447,
+  "lon": -88.98375125,
+  "ncat_zone": "MI U41H-261016 (Multizone complete)",
+  "raw": "spcs2022_052.html",
+  "northing": "125944.973 m",
+  "sha256": "c9d9c4e3a46ba5baa44e2437187d3edb57de87fbe6c87621f8e29774b358032a",
+  "messages": []
+ },
+ {
+  "tag": "22L8 f=0.500 d=+500",
+  "lat": 46.63162452,
+  "lon": -88.99681094,
+  "ncat_zone": "MI U51B-261017 (Multizone complete)",
+  "raw": "spcs2022_053.html",
+  "northing": "106939.302 m",
+  "sha256": "f7070a299615836ea4181a23b9fa4182809f9e08ec5cd7b4b77c4c3d0b945ef1",
+  "messages": []
+ },
+ {
+  "tag": "22L9 f=0.500 d=-15",
+  "lat": 42.88816649,
+  "lon": -83.12588056,
+  "ncat_zone": "MI L15D-261002 (Multizone complete)",
+  "raw": "spcs2022_054.html",
+  "northing": "298567.222 m",
+  "sha256": "31b597692f2552ce517a55312a13b874fde322708b2028e34b08a7212d08e730",
+  "messages": []
+ },
+ {
+  "tag": "22L9 f=0.500 d=+15",
+  "lat": 42.88843645,
+  "lon": -83.12589279,
+  "ncat_zone": "MI L21F-261003 (Multizone complete)",
+  "raw": "spcs2022_055.html",
+  "northing": "74951.825 m",
+  "sha256": "3eab66927051cbbfcbd480feec41ec77de730d4538f3a6c50586ba02ab16e3b9",
+  "messages": []
+ },
+ {
+  "tag": "22L9 f=0.500 d=-50",
+  "lat": 42.88785153,
+  "lon": -83.12586629,
+  "ncat_zone": "MI L15D-261002 (Multizone complete)",
+  "raw": "spcs2022_056.html",
+  "northing": "298532.232 m",
+  "sha256": "5e37136b0f153b7b5f7c9cefd0a7a05264b2955382041eaa16f7f35eccececdc",
+  "messages": []
+ },
+ {
+  "tag": "22L9 f=0.500 d=+50",
+  "lat": 42.88875141,
+  "lon": -83.12590706,
+  "ncat_zone": "MI L21F-261003 (Multizone complete)",
+  "raw": "spcs2022_057.html",
+  "northing": "74986.811 m",
+  "sha256": "5ee87f54df61eafa8fb8e80eb21eddde889674fc4b6bb88f522a6972ae064434",
+  "messages": []
+ },
+ {
+  "tag": "22L9 f=0.500 d=-500",
+  "lat": 42.88380205,
+  "lon": -83.12568288,
+  "ncat_zone": "MI L15D-261002 (Multizone complete)",
+  "raw": "spcs2022_058.html",
+  "northing": "298082.367 m",
+  "sha256": "10badc5a89e51c073e61eb3c00aed302710263551bfc3e273ff5e2135bd18d98",
+  "messages": []
+ },
+ {
+  "tag": "22L9 f=0.500 d=+500",
+  "lat": 42.89280088,
+  "lon": -83.1260905,
+  "ncat_zone": "MI L21F-261003 (Multizone complete)",
+  "raw": "spcs2022_059.html",
+  "northing": "75436.630 m",
+  "sha256": "13bb2e8ad80fc6a624913d9a6739a33e995cbd47273cf414653c35465b1aa25c",
+  "messages": []
+ },
+ {
+  "tag": "lake_michigan_mi_side_near_state_line",
+  "lat": 43.5,
+  "lon": -87.1,
+  "ncat_zone": "MI L51N-261009 (Multizone complete)",
+  "raw": "spcs2022_060.html",
+  "northing": "83157.979 m",
+  "sha256": "55f3ef73a981f7b84602b783401fbf0f09476e97f63834115ad2639aac6ed0ac",
+  "messages": []
+ },
+ {
+  "tag": "lake_michigan_mid",
+  "lat": 44.0,
+  "lon": -86.9,
+  "ncat_zone": "MI L55W-261010 (Multizone complete)",
+  "raw": "spcs2022_061.html",
+  "northing": "174720.894 m",
+  "sha256": "7c5dcd8b6c59fbc4e6bb4b5aff87cf5bbec336ebf29a47b127e38ceb61500295",
+  "messages": []
+ },
+ {
+  "tag": "lake_michigan_wi_side",
+  "lat": 43.5,
+  "lon": -87.6,
+  "ncat_zone": "WI KMOR-551027 (Multizone complete)",
+  "raw": "spcs2022_062.html",
+  "northing": "142611.312 m",
+  "sha256": "ccc5117cc2a53e7be6294d2c3b1eb1c15ea7492f5ff7c6f02c03acb21626c022",
+  "messages": []
+ },
+ {
+  "tag": "saginaw_bay",
+  "lat": 43.9,
+  "lon": -83.6,
+  "ncat_zone": "MI L25S-261004 (Multizone complete)",
+  "raw": "spcs2022_063.html",
+  "northing": "261933.969 m",
+  "sha256": "c49f429c54d7636d2f5d86473c155aa0bc455893c7015620d2b46d110f036bce",
+  "messages": []
+ },
+ {
+  "tag": "lake_huron_mi_waters",
+  "lat": 44.5,
+  "lon": -82.7,
+  "ncat_zone": "MI L31R-261005 (Multizone complete)",
+  "raw": "spcs2022_064.html",
+  "northing": "104999.007 m",
+  "sha256": "89a4e13a88909e19694c1566ba0376bacc20bac5c5c835484821c35906bfa315",
+  "messages": []
+ },
+ {
+  "tag": "lake_huron_ontario_waters",
+  "lat": 44.5,
+  "lon": -82.2,
+  "ncat_zone": "N/A N/A",
+  "raw": "spcs2022_065.html",
+  "northing": "N/A m",
+  "sha256": "2db9b6f423940542c6d2dc98490cd4fd434e6878f936ded61ab044ad7966e1cf",
+  "messages": []
+ },
+ {
+  "tag": "lake_superior_mi_waters",
+  "lat": 47.3,
+  "lon": -87.0,
+  "ncat_zone": "MI U21E-261014 (Multizone complete)",
+  "raw": "spcs2022_066.html",
+  "northing": "239065.250 m",
+  "sha256": "7f07807ff13ed07809e4e12968315ed4e19b4040384dd585fc8d0678a62023e3",
+  "messages": []
+ },
+ {
+  "tag": "lake_superior_far_north",
+  "lat": 47.95,
+  "lon": -88.4,
+  "ncat_zone": "MI U61K-261018 (Multizone complete)",
+  "raw": "spcs2022_067.html",
+  "northing": "70738.461 m",
+  "sha256": "e543512169fc84a291831f66f44c0984d848ec7e4857963f463afefaf47f1d1b",
+  "messages": []
+ },
+ {
+  "tag": "lake_erie_mi_waters",
+  "lat": 41.8,
+  "lon": -83.3,
+  "ncat_zone": "OH LUC-391048 (Multizone complete)",
+  "raw": "spcs2022_068.html",
+  "northing": "212744.189 m",
+  "sha256": "01af7ae87549acd0260274e8e1b5573750632d17d49b7f138b50ce56e13fc461",
+  "messages": []
+ },
+ {
+  "tag": "detroit_river",
+  "lat": 42.3,
+  "lon": -83.08,
+  "ncat_zone": "N/A N/A",
+  "raw": "spcs2022_069.html",
+  "northing": "N/A m",
+  "sha256": "a0f041935808611711d521a9e698b9abbc926e20345054b523ff95f968d7706d",
+  "messages": []
+ },
+ {
+  "tag": "straits_mackinac",
+  "lat": 45.82,
+  "lon": -84.73,
+  "ncat_zone": "MI U11M-261013 (Multizone complete)",
+  "raw": "spcs2022_070.html",
+  "northing": "33968.701 m",
+  "sha256": "eaa35c3ef83fdbd0c865f67930308ed1f8c68d84e01a8be8fd73d158f97acdf6",
+  "messages": []
+ },
+ {
+  "tag": "toledo_oh",
+  "lat": 41.65,
+  "lon": -83.55,
+  "ncat_zone": "OH LUC-391048 (Multizone complete)",
+  "raw": "spcs2022_071.html",
+  "northing": "196053.440 m",
+  "sha256": "e3402df7434ba78866fcda64afcd840c62d93a0a517725090d01b96767953a35",
+  "messages": []
+ },
+ {
+  "tag": "indiana_south_bend",
+  "lat": 41.6,
+  "lon": -86.3,
+  "ncat_zone": "IN 1030-181030 (Multizone complete)",
+  "raw": "spcs2022_072.html",
+  "northing": "993307.339 m",
+  "sha256": "b727113479f411296fd27700082c4f859aa06996534d86f0049bd4c14b603545",
+  "messages": []
+ },
+ {
+  "tag": "wisconsin_marinette",
+  "lat": 45.05,
+  "lon": -87.7,
+  "ncat_zone": "WI MARI-551033 (Multizone complete)",
+  "raw": "spcs2022_073.html",
+  "northing": "39822.312 m",
+  "sha256": "8037386eea362c6feb092cac74b5bfa5c8986c865985d946faaebad9545316ef",
+  "messages": []
+ },
+ {
+  "tag": "windsor_on",
+  "lat": 42.28,
+  "lon": -83.0,
+  "ncat_zone": "N/A N/A",
+  "raw": "spcs2022_074.html",
+  "northing": "N/A m",
+  "sha256": "d5ac52e51ceef0ac3a415dad2705eb2d3d1dcec12f280a28d68927df96d7c082",
+  "messages": []
+ },
+ {
+  "tag": "lansing",
+  "lat": 42.73,
+  "lon": -84.55,
+  "ncat_zone": "MI L45G-261008 (Multizone complete)",
+  "raw": "spcs2022_075.html",
+  "northing": "220998.501 m",
+  "sha256": "8f02bd8e00d3a18837ea6d1016966482298ccf23e4c74802e982363fafab7d8b",
+  "messages": []
+ }
+]

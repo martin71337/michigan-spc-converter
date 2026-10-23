@@ -39,3 +39,9 @@ review/ncat-crosscheck/outputs/
 # HTDP working files from ad-hoc oracle runs (interim gate 1, N1)
 /in.txt
 /out.txt
+
+# Auto zone recon: large public downloads kept on disk, not in git. Each is
+# re-fetchable; its URL, byte count and SHA-256 are in review/autozone-r0/RECON.md.
+review/autozone-r0/raw/tiger/
+review/autozone-r0/raw/tiger_cousub/
+review/autozone-r0/raw/ngs_mapdata/

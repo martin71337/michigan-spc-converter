@@ -1,0 +1,98 @@
+[
+ {
+  "tag": "T83CS0 f=0.300 d=+0",
+  "lat": 43.81388519,
+  "lon": -84.40551932,
+  "ncat_zone": "MI C-2112",
+  "raw": "r2_spcs83_000.json",
+  "sha256": "b84392a7c2cbe5b7e13b33ea3c9967308314f05aaf75bba012d27b99b1812a0b"
+ },
+ {
+  "tag": "T83CS0 f=0.300 d=+0",
+  "lat": 43.81387979,
+  "lon": -84.40551949,
+  "ncat_zone": "MI S-2113",
+  "raw": "r2_spcs83_001.json",
+  "sha256": "e28d5f5edabfeb50e761b4333d1cbd2c4f06fadc02247debdfcffa90ddda442f"
+ },
+ {
+  "tag": "T83CS0 f=0.300 d=-1",
+  "lat": 43.81389149,
+  "lon": -84.40551913,
+  "ncat_zone": "MI C-2112",
+  "raw": "r2_spcs83_002.json",
+  "sha256": "9c0b717c9a90354447d104d1fa4be0f56e980b6b5aab6c8ecb7db9fc423cc850"
+ },
+ {
+  "tag": "T83CS0 f=0.300 d=+1",
+  "lat": 43.81387349,
+  "lon": -84.40551968,
+  "ncat_zone": "MI S-2113",
+  "raw": "r2_spcs83_003.json",
+  "sha256": "694e2076fdb546d8583c83567a15fbbbaf3dd192712ba3ee5b9c6b3251247009"
+ },
+ {
+  "tag": "T83CS0 f=0.300 d=-3",
+  "lat": 43.81390949,
+  "lon": -84.40551858,
+  "ncat_zone": "MI C-2112",
+  "raw": "r2_spcs83_004.json",
+  "sha256": "8ca4861995287ce0bf0c2d3013bb6a73ca2cd0b4dbda567500fcc9f8c73d7571"
+ },
+ {
+  "tag": "T83CS0 f=0.300 d=+3",
+  "lat": 43.81385549,
+  "lon": -84.40552024,
+  "ncat_zone": "MI S-2113",
+  "raw": "r2_spcs83_005.json",
+  "sha256": "b9d6a604a62e93ee618951679de49f194bc84202e427d720f271db49fd3f3552"
+ },
+ {
+  "tag": "T83CS0 f=0.700 d=+0",
+  "lat": 43.81548653,
+  "lon": -85.56288908,
+  "ncat_zone": "MI S-2113",
+  "raw": "r2_spcs83_006.json",
+  "sha256": "c7e374612127380018487c29d09c09c97746cba2b264ba1ef5ad81448847ee3e"
+ },
+ {
+  "tag": "T83CS0 f=0.700 d=+0",
+  "lat": 43.81548113,
+  "lon": -85.5628891,
+  "ncat_zone": "MI S-2113",
+  "raw": "r2_spcs83_007.json",
+  "sha256": "5900e998e9dff5bb5326115a08ad82699465b9c32dfee5e758743f1f9335cabe"
+ },
+ {
+  "tag": "T83CS0 f=0.700 d=-1",
+  "lat": 43.81549284,
+  "lon": -85.56288906,
+  "ncat_zone": "MI S-2113",
+  "raw": "r2_spcs83_008.json",
+  "sha256": "752d17bc2c171ff3ec6606ab3180307ba8518ee311a3600d17e73e342650799c"
+ },
+ {
+  "tag": "T83CS0 f=0.700 d=+1",
+  "lat": 43.81547483,
+  "lon": -85.56288912,
+  "ncat_zone": "MI S-2113",
+  "raw": "r2_spcs83_009.json",
+  "sha256": "b39c8a97bfce2eadccef85f52d1021692a58ae57d86923236a5651811010fa77"
+ },
+ {
+  "tag": "T83CS0 f=0.700 d=-3",
+  "lat": 43.81551084,
+  "lon": -85.562889,
+  "ncat_zone": "MI S-2113",
+  "raw": "r2_spcs83_010.json",
+  "sha256": "99aabd6b10e19e7865f2c1ece45d386bb55c57a9f0ca624af487ab2005ff994f"
+ },
+ {
+  "tag": "T83CS0 f=0.700 d=+3",
+  "lat": 43.81545682,
+  "lon": -85.56288919,
+  "ncat_zone": "MI S-2113",
+  "raw": "r2_spcs83_011.json",
+  "sha256": "3fd89a3273925c2fe698a835c28164a494196a550aac3555b37c822b0c9b1eff"
+ }
+]

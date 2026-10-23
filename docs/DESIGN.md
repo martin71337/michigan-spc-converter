@@ -612,6 +612,46 @@ gateless cadence does not apply here). The horizontal work packages H1–H6
 proceed per the plan; the first code lands only after this amendment, which
 is the H0 exit condition.
 
+### #71 — 2026-10-22 — Options menu, Auto zone, the observation date in Options; the release machine's suite
+
+**The owner's instructions (2026-10-22)**, given when asked whether to tag
+0.8.0 before his screen review: an Options menu that switches frame and zone
+groups on and off (the five WGS 84 / ITRF frames off by default), an "Auto"
+State Plane zone picked per point from the latitude/longitude (the local
+SPCS2022 zone on NATRF2022), the Auto frame chosen in Options, one CAD file
+per zone, the observation date off the main tabs and into Options, and the
+options remembered. He asked for them in 0.8.0. The design of record is
+`docs/PLAN-options-autozone.md` (owner decisions O1-O3, lead decisions
+L1-L11); recon in `review/autozone-r0/RECON.md`.
+
+**Reverses, on his instruction:** PLAN-wgs84 D10's no-default observation
+date, for the "today" choice only (an entered date is still never
+remembered and still opens unanswered); and #26/#43's "tabs share no state",
+for the Options only.
+
+**Before this, the WGS 84 build met the release machine.** The suite, frozen
+in a Linux container, had 30 failures on Windows 11, none a program defect:
+backslash paths and a CRLF test input in two record-digest pins; three
+SHA-pinned HTDP captures rewritten CRLF by autocrlf (now `-text`); 18 of the
+360 tuned near-tie records and one window-edge record printing one unit from
+HTDP because the Windows CRT's trigonometry differs from glibc's in the last
+ulp (an exception limited to those measured records within a derived 4-ulp
+bound, so seeds S15 and S26 are still caught here); and a platform-ordered
+list in the bundle-gate test. Fixed by an Opus builder, lead-reviewed; suite
+4,968 in both modes (`b49ba63`).
+
+**NGS's own Windows `htdp.exe` was run** (the still-human item of #70): the
+binary at the pinned commit, git blob verified, over every anchor. **LAST-DIGIT
+ONLY**: 2,093 of 2,228 records identical; 6 of the 1,846 ordinary anchors and
+128 near-tie records differ by one unit in the last printed place, exactly
+the x87 stand-in's prediction
+(`review/wgs84-w0/ngs-windows-check-2026-10-22.txt`).
+
+**The cloud build's review here** was a once-over by the lead, on the owner's
+instruction ("the code should be sound already"), not a Codex gate. Codex was
+updated to 0.163.0 at his instruction, and gates the work this amendment
+opens.
+
 ### #70 — 2026-10-20 — The WGS 84 build opens: scope, W0 measurement, and the oracle
 
 **The owner's instruction**, in two steps. He asked whether WGS 84 could be

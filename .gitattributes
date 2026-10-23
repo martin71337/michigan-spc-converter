@@ -11,3 +11,7 @@ review/wgs84-w0/htdp-v3.6.0/** -text
 review/wgs84-w0/htdp_truth.json -text
 review/wgs84-w0/near_tie_truth.json -text
 review/wgs84-w3/w3_truth.json -text
+
+# Auto zone recon captures (statute, NGS, NCAT, MGF): SHA-256 recorded in
+# review/autozone-r0/RECON.md, so they keep the bytes as fetched.
+review/autozone-r0/raw/** -text

@@ -1,0 +1,167 @@
+SPCS83: n=88
+83CS0 f=0.050 d=-15                      ncat=2113       mgf=2112   tiger=2113   esri=None   ['Huron']  <-- DIFF
+83CS0 f=0.050 d=+15                      ncat=2113       mgf=2113   tiger=2113   esri=None   ['Huron']
+83CS0 f=0.050 d=-50                      ncat=2113       mgf=2112   tiger=2113   esri=None   ['Huron']  <-- DIFF
+83CS0 f=0.050 d=+50                      ncat=2113       mgf=2113   tiger=2113   esri=None   ['Huron']
+83CS0 f=0.050 d=-200                     ncat=2112       mgf=2112   tiger=2112   esri=None   ['Iosco']
+83CS0 f=0.050 d=+200                     ncat=2113       mgf=2113   tiger=2113   esri=None   ['Huron']
+83CS0 f=0.200 d=-15                      ncat=2112       mgf=2112   tiger=2112   esri=None   ['Arenac']
+83CS0 f=0.200 d=+15                      ncat=2113       mgf=2113   tiger=2113   esri=None   ['Huron']
+83CS0 f=0.200 d=-50                      ncat=2112       mgf=2112   tiger=2112   esri=None   ['Arenac']
+83CS0 f=0.200 d=+50                      ncat=2113       mgf=2113   tiger=2113   esri=None   ['Huron']
+83CS0 f=0.200 d=-200                     ncat=2112       mgf=2112   tiger=2112   esri=None   ['Arenac']
+83CS0 f=0.200 d=+200                     ncat=2113       mgf=2113   tiger=2113   esri=None   ['Huron']
+83CS0 f=0.350 d=-15                      ncat=2112       mgf=2112   tiger=2112   esri=2113   ['Arenac']
+83CS0 f=0.350 d=+15                      ncat=2113       mgf=2113   tiger=2113   esri=2113   ['Bay']
+83CS0 f=0.350 d=-50                      ncat=2112       mgf=2112   tiger=2112   esri=2113   ['Arenac']
+83CS0 f=0.350 d=+50                      ncat=2113       mgf=2113   tiger=2113   esri=2113   ['Bay']
+83CS0 f=0.350 d=-200                     ncat=2112       mgf=2112   tiger=2112   esri=2113   ['Arenac']
+83CS0 f=0.350 d=+200                     ncat=2113       mgf=2113   tiger=2113   esri=2113   ['Bay']
+83CS0 f=0.500 d=-15                      ncat=2112       mgf=2112   tiger=2112   esri=2113   ['Gladwin']
+83CS0 f=0.500 d=+15                      ncat=2113       mgf=2113   tiger=2113   esri=2113   ['Midland']
+83CS0 f=0.500 d=-50                      ncat=2112       mgf=2112   tiger=2112   esri=2113   ['Gladwin']
+83CS0 f=0.500 d=+50                      ncat=2113       mgf=2113   tiger=2113   esri=2113   ['Midland']
+83CS0 f=0.500 d=-200                     ncat=2112       mgf=2112   tiger=2112   esri=2113   ['Gladwin']
+83CS0 f=0.500 d=+200                     ncat=2113       mgf=2113   tiger=2113   esri=2113   ['Midland']
+83CS0 f=0.650 d=-15                      ncat=2112       mgf=2112   tiger=2112   esri=2113   ['Osceola']
+83CS0 f=0.650 d=+15                      ncat=2113       mgf=2113   tiger=2113   esri=2113   ['Mecosta']
+83CS0 f=0.650 d=-50                      ncat=2112       mgf=2112   tiger=2112   esri=2113   ['Osceola']
+83CS0 f=0.650 d=+50                      ncat=2113       mgf=2113   tiger=2113   esri=2113   ['Mecosta']
+83CS0 f=0.650 d=-200                     ncat=2112       mgf=2112   tiger=2112   esri=2112   ['Osceola']
+83CS0 f=0.650 d=+200                     ncat=2113       mgf=2113   tiger=2113   esri=2113   ['Mecosta']
+83CS0 f=0.800 d=-15                      ncat=2112       mgf=2112   tiger=2112   esri=2113   ['Lake']
+83CS0 f=0.800 d=+15                      ncat=2113       mgf=2113   tiger=2113   esri=2113   ['Newaygo']
+83CS0 f=0.800 d=-50                      ncat=2112       mgf=2112   tiger=2112   esri=2113   ['Lake']
+83CS0 f=0.800 d=+50                      ncat=2113       mgf=2113   tiger=2113   esri=2113   ['Newaygo']
+83CS0 f=0.800 d=-200                     ncat=2112       mgf=2112   tiger=2112   esri=2113   ['Lake']
+83CS0 f=0.800 d=+200                     ncat=2113       mgf=2113   tiger=2113   esri=2113   ['Newaygo']
+83CS0 f=0.950 d=-15                      ncat=2113       mgf=2112   tiger=2113   esri=None   ['Oceana']  <-- DIFF
+83CS0 f=0.950 d=+15                      ncat=2113       mgf=2113   tiger=2113   esri=None   ['Oceana']
+83CS0 f=0.950 d=-50                      ncat=2113       mgf=2112   tiger=2113   esri=None   ['Oceana']  <-- DIFF
+83CS0 f=0.950 d=+50                      ncat=2113       mgf=2113   tiger=2113   esri=None   ['Oceana']
+83CS0 f=0.950 d=-200                     ncat=2113       mgf=2112   tiger=2113   esri=None   ['Oceana']  <-- DIFF
+83CS0 f=0.950 d=+200                     ncat=2113       mgf=2113   tiger=2113   esri=None   ['Oceana']
+83NC0 f=0.100 d=-15                      ncat=2111       mgf=2111   tiger=2111   esri=None   ['Chippewa']
+83NC0 f=0.100 d=+15                      ncat=2111       mgf=2112   tiger=2111   esri=None   ['Chippewa']  <-- DIFF
+83NC0 f=0.100 d=-50                      ncat=2111       mgf=2111   tiger=2111   esri=None   ['Chippewa']
+83NC0 f=0.100 d=+50                      ncat=2111       mgf=2112   tiger=2111   esri=None   ['Chippewa']  <-- DIFF
+83NC0 f=0.100 d=-200                     ncat=2111       mgf=2111   tiger=2111   esri=None   ['Chippewa']
+83NC0 f=0.100 d=+200                     ncat=2112       mgf=2112   tiger=2112   esri=None   ['Presque Isle']
+83NC0 f=0.300 d=-15                      ncat=2111       mgf=2111   tiger=2111   esri=None   ['Mackinac']
+83NC0 f=0.300 d=+15                      ncat=2112       mgf=2112   tiger=2112   esri=None   ['Cheboygan']
+83NC0 f=0.300 d=-50                      ncat=2111       mgf=2111   tiger=2111   esri=None   ['Mackinac']
+83NC0 f=0.300 d=+50                      ncat=2112       mgf=2112   tiger=2112   esri=None   ['Cheboygan']
+83NC0 f=0.300 d=-200                     ncat=2111       mgf=2111   tiger=2111   esri=None   ['Mackinac']
+83NC0 f=0.300 d=+200                     ncat=2112       mgf=2112   tiger=2112   esri=None   ['Cheboygan']
+83NC0 f=0.500 d=-15                      ncat=2111       mgf=2111   tiger=2111   esri=None   ['Mackinac']
+83NC0 f=0.500 d=+15                      ncat=2112       mgf=2112   tiger=2112   esri=None   ['Charlevoix']
+83NC0 f=0.500 d=-50                      ncat=2111       mgf=2111   tiger=2111   esri=None   ['Mackinac']
+83NC0 f=0.500 d=+50                      ncat=2112       mgf=2112   tiger=2112   esri=None   ['Charlevoix']
+83NC0 f=0.500 d=-200                     ncat=2111       mgf=2111   tiger=2111   esri=None   ['Mackinac']
+83NC0 f=0.500 d=+200                     ncat=2112       mgf=2112   tiger=2112   esri=None   ['Charlevoix']
+83NC0 f=0.700 d=-15                      ncat=2112       mgf=2111   tiger=2112   esri=None   ['Charlevoix']  <-- DIFF
+83NC0 f=0.700 d=+15                      ncat=2112       mgf=2112   tiger=2112   esri=None   ['Charlevoix']
+83NC0 f=0.700 d=-50                      ncat=2112       mgf=2111   tiger=2112   esri=None   ['Charlevoix']  <-- DIFF
+83NC0 f=0.700 d=+50                      ncat=2112       mgf=2112   tiger=2112   esri=None   ['Charlevoix']
+83NC0 f=0.700 d=-200                     ncat=2112       mgf=2111   tiger=2112   esri=None   ['Charlevoix']  <-- DIFF
+83NC0 f=0.700 d=+200                     ncat=2112       mgf=2112   tiger=2112   esri=None   ['Charlevoix']
+83NC0 f=0.900 d=-15                      ncat=2111       mgf=2111   tiger=2111   esri=None   ['Schoolcraft']
+83NC0 f=0.900 d=+15                      ncat=2112       mgf=2112   tiger=2112   esri=None   ['Leelanau']
+83NC0 f=0.900 d=-50                      ncat=2111       mgf=2111   tiger=2111   esri=None   ['Schoolcraft']
+83NC0 f=0.900 d=+50                      ncat=2112       mgf=2112   tiger=2112   esri=None   ['Leelanau']
+83NC0 f=0.900 d=-200                     ncat=2111       mgf=2111   tiger=2111   esri=None   ['Schoolcraft']
+83NC0 f=0.900 d=+200                     ncat=2112       mgf=2112   tiger=2112   esri=None   ['Leelanau']
+lake_michigan_mi_side_near_state_line    ncat=2113       mgf=2113   tiger=2113   esri=None   ['Oceana']
+lake_michigan_mid                        ncat=2112       mgf=2112   tiger=2112   esri=None   ['Mason']
+lake_michigan_wi_side                    ncat=WI S-4803  mgf=None   tiger=None   esri=None   []
+saginaw_bay                              ncat=2113       mgf=2113   tiger=2113   esri=None   ['Huron']
+lake_huron_mi_waters                     ncat=2112       mgf=2112   tiger=2112   esri=None   ['Iosco']
+lake_huron_ontario_waters                ncat=N/A        mgf=None   tiger=None   esri=None   []
+lake_superior_mi_waters                  ncat=2111       mgf=2111   tiger=2111   esri=None   ['Alger']
+lake_superior_far_north                  ncat=2111       mgf=2111   tiger=2111   esri=None   ['Keweenaw']
+lake_erie_mi_waters                      ncat=OH N-3401  mgf=None   tiger=None   esri=None   []
+detroit_river                            ncat=N/A        mgf=None   tiger=None   esri=None   []
+straits_mackinac                         ncat=2111       mgf=2111   tiger=2111   esri=None   ['Mackinac']
+toledo_oh                                ncat=OH N-3401  mgf=None   tiger=None   esri=None   []
+indiana_south_bend                       ncat=IN E-1301  mgf=None   tiger=None   esri=None   []
+wisconsin_marinette                      ncat=WI C-4802  mgf=None   tiger=None   esri=None   []
+windsor_on                               ncat=N/A        mgf=None   tiger=None   esri=None   []
+lansing                                  ncat=2113       mgf=2113   tiger=2113   esri=2113   ['Ingham']
+
+SPCS2022: n=76
+22L0 f=0.500 d=-15                       ncat=261008   poly=261008   county=['Kent']->261008
+22L0 f=0.500 d=+15                       ncat=261009   poly=261009   county=['Montcalm']->261009
+22L0 f=0.500 d=-50                       ncat=261008   poly=261008   county=['Kent']->261008
+22L0 f=0.500 d=+50                       ncat=261009   poly=261009   county=['Montcalm']->261009
+22L0 f=0.500 d=-500                      ncat=261008   poly=261008   county=['Kent']->261008
+22L0 f=0.500 d=+500                      ncat=261009   poly=261009   county=['Montcalm']->261009
+22L1 f=0.500 d=-15                       ncat=261003   poly=261003   county=['Lapeer']->261003
+22L1 f=0.500 d=+15                       ncat=261004   poly=261004   county=['Tuscola']->261004
+22L1 f=0.500 d=-50                       ncat=261003   poly=261003   county=['Lapeer']->261003
+22L1 f=0.500 d=+50                       ncat=261004   poly=261004   county=['Tuscola']->261004
+22L1 f=0.500 d=-500                      ncat=261003   poly=261003   county=['Lapeer']->261003
+22L1 f=0.500 d=+500                      ncat=261004   poly=261004   county=['Tuscola']->261004
+22L2 f=0.500 d=-15                       ncat=261001   poly=261001   county=['Washtenaw']->261001
+22L2 f=0.500 d=+15                       ncat=261002   poly=261002   county=['Wayne']->261002
+22L2 f=0.500 d=-50                       ncat=261001   poly=261001   county=['Washtenaw']->261001
+22L2 f=0.500 d=+50                       ncat=261002   poly=261002   county=['Wayne']->261002
+22L2 f=0.500 d=-500                      ncat=261001   poly=261001   county=['Washtenaw']->261001
+22L2 f=0.500 d=+500                      ncat=261002   poly=261002   county=['Wayne']->261002
+22L3 f=0.500 d=-15                       ncat=261014   poly=261014   county=['Delta']->261014
+22L3 f=0.500 d=+15                       ncat=261015   poly=261015   county=['Marquette']->261015
+22L3 f=0.500 d=-50                       ncat=261014   poly=261014   county=['Delta']->261014
+22L3 f=0.500 d=+50                       ncat=261015   poly=261015   county=['Marquette']->261015
+22L3 f=0.500 d=-500                      ncat=261014   poly=261014   county=['Delta']->261014
+22L3 f=0.500 d=+500                      ncat=261015   poly=261015   county=['Marquette']->261015
+22L4 f=0.500 d=-15                       ncat=261007   poly=261007   county=['Kalamazoo']->261007
+22L4 f=0.500 d=+15                       ncat=261008   poly=261008   county=['Barry']->261008
+22L4 f=0.500 d=-50                       ncat=261007   poly=261007   county=['Kalamazoo']->261007
+22L4 f=0.500 d=+50                       ncat=261008   poly=261008   county=['Barry']->261008
+22L4 f=0.500 d=-500                      ncat=261007   poly=261007   county=['Kalamazoo']->261007
+22L4 f=0.500 d=+500                      ncat=261008   poly=261008   county=['Barry']->261008
+22L5 f=0.500 d=-15                       ncat=261006   poly=261006   county=['Montmorency']->261006
+22L5 f=0.500 d=+15                       ncat=261012   poly=261012   county=['Presque Isle']->261012
+22L5 f=0.500 d=-50                       ncat=261006   poly=261006   county=['Montmorency']->261006
+22L5 f=0.500 d=+50                       ncat=261012   poly=261012   county=['Presque Isle']->261012
+22L5 f=0.500 d=-500                      ncat=261006   poly=261006   county=['Montmorency']->261006
+22L5 f=0.500 d=+500                      ncat=261012   poly=261012   county=['Presque Isle']->261012
+22L6 f=0.500 d=-15                       ncat=261015   poly=261015   county=['Marquette']->261015
+22L6 f=0.500 d=+15                       ncat=261016   poly=261016   county=['Baraga']->261016
+22L6 f=0.500 d=-50                       ncat=261015   poly=261015   county=['Marquette']->261015
+22L6 f=0.500 d=+50                       ncat=261016   poly=261016   county=['Baraga']->261016
+22L6 f=0.500 d=-500                      ncat=261015   poly=261015   county=['Marquette']->261015
+22L6 f=0.500 d=+500                      ncat=261016   poly=261016   county=['Baraga']->261016
+22L7 f=0.500 d=-15                       ncat=261005   poly=261005   county=['Ogemaw']->261005
+22L7 f=0.500 d=+15                       ncat=261006   poly=261006   county=['Oscoda']->261006
+22L7 f=0.500 d=-50                       ncat=261005   poly=261005   county=['Ogemaw']->261005
+22L7 f=0.500 d=+50                       ncat=261006   poly=261006   county=['Oscoda']->261006
+22L7 f=0.500 d=-500                      ncat=261005   poly=261005   county=['Ogemaw']->261005
+22L7 f=0.500 d=+500                      ncat=261006   poly=261006   county=['Oscoda']->261006
+22L8 f=0.500 d=-15                       ncat=261016   poly=261016   county=['Houghton']->261016
+22L8 f=0.500 d=+15                       ncat=261017   poly=261017   county=['Ontonagon']->261017
+22L8 f=0.500 d=-50                       ncat=261016   poly=261016   county=['Houghton']->261016
+22L8 f=0.500 d=+50                       ncat=261017   poly=261017   county=['Ontonagon']->261017
+22L8 f=0.500 d=-500                      ncat=261016   poly=261016   county=['Houghton']->261016
+22L8 f=0.500 d=+500                      ncat=261017   poly=261017   county=['Ontonagon']->261017
+22L9 f=0.500 d=-15                       ncat=261002   poly=261002   county=['Oakland']->261002
+22L9 f=0.500 d=+15                       ncat=261003   poly=261003   county=['Lapeer']->261003
+22L9 f=0.500 d=-50                       ncat=261002   poly=261002   county=['Oakland']->261002
+22L9 f=0.500 d=+50                       ncat=261003   poly=261003   county=['Lapeer']->261003
+22L9 f=0.500 d=-500                      ncat=261002   poly=261002   county=['Oakland']->261002
+22L9 f=0.500 d=+500                      ncat=261003   poly=261003   county=['Lapeer']->261003
+lake_michigan_mi_side_near_state_line    ncat=261009   poly=None     county=['Oceana']->261009  <-- polygon differs
+lake_michigan_mid                        ncat=261010   poly=None     county=['Mason']->261010  <-- polygon differs
+lake_michigan_wi_side                    ncat=WI KMOR-551027 (Multizone complete) poly=None     county=[]->None  <-- polygon differs  <-- county rule differs
+saginaw_bay                              ncat=261004   poly=None     county=['Huron']->261004  <-- polygon differs
+lake_huron_mi_waters                     ncat=261005   poly=None     county=['Iosco']->261005  <-- polygon differs
+lake_huron_ontario_waters                ncat=N/A N/A  poly=None     county=[]->None  <-- polygon differs  <-- county rule differs
+lake_superior_mi_waters                  ncat=261014   poly=None     county=['Alger']->261014  <-- polygon differs
+lake_superior_far_north                  ncat=261018   poly=None     county=['Keweenaw']->261016  <-- polygon differs  <-- county rule differs
+lake_erie_mi_waters                      ncat=OH LUC-391048 (Multizone complete) poly=None     county=[]->None  <-- polygon differs  <-- county rule differs
+detroit_river                            ncat=N/A N/A  poly=None     county=[]->None  <-- polygon differs  <-- county rule differs
+straits_mackinac                         ncat=261013   poly=None     county=['Mackinac']->261013  <-- polygon differs
+toledo_oh                                ncat=OH LUC-391048 (Multizone complete) poly=None     county=[]->None  <-- polygon differs  <-- county rule differs
+indiana_south_bend                       ncat=IN 1030-181030 (Multizone complete) poly=None     county=[]->None  <-- polygon differs  <-- county rule differs
+wisconsin_marinette                      ncat=WI MARI-551033 (Multizone complete) poly=None     county=[]->None  <-- polygon differs  <-- county rule differs
+windsor_on                               ncat=N/A N/A  poly=None     county=[]->None  <-- polygon differs  <-- county rule differs
+lansing                                  ncat=261008   poly=261008   county=['Ingham']->261008

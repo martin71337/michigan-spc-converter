@@ -1,0 +1,706 @@
+[
+ {
+  "tag": "83CS0 f=0.050 d=-15",
+  "lat": 44.16244924,
+  "lon": -82.52052885,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_000.json",
+  "sha256": "3a54ee26bff0e043b32b5b53a4f9504c07cb9ddac2ee3ba2a3a0aaeb54ace6a4"
+ },
+ {
+  "tag": "83CS0 f=0.050 d=+15",
+  "lat": 44.16217932,
+  "lon": -82.52053512,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_001.json",
+  "sha256": "5c45adbdf0aa5ed245247e33453db83f7658500946492ebeb19472fc16e0e1c6"
+ },
+ {
+  "tag": "83CS0 f=0.050 d=-50",
+  "lat": 44.16276414,
+  "lon": -82.52052153,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_002.json",
+  "sha256": "20bcf6647945cdc4d0ecd7d581c918c9f1d828446ea78a83a7c9e0fd36d76d0f"
+ },
+ {
+  "tag": "83CS0 f=0.050 d=+50",
+  "lat": 44.16186442,
+  "lon": -82.52054244,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_003.json",
+  "sha256": "4e65d1f94af3a9aac446e3a1a1b25d897e22b0f54cfa41fd59e66c22dca9102b"
+ },
+ {
+  "tag": "83CS0 f=0.050 d=-200",
+  "lat": 44.16411371,
+  "lon": -82.52049018,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_004.json",
+  "sha256": "822d37db5e4fad50d1c8dce8ca9ca8a382fb15d63691f67dda726d611678dcf7"
+ },
+ {
+  "tag": "83CS0 f=0.050 d=+200",
+  "lat": 44.16051485,
+  "lon": -82.52057379,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_005.json",
+  "sha256": "293350f9d5b038cc0da608595d33306e4f0f43b040f22747c87e9ada1d08500a"
+ },
+ {
+  "tag": "83CS0 f=0.200 d=-15",
+  "lat": 44.0966602,
+  "lon": -83.2986267,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_006.json",
+  "sha256": "c604d479c08532097c61a42877093b99a4ef2115af0e746aa4c50e89bd89bb70"
+ },
+ {
+  "tag": "83CS0 f=0.200 d=+15",
+  "lat": 44.09645771,
+  "lon": -83.29837881,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_007.json",
+  "sha256": "7dfbb42a92e11d465e6eed6493424c16392fd1ababbdb6e089fc3f61a0c02c49"
+ },
+ {
+  "tag": "83CS0 f=0.200 d=-50",
+  "lat": 44.09689643,
+  "lon": -83.29891591,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_008.json",
+  "sha256": "d26dff9e922d5ccb7f5e5ce2769fa6b897b86909f252ac8e93d021dc24b33dab"
+ },
+ {
+  "tag": "83CS0 f=0.200 d=+50",
+  "lat": 44.09622148,
+  "lon": -83.29808961,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_009.json",
+  "sha256": "f68fe4b5f42decc08cb4dee098917f9e1a0dfdaad21d92c6ef43c99fd1f12e9f"
+ },
+ {
+  "tag": "83CS0 f=0.200 d=-200",
+  "lat": 44.09790884,
+  "lon": -83.30015541,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_010.json",
+  "sha256": "4a3cc67cdce2cb8cf0218c1d660806f1a31188c4b970a287ec3406e470d95be3"
+ },
+ {
+  "tag": "83CS0 f=0.200 d=+200",
+  "lat": 44.09520905,
+  "lon": -83.29685018,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_011.json",
+  "sha256": "c2e33ba6eaaf6bd430956957cb5baeec06ed63bbd2bdb1b149f70ae82695bb72"
+ },
+ {
+  "tag": "83CS0 f=0.350 d=-15",
+  "lat": 43.91064961,
+  "lon": -83.94693335,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_012.json",
+  "sha256": "4b507e89c8ccf4098cc7d18cfe395cbaecf4e7c0660ffbb268accded05e199a5"
+ },
+ {
+  "tag": "83CS0 f=0.350 d=+15",
+  "lat": 43.91037953,
+  "lon": -83.94693456,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_013.json",
+  "sha256": "bec80daf7ccd8cbe52959ea1e6047eca2faa84ac0ea5ace456b4f49d783db2d7"
+ },
+ {
+  "tag": "83CS0 f=0.350 d=-50",
+  "lat": 43.91096471,
+  "lon": -83.94693192,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_014.json",
+  "sha256": "34986098cd34ec87f0880afb459f0187f401668fd54229c5ee7bdb7208962699"
+ },
+ {
+  "tag": "83CS0 f=0.350 d=+50",
+  "lat": 43.91006444,
+  "lon": -83.94693599,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_015.json",
+  "sha256": "cd17fb273d3146235bddbc2cfd783946ec058cd2e21b3899d1347f30342ac959"
+ },
+ {
+  "tag": "83CS0 f=0.350 d=-200",
+  "lat": 43.9123151,
+  "lon": -83.94692583,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_016.json",
+  "sha256": "e1a473ac92cd106cb3fc50147ab102621ee3979a4312af6832de7894e1df99cb"
+ },
+ {
+  "tag": "83CS0 f=0.350 d=+200",
+  "lat": 43.90871404,
+  "lon": -83.94694208,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_017.json",
+  "sha256": "232855282d1669696f3349fec2b311b033e2a5292975ac5538fa6465afc3d440"
+ },
+ {
+  "tag": "83CS0 f=0.500 d=-15",
+  "lat": 43.81377572,
+  "lon": -84.38510798,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_018.json",
+  "sha256": "f998534d35ca364caa5ce9cb37e595776f50ccb5d4660dc064d2b72cdc5596a8"
+ },
+ {
+  "tag": "83CS0 f=0.500 d=+15",
+  "lat": 43.81350563,
+  "lon": -84.3851102,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_019.json",
+  "sha256": "83355035faa42e5ee14f4d0636e9c311fb1d15b28bb80a8733168d482abc5a62"
+ },
+ {
+  "tag": "83CS0 f=0.500 d=-50",
+  "lat": 43.81409084,
+  "lon": -84.38510539,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_020.json",
+  "sha256": "41b94b5467c32e1156bfd5aed199fa062b521cb2bcfe08b4387a9232a2bf203d"
+ },
+ {
+  "tag": "83CS0 f=0.500 d=+50",
+  "lat": 43.81319051,
+  "lon": -84.38511279,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_021.json",
+  "sha256": "382f1a6feeb7e2c9d7137ba55b7f77d0dc006926869e1355cc7d0f00cf381231"
+ },
+ {
+  "tag": "83CS0 f=0.500 d=-200",
+  "lat": 43.81544133,
+  "lon": -84.38509429,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_022.json",
+  "sha256": "07eec878033791d08f4d0041ef32c3d9d9e83962298593251fe12abbe038e4dd"
+ },
+ {
+  "tag": "83CS0 f=0.500 d=+200",
+  "lat": 43.81184002,
+  "lon": -84.38512388,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_023.json",
+  "sha256": "771e07b76c8d718dd549b084545f4cbaa67a9fe00dff88759a0fee57fb738205"
+ },
+ {
+  "tag": "83CS0 f=0.650 d=-15",
+  "lat": 43.81386259,
+  "lon": -85.19633247,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_024.json",
+  "sha256": "b83340fad32a9b9f69e619de3b6219688bb47e92ecbb0ef9ca058cfdf5693aa9"
+ },
+ {
+  "tag": "83CS0 f=0.650 d=+15",
+  "lat": 43.81359247,
+  "lon": -85.19633197,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_025.json",
+  "sha256": "5b5c9270edddfa1068613283251efaac6125aa7b3098f064025e0d7581dc7069"
+ },
+ {
+  "tag": "83CS0 f=0.650 d=-50",
+  "lat": 43.81417772,
+  "lon": -85.19633305,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_026.json",
+  "sha256": "a7c9179d67b6f30766e9816cdc7a5afc3b2301b87392c3ca7749b340d1e3f96a"
+ },
+ {
+  "tag": "83CS0 f=0.650 d=+50",
+  "lat": 43.81327734,
+  "lon": -85.19633139,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_027.json",
+  "sha256": "39f4ba0c5f14b9c2bc7b158a4a2c30971cbd28224617782ddb7f438a0289a2ce"
+ },
+ {
+  "tag": "83CS0 f=0.650 d=-200",
+  "lat": 43.81552829,
+  "lon": -85.19633554,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_028.json",
+  "sha256": "be1b000cc859881053a759a73cb41b993f555b5c3f84a80aeb927fbe8d11ad81"
+ },
+ {
+  "tag": "83CS0 f=0.650 d=+200",
+  "lat": 43.81192677,
+  "lon": -85.1963289,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_029.json",
+  "sha256": "a6c290e94c9dc4463f96a04621a5f56348383d72d3feeac58b48b6f5ac4092d4"
+ },
+ {
+  "tag": "83CS0 f=0.800 d=-15",
+  "lat": 43.81548204,
+  "lon": -86.00738776,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_030.json",
+  "sha256": "75ccc00803679da00571086e7e431d1b18662bb423843048966aab974757715a"
+ },
+ {
+  "tag": "83CS0 f=0.800 d=+15",
+  "lat": 43.81521196,
+  "lon": -86.00739226,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_031.json",
+  "sha256": "f5eb03108c112cd319665e1665759209b5d3ee12b2fa25845b06920ebbb5b128"
+ },
+ {
+  "tag": "83CS0 f=0.800 d=-50",
+  "lat": 43.81579713,
+  "lon": -86.00738251,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_032.json",
+  "sha256": "a69acfc1046108816236a40dcdff0f5bcc844238484850d3877ea24e4575c1a3"
+ },
+ {
+  "tag": "83CS0 f=0.800 d=+50",
+  "lat": 43.81489687,
+  "lon": -86.00739752,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_033.json",
+  "sha256": "8228c8e9e8bedfb254cdd23ca523fc6858dad29c1383feec5a7e68031e593a2a"
+ },
+ {
+  "tag": "83CS0 f=0.800 d=-200",
+  "lat": 43.81714754,
+  "lon": -86.00736001,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_034.json",
+  "sha256": "dc4ddbd36c83e2e167acae168f1ea00c30bf289411042965e019136fe554c64f"
+ },
+ {
+  "tag": "83CS0 f=0.800 d=+200",
+  "lat": 43.81354646,
+  "lon": -86.00742002,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_035.json",
+  "sha256": "6e171e2c29c202dac24378e3a2688e8d3a29411deac8da75b2660969a5f3a738"
+ },
+ {
+  "tag": "83CS0 f=0.950 d=-15",
+  "lat": 43.82042417,
+  "lon": -86.8185867,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_036.json",
+  "sha256": "9fc6a794964977ed2b5cdb34a6ef5d334251ebdb1c64a714a5ef572b82cce499"
+ },
+ {
+  "tag": "83CS0 f=0.950 d=+15",
+  "lat": 43.8201541,
+  "lon": -86.81858699,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_037.json",
+  "sha256": "438f956fbb907812c14ec0711cf4f8b1949e8942da6761536c8df4d0a6576e3e"
+ },
+ {
+  "tag": "83CS0 f=0.950 d=-50",
+  "lat": 43.82073924,
+  "lon": -86.81858636,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_038.json",
+  "sha256": "e0a1d7c011238f7863bb9ff7fdd027af46d5663c0de30f8a8e6bd63d4a4471d1"
+ },
+ {
+  "tag": "83CS0 f=0.950 d=+50",
+  "lat": 43.81983903,
+  "lon": -86.81858734,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_039.json",
+  "sha256": "817383cedf5e3ffe421fd66dfc079f7db5edc4b4351d299fd779d8e022f692bb"
+ },
+ {
+  "tag": "83CS0 f=0.950 d=-200",
+  "lat": 43.82208955,
+  "lon": -86.81858489,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_040.json",
+  "sha256": "b9802250e44477ee1947371a24d9ad5c30593c1400f5ea477f84cd7bb21b0bcd"
+ },
+ {
+  "tag": "83CS0 f=0.950 d=+200",
+  "lat": 43.81848872,
+  "lon": -86.8185888,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_041.json",
+  "sha256": "85dc2011adb0f2d548fe5acb3f9e7859d963586bd77e35af639addd27c8121fa"
+ },
+ {
+  "tag": "83NC0 f=0.100 d=-15",
+  "lat": 45.77592026,
+  "lon": -83.86565333,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_042.json",
+  "sha256": "2f8c361ff7b77926e63dc60681475a9da0b412d63d54805b912d5d4d0ba67858"
+ },
+ {
+  "tag": "83NC0 f=0.100 d=+15",
+  "lat": 45.77565036,
+  "lon": -83.86565798,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_043.json",
+  "sha256": "ea56727227f09ddc1158a9a1d8d5828caf286f2b2d7530f61c34b91217133a2a"
+ },
+ {
+  "tag": "83NC0 f=0.100 d=-50",
+  "lat": 45.77623515,
+  "lon": -83.86564791,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_044.json",
+  "sha256": "ebe26cd65076c4e9832ad553a2a8b27b0dfba744625d7ec1005f9b41421f6edc"
+ },
+ {
+  "tag": "83NC0 f=0.100 d=+50",
+  "lat": 45.77533548,
+  "lon": -83.8656634,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_045.json",
+  "sha256": "0a8a54826a2606def07149e488cc30506c4bb0eeea4c94ea4f02551d4a702338"
+ },
+ {
+  "tag": "83NC0 f=0.100 d=-200",
+  "lat": 45.77758465,
+  "lon": -83.86562468,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_046.json",
+  "sha256": "11e594532f8e1fe61f99f3dfe42c8ca682a39c1f57e96cbd2f7854d751a0a960"
+ },
+ {
+  "tag": "83NC0 f=0.100 d=+200",
+  "lat": 45.77398597,
+  "lon": -83.86568663,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_047.json",
+  "sha256": "fc80e3d45f0f29b3252e543f83d5d707514081bc3debaae4ff38c1719efe3a41"
+ },
+ {
+  "tag": "83NC0 f=0.300 d=-15",
+  "lat": 45.74431728,
+  "lon": -84.5783795,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_048.json",
+  "sha256": "8d33192b781ffc4ef4727a5d5a8a7613a2b877e05f9f6d574f5e0f2c8dd27f68"
+ },
+ {
+  "tag": "83NC0 f=0.300 d=+15",
+  "lat": 45.74411733,
+  "lon": -84.57863859,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_049.json",
+  "sha256": "528b6236ced14d537aaa82ef75a7c97f61783ffe6af8b028a46192fa2f767160"
+ },
+ {
+  "tag": "83NC0 f=0.300 d=-50",
+  "lat": 45.74455056,
+  "lon": -84.57807724,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_050.json",
+  "sha256": "2f30996dec36c2ebbec08cbde9383de36db4fd29363f5e32a1166393d43a65f2"
+ },
+ {
+  "tag": "83NC0 f=0.300 d=+50",
+  "lat": 45.74388406,
+  "lon": -84.57894085,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_051.json",
+  "sha256": "55d32ac657d54e3686ce953dfe1fd04c4ecc036ad5fb71bcb7d993ddc0624912"
+ },
+ {
+  "tag": "83NC0 f=0.300 d=-200",
+  "lat": 45.7455503,
+  "lon": -84.57678177,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_052.json",
+  "sha256": "dcf4e08b0925856ea7b16d26ed9d459950715d3bda796671b19b794056871fb2"
+ },
+ {
+  "tag": "83NC0 f=0.300 d=+200",
+  "lat": 45.74288429,
+  "lon": -84.58023624,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_053.json",
+  "sha256": "b88e98b511cc20421526fa67d247782ed0cbc8ff1f7304d4322ab07e85a76ba8"
+ },
+ {
+  "tag": "83NC0 f=0.500 d=-15",
+  "lat": 45.87338718,
+  "lon": -85.2978672,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_054.json",
+  "sha256": "5ec3c921c05e5dd69c9741685d95673bc39e2503fc629b7f2686146ce990c21a"
+ },
+ {
+  "tag": "83NC0 f=0.500 d=+15",
+  "lat": 45.87311762,
+  "lon": -85.29788931,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_055.json",
+  "sha256": "afb156ce8d31b17f7f8eba3839e09ca7df0ff863e87aa2e3dd7338f6bfa73ad4"
+ },
+ {
+  "tag": "83NC0 f=0.500 d=-50",
+  "lat": 45.87370166,
+  "lon": -85.29784141,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_056.json",
+  "sha256": "1c4a70fa88d8918757a51925226de4f8998f3c1d3fea289b8f7f9a3aa79cbffa"
+ },
+ {
+  "tag": "83NC0 f=0.500 d=+50",
+  "lat": 45.87280314,
+  "lon": -85.29791511,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_057.json",
+  "sha256": "cfc219565558953b39eb6504cf7300fc848b976b7296bb4a4deef462a89f2201"
+ },
+ {
+  "tag": "83NC0 f=0.500 d=-200",
+  "lat": 45.87504944,
+  "lon": -85.29773085,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_058.json",
+  "sha256": "8fb94287318729fa8090dbd438de2be775a652223f9caf8af45b410e720cb506"
+ },
+ {
+  "tag": "83NC0 f=0.500 d=+200",
+  "lat": 45.87145536,
+  "lon": -85.29802566,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_059.json",
+  "sha256": "14dd636f3c3a5c04e92db7b164818adb64579a6d4d361b79a6c65c4712f469d0"
+ },
+ {
+  "tag": "83NC0 f=0.700 d=-15",
+  "lat": 45.69322977,
+  "lon": -85.85878624,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_060.json",
+  "sha256": "70ce1db3b7dc29a6d4175ced1b3c7635898f6146a54e1c8254f817b1aebf97ac"
+ },
+ {
+  "tag": "83NC0 f=0.700 d=+15",
+  "lat": 45.69323444,
+  "lon": -85.85840099,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_061.json",
+  "sha256": "805014a936bf6883dc1e91607160c5dfead509fbba8da4864522c36dfa8ef4ac"
+ },
+ {
+  "tag": "83NC0 f=0.700 d=-50",
+  "lat": 45.69322433,
+  "lon": -85.8592357,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_062.json",
+  "sha256": "c3fe784366136018937bd99577d90b44950bdcb0de7e6b0222366121a4b4eff0"
+ },
+ {
+  "tag": "83NC0 f=0.700 d=+50",
+  "lat": 45.69323988,
+  "lon": -85.85795153,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_063.json",
+  "sha256": "d1ff761b77b194aaa49974e27e7a29716bccdb88a710f4a2215be25de45d0bcf"
+ },
+ {
+  "tag": "83NC0 f=0.700 d=-200",
+  "lat": 45.69320098,
+  "lon": -85.86116195,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_064.json",
+  "sha256": "16e4f43c1de06056305d61d764458f6d765ebe6bccbb51233bd0f6416c0b574e"
+ },
+ {
+  "tag": "83NC0 f=0.700 d=+200",
+  "lat": 45.69326317,
+  "lon": -85.85602528,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_065.json",
+  "sha256": "de50d44a75d9292133da98f74f601b16575c7b8bc5e56b10e21f72cae0f88fd6"
+ },
+ {
+  "tag": "83NC0 f=0.900 d=-15",
+  "lat": 45.58449622,
+  "lon": -86.45107744,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_066.json",
+  "sha256": "8d00529fdc99d4fe4c2dc66c8681a342b6912ffb3c17094b48bdfe9551a42d1a"
+ },
+ {
+  "tag": "83NC0 f=0.900 d=+15",
+  "lat": 45.58422621,
+  "lon": -86.45108151,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_067.json",
+  "sha256": "105afa59cb3c6a2155834de9234796126fe24103be2d9a51645a816eaf6ef49e"
+ },
+ {
+  "tag": "83NC0 f=0.900 d=-50",
+  "lat": 45.58481124,
+  "lon": -86.4510727,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_068.json",
+  "sha256": "05b964ad9e840ebdcf7ffb97de705a18ba81ac35f20fe35d8ce7b5241d9723a0"
+ },
+ {
+  "tag": "83NC0 f=0.900 d=+50",
+  "lat": 45.58391119,
+  "lon": -86.45108626,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_069.json",
+  "sha256": "d5a3a14d80f95fe563fb6a573f1a15ee1be2c6ee88ea0424f381eeeb3580d754"
+ },
+ {
+  "tag": "83NC0 f=0.900 d=-200",
+  "lat": 45.58616131,
+  "lon": -86.45105235,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_070.json",
+  "sha256": "2de158fbd893df610bbfb3d62c8a57c213f4814ec0e62be8e3bc5517a1b5ad8b"
+ },
+ {
+  "tag": "83NC0 f=0.900 d=+200",
+  "lat": 45.58256113,
+  "lon": -86.4511066,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_071.json",
+  "sha256": "fe9b673fdbfe1a8d2379674add49c1315552c8eaab2cf0d7580c4bd6ba855354"
+ },
+ {
+  "tag": "lake_michigan_mi_side_near_state_line",
+  "lat": 43.5,
+  "lon": -87.1,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_072.json",
+  "sha256": "03a7d0b7fb525d34995b626c8952c0c9489843f0d24380da1bd7b03ddfd11da3"
+ },
+ {
+  "tag": "lake_michigan_mid",
+  "lat": 44.0,
+  "lon": -86.9,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_073.json",
+  "sha256": "7bb74c05977ffbf85c3b70570edfb8a1f760f985b917cf8e3adf4bf6e90fa84b"
+ },
+ {
+  "tag": "lake_michigan_wi_side",
+  "lat": 43.5,
+  "lon": -87.6,
+  "ncat_zone": "WI S-4803",
+  "raw": "spcs83_074.json",
+  "sha256": "12ef1053b22e1f12d7795e6680cfde6b9b0b2dacb2148e72c47be6c96634381d"
+ },
+ {
+  "tag": "saginaw_bay",
+  "lat": 43.9,
+  "lon": -83.6,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_075.json",
+  "sha256": "69e1432bb673e521fd296619159389e2fbcc8b6a9deea2536e15a6f8806ef997"
+ },
+ {
+  "tag": "lake_huron_mi_waters",
+  "lat": 44.5,
+  "lon": -82.7,
+  "ncat_zone": "MI C-2112",
+  "raw": "spcs83_076.json",
+  "sha256": "3cf544cf69dde20b6258ae0a8cfcaf63435e7c512f274dc993814a30a10eb78e"
+ },
+ {
+  "tag": "lake_huron_ontario_waters",
+  "lat": 44.5,
+  "lon": -82.2,
+  "ncat_zone": "N/A",
+  "raw": "spcs83_077.json",
+  "sha256": "e0df9864e4536fad79ea261d19a4bad27252e5a66fd3fa60cf028f2493907096"
+ },
+ {
+  "tag": "lake_superior_mi_waters",
+  "lat": 47.3,
+  "lon": -87.0,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_078.json",
+  "sha256": "3d49c737da23377c1139e84bee18e78197b48e45817b3aac05fbae1b12c01fd3"
+ },
+ {
+  "tag": "lake_superior_far_north",
+  "lat": 47.95,
+  "lon": -88.4,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_079.json",
+  "sha256": "c7d9b4fb486be7cee870c9f525aedd374b59b6ad262d9c5e201fa28cc60bfb22"
+ },
+ {
+  "tag": "lake_erie_mi_waters",
+  "lat": 41.8,
+  "lon": -83.3,
+  "ncat_zone": "OH N-3401",
+  "raw": "spcs83_080.json",
+  "sha256": "2625401e143e1c32d1cac5e7a7ed96fdb8d3217923b6ced0db70562b4059f717"
+ },
+ {
+  "tag": "detroit_river",
+  "lat": 42.3,
+  "lon": -83.08,
+  "ncat_zone": "N/A",
+  "raw": "spcs83_081.json",
+  "sha256": "a24526ef8dee1a81a2da1a073c3d0ceff4ac11099d4313caa11b4d9de1052bd7"
+ },
+ {
+  "tag": "straits_mackinac",
+  "lat": 45.82,
+  "lon": -84.73,
+  "ncat_zone": "MI N-2111",
+  "raw": "spcs83_082.json",
+  "sha256": "3519e0ef1af66c0c52b47b010363522f7535f2fc1cc0b18809e997fbfc3857c3"
+ },
+ {
+  "tag": "toledo_oh",
+  "lat": 41.65,
+  "lon": -83.55,
+  "ncat_zone": "OH N-3401",
+  "raw": "spcs83_083.json",
+  "sha256": "cb0742c0dc4433678b7deb999dc098b027367e2dd7f7c20f77a43f1a0d0e1c36"
+ },
+ {
+  "tag": "indiana_south_bend",
+  "lat": 41.6,
+  "lon": -86.3,
+  "ncat_zone": "IN E-1301",
+  "raw": "spcs83_084.json",
+  "sha256": "8d0e00aa440a970b2aa4cd9577358966d7faafcd8a0826fb853b81745d834a79"
+ },
+ {
+  "tag": "wisconsin_marinette",
+  "lat": 45.05,
+  "lon": -87.7,
+  "ncat_zone": "WI C-4802",
+  "raw": "spcs83_085.json",
+  "sha256": "8d93ba2d5fd24bc94d8476c4e729d10af683dbd71284984d43ae9c5f94b37d87"
+ },
+ {
+  "tag": "windsor_on",
+  "lat": 42.28,
+  "lon": -83.0,
+  "ncat_zone": "N/A",
+  "raw": "spcs83_086.json",
+  "sha256": "96e6b55c30f5f7d46cdab37e869a4898e6b9c054b99f2f99be48b8eb63f53730"
+ },
+ {
+  "tag": "lansing",
+  "lat": 42.73,
+  "lon": -84.55,
+  "ncat_zone": "MI S-2113",
+  "raw": "spcs83_087.json",
+  "sha256": "c3afa99aaac4379dff6af85385f56556fbfc325f2e045dde172116d09697e7a9"
+ }
+]

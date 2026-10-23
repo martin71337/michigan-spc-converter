@@ -1,0 +1,700 @@
+{
+ "sources": {
+  "MGF": {
+   "counties": 83,
+   "vertices": 93326,
+   "state_area_km2": 250478.6,
+   "county_overlap_m2": 0.0,
+   "interior_holes_m2": 0
+  },
+  "TIGER": {
+   "counties": 83,
+   "vertices": 72545,
+   "state_area_km2": 250362.6,
+   "county_overlap_m2": 0.0,
+   "interior_holes_m2": 0,
+   "ALAND_km2": 146625.9,
+   "AWATER_km2": 103860.2
+  },
+  "MGF_vs_TIGER_state_symdiff_km2": 215.158,
+  "MGF_vs_TIGER_state_outer_hausdorff_m": 6093.7
+ },
+ "spcs83_zones": {
+  "MGF": {
+   "2111": {
+    "area_km2": 93669.6,
+    "parts": 1,
+    "vertices": 13915
+   },
+   "2112": {
+    "area_km2": 67962.6,
+    "parts": 1,
+    "vertices": 1948
+   },
+   "2113": {
+    "area_km2": 88846.4,
+    "parts": 1,
+    "vertices": 3515
+   }
+  },
+  "TIGER": {
+   "2111": {
+    "area_km2": 93551.2,
+    "parts": 1,
+    "vertices": 8726
+   },
+   "2112": {
+    "area_km2": 67935.8,
+    "parts": 1,
+    "vertices": 1905
+   },
+   "2113": {
+    "area_km2": 88875.6,
+    "parts": 1,
+    "vertices": 3678
+   }
+  },
+  "line_2111_2112": {
+   "MGF_length_km": 296.04,
+   "TIGER_length_km": 284.82
+  },
+  "line_2112_2113": {
+   "MGF_length_km": 434.99,
+   "TIGER_length_km": 435.73
+  },
+  "line_2111_2113": {
+   "MGF_length_km": 0.0,
+   "TIGER_length_km": 0.0
+  }
+ },
+ "ngs2019_michigan_shp_area_km2": 150465.9,
+ "spcs83_line_offset_MGF_to_TIGER_m": {
+  "2111/2112": {
+   "all": {
+    "n": 5921,
+    "median": 9.526,
+    "p95": 767.388,
+    "max": 11806.629
+   },
+   "land": null,
+   "water": {
+    "n": 5921,
+    "median": 9.526,
+    "p95": 767.388,
+    "max": 11806.629
+   }
+  },
+  "2112/2113": {
+   "all": {
+    "n": 8701,
+    "median": 6.501,
+    "p95": 304.662,
+    "max": 444.104
+   },
+   "land": {
+    "n": 4657,
+    "median": 0.036,
+    "p95": 11.84,
+    "max": 40.135
+   },
+   "water": {
+    "n": 4044,
+    "median": 115.847,
+    "p95": 363.247,
+    "max": 444.104
+   }
+  },
+  "2111/2113": "zones do not touch"
+ },
+ "spcs83_line_offset_worst": {
+  "2111/2112": {
+   "offset_m": 11806.63,
+   "latlon": [
+    45.771955,
+    -83.485105
+   ],
+   "on_land": false
+  },
+  "2112/2113": {
+   "offset_m": 444.1,
+   "latlon": [
+    44.167091,
+    -82.999938
+   ],
+   "on_land": false
+  }
+ },
+ "spcs83_zone_symdiff_MGF_TIGER_km2": {
+  "2111": 158.3278,
+  "2112": 102.2775,
+  "2113": 54.7536
+ },
+ "ngs2019_south": {
+  "vertices": 53914,
+  "area_km2": 68692.5,
+  "hausdorff_to_MGF_south_m": 70269.4,
+  "CS_line_offset_to_MGF": {
+   "n": 4351,
+   "median": 25.789,
+   "p95": 35822.928,
+   "max": 47729.934
+  },
+  "land_only_area_note": "south zone land area"
+ },
+ "esri_spcs83": {
+  "2111": {
+   "vertices": 211,
+   "area_km2": 43048.6
+  },
+  "2112": {
+   "vertices": 72,
+   "area_km2": 37895.7
+  },
+  "2113": {
+   "vertices": 69,
+   "area_km2": 68927.6
+  },
+  "CS_line_offset_to_MGF": {
+   "n": 2176,
+   "median": 598.683,
+   "p95": 35897.383,
+   "max": 47429.358
+  }
+ },
+ "ldp_composition_vs_MGF": {
+  "261001": {
+   "abrv": "MI L11A",
+   "vertices": 2494,
+   "area_km2": 8798.5,
+   "counties": [
+    "Hillsdale",
+    "Jackson",
+    "Lenawee",
+    "Livingston",
+    "Washtenaw"
+   ],
+   "partial_counties": []
+  },
+  "261002": {
+   "abrv": "MI L15D",
+   "vertices": 20732,
+   "area_km2": 6635.4,
+   "counties": [
+    "Oakland"
+   ],
+   "partial_counties": [
+    [
+     "Macomb",
+     0.847
+    ],
+    [
+     "Monroe",
+     0.8175
+    ],
+    [
+     "Wayne",
+     0.9165
+    ]
+   ]
+  },
+  "261003": {
+   "abrv": "MI L21F",
+   "vertices": 19452,
+   "area_km2": 6691.2,
+   "counties": [
+    "Genesee",
+    "Lapeer",
+    "Shiawassee"
+   ],
+   "partial_counties": [
+    [
+     "St. Clair",
+     0.8742
+    ]
+   ]
+  },
+  "261004": {
+   "abrv": "MI L25S",
+   "vertices": 8899,
+   "area_km2": 11413.5,
+   "counties": [
+    "Midland",
+    "Saginaw"
+   ],
+   "partial_counties": [
+    [
+     "Bay",
+     0.711
+    ],
+    [
+     "Huron",
+     0.3935
+    ],
+    [
+     "Sanilac",
+     0.6062
+    ],
+    [
+     "Tuscola",
+     0.889
+    ]
+   ]
+  },
+  "261005": {
+   "abrv": "MI L31R",
+   "vertices": 4881,
+   "area_km2": 8231.6,
+   "counties": [
+    "Clare",
+    "Gladwin",
+    "Ogemaw",
+    "Roscommon"
+   ],
+   "partial_counties": [
+    [
+     "Arenac",
+     0.5413
+    ],
+    [
+     "Iosco",
+     0.2979
+    ]
+   ]
+  },
+  "261006": {
+   "abrv": "MI L35T",
+   "vertices": 5897,
+   "area_km2": 9092.5,
+   "counties": [
+    "Crawford",
+    "Montmorency",
+    "Oscoda",
+    "Otsego"
+   ],
+   "partial_counties": [
+    [
+     "Alcona",
+     0.3873
+    ],
+    [
+     "Alpena",
+     0.3503
+    ]
+   ]
+  },
+  "261007": {
+   "abrv": "MI L41Z",
+   "vertices": 3064,
+   "area_km2": 10486.1,
+   "counties": [
+    "Branch",
+    "Calhoun",
+    "Cass",
+    "Kalamazoo",
+    "St. Joseph"
+   ],
+   "partial_counties": [
+    [
+     "Berrien",
+     0.3668
+    ],
+    [
+     "Van Buren",
+     0.5715
+    ]
+   ]
+  },
+  "261008": {
+   "abrv": "MI L45G",
+   "vertices": 4343,
+   "area_km2": 13362.4,
+   "counties": [
+    "Barry",
+    "Clinton",
+    "Eaton",
+    "Ingham",
+    "Ionia",
+    "Kent"
+   ],
+   "partial_counties": [
+    [
+     "Allegan",
+     0.4601
+    ],
+    [
+     "Ottawa",
+     0.353
+    ]
+   ]
+  },
+  "261009": {
+   "abrv": "MI L51N",
+   "vertices": 4988,
+   "area_km2": 11323.9,
+   "counties": [
+    "Gratiot",
+    "Isabella",
+    "Mecosta",
+    "Montcalm",
+    "Newaygo"
+   ],
+   "partial_counties": [
+    [
+     "Muskegon",
+     0.3615
+    ],
+    [
+     "Oceana",
+     0.4185
+    ]
+   ]
+  },
+  "261010": {
+   "abrv": "MI L55W",
+   "vertices": 3647,
+   "area_km2": 8706.4,
+   "counties": [
+    "Lake",
+    "Missaukee",
+    "Osceola",
+    "Wexford"
+   ],
+   "partial_counties": [
+    [
+     "Manistee",
+     0.4331
+    ],
+    [
+     "Mason",
+     0.4108
+    ]
+   ]
+  },
+  "261011": {
+   "abrv": "MI L61L",
+   "vertices": 13436,
+   "area_km2": 5970.2,
+   "counties": [
+    "Kalkaska"
+   ],
+   "partial_counties": [
+    [
+     "Antrim",
+     0.8605
+    ],
+    [
+     "Benzie",
+     0.4053
+    ],
+    [
+     "Grand Traverse",
+     0.847
+    ],
+    [
+     "Leelanau",
+     0.147
+    ]
+   ]
+  },
+  "261012": {
+   "abrv": "MI L65C",
+   "vertices": 17229,
+   "area_km2": 6251.1,
+   "counties": [],
+   "partial_counties": [
+    [
+     "Charlevoix",
+     0.3257
+    ],
+    [
+     "Cheboygan",
+     0.899
+    ],
+    [
+     "Emmet",
+     0.5477
+    ],
+    [
+     "Presque Isle",
+     0.2655
+    ]
+   ]
+  },
+  "261013": {
+   "abrv": "MI U11M",
+   "vertices": 23460,
+   "area_km2": 9247.2,
+   "counties": [],
+   "partial_counties": [
+    [
+     "Chippewa",
+     0.5838
+    ],
+    [
+     "Luce",
+     0.4835
+    ],
+    [
+     "Mackinac",
+     0.5063
+    ]
+   ]
+  },
+  "261014": {
+   "abrv": "MI U21E",
+   "vertices": 13289,
+   "area_km2": 8744.7,
+   "counties": [],
+   "partial_counties": [
+    [
+     "Alger",
+     0.1849
+    ],
+    [
+     "Delta",
+     0.6137
+    ],
+    [
+     "Schoolcraft",
+     0.6454
+    ]
+   ]
+  },
+  "261015": {
+   "abrv": "MI U31Q",
+   "vertices": 11163,
+   "area_km2": 9569.5,
+   "counties": [
+    "Dickinson"
+   ],
+   "partial_counties": [
+    [
+     "Marquette",
+     0.5463
+    ],
+    [
+     "Menominee",
+     0.7853
+    ]
+   ]
+  },
+  "261016": {
+   "abrv": "MI U41H",
+   "vertices": 18223,
+   "area_km2": 9069.4,
+   "counties": [
+    "Iron"
+   ],
+   "partial_counties": [
+    [
+     "Baraga",
+     0.8689
+    ],
+    [
+     "Houghton",
+     0.6824
+    ],
+    [
+     "Keweenaw",
+     0.0569
+    ]
+   ]
+  },
+  "261017": {
+   "abrv": "MI U51B",
+   "vertices": 5233,
+   "area_km2": 6404.6,
+   "counties": [],
+   "partial_counties": [
+    [
+     "Gogebic",
+     0.7731
+    ],
+    [
+     "Ontonagon",
+     0.3553
+    ]
+   ]
+  },
+  "261018": {
+   "abrv": "MI U61K",
+   "vertices": 20138,
+   "area_km2": 567.3,
+   "counties": [],
+   "partial_counties": [
+    [
+     "Keweenaw",
+     0.0366
+    ]
+   ]
+  }
+ },
+ "counties_not_wholly_in_one_ldp": [
+  "Alcona",
+  "Alger",
+  "Allegan",
+  "Alpena",
+  "Antrim",
+  "Arenac",
+  "Baraga",
+  "Bay",
+  "Benzie",
+  "Berrien",
+  "Charlevoix",
+  "Cheboygan",
+  "Chippewa",
+  "Delta",
+  "Emmet",
+  "Gogebic",
+  "Grand Traverse",
+  "Houghton",
+  "Huron",
+  "Iosco",
+  "Keweenaw",
+  "Leelanau",
+  "Luce",
+  "Mackinac",
+  "Macomb",
+  "Manistee",
+  "Marquette",
+  "Mason",
+  "Menominee",
+  "Monroe",
+  "Muskegon",
+  "Oceana",
+  "Ontonagon",
+  "Ottawa",
+  "Presque Isle",
+  "Sanilac",
+  "Schoolcraft",
+  "St. Clair",
+  "Tuscola",
+  "Van Buren",
+  "Wayne"
+ ],
+ "ldp_pairwise_overlap_m2_over_1m2": [],
+ "ldp_union_area_km2": 150565.3,
+ "ldp_union_interior_holes_m2": 25278053.6,
+ "ldp_union_minus_MGFstate_km2": 2.798,
+ "MGFstate_minus_ldp_union_km2": 99916.09,
+ "ldp_union_minus_TIGERstate_km2": 0.009,
+ "TIGERstate_minus_ldp_union_km2": 99797.358,
+ "ldp_vs_MGF_outer_hausdorff_m": 142598.3,
+ "ldp_vs_TIGER_outer_hausdorff_m": 142583.7,
+ "ldp_internal_line_offset_to_TIGER_county_edges": {
+  "n": 23957,
+  "median": 0.0,
+  "p95": 0.0,
+  "max": 0.026
+ },
+ "ldp_internal_line_offset_to_MGF_county_edges": {
+  "n": 23957,
+  "median": 0.029,
+  "p95": 2.439,
+  "max": 166.567
+ },
+ "ldp_internal_worst_vs_TIGER": {
+  "offset_m": 0.03,
+  "latlon": [
+   42.307901,
+   -83.545494
+  ]
+ },
+ "statewide_260001": {
+  "vertices": 176775,
+  "area_km2": 150565.3,
+  "minus_ldp_union_km2": 0.0,
+  "ldp_union_minus_it_km2": 0.0,
+  "hausdorff_to_ldp_union_m": 0.0
+ },
+ "simplification": {
+  "0.5": {
+   "spcs83_MGF": {
+    "vertices": 9911,
+    "est_bytes_json": 257686,
+    "overlap_m2": 149.1,
+    "new_gaps_m2": 72.3
+   },
+   "ldp_NGS": {
+    "vertices": 175207,
+    "est_bytes_json": 4555382,
+    "overlap_m2": 1521.3,
+    "new_gaps_m2": 25278727.5
+   }
+  },
+  "1": {
+   "spcs83_MGF": {
+    "vertices": 8751,
+    "est_bytes_json": 227526,
+    "overlap_m2": 1496.4,
+    "new_gaps_m2": 478.0
+   },
+   "ldp_NGS": {
+    "vertices": 150092,
+    "est_bytes_json": 3902392,
+    "overlap_m2": 3753.8,
+    "new_gaps_m2": 25278686.8
+   }
+  },
+  "2": {
+   "spcs83_MGF": {
+    "vertices": 7096,
+    "est_bytes_json": 184496,
+    "overlap_m2": 2763.5,
+    "new_gaps_m2": 2125.9
+   },
+   "ldp_NGS": {
+    "vertices": 118268,
+    "est_bytes_json": 3074968,
+    "overlap_m2": 13055.4,
+    "new_gaps_m2": 25277248.0
+   }
+  },
+  "5": {
+   "spcs83_MGF": {
+    "vertices": 4476,
+    "est_bytes_json": 116376,
+    "overlap_m2": 13613.4,
+    "new_gaps_m2": 33964.2
+   },
+   "ldp_NGS": {
+    "vertices": 79535,
+    "est_bytes_json": 2067910,
+    "overlap_m2": 74704.5,
+    "new_gaps_m2": 25302589.8
+   }
+  },
+  "10": {
+   "spcs83_MGF": {
+    "vertices": 2978,
+    "est_bytes_json": 77428,
+    "overlap_m2": 60974.6,
+    "new_gaps_m2": 95502.4
+   },
+   "ldp_NGS": {
+    "vertices": 53085,
+    "est_bytes_json": 1380210,
+    "overlap_m2": 336302.7,
+    "new_gaps_m2": 25410137.1
+   }
+  },
+  "25": {
+   "spcs83_MGF": {
+    "vertices": 1713,
+    "est_bytes_json": 44538,
+    "overlap_m2": 364968.7,
+    "new_gaps_m2": 158802.2
+   },
+   "ldp_NGS": {
+    "vertices": 28559,
+    "est_bytes_json": 742534,
+    "overlap_m2": 1417498.2,
+    "new_gaps_m2": 25536150.6
+   }
+  },
+  "unsimplified": {
+   "spcs83_MGF": 19378,
+   "ldp_NGS": 200568
+  }
+ }
+}

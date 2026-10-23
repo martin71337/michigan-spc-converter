@@ -1,0 +1,294 @@
+ 
+ 
+ 
+ 
+State Plane Coordinate  
+System of 2022 Policy 
+ 
+ 
+ 
+Policy Document 
+National Geodetic Survey 
+National Ocean Service 
+National Oceanic and Atmospheric Administration 
+  
+ 
+AUTHORIZED BY: 
+ 
+ 
+ 
+ 
+_______________________________________       ____________ 
+Director, National Geodetic Survey                                                Date 
+Juliana P.  Blackwell 
+ 
+ 
+Tracking Number: 
+NGS 2023-1214-03 
+Effective Date: 
+July 1, 2023 
+ 
+ 
+
+NGS 2023-1214-03 NOAA’s National Geodetic Survey 
+ 
+Page 2 of 8 
+Official Policy Title:  State Plane Coordinate System of 2022 Policy 
+Tracking Number:  NGS 2023-1214-03 
+Date Reviewed by NGS Director or Executive Steering Committee:  June 20, 2023 
+Effective Date:  July 1, 2023 
+Internal or External:  External 
+Associated NGS Documents: 
+“Procedures for Design and Modification of the State Plane Coordinate System of 2022” 
+<https://geodesy.noaa.gov/INFO/Policy/files/SPCS2022-Procedures.pdf> 
+“The State Plane Coordinate System: History, Policy, and Future Directions,” NOAA Special 
+Publication NOS NGS 13, National Oceanic and Atmospheric Administration, National 
+Geodetic Survey, Silver Spring, Maryland. 
+<https://geodesy.noaa.gov/library/pdfs/SP_NOS_NGS_13.pdf> 
+Authority/Reference:  As original creator of the State Plane Coordinate System and official 
+steward of the National Spatial Reference System (NSRS), NGS has sole authority to define and 
+establish this policy. 
+Supersedes: 
+“Policy on Changes to State Plane Coordinates,” NGS Policy 08-2012. 
+<https://geodesy.noaa.gov/INFO/Policy/files/082012_State_Plane_Coordinate_Policy.pdf> 
+“Policy of the National Geodetic Survey Concerning Units of Measure for the State Plane 
+Coordinate System of 1983,” NGS Policy 02-2006.  
+<https://geodesy.noaa.gov/INFO/Policy/files/022006_Policy_on_Units_of_Measure_83.pdf> 
+Review Schedule:  At least once every two years. 
+Responsible Office/Position:  The Observation and Analysis Division (OAD) Chief is 
+responsible for upholding and implementing this policy.  The OAD Chief has the authority to 
+review and approve procedures associated with this policy. 
+Purpose/Scope   
+This policy provides the framework for defining and maintaining the State Plane Coordinate 
+System of 2022 (SPCS2022).  It is divided into the following four sections: 
+I. General SPCS2022 policy.  Specifies overall policy for SPCS2022, including its official 
+name, authority of NGS, scope, coordinate uniqueness, primacy, coordination with 
+other federal agencies, and documentation. 
+II. S PCS2022 technical characteristics and requirements.  Fundamental t echnical attributes 
+of SPCS2022 specified as policy (i.e., can only be modified with approval of the NGS 
+Director or Executive Steering Committee).  Technical details that can be approved by 
+the NGS OAD Chief are in the SPCS2022 procedures associated with this policy. 
+III. S PCS2022 zones and consistency with statute.  Provides guidance on zone definitions 
+and extents and addresses consistency with state and territory statute. 
+NGS 2023-1214-03 NOAA’s National Geodetic Survey 
+ 
+Page 3 of 8 
+SPCS2022 is established for states, the Federal District, and selected insular areas of the United 
+States.  For brevity, the term “state” represents all of these areas throughout this document, as in 
+the associated procedures document. 
+Background 
+NGS will establish SPCS2022 as part of the transition from the North American Datum of 1983 
+(NAD 83) to the 2022 TRFs.  SPCS2022 will replace SPCS 83, the version referenced to 
+NAD 83.  SPCS 83 consists of 125 zones based on three conformal map projections: Lambert 
+Conformal Conic, Transverse Mercator, and Hotine Oblique Mercator.  SPCS 83 is defined in all 
+states and U.S. territories where the National Spatial Reference System (NSRS) is defined, 
+except for the District of Columbia, American Samoa, and the Commonwealth of Northern 
+Mariana Islands. 
+SPCS is a system of conformal map projections originally created in the 1930s to support 
+surveying, engineering, and mapping activities throughout the United States.  Since its inception, 
+SPCS has served as a practical means for NGS customers to access the NSRS.  The 
+characteristics and usage of SPCS have varied considerably over its long history.  Details of the 
+history and evolution of SPCS are given in NOAA Special Publication NOS NGS 13, referenced 
+as part of this policy document. 
+NGS recognizes that usage of SPCS varies greatly, and that there is significant interest within the 
+geospatial community as to how SPCS2022 is defined.  Many NGS customers also wish to have 
+a voice in the development of SPCS2022.  To that end, this policy and associated procedures 
+were developed to facilitate stakeholder input for their state.  Such input includes requests, 
+proposals, and contributions of designs, for both the initial creation of SPCS2022 and later 
+changes.  Importantly, this policy and associated procedures also specifies the characteristics and 
+requirements for SPCS2022.  The intent is to define SPCS2022 such that it is a technically sound 
+and practical projected coordinate reference system for the Modernized NSRS. 
+Exceptions   
+The NGS Director may exercise discretion to approve or deny requests regarding of SPCS2022 
+that depart from this policy (and associated procedures), either in whole or in part. 
+Definitions of Terms 
+Not all technical terms are defined in this policy.  For terms not defined and more detailed 
+definitions, please refer to the associated procedures.  Terms in italics in the definitions are also 
+defined in this list. 
+• Conformal map projection.  A projection where the linear distortion is unique (the same in 
+every direction) at a point.  The versions of this projection type used for SPCS are the 
+Lambert Conformal Conic, Transverse Mercator, and Hotine Oblique Mercator. 
+• L inear distortion .  For conformal map projections, it is the amount by which a distance or 
+length in a projected coordinate reference system differs from the actual horizontal distance 
+NGS 2023-1214-03 NOAA’s National Geodetic Survey 
+ 
+Page 4 of 8 
+on or near the topographic surface of the Earth.  Also known as “scale error” when evaluated 
+with respect to distances on the reference ellipsoid surface. 
+• Reference ellipsoid.  An oblate ellipsoid of revolution that approximates the size and shape 
+of the entire Earth geoid (“mean sea level”) or a large portion of it.  When oriented with 
+respect to a geometric reference frame or datum, it defines the reference surface for projected 
+coordinate reference systems.  Also known as a reference “spheroid.” 
+• S takeholders.  NGS customers and users of SPCS within a state who have a substantial stake 
+in how SPCS2022 is designed, and who interact with NGS through specific organizations.  
+The types of recognized organizations are listed in the stakeholder definition of the 
+procedures associated with this policy. 
+• Z one.  A region on the surface of the Earth that defines the area where a projected coordinate 
+reference system is used, with extents usually based on a specified maximum linear 
+distortion magnitude. 
+Policy on the State Plane Coordinate System of 2022 
+SPCS2022 characteristics in this document include certain technical details that are approved at 
+the policy level (by the NGS Director or Executive Steering Committee).  To the extent possible, 
+such details have been minimized within the policy and are addressed to greater depth in the 
+associated procedures and NGS technical publications.  It is important that the procedures be 
+referenced along with the policy, to ensure that the full context of the policy and details of its 
+implementation are understood. 
+I. General SPCS2022 policy  
+A. Name.  The official NGS projected coordinate reference system for the 2022 Terrestrial 
+Reference Frames (TRFs) is designated as the State Plane Coordinate System of 2022 
+(abbreviated SPCS2022). 
+B. A uthority .  NGS has sole authority and discretion to approve or deny recommendations, 
+requests, or proposed designs for any SPCS2022 zone or zone configuration. 
+C. S cope.  SPCS2022 zones are established  such that appropriate SPCS2022 coordinates 
+can be computed at every location within its designated zone.  
+D. U niqueness .  SPCS2022 coordinates differ by at least 10,000 m horizontally from 
+SPCS 83, SPCS 27, all versions of Universal Transverse Mercator (UTM), and other 
+SPCS2022 zone layers covering the same geographic region. 
+E. P rimacy .  This SPCS2022 policy and associated procedures supersede all previous NGS 
+policies, procedures, and Federal Register notices for prior versions of SPCS. 
+F. C oordination with other federal agencies.  NGS will work cooperatively with other 
+federal agencies to ensure SPCS2022 is appropriately defined and implemented. 
+G. D ocumentation.  NGS will document  the characteristics of SPCS2022 and any changes 
+to its definitions, policy, or procedures. 
+NGS 2023-1214-03 NOAA’s National Geodetic Survey 
+ 
+Page 5 of 8 
+II. SPCS2022 technical characteristics and requirements.  See §6 of the associated 
+procedures for detailed specifications. 
+A. Map projection types 
+1. SPCS2022 is limited to the following three conformal projections:  Lambert 
+Conformal Conic, Transverse Mercator, and Hotine Oblique Mercator. 
+2. Only a single form of each projection type is used for the entire SPCS.  The 
+projection types correspond to specific computation algorithms used by NGS. 
+B. Ellipsoid and reference frames 
+1. All map projections are based on the Geodetic Reference System 1980 (GRS 80) 
+ellipsoid, without modification. 
+2. For computing SPCS2022 coordinates, the input latitude and longitude must be from 
+one of the four 2022 Terrestrial Reference Frames (TRFs), and the specific 2022 
+TRF must be identified for all zones. 
+C. Linear distortion design criteria 
+1. The criterion for maximum allowable linear distortion for designing a projection 
+zone is evaluated at the topographic surface, not at the reference ellipsoid surface. 
+2. A maximum allowable linear distortion design criterion is specified for a map 
+projection zone or area of interest within a zone.  The design criterion is the 
+magnitude of distortion that meets performance metrics as described in the 
+procedures associated with this policy. 
+D. Numerical values of defining parameters 
+1. The meter is the unit of the defining linear parameters for SPCS2022. 
+2. Zones are defined such that SPCS2022 coordinates (northings and eastings) are 
+positive at all locations within a zone. 
+E. Specifications for SPCS2022 input and output 
+1. SPCS2022 coordinates are published in meters.  If NGS provides coordinates in feet, 
+they will be based on the definition 1 foot = 0.3048 meter exactly (numerically 
+identical to the “international foot”).  The “U.S. survey foot” will not be supported 
+for SPCS2022 or any other component of the Modernized NSRS.  However, NGS 
+will continue to support the U.S. survey foot in legacy applications, such as SPCS 83 
+in states that officially used U.S. survey feet for SPCS 83, and for SPCS 27 in all 
+states.  For more information, see Federal Register notice 85 FR 62698 published on 
+October 5, 2020, available at 
+https://www.federalregister.gov/documents/2020/10/05/2020-21902/deprecation-
+of-the-united-states-us-survey-foot. 
+2. Latitudes are positive in the northern and negative in the southern hemisphere.  
+Longitudes are positive east from the prime meridian (0° to 360°). 
+NGS 2023-1214-03 NOAA’s National Geodetic Survey 
+ 
+Page 6 of 8 
+3. In addition to coordinates, SPCS2022 output includes linear and angular distortion, 
+as described in the associated procedures. 
+III. SPCS2022 zones and consistency with statute 
+A. Zone definitions and extents 
+1. Each zone of SPCS2022 is completely within a single state, except for two cases 
+listed under §III.A.2. 
+a. Within the state, SPCS2022 may consist of one or more zones. 
+b. Zones must correspond to specific, well-defined geographic regions.  The 
+coverage area for zones must be unambiguously defined and comply with all 
+other requirements herein and the procedures associated with this policy. 
+2. Exceptions for requirement of SPCS2022 zones entirely within a single state: 
+a. Multiple states in one zone.  Requires consensus agreement among stakeholders 
+within the affected states to use identical projection parameters.  
+b. Special use zones.  Zones for well-defined geographic regions that fall within two 
+or more states or include areas not within any state and therefore do not have 
+contiguous coverage within the state zone scheme.  These zones are for major 
+urbanized areas, American Indian reservations, or federal jurisdictions and 
+applications in more than one state or in offshore or other areas not within any 
+state.  Requests for special use zones are evaluated on a case-by-case basis and 
+must be individually approved by the NGS Director.  Such zones must satisfy all 
+other requirements of this policy and associated procedures.  A special use zone 
+does not count against the maximum limit of three zone layers for a state (see 
+§III.B). 
+B. Zone layers.  A state can have one, two, or three projection zone layers, where each layer 
+has a distinct distortion design criterion and coverage scheme for its zones. 
+1. Statewide zone layer.  A single statewide SPCS2022 zone exists for every state (or 
+group of states per the exception in §III.A.2.a).  If a state has only one layer, it must 
+be a statewide zone.   
+2. Multiple-zone (multizone) layers.  Along with a single statewide zone, a state can 
+optionally have zero, one, or two additional layers.  Each layer consists of two or 
+more zones defined by polygons contained entirely within the state. 
+a. Only one multizone layer can provide complete coverage of an entire state.  
+b. Only one multizone layer can provide partial (discontinuous) coverage (i.e., with 
+gaps between zone polygons).  Partial coverage zones are permitted to allow 
+desired performance for specific areas within a state, usually due to mountainous 
+terrain.  This layer can consist of a single zone that does not cover the entire state, 
+and other non-overlapping zones can be added to the layer over time, in 
+accordance with SPCS2022 procedures. 
+NGS 2023-1214-03 NOAA’s National Geodetic Survey 
+ 
+Page 7 of 8 
+c. Within a multizone layer, the extents of each zone must be defined by a single, 
+closed polygon that does not overlap any part of other zone polygons in that layer.  
+There can be gaps between zone polygons for a layer with discontinuous 
+coverage.  Multiple polygons can be used for a single zone if it includes 
+disconnected islands or if it is based on a non-contiguous political boundary.  A 
+zone polygon can include holes only if it is based on a political boundary that 
+includes the same holes. 
+C. Consistency with statute.  The preference of NGS is that SPCS2022 definitions be 
+consistent with relevant state statutes, administrative rules, and/or applicable officially 
+recognized documentation for jurisdictions that reference the 2022 TRFs.   
+1. NGS will coordinate design and implementation of SPCS2022 with efforts to update 
+legislation for changes to the NSRS associated with the 2022 TRFs. 
+2. While NGS encourages such formal acceptance of SPCS2022, it does not imply that 
+adoption of zone definitions by statute (or similar mechanism) can be used as a 
+means of imposing SPCS2022 zone designs on NGS.  All SPCS2022 zone designs 
+must comply with NGS policies and procedures, and they must be reviewed and 
+approved by NGS.  SPCS2022 is part of the NSRS, and therefore acceptance or 
+rejection of proposed SPCS2022 designs is at the sole discretion of NGS.  
+  
+NGS 2023-1214-03 NOAA’s National Geodetic Survey 
+ 
+Page 8 of 8 
+RECORD OF REVIEW AND CHANGES 
+This policy is a living document that is reviewed at least once every two years.  It will be 
+updated, when appropriate, to reflect changes in controlling federal policies, organizational 
+strategic goals/objectives, technology, or other matters that may have an impact on this policy.  
+Modifications made to this document are recorded in the below table.  This record will be 
+maintained throughout the life of the document.  
+Version 
+Number Date Section/Page Affected Summary of Change or Annual Review Author / Reviewer 
+1 4/23/2019 All New policy document to replace all 
+previous SPCS policy 
+Michael Dennis 
+2 10/25/2019 All Mainly §II.E.1 on foot definition, plus 
+various minor changes in wording, file 
+names, and approval requirements 
+Michael Dennis 
+3 7/1/2023 Mainly §II.E.1, 
+§III.B.2, and 
+§IV (removed) 
+Update U.S. survey foot deprecation, 
+allow discontinuous zone polygons in 
+limited situations, restrict allowance for 
+holes in zones, and remove section on 
+default zones (no longer relevant), plus 
+various other minor changes. 
+Michael Dennis / 
+ESC 
+     
+     
+     
+     
+     
+     
+     
+     
+     
+ 

@@ -1,0 +1,2042 @@
+{
+ "spcs83": [
+  {
+   "tag": "83CS0 f=0.050 d=-15",
+   "lat": 44.16244924,
+   "lon": -82.52052885,
+   "ncat": "2113",
+   "mgf": "2112",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Huron"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": false
+  },
+  {
+   "tag": "83CS0 f=0.050 d=+15",
+   "lat": 44.16217932,
+   "lon": -82.52053512,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Huron"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.050 d=-50",
+   "lat": 44.16276414,
+   "lon": -82.52052153,
+   "ncat": "2113",
+   "mgf": "2112",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Huron"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": false
+  },
+  {
+   "tag": "83CS0 f=0.050 d=+50",
+   "lat": 44.16186442,
+   "lon": -82.52054244,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Huron"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.050 d=-200",
+   "lat": 44.16411371,
+   "lon": -82.52049018,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Iosco"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.050 d=+200",
+   "lat": 44.16051485,
+   "lon": -82.52057379,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Huron"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.200 d=-15",
+   "lat": 44.0966602,
+   "lon": -83.2986267,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Arenac"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.200 d=+15",
+   "lat": 44.09645771,
+   "lon": -83.29837881,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Huron"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.200 d=-50",
+   "lat": 44.09689643,
+   "lon": -83.29891591,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Arenac"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.200 d=+50",
+   "lat": 44.09622148,
+   "lon": -83.29808961,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Huron"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.200 d=-200",
+   "lat": 44.09790884,
+   "lon": -83.30015541,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Arenac"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.200 d=+200",
+   "lat": 44.09520905,
+   "lon": -83.29685018,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Huron"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.350 d=-15",
+   "lat": 43.91064961,
+   "lon": -83.94693335,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": "2113",
+   "county_tiger": [
+    "Arenac"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.350 d=+15",
+   "lat": 43.91037953,
+   "lon": -83.94693456,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": "2113",
+   "county_tiger": [
+    "Bay"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.350 d=-50",
+   "lat": 43.91096471,
+   "lon": -83.94693192,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": "2113",
+   "county_tiger": [
+    "Arenac"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.350 d=+50",
+   "lat": 43.91006444,
+   "lon": -83.94693599,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": "2113",
+   "county_tiger": [
+    "Bay"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.350 d=-200",
+   "lat": 43.9123151,
+   "lon": -83.94692583,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": "2113",
+   "county_tiger": [
+    "Arenac"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.350 d=+200",
+   "lat": 43.90871404,
+   "lon": -83.94694208,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": "2113",
+   "county_tiger": [
+    "Bay"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.500 d=-15",
+   "lat": 43.81377572,
+   "lon": -84.38510798,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": "2113",
+   "county_tiger": [
+    "Gladwin"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.500 d=+15",
+   "lat": 43.81350563,
+   "lon": -84.3851102,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": "2113",
+   "county_tiger": [
+    "Midland"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.500 d=-50",
+   "lat": 43.81409084,
+   "lon": -84.38510539,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": "2113",
+   "county_tiger": [
+    "Gladwin"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.500 d=+50",
+   "lat": 43.81319051,
+   "lon": -84.38511279,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": "2113",
+   "county_tiger": [
+    "Midland"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.500 d=-200",
+   "lat": 43.81544133,
+   "lon": -84.38509429,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": "2113",
+   "county_tiger": [
+    "Gladwin"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.500 d=+200",
+   "lat": 43.81184002,
+   "lon": -84.38512388,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": "2113",
+   "county_tiger": [
+    "Midland"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.650 d=-15",
+   "lat": 43.81386259,
+   "lon": -85.19633247,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": "2113",
+   "county_tiger": [
+    "Osceola"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.650 d=+15",
+   "lat": 43.81359247,
+   "lon": -85.19633197,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": "2113",
+   "county_tiger": [
+    "Mecosta"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.650 d=-50",
+   "lat": 43.81417772,
+   "lon": -85.19633305,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": "2113",
+   "county_tiger": [
+    "Osceola"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.650 d=+50",
+   "lat": 43.81327734,
+   "lon": -85.19633139,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": "2113",
+   "county_tiger": [
+    "Mecosta"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.650 d=-200",
+   "lat": 43.81552829,
+   "lon": -85.19633554,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": "2112",
+   "county_tiger": [
+    "Osceola"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.650 d=+200",
+   "lat": 43.81192677,
+   "lon": -85.1963289,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": "2113",
+   "county_tiger": [
+    "Mecosta"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.800 d=-15",
+   "lat": 43.81548204,
+   "lon": -86.00738776,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": "2113",
+   "county_tiger": [
+    "Lake"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.800 d=+15",
+   "lat": 43.81521196,
+   "lon": -86.00739226,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": "2113",
+   "county_tiger": [
+    "Newaygo"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.800 d=-50",
+   "lat": 43.81579713,
+   "lon": -86.00738251,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": "2113",
+   "county_tiger": [
+    "Lake"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.800 d=+50",
+   "lat": 43.81489687,
+   "lon": -86.00739752,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": "2113",
+   "county_tiger": [
+    "Newaygo"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.800 d=-200",
+   "lat": 43.81714754,
+   "lon": -86.00736001,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": "2113",
+   "county_tiger": [
+    "Lake"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.800 d=+200",
+   "lat": 43.81354646,
+   "lon": -86.00742002,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": "2113",
+   "county_tiger": [
+    "Newaygo"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.950 d=-15",
+   "lat": 43.82042417,
+   "lon": -86.8185867,
+   "ncat": "2113",
+   "mgf": "2112",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Oceana"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": false
+  },
+  {
+   "tag": "83CS0 f=0.950 d=+15",
+   "lat": 43.8201541,
+   "lon": -86.81858699,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Oceana"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.950 d=-50",
+   "lat": 43.82073924,
+   "lon": -86.81858636,
+   "ncat": "2113",
+   "mgf": "2112",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Oceana"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": false
+  },
+  {
+   "tag": "83CS0 f=0.950 d=+50",
+   "lat": 43.81983903,
+   "lon": -86.81858734,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Oceana"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83CS0 f=0.950 d=-200",
+   "lat": 43.82208955,
+   "lon": -86.81858489,
+   "ncat": "2113",
+   "mgf": "2112",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Oceana"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": false
+  },
+  {
+   "tag": "83CS0 f=0.950 d=+200",
+   "lat": 43.81848872,
+   "lon": -86.8185888,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Oceana"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.100 d=-15",
+   "lat": 45.77592026,
+   "lon": -83.86565333,
+   "ncat": "2111",
+   "mgf": "2111",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Chippewa"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.100 d=+15",
+   "lat": 45.77565036,
+   "lon": -83.86565798,
+   "ncat": "2111",
+   "mgf": "2112",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Chippewa"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": false
+  },
+  {
+   "tag": "83NC0 f=0.100 d=-50",
+   "lat": 45.77623515,
+   "lon": -83.86564791,
+   "ncat": "2111",
+   "mgf": "2111",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Chippewa"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.100 d=+50",
+   "lat": 45.77533548,
+   "lon": -83.8656634,
+   "ncat": "2111",
+   "mgf": "2112",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Chippewa"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": false
+  },
+  {
+   "tag": "83NC0 f=0.100 d=-200",
+   "lat": 45.77758465,
+   "lon": -83.86562468,
+   "ncat": "2111",
+   "mgf": "2111",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Chippewa"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.100 d=+200",
+   "lat": 45.77398597,
+   "lon": -83.86568663,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Presque Isle"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.300 d=-15",
+   "lat": 45.74431728,
+   "lon": -84.5783795,
+   "ncat": "2111",
+   "mgf": "2111",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Mackinac"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.300 d=+15",
+   "lat": 45.74411733,
+   "lon": -84.57863859,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Cheboygan"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.300 d=-50",
+   "lat": 45.74455056,
+   "lon": -84.57807724,
+   "ncat": "2111",
+   "mgf": "2111",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Mackinac"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.300 d=+50",
+   "lat": 45.74388406,
+   "lon": -84.57894085,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Cheboygan"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.300 d=-200",
+   "lat": 45.7455503,
+   "lon": -84.57678177,
+   "ncat": "2111",
+   "mgf": "2111",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Mackinac"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.300 d=+200",
+   "lat": 45.74288429,
+   "lon": -84.58023624,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Cheboygan"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.500 d=-15",
+   "lat": 45.87338718,
+   "lon": -85.2978672,
+   "ncat": "2111",
+   "mgf": "2111",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Mackinac"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.500 d=+15",
+   "lat": 45.87311762,
+   "lon": -85.29788931,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Charlevoix"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.500 d=-50",
+   "lat": 45.87370166,
+   "lon": -85.29784141,
+   "ncat": "2111",
+   "mgf": "2111",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Mackinac"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.500 d=+50",
+   "lat": 45.87280314,
+   "lon": -85.29791511,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Charlevoix"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.500 d=-200",
+   "lat": 45.87504944,
+   "lon": -85.29773085,
+   "ncat": "2111",
+   "mgf": "2111",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Mackinac"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.500 d=+200",
+   "lat": 45.87145536,
+   "lon": -85.29802566,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Charlevoix"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.700 d=-15",
+   "lat": 45.69322977,
+   "lon": -85.85878624,
+   "ncat": "2112",
+   "mgf": "2111",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Charlevoix"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": false
+  },
+  {
+   "tag": "83NC0 f=0.700 d=+15",
+   "lat": 45.69323444,
+   "lon": -85.85840099,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Charlevoix"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.700 d=-50",
+   "lat": 45.69322433,
+   "lon": -85.8592357,
+   "ncat": "2112",
+   "mgf": "2111",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Charlevoix"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": false
+  },
+  {
+   "tag": "83NC0 f=0.700 d=+50",
+   "lat": 45.69323988,
+   "lon": -85.85795153,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Charlevoix"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.700 d=-200",
+   "lat": 45.69320098,
+   "lon": -85.86116195,
+   "ncat": "2112",
+   "mgf": "2111",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Charlevoix"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": false
+  },
+  {
+   "tag": "83NC0 f=0.700 d=+200",
+   "lat": 45.69326317,
+   "lon": -85.85602528,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Charlevoix"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.900 d=-15",
+   "lat": 45.58449622,
+   "lon": -86.45107744,
+   "ncat": "2111",
+   "mgf": "2111",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Schoolcraft"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.900 d=+15",
+   "lat": 45.58422621,
+   "lon": -86.45108151,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Leelanau"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.900 d=-50",
+   "lat": 45.58481124,
+   "lon": -86.4510727,
+   "ncat": "2111",
+   "mgf": "2111",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Schoolcraft"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.900 d=+50",
+   "lat": 45.58391119,
+   "lon": -86.45108626,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Leelanau"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.900 d=-200",
+   "lat": 45.58616131,
+   "lon": -86.45105235,
+   "ncat": "2111",
+   "mgf": "2111",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Schoolcraft"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "83NC0 f=0.900 d=+200",
+   "lat": 45.58256113,
+   "lon": -86.4511066,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Leelanau"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "lake_michigan_mi_side_near_state_line",
+   "lat": 43.5,
+   "lon": -87.1,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Oceana"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "lake_michigan_mid",
+   "lat": 44.0,
+   "lon": -86.9,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Mason"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "lake_michigan_wi_side",
+   "lat": 43.5,
+   "lon": -87.6,
+   "ncat": "WI S-4803",
+   "mgf": null,
+   "tiger": null,
+   "esri": null,
+   "county_tiger": [],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "saginaw_bay",
+   "lat": 43.9,
+   "lon": -83.6,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": null,
+   "county_tiger": [
+    "Huron"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "lake_huron_mi_waters",
+   "lat": 44.5,
+   "lon": -82.7,
+   "ncat": "2112",
+   "mgf": "2112",
+   "tiger": "2112",
+   "esri": null,
+   "county_tiger": [
+    "Iosco"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "lake_huron_ontario_waters",
+   "lat": 44.5,
+   "lon": -82.2,
+   "ncat": "N/A",
+   "mgf": null,
+   "tiger": null,
+   "esri": null,
+   "county_tiger": [],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "lake_superior_mi_waters",
+   "lat": 47.3,
+   "lon": -87.0,
+   "ncat": "2111",
+   "mgf": "2111",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Alger"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "lake_superior_far_north",
+   "lat": 47.95,
+   "lon": -88.4,
+   "ncat": "2111",
+   "mgf": "2111",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Keweenaw"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "lake_erie_mi_waters",
+   "lat": 41.8,
+   "lon": -83.3,
+   "ncat": "OH N-3401",
+   "mgf": null,
+   "tiger": null,
+   "esri": null,
+   "county_tiger": [],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "detroit_river",
+   "lat": 42.3,
+   "lon": -83.08,
+   "ncat": "N/A",
+   "mgf": null,
+   "tiger": null,
+   "esri": null,
+   "county_tiger": [],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "straits_mackinac",
+   "lat": 45.82,
+   "lon": -84.73,
+   "ncat": "2111",
+   "mgf": "2111",
+   "tiger": "2111",
+   "esri": null,
+   "county_tiger": [
+    "Mackinac"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "toledo_oh",
+   "lat": 41.65,
+   "lon": -83.55,
+   "ncat": "OH N-3401",
+   "mgf": null,
+   "tiger": null,
+   "esri": null,
+   "county_tiger": [],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "indiana_south_bend",
+   "lat": 41.6,
+   "lon": -86.3,
+   "ncat": "IN E-1301",
+   "mgf": null,
+   "tiger": null,
+   "esri": null,
+   "county_tiger": [],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "wisconsin_marinette",
+   "lat": 45.05,
+   "lon": -87.7,
+   "ncat": "WI C-4802",
+   "mgf": null,
+   "tiger": null,
+   "esri": null,
+   "county_tiger": [],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "windsor_on",
+   "lat": 42.28,
+   "lon": -83.0,
+   "ncat": "N/A",
+   "mgf": null,
+   "tiger": null,
+   "esri": null,
+   "county_tiger": [],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  },
+  {
+   "tag": "lansing",
+   "lat": 42.73,
+   "lon": -84.55,
+   "ncat": "2113",
+   "mgf": "2113",
+   "tiger": "2113",
+   "esri": "2113",
+   "county_tiger": [
+    "Ingham"
+   ],
+   "ncat_eq_tiger": true,
+   "ncat_eq_mgf": true
+  }
+ ],
+ "spcs2022": [
+  {
+   "tag": "22L0 f=0.500 d=-15",
+   "lat": 43.29411581,
+   "lon": -85.31878031,
+   "ncat": "261008",
+   "ngs_polygon": "261008",
+   "county_tiger": [
+    "Kent"
+   ],
+   "via_county": "261008"
+  },
+  {
+   "tag": "22L0 f=0.500 d=+15",
+   "lat": 43.29438593,
+   "lon": -85.31877585,
+   "ncat": "261009",
+   "ngs_polygon": "261009",
+   "county_tiger": [
+    "Montcalm"
+   ],
+   "via_county": "261009"
+  },
+  {
+   "tag": "22L0 f=0.500 d=-50",
+   "lat": 43.29380068,
+   "lon": -85.31878553,
+   "ncat": "261008",
+   "ngs_polygon": "261008",
+   "county_tiger": [
+    "Kent"
+   ],
+   "via_county": "261008"
+  },
+  {
+   "tag": "22L0 f=0.500 d=+50",
+   "lat": 43.29470106,
+   "lon": -85.31877063,
+   "ncat": "261009",
+   "ngs_polygon": "261009",
+   "county_tiger": [
+    "Montcalm"
+   ],
+   "via_county": "261009"
+  },
+  {
+   "tag": "22L0 f=0.500 d=-500",
+   "lat": 43.28974895,
+   "lon": -85.31885254,
+   "ncat": "261008",
+   "ngs_polygon": "261008",
+   "county_tiger": [
+    "Kent"
+   ],
+   "via_county": "261008"
+  },
+  {
+   "tag": "22L0 f=0.500 d=+500",
+   "lat": 43.29875278,
+   "lon": -85.31870361,
+   "ncat": "261009",
+   "ngs_polygon": "261009",
+   "county_tiger": [
+    "Montcalm"
+   ],
+   "via_county": "261009"
+  },
+  {
+   "tag": "22L1 f=0.500 d=-15",
+   "lat": 43.25375432,
+   "lon": -83.35205927,
+   "ncat": "261003",
+   "ngs_polygon": "261003",
+   "county_tiger": [
+    "Lapeer"
+   ],
+   "via_county": "261003"
+  },
+  {
+   "tag": "22L1 f=0.500 d=+15",
+   "lat": 43.25374614,
+   "lon": -83.35242863,
+   "ncat": "261004",
+   "ngs_polygon": "261004",
+   "county_tiger": [
+    "Tuscola"
+   ],
+   "via_county": "261004"
+  },
+  {
+   "tag": "22L1 f=0.500 d=-50",
+   "lat": 43.25376386,
+   "lon": -83.35162835,
+   "ncat": "261003",
+   "ngs_polygon": "261003",
+   "county_tiger": [
+    "Lapeer"
+   ],
+   "via_county": "261003"
+  },
+  {
+   "tag": "22L1 f=0.500 d=+50",
+   "lat": 43.2537366,
+   "lon": -83.35285955,
+   "ncat": "261004",
+   "ngs_polygon": "261004",
+   "county_tiger": [
+    "Tuscola"
+   ],
+   "via_county": "261004"
+  },
+  {
+   "tag": "22L1 f=0.500 d=-500",
+   "lat": 43.25388638,
+   "lon": -83.34608795,
+   "ncat": "261003",
+   "ngs_polygon": "261003",
+   "county_tiger": [
+    "Lapeer"
+   ],
+   "via_county": "261003"
+  },
+  {
+   "tag": "22L1 f=0.500 d=+500",
+   "lat": 43.25361375,
+   "lon": -83.35839992,
+   "ncat": "261004",
+   "ngs_polygon": "261004",
+   "county_tiger": [
+    "Tuscola"
+   ],
+   "via_county": "261004"
+  },
+  {
+   "tag": "22L2 f=0.500 d=-15",
+   "lat": 42.21176893,
+   "lon": -83.54368434,
+   "ncat": "261001",
+   "ngs_polygon": "261001",
+   "county_tiger": [
+    "Washtenaw"
+   ],
+   "via_county": "261001"
+  },
+  {
+   "tag": "22L2 f=0.500 d=+15",
+   "lat": 42.2117698,
+   "lon": -83.54332091,
+   "ncat": "261002",
+   "ngs_polygon": "261002",
+   "county_tiger": [
+    "Wayne"
+   ],
+   "via_county": "261002"
+  },
+  {
+   "tag": "22L2 f=0.500 d=-50",
+   "lat": 42.21176791,
+   "lon": -83.54410835,
+   "ncat": "261001",
+   "ngs_polygon": "261001",
+   "county_tiger": [
+    "Washtenaw"
+   ],
+   "via_county": "261001"
+  },
+  {
+   "tag": "22L2 f=0.500 d=+50",
+   "lat": 42.21177082,
+   "lon": -83.5428969,
+   "ncat": "261002",
+   "ngs_polygon": "261002",
+   "county_tiger": [
+    "Wayne"
+   ],
+   "via_county": "261002"
+  },
+  {
+   "tag": "22L2 f=0.500 d=-500",
+   "lat": 42.21175464,
+   "lon": -83.54955985,
+   "ncat": "261001",
+   "ngs_polygon": "261001",
+   "county_tiger": [
+    "Washtenaw"
+   ],
+   "via_county": "261001"
+  },
+  {
+   "tag": "22L2 f=0.500 d=+500",
+   "lat": 42.21178377,
+   "lon": -83.5374454,
+   "ncat": "261002",
+   "ngs_polygon": "261002",
+   "county_tiger": [
+    "Wayne"
+   ],
+   "via_county": "261002"
+  },
+  {
+   "tag": "22L3 f=0.500 d=-15",
+   "lat": 45.98610334,
+   "lon": -87.24269134,
+   "ncat": "261014",
+   "ngs_polygon": "261014",
+   "county_tiger": [
+    "Delta"
+   ],
+   "via_county": "261014"
+  },
+  {
+   "tag": "22L3 f=0.500 d=+15",
+   "lat": 45.98610334,
+   "lon": -87.24307866,
+   "ncat": "261015",
+   "ngs_polygon": "261015",
+   "county_tiger": [
+    "Marquette"
+   ],
+   "via_county": "261015"
+  },
+  {
+   "tag": "22L3 f=0.500 d=-50",
+   "lat": 45.98610334,
+   "lon": -87.24223946,
+   "ncat": "261014",
+   "ngs_polygon": "261014",
+   "county_tiger": [
+    "Delta"
+   ],
+   "via_county": "261014"
+  },
+  {
+   "tag": "22L3 f=0.500 d=+50",
+   "lat": 45.98610334,
+   "lon": -87.24353054,
+   "ncat": "261015",
+   "ngs_polygon": "261015",
+   "county_tiger": [
+    "Marquette"
+   ],
+   "via_county": "261015"
+  },
+  {
+   "tag": "22L3 f=0.500 d=-500",
+   "lat": 45.98610316,
+   "lon": -87.23642964,
+   "ncat": "261014",
+   "ngs_polygon": "261014",
+   "county_tiger": [
+    "Delta"
+   ],
+   "via_county": "261014"
+  },
+  {
+   "tag": "22L3 f=0.500 d=+500",
+   "lat": 45.98610316,
+   "lon": -87.24934035,
+   "ncat": "261015",
+   "ngs_polygon": "261015",
+   "county_tiger": [
+    "Marquette"
+   ],
+   "via_county": "261015"
+  },
+  {
+   "tag": "22L4 f=0.500 d=-15",
+   "lat": 42.42103028,
+   "lon": -85.49611956,
+   "ncat": "261007",
+   "ngs_polygon": "261007",
+   "county_tiger": [
+    "Kalamazoo"
+   ],
+   "via_county": "261007"
+  },
+  {
+   "tag": "22L4 f=0.500 d=+15",
+   "lat": 42.42130031,
+   "lon": -85.49610873,
+   "ncat": "261008",
+   "ngs_polygon": "261008",
+   "county_tiger": [
+    "Barry"
+   ],
+   "via_county": "261008"
+  },
+  {
+   "tag": "22L4 f=0.500 d=-50",
+   "lat": 42.42071524,
+   "lon": -85.4961322,
+   "ncat": "261007",
+   "ngs_polygon": "261007",
+   "county_tiger": [
+    "Kalamazoo"
+   ],
+   "via_county": "261007"
+  },
+  {
+   "tag": "22L4 f=0.500 d=+50",
+   "lat": 42.42161536,
+   "lon": -85.49609609,
+   "ncat": "261008",
+   "ngs_polygon": "261008",
+   "county_tiger": [
+    "Barry"
+   ],
+   "via_county": "261008"
+  },
+  {
+   "tag": "22L4 f=0.500 d=-500",
+   "lat": 42.41666469,
+   "lon": -85.49629472,
+   "ncat": "261007",
+   "ngs_polygon": "261007",
+   "county_tiger": [
+    "Kalamazoo"
+   ],
+   "via_county": "261007"
+  },
+  {
+   "tag": "22L4 f=0.500 d=+500",
+   "lat": 42.4256659,
+   "lon": -85.49593355,
+   "ncat": "261008",
+   "ngs_polygon": "261008",
+   "county_tiger": [
+    "Barry"
+   ],
+   "via_county": "261008"
+  },
+  {
+   "tag": "22L5 f=0.500 d=-15",
+   "lat": 45.19861376,
+   "lon": -84.18423481,
+   "ncat": "261006",
+   "ngs_polygon": "261006",
+   "county_tiger": [
+    "Montmorency"
+   ],
+   "via_county": "261006"
+  },
+  {
+   "tag": "22L5 f=0.500 d=+15",
+   "lat": 45.19888375,
+   "lon": -84.18423223,
+   "ncat": "261012",
+   "ngs_polygon": "261012",
+   "county_tiger": [
+    "Presque Isle"
+   ],
+   "via_county": "261012"
+  },
+  {
+   "tag": "22L5 f=0.500 d=-50",
+   "lat": 45.19829878,
+   "lon": -84.18423782,
+   "ncat": "261006",
+   "ngs_polygon": "261006",
+   "county_tiger": [
+    "Montmorency"
+   ],
+   "via_county": "261006"
+  },
+  {
+   "tag": "22L5 f=0.500 d=+50",
+   "lat": 45.19919874,
+   "lon": -84.18422921,
+   "ncat": "261012",
+   "ngs_polygon": "261012",
+   "county_tiger": [
+    "Presque Isle"
+   ],
+   "via_county": "261012"
+  },
+  {
+   "tag": "22L5 f=0.500 d=-500",
+   "lat": 45.19424895,
+   "lon": -84.18427655,
+   "ncat": "261006",
+   "ngs_polygon": "261006",
+   "county_tiger": [
+    "Montmorency"
+   ],
+   "via_county": "261006"
+  },
+  {
+   "tag": "22L5 f=0.500 d=+500",
+   "lat": 45.20324856,
+   "lon": -84.18419047,
+   "ncat": "261012",
+   "ngs_polygon": "261012",
+   "county_tiger": [
+    "Presque Isle"
+   ],
+   "via_county": "261012"
+  },
+  {
+   "tag": "22L6 f=0.500 d=-15",
+   "lat": 46.47739556,
+   "lon": -88.11639274,
+   "ncat": "261015",
+   "ngs_polygon": "261015",
+   "county_tiger": [
+    "Marquette"
+   ],
+   "via_county": "261015"
+  },
+  {
+   "tag": "22L6 f=0.500 d=+15",
+   "lat": 46.47739474,
+   "lon": -88.1167835,
+   "ncat": "261016",
+   "ngs_polygon": "261016",
+   "county_tiger": [
+    "Baraga"
+   ],
+   "via_county": "261016"
+  },
+  {
+   "tag": "22L6 f=0.500 d=-50",
+   "lat": 46.47739652,
+   "lon": -88.11593685,
+   "ncat": "261015",
+   "ngs_polygon": "261015",
+   "county_tiger": [
+    "Marquette"
+   ],
+   "via_county": "261015"
+  },
+  {
+   "tag": "22L6 f=0.500 d=+50",
+   "lat": 46.47739377,
+   "lon": -88.11723938,
+   "ncat": "261016",
+   "ngs_polygon": "261016",
+   "county_tiger": [
+    "Baraga"
+   ],
+   "via_county": "261016"
+  },
+  {
+   "tag": "22L6 f=0.500 d=-500",
+   "lat": 46.47740868,
+   "lon": -88.11007543,
+   "ncat": "261015",
+   "ngs_polygon": "261015",
+   "county_tiger": [
+    "Marquette"
+   ],
+   "via_county": "261015"
+  },
+  {
+   "tag": "22L6 f=0.500 d=+500",
+   "lat": 46.47738124,
+   "lon": -88.1231008,
+   "ncat": "261016",
+   "ngs_polygon": "261016",
+   "county_tiger": [
+    "Baraga"
+   ],
+   "via_county": "261016"
+  },
+  {
+   "tag": "22L7 f=0.500 d=-15",
+   "lat": 44.5078988,
+   "lon": -84.08500362,
+   "ncat": "261005",
+   "ngs_polygon": "261005",
+   "county_tiger": [
+    "Ogemaw"
+   ],
+   "via_county": "261005"
+  },
+  {
+   "tag": "22L7 f=0.500 d=+15",
+   "lat": 44.50816884,
+   "lon": -84.08500702,
+   "ncat": "261006",
+   "ngs_polygon": "261006",
+   "county_tiger": [
+    "Oscoda"
+   ],
+   "via_county": "261006"
+  },
+  {
+   "tag": "22L7 f=0.500 d=-50",
+   "lat": 44.50758377,
+   "lon": -84.08499965,
+   "ncat": "261005",
+   "ngs_polygon": "261005",
+   "county_tiger": [
+    "Ogemaw"
+   ],
+   "via_county": "261005"
+  },
+  {
+   "tag": "22L7 f=0.500 d=+50",
+   "lat": 44.50848387,
+   "lon": -84.085011,
+   "ncat": "261006",
+   "ngs_polygon": "261006",
+   "county_tiger": [
+    "Oscoda"
+   ],
+   "via_county": "261006"
+  },
+  {
+   "tag": "22L7 f=0.500 d=-500",
+   "lat": 44.50353328,
+   "lon": -84.08494859,
+   "ncat": "261005",
+   "ngs_polygon": "261005",
+   "county_tiger": [
+    "Ogemaw"
+   ],
+   "via_county": "261005"
+  },
+  {
+   "tag": "22L7 f=0.500 d=+500",
+   "lat": 44.51253436,
+   "lon": -84.08506206,
+   "ncat": "261006",
+   "ngs_polygon": "261006",
+   "county_tiger": [
+    "Oscoda"
+   ],
+   "via_county": "261006"
+  },
+  {
+   "tag": "22L8 f=0.500 d=-15",
+   "lat": 46.6315836,
+   "lon": -88.9900852,
+   "ncat": "261016",
+   "ngs_polygon": "261016",
+   "county_tiger": [
+    "Houghton"
+   ],
+   "via_county": "261016"
+  },
+  {
+   "tag": "22L8 f=0.500 d=+15",
+   "lat": 46.631586,
+   "lon": -88.99047699,
+   "ncat": "261017",
+   "ngs_polygon": "261017",
+   "county_tiger": [
+    "Ontonagon"
+   ],
+   "via_county": "261017"
+  },
+  {
+   "tag": "22L8 f=0.500 d=-50",
+   "lat": 46.6315808,
+   "lon": -88.98962811,
+   "ncat": "261016",
+   "ngs_polygon": "261016",
+   "county_tiger": [
+    "Houghton"
+   ],
+   "via_county": "261016"
+  },
+  {
+   "tag": "22L8 f=0.500 d=+50",
+   "lat": 46.63158879,
+   "lon": -88.99093408,
+   "ncat": "261017",
+   "ngs_polygon": "261017",
+   "county_tiger": [
+    "Ontonagon"
+   ],
+   "via_county": "261017"
+  },
+  {
+   "tag": "22L8 f=0.500 d=-500",
+   "lat": 46.6315447,
+   "lon": -88.98375125,
+   "ncat": "261016",
+   "ngs_polygon": "261016",
+   "county_tiger": [
+    "Houghton"
+   ],
+   "via_county": "261016"
+  },
+  {
+   "tag": "22L8 f=0.500 d=+500",
+   "lat": 46.63162452,
+   "lon": -88.99681094,
+   "ncat": "261017",
+   "ngs_polygon": "261017",
+   "county_tiger": [
+    "Ontonagon"
+   ],
+   "via_county": "261017"
+  },
+  {
+   "tag": "22L9 f=0.500 d=-15",
+   "lat": 42.88816649,
+   "lon": -83.12588056,
+   "ncat": "261002",
+   "ngs_polygon": "261002",
+   "county_tiger": [
+    "Oakland"
+   ],
+   "via_county": "261002"
+  },
+  {
+   "tag": "22L9 f=0.500 d=+15",
+   "lat": 42.88843645,
+   "lon": -83.12589279,
+   "ncat": "261003",
+   "ngs_polygon": "261003",
+   "county_tiger": [
+    "Lapeer"
+   ],
+   "via_county": "261003"
+  },
+  {
+   "tag": "22L9 f=0.500 d=-50",
+   "lat": 42.88785153,
+   "lon": -83.12586629,
+   "ncat": "261002",
+   "ngs_polygon": "261002",
+   "county_tiger": [
+    "Oakland"
+   ],
+   "via_county": "261002"
+  },
+  {
+   "tag": "22L9 f=0.500 d=+50",
+   "lat": 42.88875141,
+   "lon": -83.12590706,
+   "ncat": "261003",
+   "ngs_polygon": "261003",
+   "county_tiger": [
+    "Lapeer"
+   ],
+   "via_county": "261003"
+  },
+  {
+   "tag": "22L9 f=0.500 d=-500",
+   "lat": 42.88380205,
+   "lon": -83.12568288,
+   "ncat": "261002",
+   "ngs_polygon": "261002",
+   "county_tiger": [
+    "Oakland"
+   ],
+   "via_county": "261002"
+  },
+  {
+   "tag": "22L9 f=0.500 d=+500",
+   "lat": 42.89280088,
+   "lon": -83.1260905,
+   "ncat": "261003",
+   "ngs_polygon": "261003",
+   "county_tiger": [
+    "Lapeer"
+   ],
+   "via_county": "261003"
+  },
+  {
+   "tag": "lake_michigan_mi_side_near_state_line",
+   "lat": 43.5,
+   "lon": -87.1,
+   "ncat": "261009",
+   "ngs_polygon": null,
+   "county_tiger": [
+    "Oceana"
+   ],
+   "via_county": "261009"
+  },
+  {
+   "tag": "lake_michigan_mid",
+   "lat": 44.0,
+   "lon": -86.9,
+   "ncat": "261010",
+   "ngs_polygon": null,
+   "county_tiger": [
+    "Mason"
+   ],
+   "via_county": "261010"
+  },
+  {
+   "tag": "lake_michigan_wi_side",
+   "lat": 43.5,
+   "lon": -87.6,
+   "ncat": "WI KMOR-551027 (Multizone complete)",
+   "ngs_polygon": null,
+   "county_tiger": [],
+   "via_county": null
+  },
+  {
+   "tag": "saginaw_bay",
+   "lat": 43.9,
+   "lon": -83.6,
+   "ncat": "261004",
+   "ngs_polygon": null,
+   "county_tiger": [
+    "Huron"
+   ],
+   "via_county": "261004"
+  },
+  {
+   "tag": "lake_huron_mi_waters",
+   "lat": 44.5,
+   "lon": -82.7,
+   "ncat": "261005",
+   "ngs_polygon": null,
+   "county_tiger": [
+    "Iosco"
+   ],
+   "via_county": "261005"
+  },
+  {
+   "tag": "lake_huron_ontario_waters",
+   "lat": 44.5,
+   "lon": -82.2,
+   "ncat": "N/A N/A",
+   "ngs_polygon": null,
+   "county_tiger": [],
+   "via_county": null
+  },
+  {
+   "tag": "lake_superior_mi_waters",
+   "lat": 47.3,
+   "lon": -87.0,
+   "ncat": "261014",
+   "ngs_polygon": null,
+   "county_tiger": [
+    "Alger"
+   ],
+   "via_county": "261014"
+  },
+  {
+   "tag": "lake_superior_far_north",
+   "lat": 47.95,
+   "lon": -88.4,
+   "ncat": "261018",
+   "ngs_polygon": null,
+   "county_tiger": [
+    "Keweenaw"
+   ],
+   "via_county": "261016"
+  },
+  {
+   "tag": "lake_erie_mi_waters",
+   "lat": 41.8,
+   "lon": -83.3,
+   "ncat": "OH LUC-391048 (Multizone complete)",
+   "ngs_polygon": null,
+   "county_tiger": [],
+   "via_county": null
+  },
+  {
+   "tag": "detroit_river",
+   "lat": 42.3,
+   "lon": -83.08,
+   "ncat": "N/A N/A",
+   "ngs_polygon": null,
+   "county_tiger": [],
+   "via_county": null
+  },
+  {
+   "tag": "straits_mackinac",
+   "lat": 45.82,
+   "lon": -84.73,
+   "ncat": "261013",
+   "ngs_polygon": null,
+   "county_tiger": [
+    "Mackinac"
+   ],
+   "via_county": "261013"
+  },
+  {
+   "tag": "toledo_oh",
+   "lat": 41.65,
+   "lon": -83.55,
+   "ncat": "OH LUC-391048 (Multizone complete)",
+   "ngs_polygon": null,
+   "county_tiger": [],
+   "via_county": null
+  },
+  {
+   "tag": "indiana_south_bend",
+   "lat": 41.6,
+   "lon": -86.3,
+   "ncat": "IN 1030-181030 (Multizone complete)",
+   "ngs_polygon": null,
+   "county_tiger": [],
+   "via_county": null
+  },
+  {
+   "tag": "wisconsin_marinette",
+   "lat": 45.05,
+   "lon": -87.7,
+   "ncat": "WI MARI-551033 (Multizone complete)",
+   "ngs_polygon": null,
+   "county_tiger": [],
+   "via_county": null
+  },
+  {
+   "tag": "windsor_on",
+   "lat": 42.28,
+   "lon": -83.0,
+   "ncat": "N/A N/A",
+   "ngs_polygon": null,
+   "county_tiger": [],
+   "via_county": null
+  },
+  {
+   "tag": "lansing",
+   "lat": 42.73,
+   "lon": -84.55,
+   "ncat": "261008",
+   "ngs_polygon": "261008",
+   "county_tiger": [
+    "Ingham"
+   ],
+   "via_county": "261008"
+  }
+ ]
+}

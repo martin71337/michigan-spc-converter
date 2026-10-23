@@ -1,0 +1,1242 @@
+{
+ "spcs83_fine": [
+  {
+   "tag": "F83CS0 f=0.060 d=-20.0",
+   "lat": 43.940091175,
+   "lon": -84.044737615,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_000.json",
+   "sha256": "44025cc162fa9dd379d1e0d2153daa437d6965b45c582d3abf98d6a703a3c691"
+  },
+  {
+   "tag": "F83CS0 f=0.060 d=-10.0",
+   "lat": 43.940090601,
+   "lon": -84.044862205,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_001.json",
+   "sha256": "48e4573ce5ae79304936fbcd82bcdaf9bd19657469fe253b635c8ae44a4de3c8"
+  },
+  {
+   "tag": "F83CS0 f=0.060 d=-5.0",
+   "lat": 43.940090314,
+   "lon": -84.044924499,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_002.json",
+   "sha256": "93fdc2f23e964990d26bc346fe9d363e90b6e5a4fd5b5e33f1dcdb8cd598b464"
+  },
+  {
+   "tag": "F83CS0 f=0.060 d=-3.0",
+   "lat": 43.9400902,
+   "lon": -84.044949417,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_003.json",
+   "sha256": "4d49667d95c8215c4b80892100270a760db0ec80ed3408fcb01d4b31d27352fb"
+  },
+  {
+   "tag": "F83CS0 f=0.060 d=-2.0",
+   "lat": 43.940090142,
+   "lon": -84.044961876,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_004.json",
+   "sha256": "737d55416a93c0493193570b87ce79218f65e64c6240928ca9d2c8e52be89b6c"
+  },
+  {
+   "tag": "F83CS0 f=0.060 d=-1.0",
+   "lat": 43.940090085,
+   "lon": -84.044974335,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_005.json",
+   "sha256": "20ce8e3f1363592a3e7428cbc8701ce3b792c3a903a5fbbc1f5296a334303328"
+  },
+  {
+   "tag": "F83CS0 f=0.060 d=-0.3",
+   "lat": 43.940090045,
+   "lon": -84.044983056,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_006.json",
+   "sha256": "0ac2f4581fdf302f287d28fb5ea7fc355f94df9940c57c6baac596f780f7e410"
+  },
+  {
+   "tag": "F83CS0 f=0.060 d=+0.3",
+   "lat": 43.94009001,
+   "lon": -84.044990532,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_007.json",
+   "sha256": "4fe98cf1e014c264d7d8c15dc0f1c791e7a2cd3f05eb474fa12f7525f0ed4c86"
+  },
+  {
+   "tag": "F83CS0 f=0.060 d=+1.0",
+   "lat": 43.94008997,
+   "lon": -84.044999253,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_008.json",
+   "sha256": "9f1b9542297271ff491dd10e72e5b030ef9fb4d8049a41f1206d02f6d59a9471"
+  },
+  {
+   "tag": "F83CS0 f=0.060 d=+2.0",
+   "lat": 43.940089913,
+   "lon": -84.045011712,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_009.json",
+   "sha256": "9f2c18f0b201c59c27e356b3754c31f4af3f459f36cd3649a1ec1146d8015e65"
+  },
+  {
+   "tag": "F83CS0 f=0.060 d=+3.0",
+   "lat": 43.940089856,
+   "lon": -84.045024171,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_010.json",
+   "sha256": "073642b1c3efb36e8773d7cec577c27feac563e2d51f77c61b3e2e1fc978bbc8"
+  },
+  {
+   "tag": "F83CS0 f=0.060 d=+5.0",
+   "lat": 43.940089741,
+   "lon": -84.045049088,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_011.json",
+   "sha256": "baf11a105388f2fcd0966e3aa7c6f2a0d718fc13bb9d6f3c162cf53d43366d16"
+  },
+  {
+   "tag": "F83CS0 f=0.060 d=+10.0",
+   "lat": 43.940089454,
+   "lon": -84.045111383,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_012.json",
+   "sha256": "3ca241310f4eb390b60bc3db1b8e576f3c5b350247af72a5241556091ac93871"
+  },
+  {
+   "tag": "F83CS0 f=0.060 d=+20.0",
+   "lat": 43.94008888,
+   "lon": -84.045235972,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_013.json",
+   "sha256": "eb2559d52d162bcb56f147f6f0c082959cfc53d69f9813adfb6b9f51b749ec83"
+  },
+  {
+   "tag": "F83CS0 f=0.190 d=-20.0",
+   "lat": 43.868837077,
+   "lon": -84.1667711,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_014.json",
+   "sha256": "e83d3b0db8187f69642003fcc17726ae947c75baf11cabdc2670b90a0e68cac2"
+  },
+  {
+   "tag": "F83CS0 f=0.190 d=-10.0",
+   "lat": 43.868835772,
+   "lon": -84.166646667,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_015.json",
+   "sha256": "9262f9c4e923dd6c4da201c3922314e74a9a069c6fe5e16ce42e8fd633b5652e"
+  },
+  {
+   "tag": "F83CS0 f=0.190 d=-5.0",
+   "lat": 43.86883512,
+   "lon": -84.166584451,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_016.json",
+   "sha256": "e27cf975f17615ab2dda51f073349f760a4d5ae035ccaffd3489ab7c72721287"
+  },
+  {
+   "tag": "F83CS0 f=0.190 d=-3.0",
+   "lat": 43.868834859,
+   "lon": -84.166559564,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_017.json",
+   "sha256": "534356ea78756b96b68f7b25c9bcc1212a1ac58ad16ee56025df440b20713ab4"
+  },
+  {
+   "tag": "F83CS0 f=0.190 d=-2.0",
+   "lat": 43.868834728,
+   "lon": -84.166547121,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_018.json",
+   "sha256": "be67d6ea7321b5e53eff62cf24207dc4a3a35f2b604eccba8af741e949b14bee"
+  },
+  {
+   "tag": "F83CS0 f=0.190 d=-1.0",
+   "lat": 43.868834598,
+   "lon": -84.166534677,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_019.json",
+   "sha256": "82b1683675e70a6f82c922f9e1cdd7052371033641244d56d265b134e812bb36"
+  },
+  {
+   "tag": "F83CS0 f=0.190 d=-0.3",
+   "lat": 43.868834507,
+   "lon": -84.166525967,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_020.json",
+   "sha256": "46d7346937711e0984abe7c18e5c7693a8b204aab91e46094a0bcadc97d66838"
+  },
+  {
+   "tag": "F83CS0 f=0.190 d=+0.3",
+   "lat": 43.868834428,
+   "lon": -84.166518501,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_021.json",
+   "sha256": "7c691ed1f5a71d87f76f144467f1f4d9010d8bd90a1eb3c3943d629537dcc725"
+  },
+  {
+   "tag": "F83CS0 f=0.190 d=+1.0",
+   "lat": 43.868834337,
+   "lon": -84.166509791,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_022.json",
+   "sha256": "337272de720f48712527d8f66a74c0d668e5b9f3b2fb56382d4fc36fe2be49ec"
+  },
+  {
+   "tag": "F83CS0 f=0.190 d=+2.0",
+   "lat": 43.868834206,
+   "lon": -84.166497347,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_023.json",
+   "sha256": "1e1cc1a50293a5c8ac90114f918cde5bce1a319a9a7d7990fae551fbf9665581"
+  },
+  {
+   "tag": "F83CS0 f=0.190 d=+3.0",
+   "lat": 43.868834076,
+   "lon": -84.166484904,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_024.json",
+   "sha256": "8b4522d07d85b9e54363d1a4768d0604cce86b93515817111bd2bf72a8cffbb0"
+  },
+  {
+   "tag": "F83CS0 f=0.190 d=+5.0",
+   "lat": 43.868833815,
+   "lon": -84.166460017,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_025.json",
+   "sha256": "38f0c8febdb9a7ac49f471ab02e21f2f72c1f412ae30011489a7f0b0c293dd27"
+  },
+  {
+   "tag": "F83CS0 f=0.190 d=+10.0",
+   "lat": 43.868833163,
+   "lon": -84.166397801,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_026.json",
+   "sha256": "b60f244920bd52d9138359ade460457a8ec544f1e50d7bff0297c8e7540d8bbe"
+  },
+  {
+   "tag": "F83CS0 f=0.190 d=+20.0",
+   "lat": 43.868831858,
+   "lon": -84.166273368,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_027.json",
+   "sha256": "10292e127ebafed4d14c8bcfa6a6e90533f040d65cde921571c10486bf943606"
+  },
+  {
+   "tag": "F83CS0 f=0.310 d=-20.0",
+   "lat": 43.814254,
+   "lon": -84.434731975,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_028.json",
+   "sha256": "f89affa05aa18394255eaad4584b0900881131e508f9b27bae3ff5cd862ffd9a"
+  },
+  {
+   "tag": "F83CS0 f=0.310 d=-10.0",
+   "lat": 43.814163972,
+   "lon": -84.434733465,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_029.json",
+   "sha256": "23748a1e18881be3b3f449509cac34217788a4d2dde05778319ffad0cf307250"
+  },
+  {
+   "tag": "F83CS0 f=0.310 d=-5.0",
+   "lat": 43.814118957,
+   "lon": -84.434734211,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_030.json",
+   "sha256": "8f2fe0b883aa3b91de6854c08bf444abc239cb3f6871a795517f558ca6cf2a18"
+  },
+  {
+   "tag": "F83CS0 f=0.310 d=-3.0",
+   "lat": 43.814100952,
+   "lon": -84.434734509,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_031.json",
+   "sha256": "92a7e10c8729e0c435e4bed41ba5b2b5b3720b97ff5f768b9ccdbd7ed9d0cd5c"
+  },
+  {
+   "tag": "F83CS0 f=0.310 d=-2.0",
+   "lat": 43.814091949,
+   "lon": -84.434734658,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_032.json",
+   "sha256": "a4c6a15dc50d6de351cfa70afcae8d38bf58d17ea68188aa44164d99ab90a7ac"
+  },
+  {
+   "tag": "F83CS0 f=0.310 d=-1.0",
+   "lat": 43.814082946,
+   "lon": -84.434734807,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_033.json",
+   "sha256": "8def9c1a8547d17319fdb3a419b79821d140d58d8954927e024284958087e279"
+  },
+  {
+   "tag": "F83CS0 f=0.310 d=-0.3",
+   "lat": 43.814076644,
+   "lon": -84.434734912,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_034.json",
+   "sha256": "46db12d8f685e0e6a058084f5dd6d6da39804d920d4088603d14feb4259216e6"
+  },
+  {
+   "tag": "F83CS0 f=0.310 d=+0.3",
+   "lat": 43.814071242,
+   "lon": -84.434735001,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_035.json",
+   "sha256": "998a2f0f6dc50122b904c6138168c936e84f7c9f3c36e11c911928d404770179"
+  },
+  {
+   "tag": "F83CS0 f=0.310 d=+1.0",
+   "lat": 43.81406494,
+   "lon": -84.434735105,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_036.json",
+   "sha256": "834d03a7287d68141053435370ce6447e2a1156779bd9d19e9bbe114600d1331"
+  },
+  {
+   "tag": "F83CS0 f=0.310 d=+2.0",
+   "lat": 43.814055937,
+   "lon": -84.434735255,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_037.json",
+   "sha256": "e60446f08b632ca78cded79a7353ada082addc3c5542b9630c04c7e0ca7f5ca1"
+  },
+  {
+   "tag": "F83CS0 f=0.310 d=+3.0",
+   "lat": 43.814046934,
+   "lon": -84.434735404,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_038.json",
+   "sha256": "ba002bceb0003d799111172e4b056949b0dfd7d0459d4d3851e7209d83eb260a"
+  },
+  {
+   "tag": "F83CS0 f=0.310 d=+5.0",
+   "lat": 43.814028929,
+   "lon": -84.434735702,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_039.json",
+   "sha256": "3b76c2b782bb7e877d67d224c6566ef548bdfaad3136b2b8479eb947e40a791b"
+  },
+  {
+   "tag": "F83CS0 f=0.310 d=+10.0",
+   "lat": 43.813983914,
+   "lon": -84.434736447,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_040.json",
+   "sha256": "e3aeee4d1c185bb1b05437eb5cb7d514890cab68db59eeba3cf81195451bdad0"
+  },
+  {
+   "tag": "F83CS0 f=0.310 d=+20.0",
+   "lat": 43.813893886,
+   "lon": -84.434737938,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_041.json",
+   "sha256": "89c90c43344fee2e833cf3a2cda9b6a097dba6db5ebc34196dc8efc240ca2ba1"
+  },
+  {
+   "tag": "F83CS0 f=0.440 d=-20.0",
+   "lat": 43.814723603,
+   "lon": -84.810738388,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_042.json",
+   "sha256": "fb8b3f558c903364561002ac5b938a5cf4690795cf26077d2150dfafd99ead90"
+  },
+  {
+   "tag": "F83CS0 f=0.440 d=-10.0",
+   "lat": 43.814633568,
+   "lon": -84.810737398,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_043.json",
+   "sha256": "3c6461eb2c16e61c108ccfecc1bd854203bf343304f30f29783416589d2178c2"
+  },
+  {
+   "tag": "F83CS0 f=0.440 d=-5.0",
+   "lat": 43.814588551,
+   "lon": -84.810736902,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_044.json",
+   "sha256": "64d031b64432ef762e61c8a7e5e24465179cf64ee3729cad0ba4b22a91046358"
+  },
+  {
+   "tag": "F83CS0 f=0.440 d=-3.0",
+   "lat": 43.814570544,
+   "lon": -84.810736704,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_045.json",
+   "sha256": "767e35d30b85e16cadf08e3389f83764366cb26d71ba20248efd254b5ef9d924"
+  },
+  {
+   "tag": "F83CS0 f=0.440 d=-2.0",
+   "lat": 43.814561541,
+   "lon": -84.810736605,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_046.json",
+   "sha256": "920b808e8bfd3bdf074c335766c3856150b193bb6d1de0496130a5588011d144"
+  },
+  {
+   "tag": "F83CS0 f=0.440 d=-1.0",
+   "lat": 43.814552537,
+   "lon": -84.810736506,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_047.json",
+   "sha256": "a7388908377511606436f4b67722ddc5e9e21b611f72535300cb3b3dbc82627e"
+  },
+  {
+   "tag": "F83CS0 f=0.440 d=-0.3",
+   "lat": 43.814546235,
+   "lon": -84.810736437,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_048.json",
+   "sha256": "fc68c348f6e06044102adf30501b0b239ca76f1c0608a9b29e7d600a810df03d"
+  },
+  {
+   "tag": "F83CS0 f=0.440 d=+0.3",
+   "lat": 43.814540833,
+   "lon": -84.810736377,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_049.json",
+   "sha256": "ab684366aaf7f208cabaefd41adccf7b62a49a1465274c549925ca9df1302307"
+  },
+  {
+   "tag": "F83CS0 f=0.440 d=+1.0",
+   "lat": 43.81453453,
+   "lon": -84.810736308,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_050.json",
+   "sha256": "8ef3f1b2167684fbde39ad2726e4dee2247cda0b0758a405cd904cc6a42977be"
+  },
+  {
+   "tag": "F83CS0 f=0.440 d=+2.0",
+   "lat": 43.814525527,
+   "lon": -84.810736209,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_051.json",
+   "sha256": "82e55b8255afb5c6ab3573e02cc460273b82ef40033315accdcc21355ff4c099"
+  },
+  {
+   "tag": "F83CS0 f=0.440 d=+3.0",
+   "lat": 43.814516523,
+   "lon": -84.81073611,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_052.json",
+   "sha256": "5e30dea6b6e58f8ea9cd4a9ba405617a0a6842bae0b388f8b1c9e1c1f6422e07"
+  },
+  {
+   "tag": "F83CS0 f=0.440 d=+5.0",
+   "lat": 43.814498516,
+   "lon": -84.810735912,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_053.json",
+   "sha256": "e5871e4942a652655829bedab11ae1ced2e6a5fdaea89f07f980111b2040d968"
+  },
+  {
+   "tag": "F83CS0 f=0.440 d=+10.0",
+   "lat": 43.814453499,
+   "lon": -84.810735417,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_054.json",
+   "sha256": "c70505a460442344c726070396f9ab0fc7d53a3971807d957d6988ef0bfb014b"
+  },
+  {
+   "tag": "F83CS0 f=0.440 d=+20.0",
+   "lat": 43.814363465,
+   "lon": -84.810734426,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_055.json",
+   "sha256": "75b3ce9ce6b2677d52e397a647d95257dd12f7be12d97aa3a59e6827c7dfafae"
+  },
+  {
+   "tag": "F83CS0 f=0.560 d=-20.0",
+   "lat": 43.813780662,
+   "lon": -85.15775468,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_056.json",
+   "sha256": "ace1542f8209490fb4d8340cb2eb8eb1253a154fe6701505c253668ea683c131"
+  },
+  {
+   "tag": "F83CS0 f=0.560 d=-10.0",
+   "lat": 43.813690627,
+   "lon": -85.157755584,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_057.json",
+   "sha256": "0c6b57ad53cac9c290b78e03d1d51746c3b0cb517652f446d9d916fa774f9ece"
+  },
+  {
+   "tag": "F83CS0 f=0.560 d=-5.0",
+   "lat": 43.813645609,
+   "lon": -85.157756036,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_058.json",
+   "sha256": "a0684367f8bee85310d03c9900e4d76daaa42e3e96b193826220bd967d957e92"
+  },
+  {
+   "tag": "F83CS0 f=0.560 d=-3.0",
+   "lat": 43.813627602,
+   "lon": -85.157756217,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_059.json",
+   "sha256": "426de1e02dab91bdc72b9ecc559622708a58040385d30ae1134e2b66d450406b"
+  },
+  {
+   "tag": "F83CS0 f=0.560 d=-2.0",
+   "lat": 43.813618598,
+   "lon": -85.157756307,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_060.json",
+   "sha256": "aebc70f77847a2fd129942d2a8f43095c149bb3c6b2fc1e5246f6b3b50ba55f7"
+  },
+  {
+   "tag": "F83CS0 f=0.560 d=-1.0",
+   "lat": 43.813609595,
+   "lon": -85.157756398,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_061.json",
+   "sha256": "2a41ae750b5de38b7ee554e6634e9b4eeeecac8dd1bcf3f1188fcaeea5e61097"
+  },
+  {
+   "tag": "F83CS0 f=0.560 d=-0.3",
+   "lat": 43.813603292,
+   "lon": -85.157756461,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_062.json",
+   "sha256": "c4e1dac4b84699d1aaacf2a9b57ed226bc3d1a81633678b5500f86a498e11c83"
+  },
+  {
+   "tag": "F83CS0 f=0.560 d=+0.3",
+   "lat": 43.81359789,
+   "lon": -85.157756515,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_063.json",
+   "sha256": "28fc7bb0e888b5954dcc6fc81fec7e9950abce8e9dba9a21da0922543bf9eb17"
+  },
+  {
+   "tag": "F83CS0 f=0.560 d=+1.0",
+   "lat": 43.813591587,
+   "lon": -85.157756578,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_064.json",
+   "sha256": "59f4f4bed8ca2e6d38de3a277d45ffb795239e3dbaed2cb692a3ae974f89f25d"
+  },
+  {
+   "tag": "F83CS0 f=0.560 d=+2.0",
+   "lat": 43.813582584,
+   "lon": -85.157756669,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_065.json",
+   "sha256": "ecfc9654c285977fc34551b7f017a1c5d05c6b2ed0f3cf4028844fe4318c30e8"
+  },
+  {
+   "tag": "F83CS0 f=0.560 d=+3.0",
+   "lat": 43.81357358,
+   "lon": -85.157756759,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_066.json",
+   "sha256": "a8cb365bffd5c13c60a97338fc3a63c74235fb0bd116ec342d4b354eefcf8a08"
+  },
+  {
+   "tag": "F83CS0 f=0.560 d=+5.0",
+   "lat": 43.813555573,
+   "lon": -85.15775694,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_067.json",
+   "sha256": "36e78189fc1d2e021cc21e15b79312f8c6b0da72cbf4eca30586e8ae5973ad91"
+  },
+  {
+   "tag": "F83CS0 f=0.560 d=+10.0",
+   "lat": 43.813510555,
+   "lon": -85.157757392,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_068.json",
+   "sha256": "ba59c0e736170d32f42dcd5c4c121521b9eeb0caea2974d2f33f463ad090a14d"
+  },
+  {
+   "tag": "F83CS0 f=0.560 d=+20.0",
+   "lat": 43.81342052,
+   "lon": -85.157758296,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_069.json",
+   "sha256": "2e03381a781c4b1378168663628f499a6a5f1dbe85ffaba8e61e5f86d6cc7c9b"
+  },
+  {
+   "tag": "F83CS0 f=0.690 d=-20.0",
+   "lat": 43.815628044,
+   "lon": -85.533724749,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_070.json",
+   "sha256": "160ba9541acc74c67e43c0d0dacfc062eea781f4c0eca85f18baf95c901a5554"
+  },
+  {
+   "tag": "F83CS0 f=0.690 d=-10.0",
+   "lat": 43.815538007,
+   "lon": -85.533724898,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_071.json",
+   "sha256": "636731dd83e1fd862a40cc5feee69737d2a7c97efa54f08ce614421ef90f5a0b"
+  },
+  {
+   "tag": "F83CS0 f=0.690 d=-5.0",
+   "lat": 43.815492989,
+   "lon": -85.533724973,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_072.json",
+   "sha256": "91884db39a0ecbbc3ce10bfc6595ac777c94b0081b7eeb8288db555909ccd0e5"
+  },
+  {
+   "tag": "F83CS0 f=0.690 d=-3.0",
+   "lat": 43.815474981,
+   "lon": -85.533725002,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_073.json",
+   "sha256": "cc9dc9e216baa8520d2269cdcbd9ab55fbed22389e76fd78c85879937c627baa"
+  },
+  {
+   "tag": "F83CS0 f=0.690 d=-2.0",
+   "lat": 43.815465977,
+   "lon": -85.533725017,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_074.json",
+   "sha256": "59b58a10ae2dbef27665323522d367079de225eb2b91beeaa3c3abad34846f6e"
+  },
+  {
+   "tag": "F83CS0 f=0.690 d=-1.0",
+   "lat": 43.815456974,
+   "lon": -85.533725032,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_075.json",
+   "sha256": "e12106e98bed0217b5ee4b404602b56fc9bcb0280349207bba25a44fc4082bba"
+  },
+  {
+   "tag": "F83CS0 f=0.690 d=-0.3",
+   "lat": 43.815450671,
+   "lon": -85.533725043,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_076.json",
+   "sha256": "29b1ad9e4326a5182ad9669abf279ff66c745ec3e30c482eb942c8011d930554"
+  },
+  {
+   "tag": "F83CS0 f=0.690 d=+0.3",
+   "lat": 43.815445269,
+   "lon": -85.533725052,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_077.json",
+   "sha256": "5efb40d9f516cf6e1d4a1d1f766e11efeb7ff3bbdb9b15b8c75697404ef2f30f"
+  },
+  {
+   "tag": "F83CS0 f=0.690 d=+1.0",
+   "lat": 43.815438966,
+   "lon": -85.533725062,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_078.json",
+   "sha256": "301dae289a78686480b258cc03c0f5391d34e571e8c795d30859387dc314bd83"
+  },
+  {
+   "tag": "F83CS0 f=0.690 d=+2.0",
+   "lat": 43.815429963,
+   "lon": -85.533725077,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_079.json",
+   "sha256": "4e33072bbbbf933eed04efbbfb26d007ded8f8ca4d9560a1a0f3fce24c792f26"
+  },
+  {
+   "tag": "F83CS0 f=0.690 d=+3.0",
+   "lat": 43.815420959,
+   "lon": -85.533725092,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_080.json",
+   "sha256": "44f8a34eb1df9db0a4f60571eea7da316a0b8d378974d67c00837f749a7fad8e"
+  },
+  {
+   "tag": "F83CS0 f=0.690 d=+5.0",
+   "lat": 43.815402952,
+   "lon": -85.533725122,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_081.json",
+   "sha256": "a5d1a29ecacab3822075f03bddbbf0400f54d230af22c575b9f24c937e9b398a"
+  },
+  {
+   "tag": "F83CS0 f=0.690 d=+10.0",
+   "lat": 43.815357933,
+   "lon": -85.533725196,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_082.json",
+   "sha256": "0ffbc5abff140d9b8be1f8ca2bdb991e062bf38a34e3bbc99a37ee0d24ad30ac"
+  },
+  {
+   "tag": "F83CS0 f=0.690 d=+20.0",
+   "lat": 43.815267896,
+   "lon": -85.533725345,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_083.json",
+   "sha256": "804f05a81d15af6a911660b3c06b7952af4ec2002b18326ff51a52f9559dfe51"
+  },
+  {
+   "tag": "F83CS0 f=0.810 d=-20.0",
+   "lat": 43.814307393,
+   "lon": -85.880719384,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_084.json",
+   "sha256": "3608f06ebb780170634d90671df6efb513ce83d2eec44111458b561b550af9ad"
+  },
+  {
+   "tag": "F83CS0 f=0.810 d=-10.0",
+   "lat": 43.814217361,
+   "lon": -85.880720328,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_085.json",
+   "sha256": "6a05c53d831651646ef6fcddbf3fbeb9cf00f8d80fd41e60c475922927c037dd"
+  },
+  {
+   "tag": "F83CS0 f=0.810 d=-5.0",
+   "lat": 43.814172345,
+   "lon": -85.8807208,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_086.json",
+   "sha256": "e5d07feb63128b8b7e4690357be8fe88b38582a000ca6d3254eb77eb9871c882"
+  },
+  {
+   "tag": "F83CS0 f=0.810 d=-3.0",
+   "lat": 43.814154339,
+   "lon": -85.880720989,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_087.json",
+   "sha256": "01cb03634f5b7d2b0a98a6c009979ba073f7f59b2ee27b3ab2adb587ea6a65a8"
+  },
+  {
+   "tag": "F83CS0 f=0.810 d=-2.0",
+   "lat": 43.814145336,
+   "lon": -85.880721084,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_088.json",
+   "sha256": "3719508d0ac5c887f49017bffaa52d5d0c2b0eed8cb30d9baec43cf9b2458aee"
+  },
+  {
+   "tag": "F83CS0 f=0.810 d=-1.0",
+   "lat": 43.814136332,
+   "lon": -85.880721178,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_089.json",
+   "sha256": "2b5d2c2b2506ef63c7a16b74959d27dad0c899b53795dc37b45795eadd602b01"
+  },
+  {
+   "tag": "F83CS0 f=0.810 d=-0.3",
+   "lat": 43.81413003,
+   "lon": -85.880721244,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_090.json",
+   "sha256": "ea26b531b9d5830dddabb4e2911fd683d7dbc6ec87084993be04d3158043d714"
+  },
+  {
+   "tag": "F83CS0 f=0.810 d=+0.3",
+   "lat": 43.814124628,
+   "lon": -85.880721301,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_091.json",
+   "sha256": "0d5b4c037561f2aaeb9358aa2dd7a97192ea8c3f740355111ba91ccf643f51ac"
+  },
+  {
+   "tag": "F83CS0 f=0.810 d=+1.0",
+   "lat": 43.814118326,
+   "lon": -85.880721367,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_092.json",
+   "sha256": "ed4e3ac63fd687b6f0a5b845ce0dd993a59bcb8422d3ae205c2067d48aa567a1"
+  },
+  {
+   "tag": "F83CS0 f=0.810 d=+2.0",
+   "lat": 43.814109323,
+   "lon": -85.880721462,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_093.json",
+   "sha256": "c283749ad020f5b94aa96d111d9d4eee2d660b3e31d3d9da4a178ca0dcf4a0b1"
+  },
+  {
+   "tag": "F83CS0 f=0.810 d=+3.0",
+   "lat": 43.81410032,
+   "lon": -85.880721556,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_094.json",
+   "sha256": "6748e487200c2b62b6782bfa467b3f7fdda1e3c4cd85371758e274fe9ce8d507"
+  },
+  {
+   "tag": "F83CS0 f=0.810 d=+5.0",
+   "lat": 43.814082313,
+   "lon": -85.880721745,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_095.json",
+   "sha256": "5c256212cbd4bb561ab10f4096182ac919838068d10f18085c44de8e8ace6c44"
+  },
+  {
+   "tag": "F83CS0 f=0.810 d=+10.0",
+   "lat": 43.814037297,
+   "lon": -85.880722217,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_096.json",
+   "sha256": "031fecf13bd19f72be81b66e67598e5b1ae800abf95b69dffaee541acb451140"
+  },
+  {
+   "tag": "F83CS0 f=0.810 d=+20.0",
+   "lat": 43.813947265,
+   "lon": -85.880723162,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_097.json",
+   "sha256": "0f7db84fb153820b66b49db3e2154b60c3c00e001cdd1f502e523f2ec7174b66"
+  },
+  {
+   "tag": "F83CS0 f=0.940 d=-20.0",
+   "lat": 43.81759311,
+   "lon": -86.256440856,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_098.json",
+   "sha256": "f709f99c62e8909dc26e0d0e40e459fb0878e285ea06ec45fd41658297844925"
+  },
+  {
+   "tag": "F83CS0 f=0.940 d=-10.0",
+   "lat": 43.817503123,
+   "lon": -86.256444693,
+   "ncat_zone": "MI C-2112",
+   "raw": "r3_spcs83_099.json",
+   "sha256": "e66d54f8e51a8beb2fbc2a634bee782ebdf88a2cc39fe5500feccb6e47391808"
+  },
+  {
+   "tag": "F83CS0 f=0.940 d=-5.0",
+   "lat": 43.817458129,
+   "lon": -86.256446611,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_100.json",
+   "sha256": "cf478a3e68f1aadce43586248920888f7ecc75d9dd94f3c5d6fe30f50e596d03"
+  },
+  {
+   "tag": "F83CS0 f=0.940 d=-3.0",
+   "lat": 43.817440131,
+   "lon": -86.256447378,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_101.json",
+   "sha256": "e228b07c615bc17a125c52bc1870adc6c07a990e40f2dc4d2705996c5e2107d9"
+  },
+  {
+   "tag": "F83CS0 f=0.940 d=-2.0",
+   "lat": 43.817431133,
+   "lon": -86.256447762,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_102.json",
+   "sha256": "b43caab7650ffb217c491690789c7bcb22683af89b37dab4ce7e793591f5e988"
+  },
+  {
+   "tag": "F83CS0 f=0.940 d=-1.0",
+   "lat": 43.817422134,
+   "lon": -86.256448145,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_103.json",
+   "sha256": "babd6b4c844f65ee0fe554be1d700ee62996b768290137b7c3f675aa3271c122"
+  },
+  {
+   "tag": "F83CS0 f=0.940 d=-0.3",
+   "lat": 43.817415835,
+   "lon": -86.256448414,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_104.json",
+   "sha256": "4e9826dfba9ad6d3d5c75a3a0349e9fabb699cb42efb7f6270a09743efefdd03"
+  },
+  {
+   "tag": "F83CS0 f=0.940 d=+0.3",
+   "lat": 43.817410435,
+   "lon": -86.256448644,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_105.json",
+   "sha256": "fe23000b26a32674c155ae27acfcbc100f8bb3284ead5ea27fd97004d27bd1ee"
+  },
+  {
+   "tag": "F83CS0 f=0.940 d=+1.0",
+   "lat": 43.817404136,
+   "lon": -86.256448913,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_106.json",
+   "sha256": "e32dcd0a65cacf8ffa6e41a414e0cb2cd0abd822af80208db81a74043b167b01"
+  },
+  {
+   "tag": "F83CS0 f=0.940 d=+2.0",
+   "lat": 43.817395138,
+   "lon": -86.256449296,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_107.json",
+   "sha256": "c86dca489582a26b25257ef54bbc133d2d6141aa8a124a698f826c927d1cc461"
+  },
+  {
+   "tag": "F83CS0 f=0.940 d=+3.0",
+   "lat": 43.817386139,
+   "lon": -86.25644968,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_108.json",
+   "sha256": "f15d333a40cf4d3c819f85f8d524728d2469c5f73c805c829f33c776ed82ee6b"
+  },
+  {
+   "tag": "F83CS0 f=0.940 d=+5.0",
+   "lat": 43.817368141,
+   "lon": -86.256450447,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_109.json",
+   "sha256": "4508b1880b622cce45411ed0a06bd8c3bca50568065d4b9729d26c253a331c51"
+  },
+  {
+   "tag": "F83CS0 f=0.940 d=+10.0",
+   "lat": 43.817323148,
+   "lon": -86.256452365,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_110.json",
+   "sha256": "22e2bd8b553c95695162deab72370f9144cf5d5319c7951dd5298a816fe8e761"
+  },
+  {
+   "tag": "F83CS0 f=0.940 d=+20.0",
+   "lat": 43.81723316,
+   "lon": -86.256456202,
+   "ncat_zone": "MI S-2113",
+   "raw": "r3_spcs83_111.json",
+   "sha256": "1c49a860807e79237f4ddd8ae2545f648707a03ae1a1f9ab4eee36db4fb2f985"
+  }
+ ],
+ "datum_in_nad83_out_natrf": [
+  {
+   "tag": "DATUM JacksonIngham f=0.500 d=-1.5",
+   "lat": 42.422121277,
+   "lon": -84.368755331,
+   "ncat_zone": "MI L11A-261001 (Multizone complete)",
+   "raw": "r3dA_spcs2022_000.html",
+   "northing": "124673.317 m",
+   "sha256": "bb031ef896f521cd83b26a86e47fec1c4438e6b25e7a51dfbb62d11446a9de81",
+   "messages": []
+  },
+  {
+   "tag": "DATUM JacksonIngham f=0.500 d=-0.7",
+   "lat": 42.422128481,
+   "lon": -84.368755376,
+   "ncat_zone": "MI L45G-261008 (Multizone complete)",
+   "raw": "r3dA_spcs2022_001.html",
+   "northing": "186921.765 m",
+   "sha256": "16361b7b4c34ddbea24db5aad029e96d2ec3c4bb15dd79a04fea1c841080a1ad",
+   "messages": []
+  },
+  {
+   "tag": "DATUM JacksonIngham f=0.500 d=-0.3",
+   "lat": 42.422132084,
+   "lon": -84.368755399,
+   "ncat_zone": "MI L45G-261008 (Multizone complete)",
+   "raw": "r3dA_spcs2022_002.html",
+   "northing": "186922.165 m",
+   "sha256": "2970691ca8055c3d8223bf23a22d6211b6251e3e592574c4aa4e0c561629eb07",
+   "messages": []
+  },
+  {
+   "tag": "DATUM JacksonIngham f=0.500 d=+0.3",
+   "lat": 42.422137487,
+   "lon": -84.368755433,
+   "ncat_zone": "MI L45G-261008 (Multizone complete)",
+   "raw": "r3dA_spcs2022_003.html",
+   "northing": "186922.766 m",
+   "sha256": "bbbefc10ac85ec3c80cc9c21bc8fac70df443e51320c0c4232f8df40ffc1b150",
+   "messages": []
+  },
+  {
+   "tag": "DATUM JacksonIngham f=0.500 d=+0.7",
+   "lat": 42.42214109,
+   "lon": -84.368755455,
+   "ncat_zone": "MI L45G-261008 (Multizone complete)",
+   "raw": "r3dA_spcs2022_004.html",
+   "northing": "186923.165 m",
+   "sha256": "34362d0ab624c99deee38fd1300c9d0b6b2cb55145a0c54e9b990552e90a1991",
+   "messages": []
+  },
+  {
+   "tag": "DATUM JacksonIngham f=0.500 d=+1.5",
+   "lat": 42.422148294,
+   "lon": -84.3687555,
+   "ncat_zone": "MI L45G-261008 (Multizone complete)",
+   "raw": "r3dA_spcs2022_005.html",
+   "northing": "186923.965 m",
+   "sha256": "a335920c8c871a2704cecd194f0b2acba7f289696bc12a80016ee9b071a3421c",
+   "messages": []
+  }
+ ],
+ "datum_in_natrf_out_natrf": [
+  {
+   "tag": "DATUM JacksonIngham f=0.500 d=-1.5",
+   "lat": 42.422121277,
+   "lon": -84.368755331,
+   "ncat_zone": "MI L11A-261001 (Multizone complete)",
+   "raw": "r3dB_spcs2022_000.html",
+   "northing": "124672.411 m",
+   "sha256": "dec7ea9ce96f8d05e7386e741744a8afeaeeba95a9a4ed39acba367ae5b914cb",
+   "messages": []
+  },
+  {
+   "tag": "DATUM JacksonIngham f=0.500 d=-0.7",
+   "lat": 42.422128481,
+   "lon": -84.368755376,
+   "ncat_zone": "MI L11A-261001 (Multizone complete)",
+   "raw": "r3dB_spcs2022_001.html",
+   "northing": "124673.211 m",
+   "sha256": "ff507baed4c02b250e0836843f04e982e16c311fd892a466563c5628cb5f535e",
+   "messages": []
+  },
+  {
+   "tag": "DATUM JacksonIngham f=0.500 d=-0.3",
+   "lat": 42.422132084,
+   "lon": -84.368755399,
+   "ncat_zone": "MI L11A-261001 (Multizone complete)",
+   "raw": "r3dB_spcs2022_002.html",
+   "northing": "124673.611 m",
+   "sha256": "d89af2d8d6e8444f7b3dadb2964b54712923cdd676855c20d381e9ebfda0e227",
+   "messages": []
+  },
+  {
+   "tag": "DATUM JacksonIngham f=0.500 d=+0.3",
+   "lat": 42.422137487,
+   "lon": -84.368755433,
+   "ncat_zone": "MI L45G-261008 (Multizone complete)",
+   "raw": "r3dB_spcs2022_003.html",
+   "northing": "186921.869 m",
+   "sha256": "66b6dd4d02d21c3e02a34b96d0d4d71ab60b9a1aac8216ad0a45fab4a9d8a5b7",
+   "messages": []
+  },
+  {
+   "tag": "DATUM JacksonIngham f=0.500 d=+0.7",
+   "lat": 42.42214109,
+   "lon": -84.368755455,
+   "ncat_zone": "MI L45G-261008 (Multizone complete)",
+   "raw": "r3dB_spcs2022_004.html",
+   "northing": "186922.269 m",
+   "sha256": "cd3a3830b71d572bb977d935ecf31e1f6d180ef27ea60887be58c1ff58d7a67e",
+   "messages": []
+  },
+  {
+   "tag": "DATUM JacksonIngham f=0.500 d=+1.5",
+   "lat": 42.422148294,
+   "lon": -84.3687555,
+   "ncat_zone": "MI L45G-261008 (Multizone complete)",
+   "raw": "r3dB_spcs2022_005.html",
+   "northing": "186923.069 m",
+   "sha256": "7b2e302d8afed8ae4fca45d3c856a8176b13a1c4c63ccfea5639bf79b01bf13f",
+   "messages": []
+  }
+ ],
+ "keweenaw_bisection": [
+  {
+   "a": [
+    47.47,
+    -87.85
+   ],
+   "b": [
+    48.0,
+    -88.7
+   ],
+   "za": "261016",
+   "zb": "261018",
+   "steps": [
+    [
+     0.5,
+     47.735,
+     -88.275,
+     "261018"
+    ],
+    [
+     0.25,
+     47.6025,
+     -88.0625,
+     "261016"
+    ],
+    [
+     0.375,
+     47.66875,
+     -88.16875,
+     "261018"
+    ],
+    [
+     0.3125,
+     47.635625,
+     -88.115625,
+     "261016"
+    ],
+    [
+     0.34375,
+     47.652187,
+     -88.142187,
+     "261018"
+    ],
+    [
+     0.32812,
+     47.643906,
+     -88.128906,
+     "261016"
+    ],
+    [
+     0.33594,
+     47.648047,
+     -88.135547,
+     "261016"
+    ],
+    [
+     0.33984,
+     47.650117,
+     -88.138867,
+     "261018"
+    ],
+    [
+     0.33789,
+     47.649082,
+     -88.137207,
+     "261016"
+    ]
+   ],
+   "switch_t": [
+    0.337890625,
+    0.33984375
+   ]
+  },
+  {
+   "a": [
+    47.3,
+    -88.6
+   ],
+   "b": [
+    47.9,
+    -89.2
+   ],
+   "za": "261016",
+   "zb": "261018",
+   "steps": [
+    [
+     0.5,
+     47.6,
+     -88.9,
+     "261016"
+    ],
+    [
+     0.75,
+     47.75,
+     -89.05,
+     "261018"
+    ],
+    [
+     0.625,
+     47.675,
+     -88.975,
+     "261018"
+    ],
+    [
+     0.5625,
+     47.6375,
+     -88.9375,
+     "261016"
+    ],
+    [
+     0.59375,
+     47.65625,
+     -88.95625,
+     "261018"
+    ],
+    [
+     0.57812,
+     47.646875,
+     -88.946875,
+     "261016"
+    ],
+    [
+     0.58594,
+     47.651562,
+     -88.951562,
+     "261018"
+    ],
+    [
+     0.58203,
+     47.649219,
+     -88.949219,
+     "261016"
+    ],
+    [
+     0.58398,
+     47.650391,
+     -88.950391,
+     "261018"
+    ]
+   ],
+   "switch_t": [
+    0.58203125,
+    0.583984375
+   ]
+  },
+  {
+   "a": [
+    47.6,
+    -87.6
+   ],
+   "b": [
+    48.2,
+    -88.3
+   ],
+   "za": "261016",
+   "zb": "261018",
+   "steps": [
+    [
+     0.5,
+     47.9,
+     -87.95,
+     "261018"
+    ],
+    [
+     0.25,
+     47.75,
+     -87.775,
+     "261018"
+    ],
+    [
+     0.125,
+     47.675,
+     -87.6875,
+     "261018"
+    ],
+    [
+     0.0625,
+     47.6375,
+     -87.64375,
+     "261016"
+    ],
+    [
+     0.09375,
+     47.65625,
+     -87.665625,
+     "261018"
+    ],
+    [
+     0.07812,
+     47.646875,
+     -87.654687,
+     "261016"
+    ],
+    [
+     0.08594,
+     47.651563,
+     -87.660156,
+     "261018"
+    ],
+    [
+     0.08203,
+     47.649219,
+     -87.657422,
+     "261016"
+    ],
+    [
+     0.08398,
+     47.650391,
+     -87.658789,
+     "261018"
+    ]
+   ],
+   "switch_t": [
+    0.08203125,
+    0.083984375
+   ]
+  }
+ ]
+}

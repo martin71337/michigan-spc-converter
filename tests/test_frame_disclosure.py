@@ -77,7 +77,7 @@ from michspc.spc.units import METERS
 from michspc.spc.vertical import NAVD88, NGVD29, HeightKind
 from michspc.spc.zones import MI_CENTRAL, MI_SOUTH
 from tests import test_orthometric_regression as regression
-from tests.conftest import member_text
+from tests.conftest import member_text, record_root_normalised
 from tests.fixtures.htdp_anchors import HTDP_RUNS
 from tests.fixtures.htdp_w3_anchors import L5_RECORDS, L5_REVERSE_RECORDS
 
@@ -1498,7 +1498,10 @@ def _g2g_no_geoid_digests(root: Path, *, respell: bool = True) -> dict[str, str]
     for name, frames_ in jobs.items():
         folder = root / name
         folder.mkdir()
-        (folder / "in.csv").write_text("1,43.0,84.5,165.000,P\n2,43.0,84.5,,BLANK\n")
+        # LF on every platform: the record certifies the input's SHA-256.
+        (folder / "in.csv").write_text(
+            "1,43.0,84.5,165.000,P\n2,43.0,84.5,,BLANK\n", newline="\n"
+        )
         settings = JobSettings(
             input_path=folder / "in.csv", output_directory=folder,
             direction=Direction.GEODETIC_TO_GEODETIC, source_zone=None, target_zone=None,
@@ -1512,7 +1515,7 @@ def _g2g_no_geoid_digests(root: Path, *, respell: bool = True) -> dict[str, str]
                 if member.endswith("README.txt"):
                     text = re.sub(r"^Generated          .*$", "Generated          <normalised>",
                                   body.decode(), flags=re.M)
-                    body = text.replace(str(root), "<ROOT>").encode()
+                    body = record_root_normalised(text, root).encode()
                 key = f"{name}/{member}"
                 if respell:
                     body, _found = _respelled_as_w4(key, body)
@@ -1557,7 +1560,7 @@ def test_the_gate_2_respelling_is_exact(tmp_path):
         if member.endswith("README.txt"):
             text = re.sub(r"^Generated          .*$", "Generated          <normalised>",
                           body.decode(), flags=re.M)
-            body = text.replace(str(tmp_path / "raw"), "<ROOT>").encode()
+            body = record_root_normalised(text, tmp_path / "raw").encode()
         respelled_body, found = _respelled_as_w4(key, body)
         assert found == len(passages), key
         assert _respelled_as_w4(key, respelled_body) == (respelled_body, 0), key

@@ -1440,7 +1440,13 @@ def test_the_bundle_gate_finds_htdp_source_and_review_files(tmp_path):
     (internal / "review" / "wgs84-w0" / "htdp_truth.json").write_text("{}")
     (internal / "HTDP.F90").write_text("end\n")
 
-    assert build_release.foreign_bundle_files(tmp_path, review) == [
+    # Compared in code-point order of the POSIX path. The gate walks the tree
+    # in ``sorted(Path)`` order, and a WindowsPath sorts case-insensitively
+    # ("htdp-v3.6.0" before "HTDP.F90", since "-" < "."), a PosixPath by code
+    # point - so the ORDER of the list is the platform's. What it contains is
+    # not: the suffix and directory rules both lower-case before comparing,
+    # and the order only decides how the refusal message lists the files.
+    assert sorted(build_release.foreign_bundle_files(tmp_path, review)) == [
         "_internal/HTDP.F90",
         "_internal/htdp-v3.6.0/initvl.f",
         "_internal/review/wgs84-w0/htdp_truth.json",

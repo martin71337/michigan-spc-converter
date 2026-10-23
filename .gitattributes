@@ -2,3 +2,12 @@
 # WGS 84 transcription is verified against (docs/PLAN-wgs84.md 3.2). Its files
 # mix LF and CRLF and are SHA-256 pinned, so no line-ending conversion, ever.
 review/wgs84-w0/htdp-v3.6.0/** -text
+
+# HTDP truth captures whose SHA-256 the suite and the fixture generators pin
+# (tests/test_htdp.py, tests/test_job_wgs84.py; each fixture's provenance
+# block quotes the digest of the committed LF bytes). With core.autocrlf=true
+# a Windows checkout rewrote them as CRLF and every digest moved, so the
+# working copy must be the committed bytes, as for the HTDP source above.
+review/wgs84-w0/htdp_truth.json -text
+review/wgs84-w0/near_tie_truth.json -text
+review/wgs84-w3/w3_truth.json -text

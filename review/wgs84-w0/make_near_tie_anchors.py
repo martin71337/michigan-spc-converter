@@ -411,7 +411,52 @@ def _q(text):
     return json.dumps(text)
 
 
-def render() -> str:
+HEIGHT_STEP_M = 2.0**-30
+"""One step of HTDP's height: h is recovered from Earth-centred X, Y, Z, whose
+largest component in Michigan lies in [2**22, 2**23) m, ulp 2**-30 m."""
+
+
+def _unit(c: int, value: float) -> float:
+    """One unit of last-place platform discrepancy for component ``c``."""
+    return HEIGHT_STEP_M if c == 2 else math.ulp(value)
+
+
+def _platform_flip(c, value, printed_ours, printed_htdp, bound_units):
+    """True when ours and HTDP's print differ only by this platform's last place.
+
+    Exactly one print unit, in the direction of the side of the tie THIS
+    platform's ``value`` lies on, and ``value`` within ``bound_units`` units
+    of the tie. ``tests/test_htdp.py`` (TIE_BOUND_UNITS) derives the bound.
+    """
+    margin = (Fraction(value) - _tie_in_cell(value, DECIMALS[c])) * 10 ** DECIMALS[c]
+    if abs(margin) > Fraction(bound_units * _unit(c, value)) * 10 ** DECIMALS[c]:
+        return False
+    step = (Fraction(printed_ours) - Fraction(printed_htdp)) * 10 ** DECIMALS[c]
+    return step == (1 if margin > 0 else -1)
+
+
+def render(platform_bound_units: int = 0, frozen_notes: dict | None = None) -> str:
+    """The fixture's text.
+
+    With the defaults - the CLI's call - every check is exact, as at capture:
+    ``experiment.py`` must print HTDP's string, sit on the stated side of each
+    tie and edge, and every ``note`` is ``experiment.py``'s own figure.
+
+    ``experiment.py`` is plain Python over the platform's libm, and the records
+    were tuned in glibc's arithmetic to sit an ulp or so from a tie; on a
+    platform whose trigonometry differs in the last place (Windows' CRT,
+    measured in ``tests/test_htdp.py``, TIE_BOUND_UNITS) a few land on the
+    other side. ``platform_bound_units`` > 0 tolerates exactly that and no
+    more: a near-tie record's OWN component may print one unit from HTDP's in
+    the direction of this platform's side, within the bound of the tie; a
+    stated side may be waived within the bound; and where ``frozen_notes``
+    (``{(run_id, name): note}``, the committed fixture's) is given, a note this
+    platform computes differently is replaced by the frozen one only when the
+    two lie within the bound of each other - so the rendered text can still be
+    the committed one byte for byte. Every input, HTDP output, role and line
+    of structure is still the truth file's, exactly.
+    """
+    bound = platform_bound_units
     ex = _load_experiment()
     raw = TRUTH.read_bytes()
     truth = json.loads(raw)
@@ -432,28 +477,55 @@ def render() -> str:
                 # Outside the window experiment.py, like michspc, has no
                 # velocity to read; HTDP's print there is provenance only.
                 values = _evaluate(ex, m1, m2, ymd, inputs)
-                if _fmt(values) != printed:
+                ours = _fmt(values)
+                tie_c = (
+                    COMPONENTS.index(meta["component"]) if run["purpose"] == "near_tie" else None
+                )
+                differing = [c for c in range(3) if ours[c] != printed[c]]
+                tolerated = (
+                    bound > 0
+                    and differing == [tie_c]
+                    and _platform_flip(tie_c, values[tie_c], ours[tie_c], printed[tie_c], bound)
+                )
+                if differing and not tolerated:
                     raise SystemExit(
-                        f"{run['run_id']} {name}: experiment.py prints {_fmt(values)}, HTDP {printed}"
+                        f"{run['run_id']} {name}: experiment.py prints {ours}, HTDP {printed}"
                     )
+            frozen = (frozen_notes or {}).get((run["run_id"], name))
             if run["purpose"] == "near_tie":
                 c = COMPONENTS.index(meta["component"])
                 tie = _tie_in_cell(values[c], DECIMALS[c])
                 margin = (Fraction(values[c]) - tie) * 10 ** DECIMALS[c]
-                if (margin < 0) is not (meta["side"] == "B") or abs(margin) > Fraction(1, 1000):
+                allowed = Fraction(bound * _unit(c, values[c])) * 10 ** DECIMALS[c]
+                within = bound > 0 and abs(margin) <= allowed
+                off_side = (margin < 0) is not (meta["side"] == "B")
+                if (off_side and not within) or abs(margin) > Fraction(1, 1000):
                     raise SystemExit(f"{run['run_id']} {name}: not a near tie ({float(margin)!r})")
+                note = f"{float(margin):+.3e}"
+                if frozen is not None and frozen != note:
+                    if abs(margin - Fraction(frozen)) > allowed:
+                        raise SystemExit(
+                            f"{run['run_id']} {name}: note {note} here, {frozen} frozen"
+                        )
+                    note, margin = frozen, Fraction(frozen)
                 worst = max(worst, abs(margin))
                 role = f"tie {meta['component']} {'below' if meta['side'] == 'B' else 'above'}"
-                note = f"{float(margin):+.3e}"
             elif run["purpose"] == "window_edge":
                 rlat, rlon = _lookup(ex, m1, m2, ymd, inputs)
                 coord = (ex.TWOPI - rlon) * 180.0 / ex.PI if meta["edge"] in "EW" else rlat * 180.0 / ex.PI
                 target = {"E": 279.5, "W": 268.0, "S": 40.5, "N": 50.0}[meta["edge"]]
                 inside_is_below = meta["edge"] in "EN"
-                if (coord < target) is not (inside_is_below is not outside):
+                within = bound > 0 and abs(coord - target) <= bound * math.ulp(target)
+                if (coord < target) is not (inside_is_below is not outside) and not within:
                     raise SystemExit(f"{run['run_id']} {name}: lookup {coord!r} on the wrong side")
                 role = f"edge {meta['edge']} {'outside' if outside else 'inside'}"
                 note = repr(coord)
+                if frozen is not None and frozen != note:
+                    if abs(float(frozen) - coord) > bound * math.ulp(target):
+                        raise SystemExit(
+                            f"{run['run_id']} {name}: lookup {note} here, {frozen} frozen"
+                        )
+                    note = frozen
             else:
                 role = f"gate1 {meta['seed']}"
                 note = ""

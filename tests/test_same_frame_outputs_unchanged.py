@@ -54,6 +54,7 @@ from michspc.job import (
 from michspc.spc.units import INTERNATIONAL_FEET, METERS
 from michspc.spc.vertical import NAVD88, NGVD29, HeightKind
 from michspc.spc.zones import MI_CENTRAL, MI_NORTH, MI_SOUTH
+from tests.conftest import record_root_normalised
 
 GEODETIC_ROWS = (
     "1,42.7325,84.5555,250.000,PIN\n"
@@ -321,7 +322,7 @@ def _normalised(member: str, body: bytes, root: Path) -> bytes:
         return body
     text = body.decode("utf-8")
     text = _GENERATED.sub("Generated          <normalised>", text)
-    text = text.replace(str(root), "<ROOT>")
+    text = record_root_normalised(text, root)
     if "\nConversion         vertical only\n" in text and (
         "No State\nPlane coordinate system is involved in this job." in text
     ):
@@ -337,7 +338,10 @@ def _written(root: Path) -> dict[str, str]:
         folder = root / name
         folder.mkdir(parents=True, exist_ok=True)
         source = folder / "in.csv"
-        source.write_text(rows, encoding="utf-8")
+        # newline="\n": the digests were frozen from an LF input file, and
+        # the record certifies the input's SHA-256, so Windows text-mode CRLF
+        # would change the record without the program changing at all.
+        source.write_text(rows, encoding="utf-8", newline="\n")
         settings = JobSettings(input_path=source, output_directory=folder, **fields)
         written = exports.write_all(run(settings), overwrite=True)
         with zipfile.ZipFile(written["archive"]) as archive:
@@ -412,7 +416,7 @@ def _records(root: Path) -> dict[str, str]:
             member = next(m for m in opened.namelist() if m.endswith("_README.txt"))
             text = opened.read(member).decode("utf-8")
         text = _GENERATED.sub("Generated          <normalised>", text)
-        records[name] = text.replace(str(root), "<ROOT>")
+        records[name] = record_root_normalised(text, root)
     return records
 
 

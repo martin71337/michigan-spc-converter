@@ -287,23 +287,154 @@ def _near_tie_inside(record) -> bool:
 
 @functools.lru_cache(maxsize=None)
 def near_tie_computed(run_id: str):
-    """(record, ours, HTDP's) for every record MCX accepts, computed once."""
+    """(record, ours, HTDP's, result) for every record MCX accepts, computed once."""
     run = NEAR_TIE_BY_ID[run_id]
     out = []
     for record in run.records:
         if not _near_tie_inside(record):
             continue
-        ours = htdp_print(run_record(run, record.lat_in, record.lonw_in, record.h_in))
-        out.append((record, ours, (record.lat_out, record.lonw_out, record.h_out)))
+        result = run_record(run, record.lat_in, record.lonw_in, record.h_in)
+        ours = htdp_print(result)
+        out.append((record, ours, (record.lat_out, record.lonw_out, record.h_out), result))
     return tuple(out)
+
+
+# --------------------------------------------------------------------------
+# The platform bound at a tie.
+#
+# The 360 tie records were tuned in the glibc arithmetic of the Linux build
+# container, to sit an ulp or so from a rounding tie of HTDP's print. Windows'
+# CRT trigonometry differs from glibc in the last place, so on the release
+# machine 18 of them land on the OTHER side of their tie and print one unit
+# away from HTDP - the same input, the same program, a different libm. No
+# string is wrong by more than that, and all 1,846 ordinary anchors, the six
+# gate-1 counterexamples and every non-tie component still print exactly as
+# HTDP prints them.
+#
+# MEASURED on the owner's Windows 11 machine (Python 3.14, 2026-10-22), over
+# all 360 tie records: this platform's unrounded value minus experiment.py's
+# glibc value (the fixture's ``note``) is an exact multiple of one unit below,
+# and its largest size is 3 units on a latitude, 1 on a longitude and 2 on a
+# height. The window-edge lookups moved by at most 2 ulps of the edge. The
+# bound is that largest discrepancy plus one unit of margin: 4 units.
+#
+# The unit is one ulp of the value for latitude and longitude (7.105e-15 deg
+# below 64 deg, 1.421e-14 deg for a longitude in [64, 128) deg), so the bound
+# is 2.84e-4 of a print unit on a latitude and 5.68e-4 on a longitude. For the
+# height it is NOT the ulp of h: HTDP recovers h from Earth-centred X, Y, Z,
+# whose largest component in Michigan lies in [2**22, 2**23) m, so h moves in
+# steps of 2**-30 m (9.31e-10 m) - and the measured height discrepancies are
+# exactly such steps. The bound there is 4 * 2**-30 m = 3.73e-9 m, 3.73e-6 of
+# a print unit.
+#
+# What the bound permits, and nothing else: a TIE record's OWN tie component
+# may print exactly one unit from HTDP's string, in the direction of the side
+# of the tie THIS platform's unrounded value lies on, and only when that value
+# lies within the bound of the tie. Every other component of every record,
+# and every record farther than the bound from its tie, is compared exactly.
+# On a platform whose arithmetic is glibc's the bound is never used.
+#
+# AND ONLY FOR THE RECORDS MEASURED TO FLIP (PLATFORM_FLIPS below). A bound
+# alone is not enough: nearly every tie record sits within 4 units of its tie
+# on any platform - that is what tuning them meant - so a bound-only rule
+# would also forgive a one-ulp seed that flips any of them, and the near ties
+# would stop seeing S15 and S26 everywhere, glibc included. Measured on
+# Windows with a bound-only rule: S15 on the longitude went from 9 failing
+# near-tie tests to none. So the exception is a regression pin of this
+# platform's behaviour: the records named below, and no others, may take the
+# platform's side. A record that starts to flip after a CRT or Python update
+# fails, by name, with its distance from the tie, and is a decision for the
+# session lead - not something the suite absorbs on its own.
+# --------------------------------------------------------------------------
+
+TIE_BOUND_UNITS = 4
+
+PLATFORM_FLIPS = frozenset({
+    # (run_id, record name): every record measured on the owner's Windows 11
+    # machine (10.0.26200, ucrtbase 10.0.26100.9711, Python 3.14.5 MSC v.1944
+    # 64 bit), 2026-10-22, to print on the other side of its tie from HTDP's
+    # glibc build. 18 tie records (9 latitude, 1 longitude, 8 height) and the
+    # one edge record whose lookup lands on the edge there.
+    ("neartie_10_1_0", "NT000LAA"),
+    ("neartie_10_1_3", "NT003LAA"),
+    ("neartie_11_1_0", "NT010HTA"),
+    ("neartie_11_1_1", "NT011HTA"),
+    ("neartie_12_1_1", "NT021HTA"),
+    ("neartie_12_1_2", "NT022LAB"),
+    ("neartie_12_1_5", "NT025LAB"),
+    ("neartie_25_1_0", "NT030HTA"),
+    ("neartie_25_1_2", "NT032LAA"),
+    ("neartie_25_1_3", "NT033LAA"),
+    ("neartie_26_1_5", "NT045LAA"),
+    ("neartie_1_10_0", "NT050HTB"),
+    ("neartie_1_11_0", "NT060LAA"),
+    ("neartie_1_11_0", "NT060HTA"),
+    ("neartie_1_12_1", "NT071HTA"),
+    ("neartie_1_12_2", "NT072HTB"),
+    ("neartie_1_25_4", "NT084LOB"),
+    ("neartie_1_26_1", "NT091HTA"),
+    ("edge_1_25", "EDGESOUT"),
+})
+_HEIGHT_STEP_M = 2.0**-30  # ulp of an Earth-centred coordinate in [2**22, 2**23) m
+_TIE_COMPONENTS = {"LA": 0, "LO": 1, "HT": 2}
+_TIE_DECIMALS = (10, 10, 3)  # HTDP's 2f16.10,f10.3 (htdp.f:3293)
+
+
+def _tie_value(result: htdp.HtdpResult, component: int) -> float:
+    """The unrounded value HTDP's print of ``component`` rounds, positive west."""
+    return (result.latitude, -result.longitude, result.ellipsoid_height)[component]
+
+
+def _tie_unit(component: int, value: float) -> float:
+    """One unit of platform discrepancy for ``component``, in its own units."""
+    return _HEIGHT_STEP_M if component == 2 else math.ulp(value)
+
+
+def _tie_bound_print_units(component: int, value: float) -> Fraction:
+    """TIE_BOUND_UNITS units, as a fraction of a print unit of ``component``."""
+    return Fraction(TIE_BOUND_UNITS * _tie_unit(component, value)) * 10 ** _TIE_DECIMALS[component]
+
+
+def _tie_flip_is_the_platforms(
+    run_id: str, record, component: int, ours: str, theirs: str, result
+) -> bool:
+    """True only for the one tolerated difference (see the block above)."""
+    if (run_id, record.name) not in PLATFORM_FLIPS or not record.role.startswith("tie "):
+        return False
+    _, tie_component, stated_side = record.role.split()
+    if _TIE_COMPONENTS[tie_component] != component:
+        return False
+    value = _tie_value(result, component)
+    decimals = _TIE_DECIMALS[component]
+    distance = _tie_distance(value, decimals)
+    if abs(distance) > _tie_bound_print_units(component, value):
+        return False
+    one_unit = Fraction(1, 10**decimals)
+    step = Fraction(ours) - Fraction(theirs)
+    if stated_side == "below":  # HTDP's value below the tie; ours must be above it
+        return distance > 0 and step == one_unit
+    return distance < 0 and step == -one_unit
 
 
 def _near_tie_mismatches(run_id: str, component: int) -> list[str]:
     return [
-        f"{record.name} ({record.role}): ours {ours[component]} HTDP {theirs[component]}"
-        for record, ours, theirs in near_tie_computed(run_id)
+        f"{record.name} ({record.role}): ours {ours[component]} HTDP {theirs[component]} "
+        f"(this platform {float(_tie_distance(_tie_value(result, component), _TIE_DECIMALS[component])):+.3e} "
+        f"print units from the tie; bound "
+        f"{float(_tie_bound_print_units(component, _tie_value(result, component))):.3e})"
+        for record, ours, theirs, result in near_tie_computed(run_id)
         if ours[component] != theirs[component]
+        and not _tie_flip_is_the_platforms(
+            run_id, record, component, ours[component], theirs[component], result
+        )
     ]
+
+
+def test_every_platform_flip_names_a_tie_or_edge_outside_record():
+    """PLATFORM_FLIPS can only name records the exception is written for."""
+    for run_id, name in PLATFORM_FLIPS:
+        (record,) = [r for r in NEAR_TIE_BY_ID[run_id].records if r.name == name]
+        assert record.role.startswith("tie ") or record.role.endswith(" outside"), record
 
 
 @pytest.mark.parametrize("run_id", NEAR_TIE_IDS)
@@ -325,7 +456,15 @@ def test_near_tie_height_is_htdps_printed_height(run_id):
 
 
 def test_the_near_tie_generator_reproduces_its_fixture_byte_for_byte():
-    """The drift guard, as for the positional anchors: render() == the file."""
+    """The drift guard, as for the positional anchors: render() == the file.
+
+    ``render`` re-runs W0's ``experiment.py`` over this platform's libm, so it
+    is handed the platform bound (TIE_BOUND_UNITS) and the committed notes: on
+    glibc it uses neither and reproduces the file from its own arithmetic; on
+    a platform whose last place differs it keeps a committed note only where
+    its own figure lies within the bound of it. Every input, HTDP output, role
+    and line of structure is compared exactly either way.
+    """
     spec = importlib.util.spec_from_file_location(
         "make_near_tie_anchors", W0 / "make_near_tie_anchors.py"
     )
@@ -334,7 +473,14 @@ def test_the_near_tie_generator_reproduces_its_fixture_byte_for_byte():
     fixture = (REPO_ROOT / "tests" / "fixtures" / "htdp_near_tie_anchors.py").read_text(
         encoding="utf-8"
     )
-    assert module.render() == fixture
+    frozen_notes = {
+        (run.run_id, record.name): record.note
+        for run in NEAR_TIE_RUNS
+        for record in run.records
+        if record.note
+    }
+    rendered = module.render(platform_bound_units=TIE_BOUND_UNITS, frozen_notes=frozen_notes)
+    assert rendered == fixture
 
 
 def test_the_near_tie_capture_is_the_one_frozen():
@@ -396,6 +542,12 @@ def test_every_near_tie_is_a_near_tie_as_this_module_computes_it():
     direction, flips the printed digit. That is what makes them see S15 and
     S26.
 
+    The stated side and experiment.py's distance are glibc's. On a platform
+    whose last place differs (Windows' CRT, measured: TIE_BOUND_UNITS) a record
+    may sit on the other side of its tie, and its distance may differ from the
+    note, but only within TIE_BOUND_UNITS units of the value; the 1e-3 print
+    unit requirement is unchanged on every platform.
+
     Worth knowing when reading which records catch S15: it is invisible on
     every to-NAD 83 path. There NEWCOR's second time is ITREF, so
     ``ylat2 == ylat`` exactly, and both ``ylat + ylat - ylat1`` and
@@ -403,26 +555,36 @@ def test_every_near_tie_is_a_near_tie_as_this_module_computes_it():
     groupings cannot differ. Only the from-NAD 83 records can see it.
     """
     far = []
+    disagree = []
     for run in NEAR_TIE_RUNS:
         if run.purpose != "near_tie":
             continue
         for record in run.records:
-            _, component, side = record.role.split()
+            _, tie_component, side = record.role.split()
+            component = _TIE_COMPONENTS[tie_component]
             result = run_record(run, record.lat_in, record.lonw_in, record.h_in)
-            value, decimals = {
-                "LA": (result.latitude, 10),
-                "LO": (-result.longitude, 10),
-                "HT": (result.ellipsoid_height, 3),
-            }[component]
-            distance = _tie_distance(value, decimals)
+            value = _tie_value(result, component)
+            distance = _tie_distance(value, _TIE_DECIMALS[component])
+            bound = _tie_bound_print_units(component, value)
+            # The stated side is experiment.py's (glibc); a platform whose last
+            # place differs may sit on the other side, but only within the
+            # platform bound of the tie (see TIE_BOUND_UNITS).
             on_side = distance < 0 if side == "below" else distance > 0
-            if not on_side or abs(distance) > Fraction(1, 1000):
-                far.append(f"{record.name}: {float(distance):+.3e}")
-            # And experiment.py's stated distance agrees with ours.
-            assert float(distance) == pytest.approx(float(record.note), rel=1e-2, abs=1e-12), (
-                record.name
-            )
+            if (not on_side and abs(distance) > bound) or abs(distance) > Fraction(1, 1000):
+                far.append(f"{record.name}: {float(distance):+.3e} (bound {float(bound):.3e})")
+            # And experiment.py's stated distance agrees with ours: to 1 % where
+            # the arithmetic is glibc's, and never by more than the bound.
+            note = Fraction(record.note)
+            if not (
+                float(distance) == pytest.approx(float(note), rel=1e-2, abs=1e-12)
+                or abs(distance - note) <= bound
+            ):
+                disagree.append(
+                    f"{record.name}: ours {float(distance):+.3e}, experiment.py "
+                    f"{float(note):+.3e}, bound {float(bound):.3e}"
+                )
     assert not far, far
+    assert not disagree, disagree
 
 
 # The reviewer's own counterexamples (review/gate-wgs84-1/output.md, L2),
@@ -1443,15 +1605,63 @@ def test_at_each_window_edge_the_inside_input_is_htdp_and_the_outside_one_refuse
     target = {"E": 279.5, "W": 268.0, "S": 40.5, "N": 50.0}[edge]
     inside_is_below = edge in "EN"
     assert (lookup < target) is (inside_is_below is (side == "inside")), record
+    htdps = (record.lat_out, record.lonw_out, record.h_out)
     if side == "inside":
-        assert htdp_print(run_record(run, record.lat_in, record.lonw_in, record.h_in)) == (
-            record.lat_out, record.lonw_out, record.h_out
-        )
+        assert htdp_print(run_record(run, record.lat_in, record.lonw_in, record.h_in)) == htdps
         return
-    with pytest.raises(htdp.HtdpVelocityGridError) as raised:
+    # The OUTSIDE record is refused. The one exception is the platform's last
+    # place (see TIE_BOUND_UNITS): the fixture's lookup is glibc's, a few ulps
+    # outside the edge, and on a platform whose trigonometry differs it may
+    # land on the edge or inside it. Measured on Windows: edge_1_25-EDGESOUT's
+    # lookup is 40.5 exactly there, one ulp inside, where glibc's is
+    # 40.49999999999999. Then - and only when this platform's own lookup is on
+    # the inside and within the bound of the edge - the record is converted,
+    # and must print exactly what HTDP printed for that same input (HTDP
+    # computes every edge record, and the fixture holds its output).
+    try:
+        result = run_record(run, record.lat_in, record.lonw_in, record.h_in)
+    except htdp.HtdpVelocityGridError as raised:
+        expected = REGION_REFUSAL if edge == "N" else WINDOW_REFUSAL
+        assert expected in str(raised), str(raised)
+        return
+    here = _platform_edge_lookup(run, record)[0 if edge in "EW" else 1]
+    distance_ulps = (here - target) / math.ulp(target)
+    here_inside = here < target if inside_is_below else here >= target
+    assert (
+        (run_id, name) in PLATFORM_FLIPS
+        and here_inside
+        and abs(distance_ulps) <= TIE_BOUND_UNITS
+    ), (
+        f"{run_id} {name}: converted, but this platform's lookup {here!r} is "
+        f"{distance_ulps:+.1f} ulps from the {edge} edge {target} (bound "
+        f"{TIE_BOUND_UNITS}; measured exceptions: PLATFORM_FLIPS); an outside "
+        f"record must be refused"
+    )
+    assert htdp_print(result) == htdps, (run_id, name)
+
+
+def _platform_edge_lookup(run, record) -> tuple[float, float]:
+    """(posx, posy): GRDWEI's lookup on THIS platform (htdp.f:1603-1604).
+
+    The same expressions ``htdp._window_cell`` evaluates, read off the
+    arguments it is called with; nothing about the module is changed.
+    """
+    seen = []
+    real = htdp._window_cell
+
+    def spy(rlat, rlon, *rest):
+        seen.append(((htdp.TWOPI - rlon) * 180.0 / htdp.PI, rlat * 180.0 / htdp.PI))
+        return real(rlat, rlon, *rest)
+
+    htdp._window_cell = spy
+    try:
         run_record(run, record.lat_in, record.lonw_in, record.h_in)
-    expected = REGION_REFUSAL if edge == "N" else WINDOW_REFUSAL
-    assert expected in str(raised.value), str(raised.value)
+    except htdp.HtdpVelocityGridError:
+        pass
+    finally:
+        htdp._window_cell = real
+    assert seen, "the window check was never reached"
+    return seen[0]
 
 
 def test_every_edge_and_direction_has_its_pair_of_edge_records():

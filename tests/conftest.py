@@ -68,3 +68,29 @@ def extract_member(archive: Path, suffix: str, into: Path) -> Path:
 def read_member():
     """Fixture form of ``member_text``, for readability in test bodies."""
     return member_text
+
+
+# The two record lines that carry an absolute path (michspc/fileio/report.py,
+# "File" and "Folder"). Their 19-character label column is the report's own.
+_PATH_LINE_LABELS = ("File               ", "Folder             ")
+
+
+def record_root_normalised(text: str, root: Path) -> str:
+    r"""``text`` with the temporary ``root`` replaced by ``<ROOT>``, and the
+    remaining separators on the File and Folder lines written as ``/``.
+
+    The record digests in the suite were frozen on Linux, where the path
+    below the root is ``<ROOT>/job/in.csv``; on Windows the same record says
+    ``<ROOT>\job\in.csv``. That difference is the platform's path spelling,
+    not the program's output, so it is normalised - but ONLY on the two lines
+    that carry a path, and only on lines that begin with the label followed
+    by ``<ROOT>``: a backslash anywhere else in a record is still compared
+    exactly. On Linux this is a no-op (a POSIX path has no backslash), so the
+    frozen digests are compared there exactly as before.
+    """
+    text = text.replace(str(root), "<ROOT>")
+    lines = text.split("\n")
+    for index, line in enumerate(lines):
+        if line.startswith(tuple(label + "<ROOT>" for label in _PATH_LINE_LABELS)):
+            lines[index] = line.replace("\\", "/")
+    return "\n".join(lines)

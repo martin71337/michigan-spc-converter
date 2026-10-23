@@ -45,6 +45,7 @@ from pathlib import Path
 from michspc.fileio import formatting as fmt
 from michspc.fileio.writers import WriteError, staged_write
 from michspc.job import (
+    AUTO_ZONE,
     Direction,
     JobResult,
     applied_frame_transformation,
@@ -53,6 +54,56 @@ from michspc.job import (
 from michspc.spc.convert import HeightConvention
 from michspc.spc.frames import FrameTransformation, ReferenceFrame
 from michspc.spc.vertical import HeightKind
+
+
+class UndisclosedAutoZoneError(WriteError):
+    """Raised for an Auto zone job, whose outputs cannot yet state what was done.
+
+    The Auto zone build's write guard (docs/PLAN-options-autozone.md, between
+    work packages Z2 and Z3), on the W3 -> W4 precedent of the WGS 84 build
+    (docs/DESIGN.md #70). Z2 lets ``job.run`` choose each point's zone; Z3
+    builds the outputs that can say so - one clean export per zone, the
+    audit CSV's per-point zone and county, the record's TO block listing
+    each zone used, the county rule and its data. Until then every output
+    reads ``settings.target_zone`` as though it were one zone, which on an
+    Auto job is ``AUTO_ZONE``: a stem, a Target zone cell, a zone block and
+    an era sentence would each be missing, false or a crash. So an Auto job
+    converts but is not written. The #41 sequencing rule: disclosure before
+    reachability.
+    """
+
+
+def require_a_disclosed_zone(result: JobResult) -> None:
+    """Refuse to write an Auto zone job until work package Z3 can disclose it.
+
+    Refuses exactly when ``settings.target_zone is AUTO_ZONE`` - decided from
+    the SETTINGS, so an Auto job with no points at all is refused too. Every other job passes untouched and
+    writes byte for byte what it always wrote. Called first by ``write_all``
+    and by ``report.build_report``. Removed by work package Z3.
+    """
+    settings = result.settings
+    if settings.target_zone is not AUTO_ZONE:
+        return
+    frame = getattr(settings.auto_frame, "code", repr(settings.auto_frame))
+    zones = sorted(
+        {point.auto_zone.zone.code for point in result.points if point.auto_zone}
+    )
+    chosen = (
+        f"zones {', '.join(zones)} were chosen for its {len(result.points)} "
+        f"converted point(s)"
+        if zones
+        else "no point was converted"
+    )
+    raise UndisclosedAutoZoneError(
+        f"Nothing was written: this is an Auto zone job (target_zone="
+        f"AUTO_ZONE, zones chosen per point in {frame}); {chosen}. "
+        f"The clean export, the audit CSV and the job record do not yet state "
+        f"each point's own zone and county, or the county rule and data that "
+        f"chose them - they would describe one zone, or none - so an archive "
+        f"of this job would misstate it. That disclosure is the next stage of "
+        f"this development build (docs/PLAN-options-autozone.md, work package "
+        f"Z3); until it exists an Auto job converts but is not written."
+    )
 
 _PNEZD_HEADERLESS = True
 """The clean export has no header row, matching the input format exactly.
@@ -1344,6 +1395,10 @@ def write_all(result: JobResult, overwrite: bool = False) -> dict[str, Path]:
     the roles are kept so callers can say which member they mean.
     """
     from michspc.fileio.report import build_report
+
+    # First, before a single cell is rendered or a file staged: the Auto zone
+    # build's write guard (Z2 -> Z3).
+    require_a_disclosed_zone(result)
 
     for point in result.points:
         for label, value in (

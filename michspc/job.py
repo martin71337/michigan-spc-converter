@@ -19,12 +19,22 @@ from __future__ import annotations
 import datetime
 import hashlib
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
 from pathlib import Path
 
+from michspc.fileio import counties as county_file
 from michspc.fileio import formatting, geoid, pnezd, vertcon
 from michspc.spc import htdp
+from michspc.spc.autozone import (
+    AutoZoneAmbiguousError,
+    AutoZoneOutsideError,
+    AutoZoneSystem,
+    CountySet,
+    ZoneAssignment,
+    zone_for,
+    zones_choosable,
+)
 from michspc.spc.convert import (
     ConversionWarning,
     HeightConvention,
@@ -165,6 +175,92 @@ class LongitudeConvention(Enum):
 
     def from_signed(self, longitude: float) -> float:
         return -longitude if self is LongitudeConvention.POSITIVE_WEST else longitude
+
+
+class AutoZone(Enum):
+    """The Auto zone statement: "choose each point's zone from its position".
+
+    Its one member, ``AUTO_ZONE``, is what ``JobSettings.target_zone`` holds
+    on an Auto job (docs/PLAN-options-autozone.md section 3, work package
+    Z2). It is deliberately NOT None - None already means "this direction
+    has no zone at that end" - and NOT a ``Zone``: no one zone's constants,
+    units or frame describe an Auto job, and a sentinel that duck-typed as a
+    zone would let ``settings.target_zone.frame`` and friends read facts
+    that are false for most of the job's points (the #11-finding-1 lesson).
+    An Enum member, so it is a typed singleton that survives ``copy``,
+    ``deepcopy`` and ``pickle`` as itself, and every test of it is by
+    identity: ``settings.target_zone is AUTO_ZONE``.
+
+    Legal only as the TARGET of a ``GEODETIC_TO_ZONE`` job (plan L1): a
+    northing and easting do not say which zone they are in, so Auto is never
+    an input. It requires ``JobSettings.auto_frame``.
+    """
+
+    AUTO = "auto"
+
+    def __repr__(self) -> str:
+        return "AUTO_ZONE"
+
+
+AUTO_ZONE = AutoZone.AUTO
+"""The Auto zone sentinel. See ``AutoZone``."""
+
+
+AUTO_FRAMES: tuple[tuple[ReferenceFrame, AutoZoneSystem], ...] = (
+    (NAD83_2011, AutoZoneSystem.SPCS83),
+    (NATRF2022, AutoZoneSystem.SPCS2022),
+)
+"""The frames Auto chooses zones in, each with the zone system it chooses
+among (plan section 1 item 3: an Options setting, NAD83(2011) or NATRF2022).
+Checked at import against the zones themselves: every zone Auto can choose
+for a system must be defined on that system's frame, so the pairing is a
+fact the registry confirms, never an assumption."""
+
+
+def _check_auto_frames() -> None:
+    """Refuse to import a frame/system pairing the zones contradict.
+
+    if/raise, never assert: the suite runs under -O.
+    """
+    for frame, system in AUTO_FRAMES:
+        for zone in zones_choosable(system):
+            if zone.frame is not frame:
+                raise ValueError(
+                    f"AUTO_FRAMES pairs {frame.code} with {system.value}, but "
+                    f"{zone.name} ({zone.code}), a zone Auto can choose in "
+                    f"{system.value}, is defined on {zone.frame.code}."
+                )
+
+
+_check_auto_frames()
+
+
+def auto_zone_system(frame: ReferenceFrame) -> AutoZoneSystem:
+    """The zone system Auto chooses among in ``frame`` (by identity), or a refusal."""
+    for candidate, system in AUTO_FRAMES:
+        if frame is candidate:
+            return system
+    raise ValueError(
+        f"{_frame_label(frame)} is not a frame Auto chooses zones in. Auto "
+        f"chooses among the SPCS 83 zones on {NAD83_2011.code} or the "
+        f"SPCS2022 low-distortion zones on {NATRF2022.code}; pass "
+        f"michspc.spc.frames.NAD83_2011 or michspc.spc.frames.NATRF2022 - "
+        f"the registry's own record, not a copy of it."
+    )
+
+
+class ObservationDateSource(Enum):
+    """Where a job's observation date came from (plan L10 and O3).
+
+    ``TODAY``: the local calendar date the job ran (the Options default) -
+    which ``run`` holds equal to ``today_local()``. ``ENTERED``: a date the
+    user typed in Options. Stated beside ``JobSettings.observation_date``
+    exactly when that date is, and refused by name when it is not; the job
+    record prints it (work package Z3).
+    """
+
+    TODAY = "today"
+    ENTERED = "entered"
 
 
 @dataclass(frozen=True)
@@ -415,6 +511,31 @@ class JobSettings:
     second geodetic end exists: ``geodetic_frame`` is the one geodetic end of
     every other direction, and a second frame stated beside it would be a
     frame the job record could print and the conversion never used.
+    """
+
+    auto_frame: ReferenceFrame | None = None
+    """The frame an Auto job chooses its zones in, and of nothing else.
+
+    Required exactly when ``target_zone`` is ``AUTO_ZONE`` and refused by
+    name otherwise (the stray-field class). ``NAD83_2011`` chooses among the
+    three SPCS 83 zones, ``NATRF2022`` among the eighteen SPCS2022
+    low-distortion zones (``AUTO_FRAMES``) - matched by identity, the
+    registry's own record. The input's ``geodetic_frame`` must have a
+    registered path to it: NAD83(2011) input, or one of the five WGS 84 /
+    ITRF frames through HTDP, for ``NAD83_2011``; NATRF2022 input only for
+    ``NATRF2022``. Every other pairing is refused by
+    ``frames.require_frame_path``'s own cross-frame message (plan L2).
+    """
+
+    observation_date_source: ObservationDateSource | None = None
+    """How ``observation_date`` was obtained: TODAY or ENTERED (plan L10).
+
+    Stated only beside an observation date, and refused by name on a job that
+    reads no time-dependent frame, as a stray date is. When TODAY, the date
+    must equal ``today_local()``. **Not yet required** when a date is: the
+    two interface tabs do not send it until work package Z4, and the frozen
+    WGS 84 disclosure pins build settings without it, so None is still
+    accepted beside a date. Z3/Z4 make it required when the record prints it.
     """
 
 
@@ -765,9 +886,69 @@ class ConvertedPoint:
 
     warnings: tuple[ConversionWarning, ...] = field(default_factory=tuple)
 
+    auto_zone: ZoneAssignment | None = None
+    """On an Auto job, the zone chosen for this point and the county that chose it.
+
+    ``auto_zone.zone`` is the registry record the point was projected into -
+    the same record as ``conversion.target_zone`` - with the county's name
+    and FIPS beside it (plan O2: the record names each point's zone and
+    county as facts). None on every point of a job that is not Auto, so
+    every existing output is unchanged.
+    """
+
     @property
     def point_id(self) -> str:
         return self.row.point_id
+
+
+class AutoZoneUnplacedPointsError(ValueError):
+    """An Auto job with points no zone could be chosen for: the WHOLE job is refused.
+
+    The house rule (lead's review of work package Z2): every horizontal per-row
+    refusal in this program refuses the job - a latitude or longitude out of
+    range, a position outside HTDP's velocity grid - and Auto follows it. A
+    point in no Michigan county, or claimed by two county polygons, is never
+    given the nearest zone (plan L5) and is never silently dropped from the
+    output; the job converts nothing, and the message names EVERY such point,
+    with the position tested and its frame, so the file can be corrected in
+    one pass. ``points`` carries them as data: ``(point id, latitude,
+    longitude)``, signed decimal degrees, negative west, in ``frame``.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        points: tuple[tuple[str, float, float], ...],
+        frame: ReferenceFrame,
+    ) -> None:
+        super().__init__(message)
+        self.points = points
+        self.frame = frame
+
+
+@dataclass(frozen=True)
+class _UnplacedPoint:
+    """One row Auto could not place - collected by ``run``, never returned."""
+
+    point_id: str
+    latitude: float
+    longitude: float
+    frame: ReferenceFrame
+    reason: str
+    transformed_from: ReferenceFrame | None
+
+
+class _AutoZoneUnplaced(Exception):
+    """``_convert_row``'s private signal to ``run``'s row loop: this row has no zone.
+
+    Caught ONLY there, which collects every such row and then raises
+    ``AutoZoneUnplacedPointsError`` for the whole job. Nothing is skipped.
+    """
+
+    def __init__(self, point: _UnplacedPoint) -> None:
+        super().__init__(point.reason)
+        self.point = point
 
 
 @dataclass(frozen=True)
@@ -900,10 +1081,15 @@ def _stray_zone_message(settings: JobSettings, field: str) -> str:
     stray = getattr(settings, field)
     other = "target_zone" if field == "source_zone" else "source_zone"
     kept = getattr(settings, other)
+    kept_text = (
+        f"{other}=AUTO_ZONE (each point's own zone)"
+        if kept is AUTO_ZONE
+        else f"{other}={kept.name} ({kept.code})"
+    )
     return (
         f"A {direction.name} job was given {field}={stray.name} "
         f"({stray.code}), which this direction never reads: {because}. The "
-        f"conversion would run through {other}={kept.name} ({kept.code}) "
+        f"conversion would run through {kept_text} "
         f"alone, and the job record - which derives its zone blocks from "
         f"these settings, not from the conversion that ran - would print a "
         f"block for {stray.name} and call the job an exact re-projection "
@@ -911,6 +1097,96 @@ def _stray_zone_message(settings: JobSettings, field: str) -> str:
         f"to defend the job, so a zone that took no part in it is refused "
         f"here rather than ignored. Pass {field}=None."
     )
+
+
+_AUTO_TARGET_REASONS = {
+    Direction.ZONE_TO_ZONE: (
+        "its input is State Plane coordinates, and Auto chooses a zone from a "
+        "latitude and longitude only (docs/PLAN-options-autozone.md L1)"
+    ),
+    Direction.ZONE_TO_GEODETIC: (
+        "its output is a latitude and longitude, so no zone is projected into"
+    ),
+    Direction.VERTICAL_ONLY: (
+        "no output horizontal system exists in this mode, so no zone is "
+        "projected into"
+    ),
+    Direction.GEODETIC_TO_GEODETIC: (
+        "its output is a latitude and longitude, so no zone is projected into"
+    ),
+}
+
+
+def _require_auto_zone_settings(settings: JobSettings) -> None:
+    """The Auto zone statement's own refusals, before anything else reads a zone.
+
+    Work package Z2 (docs/PLAN-options-autozone.md L1, L2). In order:
+
+    * ``AUTO_ZONE`` as ``source_zone`` - never: a northing and easting do not
+      say which zone they are in (the zones overlap in grid coordinates);
+    * ``AUTO_ZONE`` as ``target_zone`` of any direction but
+      ``GEODETIC_TO_ZONE``;
+    * ``AUTO_ZONE`` without ``auto_frame``; ``auto_frame`` without
+      ``AUTO_ZONE`` (the stray-field class, by name);
+    * an ``auto_frame`` that is not a ``ReferenceFrame`` (TypeError), or not
+      the registry's own NAD83(2011) or NATRF2022 record, by identity.
+
+    The pairing of ``auto_frame`` with the input's ``geodetic_frame`` is NOT
+    checked here: it is the frame gate's, through the same
+    ``frames.require_frame_path`` refusal a fixed-zone job meets.
+    """
+    if settings.source_zone is AUTO_ZONE:
+        raise ValueError(
+            "JobSettings.source_zone was AUTO_ZONE. Auto chooses a zone from a "
+            "latitude and longitude, so it can only be the TARGET of a "
+            "geodetic-to-State Plane job: a northing and easting do not say "
+            "which zone they are in - Michigan's zones overlap in grid "
+            "coordinates - so the zone an input is in is never inferred. "
+            "State the zone the coordinates are in."
+        )
+    auto_target = settings.target_zone is AUTO_ZONE
+    if auto_target and settings.direction is not Direction.GEODETIC_TO_ZONE:
+        raise ValueError(
+            f"A {settings.direction.name} job was given target_zone=AUTO_ZONE, "
+            f"but Auto zone is the output of a "
+            f"{Direction.GEODETIC_TO_ZONE.name} job only - it chooses each "
+            f"point's zone from that point's latitude and longitude - and "
+            f"this job {_AUTO_TARGET_REASONS[settings.direction]}. State the "
+            f"zone, or None where this direction has no zone."
+        )
+    if settings.auto_frame is None:
+        if auto_target:
+            raise ValueError(
+                f"A job with target_zone=AUTO_ZONE needs auto_frame, the frame "
+                f"Auto chooses zones in: {NAD83_2011.code}, whose zones are "
+                f"the three SPCS 83 zones, or {NATRF2022.code}, whose zones "
+                f"are the eighteen SPCS2022 low-distortion zones. It has no "
+                f"default: the two systems put the same point in different "
+                f"zones with different coordinates."
+            )
+        return
+    if not auto_target:
+        zone = settings.target_zone
+        stated = (
+            f"target_zone={zone.name} ({zone.code})"
+            if isinstance(zone, Zone)
+            else "target_zone=None"
+        )
+        raise ValueError(
+            f"A {settings.direction.name} job with {stated} was given "
+            f"auto_frame={_frame_label(settings.auto_frame)}, which only an "
+            f"Auto job (target_zone=AUTO_ZONE) reads. No zone is chosen from "
+            f"a position in this job, so the frame would be one the job "
+            f"record could print and the conversion never used. Pass "
+            f"auto_frame=None."
+        )
+    if not isinstance(settings.auto_frame, ReferenceFrame):
+        raise TypeError(
+            f"JobSettings.auto_frame must be a michspc.spc.frames."
+            f"ReferenceFrame - NAD83_2011 or NATRF2022; got "
+            f"{type(settings.auto_frame).__name__} ({settings.auto_frame!r})."
+        )
+    auto_zone_system(settings.auto_frame)  # refuses any other record
 
 
 def _height_frame(settings: JobSettings) -> ReferenceFrame:
@@ -956,13 +1232,20 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
     # before anything else reads the field.
     for name in ("source_zone", "target_zone"):
         value = getattr(settings, name)
-        if value is not None and not isinstance(value, Zone):
+        if value is not None and value is not AUTO_ZONE and not isinstance(value, Zone):
             raise TypeError(
                 f"JobSettings.{name} must be a michspc.spc.zones.Zone, or None "
                 f"where the direction has no zone at that end; got "
                 f"{type(value).__name__} ({value!r}). A reference frame is not "
                 f"a zone: a geodetic end's frame is stated in geodetic_frame."
+                + (
+                    " To have each point's zone chosen from its position, "
+                    "pass michspc.job.AUTO_ZONE (the object, not a string)."
+                    if name == "target_zone"
+                    else ""
+                )
             )
+    _require_auto_zone_settings(settings)
 
     if settings.direction is Direction.ZONE_TO_ZONE:
         if settings.source_zone is None or settings.target_zone is None:
@@ -1385,20 +1668,37 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
         else None
     )
 
+    # The county polygons, read and authenticated once per process, and only
+    # for an Auto job: a fixed-zone job never touches the county file, so it
+    # converts with the file absent exactly as it always did.
+    county_set = (
+        county_file.default_counties() if settings.target_zone is AUTO_ZONE else None
+    )
+
     points: list[ConvertedPoint] = []
+    unplaced: list[_UnplacedPoint] = []
     for row in parsed.rows:
-        points.append(
-            _convert_row(
-                row,
-                settings,
-                grid,
-                transformation,
-                vertcon_grids,
-                swap_grids,
-                frame_path=frame_path,
-                epoch=epoch,
+        try:
+            points.append(
+                _convert_row(
+                    row,
+                    settings,
+                    grid,
+                    transformation,
+                    vertcon_grids,
+                    swap_grids,
+                    frame_path=frame_path,
+                    epoch=epoch,
+                    county_set=county_set,
+                )
             )
-        )
+        except _AutoZoneUnplaced as signal:
+            # Collected, not skipped: the loop runs on only so the refusal
+            # below can name EVERY row Auto cannot place, and then the whole
+            # job is refused (the house rule; plan L5).
+            unplaced.append(signal.point)
+    if unplaced:
+        raise _unplaced_points_refusal(unplaced, county_set)
 
     return JobResult(
         settings=settings,
@@ -1581,9 +1881,15 @@ def _require_a_registered_frame_path(
     refused - the W2 guard's successor.
     """
     if settings.direction is Direction.GEODETIC_TO_ZONE:
-        path = require_frame_path(
-            settings.geodetic_frame, settings.target_zone.frame
+        # An Auto job's zones are all on its auto_frame (AUTO_FRAMES, checked
+        # at import), so the pair is the input frame against that frame - the
+        # same require_frame_path refusal a fixed zone on it would meet.
+        target_frame = (
+            settings.auto_frame
+            if settings.target_zone is AUTO_ZONE
+            else settings.target_zone.frame
         )
+        path = require_frame_path(settings.geodetic_frame, target_frame)
     elif settings.direction is Direction.ZONE_TO_GEODETIC:
         path = require_frame_path(
             settings.source_zone.frame, settings.geodetic_frame
@@ -1677,6 +1983,20 @@ def today() -> datetime.date:
     return max(local, utc)
 
 
+def today_local() -> datetime.date:
+    """The LOCAL calendar date this job runs - what "today" means as an observation date.
+
+    Plan L10: an ``ObservationDateSource.TODAY`` date is the date the job ran
+    in Michigan, not ``today``'s later-of-local-and-UTC, which exists only so
+    a date that is today in either clock is never refused as being in the
+    future. A Michigan evening job is already tomorrow in UTC; recording
+    that as "the date the job ran" would be a false sentence. Read through
+    ``_local_and_utc_dates`` so the suite can set the two clocks apart.
+    """
+    local, _utc = _local_and_utc_dates()
+    return local
+
+
 def _local_and_utc_dates() -> tuple[datetime.date, datetime.date]:
     """``(local date, UTC date)`` now: ``today``'s two clocks, and nothing else."""
     return (
@@ -1753,8 +2073,27 @@ def _require_the_observation_date(
             )
         )
 
+    source = settings.observation_date_source
+    if source is not None and not isinstance(source, ObservationDateSource):
+        raise TypeError(
+            f"JobSettings.observation_date_source must be an "
+            f"ObservationDateSource - TODAY or ENTERED - stating how the "
+            f"observation date was obtained, or None; got "
+            f"{type(source).__name__} ({source!r})."
+        )
+
     read = _time_dependent_frames_read(settings, frame_path)
     if not read:
+        if date is None and source is not None:
+            raise ValueError(
+                f"A {settings.direction.name} job was given "
+                f"observation_date_source={source.name}, but no frame this "
+                f"job reads is time-dependent, so it states no observation "
+                f"date and there is no date whose source could be recorded. "
+                f"A source stated for a job that used no date would put a "
+                f"sentence about a date into a record of a conversion that "
+                f"never read one. Pass observation_date_source=None."
+            )
         if date is not None:
             raise ValueError(
                 f"A {settings.direction.name} job was given observation_date="
@@ -1793,6 +2132,19 @@ def _require_the_observation_date(
             f"complaint, moved by the plate motion of time that has not "
             f"passed (docs/PLAN-wgs84.md decision D9). Check the date."
         )
+    if source is ObservationDateSource.TODAY:
+        local = today_local()
+        if date != local:
+            raise ValueError(
+                f"observation_date_source is TODAY, but observation_date is "
+                f"{date.isoformat()} and the day this job runs is "
+                f"{local.isoformat()} (the local calendar date). TODAY means "
+                f"the date the job ran, so the two must be the same date: a "
+                f"date carried over from an earlier session, or a UTC date "
+                f"taken for the local one, would be recorded as the date the "
+                f"job ran when it is not. State ENTERED for a date that was "
+                f"typed, or pass today's local date."
+            )
     epoch = htdp.ObservationEpoch(date)
 
     warnings: list[ConversionWarning] = []
@@ -1993,7 +2345,10 @@ def _require_units_the_zones_publish(settings: JobSettings) -> None:
     elif settings.direction is Direction.ZONE_TO_GEODETIC:
         ends.append(("source", settings.source_zone, settings.input_unit))
     elif settings.direction is Direction.GEODETIC_TO_ZONE:
-        ends.append(("target", settings.target_zone, settings.output_unit))
+        if settings.target_zone is AUTO_ZONE:
+            _require_a_unit_every_auto_zone_publishes(settings)
+        else:
+            ends.append(("target", settings.target_zone, settings.output_unit))
     elif settings.direction is Direction.VERTICAL_ONLY:
         if settings.source_zone is not None:
             ends.append(("source", settings.source_zone, settings.input_unit))
@@ -2024,6 +2379,49 @@ def _require_units_the_zones_publish(settings: JobSettings) -> None:
             f"used for it. {zone.system} zones may be read and written in: "
             f"{allowed}.{authority} The zone's authority: {zone.citation}."
         )
+
+
+def _require_a_unit_every_auto_zone_publishes(settings: JobSettings) -> None:
+    """The unit gate for an Auto job: the output unit against EVERY zone Auto can choose.
+
+    Before the file is read, so the answer cannot depend on which zones the
+    file's points happen to land in: a job that would write one point in US
+    survey feet in an SPCS2022 zone is refused whole, as a fixed-zone job on
+    that zone is (recon section 7 item 7 - the gate an Auto job would
+    otherwise skip silently). The zones are ``autozone.zones_choosable``,
+    read from the county tables ``zone_for`` itself reads.
+    """
+    system = auto_zone_system(settings.auto_frame)
+    zones = zones_choosable(system)
+    unit = settings.output_unit
+    refusing = [zone for zone in zones if unit not in zone.allowed_units]
+    if not refusing:
+        return
+    allowed = [
+        u for u in zones[0].allowed_units if all(u in z.allowed_units for z in zones)
+    ]
+    allowed_text = ", ".join(f"{u.code} ({u.name})" for u in allowed)
+    named = ", ".join(f"{zone.name} ({zone.code})" for zone in refusing)
+    if system is AutoZoneSystem.SPCS2022:
+        authority = (
+            " NGS publishes every SPCS2022 zone's false origin in metres and "
+            "international feet only, and NCAT prints N/A for the US survey "
+            "foot on every one of them; the survey foot is 2 ppm from the "
+            "international foot, so a coordinate written in it could be "
+            "checked against no published figure."
+        )
+    else:
+        authority = ""
+    raise ValueError(
+        f"Auto zone in {settings.auto_frame.code} chooses each point's zone "
+        f"among the {len(zones)} {system.value} zones it can assign, and "
+        f"{len(refusing)} of them do not publish coordinates in {unit.name} "
+        f"({unit.code}): {named}. This job's target unit cannot be used, "
+        f"because a point landing in one of those zones would be written in "
+        f"a unit its zone does not define. Auto {system.value} jobs may be "
+        f"written in: {allowed_text}.{authority} The zones' authority: "
+        f"{refusing[0].citation}."
+    )
 
 
 def _require_vertical_settings(
@@ -2482,6 +2880,97 @@ def _point_named_htdp_refusal(
     )
 
 
+def _unplaced_points_refusal(
+    unplaced: list[_UnplacedPoint], county_set: CountySet
+) -> AutoZoneUnplacedPointsError:
+    """The whole-job refusal naming every row Auto could not place."""
+    frame = unplaced[0].frame
+    carried = unplaced[0].transformed_from
+    via = (
+        f" (each {carried.code} position as HTDP carried it there)"
+        if carried is not None
+        else ""
+    )
+    listed = "; ".join(
+        f"point {p.point_id} at latitude {p.latitude:.8f}, longitude "
+        f"{p.longitude:.8f} - {p.reason}"
+        for p in unplaced
+    )
+    return AutoZoneUnplacedPointsError(
+        f"Auto could not choose a zone for {len(unplaced)} point(s) of this "
+        f"job, so nothing was converted. Positions tested, in "
+        f"{frame.code}{via}: {listed}. No zone is assigned to a point in no "
+        f"Michigan county ({county_set.source}, Great Lakes waters included), "
+        f"and Auto never assigns the nearest zone or picks between two "
+        f"counties that both claim a point. Check these coordinates, remove "
+        f"the points from the file, or choose the zone yourself.",
+        points=tuple((p.point_id, p.latitude, p.longitude) for p in unplaced),
+        frame=frame,
+    )
+
+
+def _auto_zone_for(
+    row: pnezd.PnezdRow,
+    latitude: float,
+    longitude: float,
+    settings: JobSettings,
+    county_set: CountySet | None,
+    context: str,
+    transform_arguments: dict,
+) -> tuple[ZoneAssignment, tuple[float, float]]:
+    """The zone Auto chooses for one point, and the position it was chosen at.
+
+    Plan L4: the position is the point's own in the Auto frame - the input
+    itself for NAD83(2011) or NATRF2022 input, and the NAD83(2011) pivot
+    HTDP carries a WGS 84 or ITRF position to - found by
+    ``convert.geodetic_position``, the function the vertical-only job reads
+    its pivot with, through the same ``pivot_path``. Its frame is then
+    required to BE the Auto frame (a second gate behind the settings' frame
+    gate). A position in no county, or claimed by two, is signalled to
+    ``run`` (``_AutoZoneUnplaced``), which collects every such row and then
+    refuses the whole job; every other failure refuses the job at once.
+    """
+    if not isinstance(county_set, CountySet):
+        raise TypeError(
+            f"{context}: an Auto job converts only against the loaded county "
+            f"set; got {type(county_set).__name__}."
+        )
+    position = geodetic_position(
+        latitude, longitude, settings.geodetic_frame, context, **transform_arguments
+    )
+    if position.frame is not settings.auto_frame:
+        raise FrameTransformationUnavailableError(
+            f"{context}: Auto chooses zones in {settings.auto_frame.code}, but "
+            f"this point's position is in {position.frame.code}, and no zone "
+            f"is chosen from a position in another frame."
+        )
+    system = auto_zone_system(settings.auto_frame)
+    try:
+        assignment = zone_for(position.latitude, position.longitude, system, county_set)
+    except (AutoZoneOutsideError, AutoZoneAmbiguousError) as error:
+        if isinstance(error, AutoZoneAmbiguousError):
+            claimed = ", ".join(
+                f"{c.name} ({c.fips})"
+                for c in county_set.containing(position.longitude, position.latitude)
+            )
+            reason = f"inside more than one county polygon ({claimed})"
+        else:
+            reason = "in no Michigan county"
+        raise _AutoZoneUnplaced(
+            _UnplacedPoint(
+                point_id=row.point_id,
+                latitude=position.latitude,
+                longitude=position.longitude,
+                frame=position.frame,
+                reason=reason,
+                transformed_from=(
+                    settings.geodetic_frame if position.is_transformed else None
+                ),
+            )
+        ) from error
+    return assignment, (position.latitude, position.longitude)
+
+
 def _convert_row(
     row: pnezd.PnezdRow,
     settings: JobSettings,
@@ -2492,9 +2981,11 @@ def _convert_row(
     *,
     frame_path: FrameTransformation | None = None,
     epoch: htdp.ObservationEpoch | None = None,
+    county_set: CountySet | None = None,
 ) -> ConvertedPoint:
     context = f"point {row.point_id}"
     warnings: list[ConversionWarning] = []
+    auto_assignment: ZoneAssignment | None = None
 
     geodetic_input = settings.direction in (
         Direction.GEODETIC_TO_ZONE,
@@ -2539,14 +3030,64 @@ def _convert_row(
                 latitude, longitude, row.easting, settings, context
             )
             if settings.direction is Direction.GEODETIC_TO_ZONE:
+                if settings.target_zone is AUTO_ZONE:
+                    # Work package Z2: the zone is chosen from the position
+                    # in the Auto frame - AFTER any HTDP transformation - and
+                    # the point is then projected into it by exactly the call
+                    # a fixed-zone job makes, so an Auto point is the
+                    # fixed-zone point of its zone, field for field.
+                    auto_assignment, chosen_at = _auto_zone_for(
+                        row,
+                        latitude,
+                        longitude,
+                        settings,
+                        county_set,
+                        context,
+                        transform_arguments,
+                    )
+                    target_zone = auto_assignment.zone
+                else:
+                    target_zone = settings.target_zone
                 conversion = project_point(
                     latitude,
                     longitude,
                     settings.geodetic_frame,
-                    settings.target_zone,
+                    target_zone,
                     context,
                     **transform_arguments,
                 )
+                if auto_assignment is not None:
+                    # The lead's ruling on Z2 finding 6: no OUTSIDE_ZONE_EXTENT
+                    # on an Auto point. Its zone was chosen by the statute's
+                    # county rule, so a warning from the zone's approximate
+                    # extent box would be false on it. Removed from the
+                    # conversion record too, so no surface can reach it.
+                    # Fixed-zone jobs are untouched.
+                    conversion = replace(
+                        conversion,
+                        warnings=tuple(
+                            w
+                            for w in conversion.warnings
+                            if w.code is not WarningCode.OUTSIDE_ZONE_EXTENT
+                        ),
+                    )
+                if auto_assignment is not None and (
+                    conversion.latitude,
+                    conversion.longitude,
+                ) != chosen_at:
+                    # if/raise, never assert (-O). The zone must have been
+                    # chosen at exactly the position that was projected; a
+                    # difference would mean the two calls took different
+                    # frame paths, and the zone would be the zone of some
+                    # other position.
+                    raise FrameTransformationUnavailableError(
+                        f"{context}: the Auto zone was chosen at latitude "
+                        f"{chosen_at[0]!r}, longitude {chosen_at[1]!r}, but "
+                        f"the position projected into {target_zone.name} was "
+                        f"latitude {conversion.latitude!r}, longitude "
+                        f"{conversion.longitude!r}. Refused: the zone must be "
+                        f"the zone of the position converted."
+                    )
                 output_unit = settings.output_unit
                 output_northing = output_unit.from_meters(conversion.target_northing)
                 output_easting = output_unit.from_meters(conversion.target_easting)
@@ -3166,4 +3707,5 @@ def _convert_row(
         ellipsoid_height=ellipsoid_reading,
         geoid_swap=geoid_swap_reading,
         warnings=tuple(warnings) + conversion.warnings,
+        auto_zone=auto_assignment,
     )

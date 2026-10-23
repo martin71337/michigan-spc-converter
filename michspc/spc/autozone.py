@@ -75,7 +75,7 @@ from enum import Enum
 from typing import Iterable, Mapping
 
 from michspc.spc import autozone_spcs83, autozone_spcs2022
-from michspc.spc.zones import Zone
+from michspc.spc.zones import SPCS83_ZONES, SPCS2022_ZONES, Zone
 
 Vertex = tuple[float, float]
 """``(longitude, latitude)``, decimal degrees, longitude negative west."""
@@ -485,6 +485,32 @@ def zone_for(
             longitude=lon,
         )
     return ZoneAssignment(zone=zone, county_name=county.name, county_fips=county.fips)
+
+
+def zones_choosable(system: AutoZoneSystem) -> tuple[Zone, ...]:
+    """Every zone ``zone_for`` can return for ``system``, in registry order.
+
+    Read from the same tables ``zone_for`` reads - the SPCS 83 county table,
+    and the SPCS2022 table plus the Isle Royale zone its rule adds - so a
+    caller that must check something against EVERY zone Auto might choose
+    (``job``'s unit gate, work package Z2) asks the rule itself rather than a
+    second list that could drift from it. Never includes the statewide
+    SPCS2022 zone 260001, which Auto never chooses.
+    """
+    if not isinstance(system, AutoZoneSystem):
+        raise AutoZoneInputError(
+            f"zones_choosable needs an AutoZoneSystem (SPCS83 or SPCS2022); "
+            f"got {type(system).__name__} ({system!r})."
+        )
+    if system is AutoZoneSystem.SPCS83:
+        used = set(autozone_spcs83.SPCS83_ZONE_BY_FIPS.values())
+        registry = SPCS83_ZONES
+    else:
+        used = set(autozone_spcs2022.LDP_ZONE_BY_FIPS.values()) | {
+            autozone_spcs2022.ISLE_ROYALE_ZONE
+        }
+        registry = SPCS2022_ZONES
+    return tuple(zone for zone in registry if zone in used)
 
 
 def require_tables_cover(counties: CountySet) -> None:

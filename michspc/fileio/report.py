@@ -21,6 +21,7 @@ from michspc.fileio import formatting as fmt
 from michspc.fileio import vertcon
 from michspc.fileio.exports import external_frame as _external_frame
 from michspc.fileio.exports import pivot_frame as _pivot_frame
+from michspc.fileio.exports import require_a_disclosed_zone
 from michspc.fileio.geoid import geoid_model_by_name
 from michspc.job import (
     Direction,
@@ -1929,6 +1930,11 @@ def build_report(result: JobResult) -> str:
     # The W3 -> W4 write guard (require_a_disclosable_job) was called here
     # until this record could state a frame transformation; it can now, in
     # the FRAME TRANSFORMATION block below, and the guard is gone.
+    #
+    # The Auto zone build's write guard, here as well as in exports.write_all
+    # (docs/PLAN-options-autozone.md, Z2 -> Z3): a record built for an Auto
+    # job would describe one zone, or none, for points in several.
+    require_a_disclosed_zone(result)
     settings = result.settings
     if settings.input_path is None or settings.output_directory is None:
         # The record's INPUT block opens with "File" and its OUTPUT block opens

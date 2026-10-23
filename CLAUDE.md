@@ -78,8 +78,10 @@ refusal; seven `NGS beta` artifacts acknowledged, five in 0.7.x; release
 notes still DRAFT). Suite **5,754** in both modes. NGS's own Windows
 `htdp.exe` check is DONE: last digit only (#71).
 
-**What remains, in order:** the **closing Codex gate over Z0-Z5** and its
-narrowing re-confirmation; the **owner's screen review** of both tabs and
+**The closing gate is done** (`review/gate-autozone-closing/`): Codex found
+no defect but could not run Qt; an independent Opus reviewer drove the real
+GUI headless and returned APPROVED, nothing found. **What remains, in
+order:** the **owner's screen review** of both tabs and
 the Options dialog (previews in `review/autozone-z4/`); then the release
 build on his machine (`py tools/build_release.py --acknowledge-ngs-beta`,
 drop `-dev` first), tag, GitHub Release. **Still human:** one real WGS 84 /

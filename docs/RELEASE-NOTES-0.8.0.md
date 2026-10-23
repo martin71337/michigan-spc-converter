@@ -5,8 +5,7 @@
 controls on a real screen. The release has two parts. The WGS 84 and ITRF
 part has had its closing review gate, and its findings are fixed (below,
 under Verified). The Options, Auto zone and observation date part has had
-its interim gate, and its findings are fixed; **its closing gate has not run
-yet.** The release build is made on the owner's machine. This file is
+its interim gate and its closing gate (below, under Verified). The release build is made on the owner's machine. This file is
 written so that what the release claims can be checked against what was
 actually verified.
 
@@ -403,11 +402,22 @@ and the monthly tripwire now watches NGS's HTDP repository for that change.
   agreement it cited was measured on the unshifted capture; the test now
   reads the unshifted capture. Both are fixed and pinned at the reviewer's
   own inputs.
+- **The Options and Auto zone part's closing gate** ran in two halves
+  (`review/gate-autozone-closing/`). Codex reviewed the whole of it and
+  found no defect: 247 NCAT anchors through the conversion (233 placed, 14
+  refused as they must be), 20 Auto archives against 90 fixed-zone ones
+  with 2,338 points compared and every CAD row identical, the job records
+  of both zone systems, and 1,524 remembered-option combinations. Its
+  sandbox could not run the interface, so an independent Opus reviewer
+  drove the real windows on the owner's machine: over half a million
+  keyboard and mouse events on the dropdowns with no hidden entry ever
+  selected, every result cleared when a control or option changed, all 247
+  anchors on both tabs matching the written files, and the observation date
+  taken as the local date at Convert. Its verdict: APPROVED, with nothing
+  found.
 
 ## Not verified yet: still to do before this ships
 
-- **The closing review gate over the Options and Auto zone work**, and a
-  narrowing re-confirmation of its fixes.
 - **The owner's screen review of both tabs and the Options dialog**,
   including:
   - the Options dialog itself, and the Auto entry at the top of the zone

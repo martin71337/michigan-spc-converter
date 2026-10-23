@@ -652,6 +652,38 @@ instruction ("the code should be sound already"), not a Codex gate. Codex was
 updated to 0.163.0 at his instruction, and gates the work this amendment
 opens.
 
+**The build, Z0-Z5** (Opus builders to the lead's briefs, each diff
+lead-reviewed and committed per package: 271660a, a425a2f, 26e2d9c,
+18de4b3, 207645f). The lead's rulings beyond the plan: a point Auto cannot
+place refuses the WHOLE job naming every such point (the house rule for
+horizontal refusals), not a per-point drop; an Auto point carries no
+OUTSIDE_ZONE_EXTENT warning (its zone is the statute's, the extent box is
+approximate); the core keeps ObservationDateSource optional (a frozen W4
+digest and ~180 core tests state none, and a record without one says
+nothing false) while both tabs always send one, pinned.
+
+**Interim gate 1 (Codex, over Z0-Z2, `review/gate-autozone-1/`):** one HIGH
+(public renderers could write an Auto job's rows across zones into one
+file, around the Z2 write guard; fixed at the root in Z3, `clean_points`
+requires the zone) and one MEDIUM (the SPCS2022 table tested against a
+server-shifted copy of NGS's polygons; now the native capture, 2e06514).
+No wrong zone.
+
+**Closing gate (`review/gate-autozone-closing/`):** Codex over 9ed3daa..207645f
+found no defect (247 anchors, 2,338 point comparisons through real files,
+records, 1,524 option combinations, self-test 14) but its sandbox had no
+Python 3.14/PySide6 and it returned FINDINGS on that blocker alone. The GUI
+half ran under an independent Opus reviewer (the owner's standing fallback)
+driving the real widgets headless on the owner's machine: 529,656
+closed-combo and 9,856 popup navigations with no hidden row selected, 50
+stale-result scenarios, 406 FROM moves, all 247 anchors on both tabs equal
+to the written files, 645 date checks including a local/UTC split across
+midnight, 1,014 persistence checks. **VERDICT: APPROVED, nothing found.**
+Two INFO: a test pitfall (`isVisibleTo` on the hidden tab) and, for the
+owner, a hidden Auto selection surviving a FROM change in Vertical mode,
+cleared on return to Horizontal; nothing stale reaches a job. Suite 5,754
+in both modes.
+
 ### #70 — 2026-10-20 — The WGS 84 build opens: scope, W0 measurement, and the oracle
 
 **The owner's instruction**, in two steps. He asked whether WGS 84 could be

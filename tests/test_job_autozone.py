@@ -23,7 +23,9 @@ under test:
    line.
 5. **The observation date source** (L10): stray refused, TODAY held to the
    LOCAL date (``today_local``), never the UTC one.
-6. **The write guard** (Z2 -> Z3): an Auto job converts and is not written.
+6. **The write guard's successors**: Z2's guard refused to write an Auto
+   job; Z3 removed it, and an Auto job now writes (its outputs are pinned in
+   tests/test_autozone_outputs.py).
 """
 
 from __future__ import annotations
@@ -825,7 +827,12 @@ def test_a_date_without_its_source_is_still_accepted_until_z4(evening):
 
 
 # --------------------------------------------------------------------------
-# 6. The write guard (Z2 -> Z3).
+# 6. The write guard's successors (Z2's guard, removed at Z3).
+#
+# Z2 refused to write an Auto job (exports.require_a_disclosed_zone) until Z3
+# could disclose it. Z3 built the disclosure and removed the guard, on the
+# W3 -> W4 precedent; these two pins are the guard's successors. What an Auto
+# archive holds is pinned in detail in tests/test_autozone_outputs.py.
 # --------------------------------------------------------------------------
 
 
@@ -835,34 +842,41 @@ def _written_auto_result(tmp_path, text):
     return run(settings(input_path=path, output_directory=tmp_path))
 
 
-def test_an_auto_job_is_not_written(tmp_path):
+def test_an_auto_job_is_written_and_states_each_points_zone(tmp_path):
+    """The job the guard refused now writes: one clean file per zone used
+    (Calhoun -> MI-S and the Alcona anchor -> MI-C, NCAT's own zones), and
+    the record states the Auto TO block naming both."""
     result = _written_auto_result(
         tmp_path,
         f"1,{CALHOUN[0]},{CALHOUN[1]},250.0,A\r\n2,44.682131,-83.622405,,B\r\n",
     )
     assert len(result.points) == 2
-    with pytest.raises(exports.UndisclosedAutoZoneError) as caught:
-        exports.write_all(result)
-    assert str(caught.value) == (
-        "Nothing was written: this is an Auto zone job (target_zone=AUTO_ZONE, "
-        "zones chosen per point in NAD83(2011)); zones 2112, 2113 were chosen "
-        "for its 2 converted point(s). The clean export, the audit CSV and the "
-        "job record do not yet state each point's own zone and county, or the "
-        "county rule and data that chose them - they would describe one zone, "
-        "or none - so an archive of this job would misstate it. That "
-        "disclosure is the next stage of this development build "
-        "(docs/PLAN-options-autozone.md, work package Z3); until it exists an "
-        "Auto job converts but is not written."
-    )
-    assert sorted(p.name for p in tmp_path.iterdir()) == ["pts.csv"]
-    with pytest.raises(exports.UndisclosedAutoZoneError):
-        report.build_report(result)
+    written = exports.write_all(result)
+    assert written["archive"].name == "pts_AUTO-SPCS83.zip"
+    import zipfile
+
+    with zipfile.ZipFile(written["archive"]) as archive:
+        assert archive.namelist() == [
+            "pts_AUTO-SPCS83_MI-C.csv",
+            "pts_AUTO-SPCS83_MI-S.csv",
+            "pts_AUTO-SPCS83_full.csv",
+            "pts_AUTO-SPCS83_README.txt",
+        ]
+        assert archive.read("pts_AUTO-SPCS83_MI-C.csv").decode().startswith("2,")
+        assert archive.read("pts_AUTO-SPCS83_MI-S.csv").decode().startswith("1,")
+        record = archive.read("pts_AUTO-SPCS83_README.txt").decode()
+    assert "TO: Auto zone - each point in the zone of its county (SPCS 83)\n" in record
+    assert "    Michigan Central, zone 2112 (MI-C): 1 point\n" in record
+    assert "    Michigan South, zone 2113 (MI-S): 1 point\n" in record
+    assert report.build_report(result).split("\n")[6:] == record.split("\n")[6:]
 
 
-def test_the_write_guard_lets_a_fixed_zone_job_through(tmp_path):
+def test_the_write_guard_is_gone(tmp_path):
+    """Removed, not left dormant: nothing could switch it back on."""
+    assert not hasattr(exports, "require_a_disclosed_zone")
+    assert not hasattr(exports, "UndisclosedAutoZoneError")
     path = tmp_path / "pts.csv"
     path.write_bytes(f"1,{CALHOUN[0]},{CALHOUN[1]},250.0,A\r\n".encode("ascii"))
     result = run(settings(input_path=path, output_directory=tmp_path, target_zone=MI_SOUTH, auto_frame=None))
-    exports.require_a_disclosed_zone(result)
     written = exports.write_all(result)
-    assert written["archive"].exists()
+    assert written["archive"].name == "pts_MI-S.zip"

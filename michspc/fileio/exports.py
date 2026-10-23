@@ -40,70 +40,67 @@ from __future__ import annotations
 
 import os
 import zipfile
+from dataclasses import dataclass
 from pathlib import Path
 
 from michspc.fileio import formatting as fmt
 from michspc.fileio.writers import WriteError, staged_write
 from michspc.job import (
     AUTO_ZONE,
+    ConvertedPoint,
     Direction,
     JobResult,
     applied_frame_transformation,
+    auto_zone_system,
     written_geodetic_position,
 )
+from michspc.spc.autozone import AutoZoneSystem, zones_choosable
 from michspc.spc.convert import HeightConvention
 from michspc.spc.frames import FrameTransformation, ReferenceFrame
 from michspc.spc.vertical import HeightKind
+from michspc.spc.zones import Zone
 
 
-class UndisclosedAutoZoneError(WriteError):
-    """Raised for an Auto zone job, whose outputs cannot yet state what was done.
+# UndisclosedAutoZoneError and require_a_disclosed_zone stood here from work
+# package Z2 to Z3 of the Auto zone build (docs/PLAN-options-autozone.md): a
+# write guard that refused every Auto job, because no output could yet say
+# which zone each point was put in. Z3 built that disclosure - one clean
+# export per zone used (``clean_members``), the audit CSV's per-point zone
+# and county, and the record's Auto TO block - and removed the guard, on the
+# W3 -> W4 precedent of the WGS 84 build. Its pins in
+# tests/test_job_autozone.py became successors: an Auto job writes, and what
+# it writes is pinned (tests/test_autozone_outputs.py).
 
-    The Auto zone build's write guard (docs/PLAN-options-autozone.md, between
-    work packages Z2 and Z3), on the W3 -> W4 precedent of the WGS 84 build
-    (docs/DESIGN.md #70). Z2 lets ``job.run`` choose each point's zone; Z3
-    builds the outputs that can say so - one clean export per zone, the
-    audit CSV's per-point zone and county, the record's TO block listing
-    each zone used, the county rule and its data. Until then every output
-    reads ``settings.target_zone`` as though it were one zone, which on an
-    Auto job is ``AUTO_ZONE``: a stem, a Target zone cell, a zone block and
-    an era sentence would each be missing, false or a crash. So an Auto job
-    converts but is not written. The #41 sequencing rule: disclosure before
-    reachability.
+
+def is_auto_zone_job(settings) -> bool:
+    """Whether this job chose each point's zone from its position (``job.AUTO_ZONE``).
+
+    THE one test every output branches on, by identity, so the clean
+    members, the audit CSV and the job record cannot disagree about whether
+    a job was Auto. False on every job that existed before the Auto build,
+    which is why every one of them writes exactly what it wrote before.
     """
+    return settings.target_zone is AUTO_ZONE
 
 
-def require_a_disclosed_zone(result: JobResult) -> None:
-    """Refuse to write an Auto zone job until work package Z3 can disclose it.
+def auto_system(settings) -> AutoZoneSystem:
+    """The zone system an Auto job chose among, from its ``auto_frame`` - job's own rule."""
+    return auto_zone_system(settings.auto_frame)
 
-    Refuses exactly when ``settings.target_zone is AUTO_ZONE`` - decided from
-    the SETTINGS, so an Auto job with no points at all is refused too. Every other job passes untouched and
-    writes byte for byte what it always wrote. Called first by ``write_all``
-    and by ``report.build_report``. Removed by work package Z3.
+
+def auto_stem_suffix(settings) -> str:
+    """``AUTO-SPCS83`` or ``AUTO-SPCS2022``: what names an Auto job's archive.
+
+    In the place a fixed-zone job's zone abbreviation goes (``MI-C``), and
+    in the same style - upper case, a hyphen between the parts, no space -
+    so the archive's name says the job was Auto AND which system it chose
+    in: the two systems put the same point in different zones with
+    different coordinates, so "AUTO" alone would not identify the file.
+    Derived from the system's own registry string (``"SPCS 83"`` without its
+    space), never typed.
     """
-    settings = result.settings
-    if settings.target_zone is not AUTO_ZONE:
-        return
-    frame = getattr(settings.auto_frame, "code", repr(settings.auto_frame))
-    zones = sorted(
-        {point.auto_zone.zone.code for point in result.points if point.auto_zone}
-    )
-    chosen = (
-        f"zones {', '.join(zones)} were chosen for its {len(result.points)} "
-        f"converted point(s)"
-        if zones
-        else "no point was converted"
-    )
-    raise UndisclosedAutoZoneError(
-        f"Nothing was written: this is an Auto zone job (target_zone="
-        f"AUTO_ZONE, zones chosen per point in {frame}); {chosen}. "
-        f"The clean export, the audit CSV and the job record do not yet state "
-        f"each point's own zone and county, or the county rule and data that "
-        f"chose them - they would describe one zone, or none - so an archive "
-        f"of this job would misstate it. That disclosure is the next stage of "
-        f"this development build (docs/PLAN-options-autozone.md, work package "
-        f"Z3); until it exists an Auto job converts but is not written."
-    )
+    return f"AUTO-{auto_system(settings).value.replace(' ', '')}"
+
 
 _PNEZD_HEADERLESS = True
 """The clean export has no header row, matching the input format exactly.
@@ -183,7 +180,13 @@ def external_frame(path: FrameTransformation) -> ReferenceFrame:
 
 
 def output_stem(result: JobResult) -> str:
-    """``<input stem>_<zone abbreviation>``, e.g. ``24-118-topo_MI-C``."""
+    """``<input stem>_<zone abbreviation>``, e.g. ``24-118-topo_MI-C``.
+
+    An Auto job has no one zone to abbreviate: its stem is
+    ``<input stem>_AUTO-SPCS83`` or ``<input stem>_AUTO-SPCS2022``
+    (``auto_stem_suffix``), and each of its clean exports adds its own
+    zone's abbreviation after that (``clean_members``).
+    """
     settings = result.settings
     if settings.input_path is None:
         # The stem of every member of the archive is built from the input file's
@@ -208,17 +211,71 @@ def output_stem(result: JobResult) -> str:
         # No target zone exists in this mode, so no abbreviation could name
         # the export; what happened to the file is the vertical conversion.
         suffix = "VERTICAL"
+    elif is_auto_zone_job(settings):
+        suffix = auto_stem_suffix(settings)
     else:
         suffix = settings.target_zone.abbrev
     return f"{settings.input_path.stem}_{suffix}"
 
 
-def clean_pnezd_rows(result: JobResult) -> list[list[str]]:
-    """The CAD-bound export: point, northing, easting, elevation, description."""
+def clean_points(result: JobResult, zone: Zone | None = None) -> tuple[ConvertedPoint, ...]:
+    """The points ONE clean PNEZD file of this job holds, in file order.
+
+    The single rule ``clean_pnezd_rows`` and ``verify_round_trip`` both
+    resolve their file through, so the file written and the file verified
+    are the same points by construction.
+
+    * **Every job but Auto**: ``zone`` must be None, and the file holds every
+      point - the job's one clean file, exactly as always.
+    * **An Auto job**: ``zone`` is REQUIRED, and must be a zone the job's
+      points were actually put in (``clean_members``); the file holds that
+      zone's points only. Called without one, or with a zone the job did not
+      use, it refuses by name. No public function returns or renders an Auto
+      job's clean rows across zones: one headerless PNEZD file of northings
+      and eastings from two zones looks like one zone's file and is not (the
+      interim gate over Z0-Z2, HIGH 1 - before Z3 only the write guard stood
+      between ``clean_pnezd_rows`` and ``writers.write_csv_rows``, and the
+      guard was in ``write_all``, not here).
+    """
+    if not is_auto_zone_job(result.settings):
+        if zone is not None:
+            raise WriteError(
+                f"This job is not an Auto zone job, so it has one clean export "
+                f"holding every point; it was asked for the file of "
+                f"{getattr(zone, 'name', zone)!r} alone. Nothing was rendered."
+            )
+        return tuple(result.points)
+    members = clean_members(result)
+    if zone is None:
+        used = ", ".join(f"{m.zone.name} ({m.zone.code})" for m in members)
+        raise WriteError(
+            f"This is an Auto zone job: its points are in {len(members)} "
+            f"zone(s) ({used}), and each zone's points go in a clean export of "
+            f"their own. Clean PNEZD rows of an Auto job are rendered one zone "
+            f"at a time - name the zone - and never across zones, because one "
+            f"file of northings and eastings from different zones reads as one "
+            f"zone's file. Nothing was rendered."
+        )
+    for member in members:
+        if member.zone is zone:
+            return member.points
+    raise WriteError(
+        f"This Auto zone job put no point in {getattr(zone, 'name', zone)} "
+        f"({getattr(zone, 'code', '?')}), so it has no clean export for that "
+        f"zone. Nothing was rendered."
+    )
+
+
+def clean_pnezd_rows(result: JobResult, zone: Zone | None = None) -> list[list[str]]:
+    """The CAD-bound export: point, northing, easting, elevation, description.
+
+    One file's rows: every point on every job but Auto, and on an Auto job
+    the points of ``zone``, which is then required (``clean_points``).
+    """
     settings = result.settings
     rows: list[list[str]] = []
 
-    for point in result.points:
+    for point in clean_points(result, zone):
         if _geodetic_coordinate_columns(settings):
             # For a vertical-only geodetic job these are the INPUT positions
             # re-rendered through the standard formatters - the longitude
@@ -241,6 +298,146 @@ def clean_pnezd_rows(result: JobResult) -> list[list[str]]:
         )
 
     return rows
+
+
+@dataclass(frozen=True)
+class CleanMember:
+    """One clean PNEZD file in the archive: its name and exactly the points it holds.
+
+    ``zone`` is the zone every one of those points was projected into on an
+    Auto job, and None on every other job - whose one clean file holds every
+    point, in whatever system the job wrote. ``points`` are in file order.
+    """
+
+    name: str
+    zone: Zone | None
+    points: tuple[ConvertedPoint, ...]
+
+
+def clean_members(result: JobResult) -> tuple[CleanMember, ...]:
+    """Every clean PNEZD file this job writes, in archive order.
+
+    **One on every job but Auto**, named by ``member_names`` exactly as
+    before. **On an Auto job, one per zone actually used** (the owner's
+    decision, plan section 1 item 4): ``<stem>_<zone abbreviation>.csv`` -
+    ``pts_AUTO-SPCS83_MI-C.csv`` - holding exactly the points Auto put in
+    that zone, in file order, and NO file for a zone no point was put in
+    (``_verify_archive`` refuses an empty member, and an empty CAD file
+    would be a statement about a zone this job never wrote to). The zones
+    are in registry order (``autozone.zones_choosable``), so the files read
+    the same way from job to job whatever order the points came in.
+
+    The zone abbreviation follows the archive's stem rather than replacing
+    it, so every member of the archive still starts with the archive's own
+    name, and an Auto file never takes the name a fixed-zone job of the same
+    input gives its clean file (``pts_MI-C.csv``) while holding a different
+    set of points.
+
+    Fail closed on a result that does not say where each point went - a
+    point with no ``auto_zone``, one whose zone is not the zone it was
+    projected into, or a zone Auto cannot choose in this job's system: a
+    point written into a file named for a zone it is not in is the error
+    this function exists to make impossible.
+    """
+    settings = result.settings
+    if not is_auto_zone_job(settings):
+        return (CleanMember(member_names(result)["pnezd"], None, tuple(result.points)),)
+    stem = output_stem(result)
+    system = auto_system(settings)
+    choosable = zones_choosable(system)
+    for point in result.points:
+        assignment = point.auto_zone
+        if assignment is None:
+            raise WriteError(
+                f"Point {point.point_id} of this Auto zone job carries no zone "
+                f"assignment, so no clean export can say which zone it is in. "
+                f"Nothing was written."
+            )
+        if assignment.zone is not point.conversion.target_zone:
+            raise WriteError(
+                f"Point {point.point_id} of this Auto zone job was assigned "
+                f"{assignment.zone.name} ({assignment.zone.code}) but projected "
+                f"into {point.conversion.target_zone.name} "
+                f"({point.conversion.target_zone.code}). Nothing was written: "
+                f"its coordinates would be filed under a zone they are not in."
+            )
+        if assignment.zone not in choosable:
+            raise WriteError(
+                f"Point {point.point_id} of this Auto zone job was assigned "
+                f"{assignment.zone.name} ({assignment.zone.code}), which Auto "
+                f"does not choose in {system.value}. Nothing was written."
+            )
+    members = []
+    for zone in choosable:
+        held = tuple(p for p in result.points if p.auto_zone.zone is zone)
+        if held:
+            members.append(CleanMember(f"{stem}_{zone.abbrev}.csv", zone, held))
+    if not members:
+        raise WriteError(
+            "This Auto zone job converted no points, so there is no zone to "
+            "write a clean export for. Nothing was written."
+        )
+    return tuple(members)
+
+
+def _require_members_partition_the_job(
+    result: JobResult, members: tuple[CleanMember, ...]
+) -> None:
+    """Refuse clean files that are not, together, exactly the job's points.
+
+    Every point in exactly one file, none in two, none missing, each file in
+    the job's own order, and on an Auto job every point of a zone's file
+    both assigned to and projected into that zone. Checked by identity against
+    ``result.points``, beside the per-file round trip, so that the union of
+    the files is what the job converted: a point dropped between two
+    zones' files, or written twice, would pass every per-file check.
+    """
+    order = {id(point): index for index, point in enumerate(result.points)}
+    seen: dict[int, str] = {}
+    for member in members:
+        if not member.points:
+            raise WriteError(
+                f"The clean export {member.name} would hold no points. Nothing "
+                f"was written."
+            )
+        indexes = []
+        for point in member.points:
+            key = id(point)
+            if key not in order:
+                raise WriteError(
+                    f"The clean export {member.name} holds point "
+                    f"{point.point_id}, which this job did not convert. "
+                    f"Nothing was written."
+                )
+            if key in seen:
+                raise WriteError(
+                    f"Point {point.point_id} would be written to both "
+                    f"{seen[key]} and {member.name}. Nothing was written."
+                )
+            if member.zone is not None and not (
+                point.conversion.target_zone is member.zone
+                and point.auto_zone is not None
+                and point.auto_zone.zone is member.zone
+            ):
+                raise WriteError(
+                    f"Point {point.point_id} would be written to {member.name}, "
+                    f"the clean export of {member.zone.name} "
+                    f"({member.zone.code}), but it is not in that zone. "
+                    f"Nothing was written."
+                )
+            seen[key] = member.name
+            indexes.append(order[key])
+        if indexes != sorted(indexes):
+            raise WriteError(
+                f"The clean export {member.name} would hold its points out of "
+                f"the input file's order. Nothing was written."
+            )
+    missing = [p.point_id for p in result.points if id(p) not in seen]
+    if missing:
+        raise WriteError(
+            f"Point(s) {', '.join(missing[:10])} of this job would be written to "
+            f"no clean export. Nothing was written."
+        )
 
 
 SOURCE_COLUMNS_LINEAR = ("Source northing", "Source easting")
@@ -493,11 +690,28 @@ def audit_columns(result: JobResult) -> list[str]:
             columns.insert(columns.index("Geoid height (m)"), "Source geoid model")
         columns.insert(columns.index("Geoid height (m)"), "Geoid model")
 
+    if is_auto_zone_job(settings):
+        # Auto jobs only: the county that chose the zone named in the cell
+        # before it (plan O2 - the record names each point's zone and county
+        # as facts). Beside the zone cell, so a row reads "zone, and why",
+        # and so every column after it moves on an Auto CSV only - a layout
+        # no file before the Auto build has.
+        at = columns.index("Target zone") + 1
+        columns[at:at] = list(AUTO_COUNTY_COLUMNS)
+
     path = applied_frame_transformation(settings)
     if path is not None:
         columns = _frame_named(columns, path, settings)
         columns.extend(frame_transformation_columns(path, settings))
     return columns
+
+
+AUTO_COUNTY_COLUMNS = ("County", "County FIPS")
+"""The two columns an Auto job's audit CSV carries after ``Target zone``:
+the county the point's position lies in, by TIGER's name (``St. Clair``),
+and its five-digit FIPS code (``26147``) - the county that decided the
+zone, from ``ConvertedPoint.auto_zone``. The name alone is not an
+identifier a GIS joins on; the code alone is not one a surveyor reads."""
 
 
 def _frame_named(columns: list[str], path: FrameTransformation, settings) -> list[str]:
@@ -749,6 +963,10 @@ def audit_rows(result: JobResult) -> list[list[str]]:
         # statement is the direction itself: "vertical only".
         if settings.direction is Direction.VERTICAL_ONLY:
             target_system = settings.direction.value
+        elif is_auto_zone_job(settings):
+            # The point's OWN zone - the one it was projected into, which
+            # clean_members holds equal to its assignment before any write.
+            target_system = conversion.target_zone.name
         elif settings.target_zone:
             target_system = settings.target_zone.name
         else:
@@ -786,6 +1004,13 @@ def audit_rows(result: JobResult) -> list[list[str]]:
                 point.row.description,
             ]
         )
+
+        if is_auto_zone_job(settings):
+            # First of the insertions, because it sits leftmost: each later
+            # one is placed by its index in the finished header, which is
+            # right only once every column to its left is in the row.
+            at = header.index(AUTO_COUNTY_COLUMNS[0])
+            row[at:at] = [point.auto_zone.county_name, point.auto_zone.county_fips]
 
         if settings.input_height_kind is HeightKind.ELLIPSOID:
             row.insert(
@@ -930,8 +1155,15 @@ def _written_decimals(result: JobResult, geodetic: bool) -> int:
 # The exact form is strictly tighter and keeps every real failure.
 
 
-def verify_round_trip(rows: list[list[str]], result: JobResult) -> None:
+def verify_round_trip(
+    rows: list[list[str]], result: JobResult, zone: Zone | None = None
+) -> None:
     """Refuse to write a PNEZD file this program's own reader would reject.
+
+    The file is the one ``clean_points(result, zone)`` names: every point on
+    every job but Auto, and on an Auto job ``zone``'s points only, so each
+    zone's file is verified on exactly its own points and a file holding any
+    other point - or all of them - refuses.
 
     METHOD.md section 5: "a writer that refuses to produce a file its own
     reader would reject". The rows are rendered, re-parsed, and checked field
@@ -978,10 +1210,17 @@ def verify_round_trip(rows: list[list[str]], result: JobResult) -> None:
             f"reader, so it was not written: {error}"
         ) from error
 
-    if len(reparsed.rows) != len(result.points):
+    expected_points = clean_points(result, zone)
+    if len(reparsed.rows) != len(expected_points):
         raise WriteError(
-            f"The export contains {len(reparsed.rows)} rows but the job "
-            f"converted {len(result.points)} points. Nothing was written."
+            f"The export contains {len(reparsed.rows)} rows but "
+            + (
+                f"the job converted {len(expected_points)} points."
+                if zone is None
+                else f"the job put {len(expected_points)} point(s) in "
+                f"{zone.name} ({zone.code})."
+            )
+            + " Nothing was written."
         )
 
     geodetic = _geodetic_coordinate_columns(result.settings)
@@ -1008,7 +1247,7 @@ def verify_round_trip(rows: list[list[str]], result: JobResult) -> None:
     def promised(value: float, decimals: int) -> float:
         return float(f"{value:.{decimals}f}")
 
-    for parsed_row, point in zip(reparsed.rows, result.points):
+    for parsed_row, point in zip(reparsed.rows, expected_points):
         if parsed_row.point_id != point.point_id:
             raise WriteError(
                 f"Round-trip check failed: the export's row reads point "
@@ -1074,6 +1313,18 @@ def member_names(result: JobResult) -> dict[str, str]:
     unchanged in every direction.
     """
     stem = output_stem(result)
+    if is_auto_zone_job(result.settings):
+        # One clean export per zone used, keyed ``pnezd <zone code>`` in
+        # archive order; ``clean_members`` is the authority on which zones
+        # and which points, and this mapping only names them.
+        return {
+            **{
+                f"pnezd {member.zone.code}": member.name
+                for member in clean_members(result)
+            },
+            "audit": f"{stem}_full.csv",
+            "report": f"{stem}_README.txt",
+        }
     if writes_dms_export(result):
         return {
             "pnezd": f"{stem}_DD.csv",
@@ -1396,10 +1647,6 @@ def write_all(result: JobResult, overwrite: bool = False) -> dict[str, Path]:
     """
     from michspc.fileio.report import build_report
 
-    # First, before a single cell is rendered or a file staged: the Auto zone
-    # build's write guard (Z2 -> Z3).
-    require_a_disclosed_zone(result)
-
     for point in result.points:
         for label, value in (
             ("northing", point.output_northing),
@@ -1412,13 +1659,23 @@ def write_all(result: JobResult, overwrite: bool = False) -> dict[str, Path]:
                     f"not a number must never reach a file."
                 )
 
-    clean = clean_pnezd_rows(result)
-    verify_round_trip(clean, result)
-
     names = member_names(result)
-    contents = {
-        names["pnezd"]: _render_csv(clean),
-    }
+    members = clean_members(result)
+    _require_members_partition_the_job(result, members)
+    contents = {}
+    for member in members:
+        # Each clean file verified on exactly the points it holds - on an
+        # Auto job one zone's - so a point in the wrong zone's file, or a
+        # file checked against the whole job, refuses. Every other job has
+        # one member holding every point, rendered and verified by exactly
+        # the calls it always was.
+        if member.zone is None:
+            clean = clean_pnezd_rows(result)
+            verify_round_trip(clean, result)
+        else:
+            clean = clean_pnezd_rows(result, member.zone)
+            verify_round_trip(clean, result, member.zone)
+        contents[member.name] = _render_csv(clean)
     if writes_dms_export(result):
         # Directly after the decimal export in the archive's own order, and
         # verified the same way before anything is staged (#67).

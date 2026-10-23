@@ -535,7 +535,11 @@ class JobSettings:
     must equal ``today_local()``. **Not yet required** when a date is: the
     two interface tabs do not send it until work package Z4, and the frozen
     WGS 84 disclosure pins build settings without it, so None is still
-    accepted beside a date. Z3/Z4 make it required when the record prints it.
+    accepted beside a date. The record prints it since work package Z3
+    (``report._observation_date_source_text``: "the date the job ran
+    (Options default)" or "entered by the user"); with None it prints the
+    date line exactly as before, so every frozen record digest holds. Z4
+    decides whether it becomes required.
     """
 
 

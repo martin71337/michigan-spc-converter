@@ -21,18 +21,26 @@ from michspc.fileio import formatting as fmt
 from michspc.fileio import vertcon
 from michspc.fileio.exports import external_frame as _external_frame
 from michspc.fileio.exports import pivot_frame as _pivot_frame
-from michspc.fileio.exports import require_a_disclosed_zone
+from michspc.fileio import counties as county_file
+from michspc.fileio.exports import (
+    AUTO_COUNTY_COLUMNS,
+    auto_system,
+    clean_members,
+    is_auto_zone_job,
+)
 from michspc.fileio.geoid import geoid_model_by_name
 from michspc.job import (
     Direction,
     JobResult,
+    ObservationDateSource,
     applied_frame_transformation,
     factors_geoid_model,
     factors_use_source_era,
     geoid_swap_models,
     is_zoneless,
 )
-from michspc.spc import htdp, htdp_data
+from michspc.spc import autozone_spcs83, autozone_spcs2022, htdp, htdp_data
+from michspc.spc.autozone import AutoZoneSystem, zones_choosable
 from michspc.spc.convert import HeightConvention, WarningCode
 from michspc.spc.factors import MEAN_EARTH_RADIUS_M
 from michspc.spc.projection import constants_for
@@ -1519,7 +1527,9 @@ def _frame_transformation_block(result, path, *, verified: bool) -> list[str]:
     lines.extend(
         _labelled_paragraph(
             "Observation date",
-            f"{epoch.date.isoformat()}, decimal year "
+            f"{epoch.date.isoformat()}, "
+            f"{_observation_date_source_text(settings.observation_date_source)}"
+            f"decimal year "
             f"{fmt.exact_number(epoch.decimal_year)} - HTDP's own conversion of "
             f"the calendar date (htdp.f:7913-7919). One date for the whole "
             f"job: each of its {len(result.points)} point(s) is taken as "
@@ -1618,6 +1628,35 @@ def _frame_transformation_block(result, path, *, verified: bool) -> list[str]:
     return lines
 
 
+_OBSERVATION_DATE_SOURCE_TEXT = {
+    ObservationDateSource.TODAY: "the date the job ran (Options default), ",
+    ObservationDateSource.ENTERED: "entered by the user, ",
+}
+"""How the record's Observation date line says where the date came from
+(docs/PLAN-options-autozone.md L10 and O3). TODAY is held by ``job.run`` to
+the LOCAL date the job ran, so "the date the job ran" is a checked fact, not
+a description of a setting."""
+
+
+def _observation_date_source_text(source) -> str:
+    """The words after the date, or nothing when the job stated no source.
+
+    None is the transitional state (``JobSettings.observation_date_source``):
+    a job that states no source prints the line exactly as before the Auto
+    build, so every frozen record digest holds. A source with no sentence
+    registered refuses rather than printing a date of unstated origin.
+    """
+    if source is None:
+        return ""
+    text = _OBSERVATION_DATE_SOURCE_TEXT.get(source)
+    if text is None:
+        raise ValueError(
+            f"This job record cannot state where the observation date came "
+            f"from: no sentence is registered for {source!r}."
+        )
+    return text
+
+
 _MANUAL_SECTIONS = {
     ProjectionKind.LAMBERT_CONIC_2SP: "3.1",
     ProjectionKind.LAMBERT_CONIC_1SP: "3.1",
@@ -1640,8 +1679,15 @@ new 2022 zone cannot be described by the 1983 era's METHOD section.
 """
 
 
-def _job_zones(settings) -> tuple:
+def _job_zones(settings, result=None) -> tuple:
     """Every zone this record DESCRIBES, source first.
+
+    On an Auto job, the zones its points were actually put in, in registry
+    order (``exports.clean_members``, the same zones the clean files and
+    the COORDINATE SYSTEMS section name) - never ``AUTO_ZONE`` itself, which
+    is not a zone and has no era. So an Auto SPCS2022 job's METHOD is the
+    SPCS2022 arm with exactly the projections its zones use. ``result`` is
+    required for that and only for that.
 
     The same rule the COORDINATE SYSTEMS section applies a few lines above -
     including the target zone unless the job converts TO geodetic, where there
@@ -1656,7 +1702,14 @@ def _job_zones(settings) -> tuple:
     zones = []
     if settings.source_zone is not None:
         zones.append(settings.source_zone)
-    if (
+    if is_auto_zone_job(settings):
+        if result is None:
+            raise ValueError(
+                "An Auto zone job's zones are the ones its points were put in; "
+                "pass the JobResult."
+            )
+        zones.extend(member.zone for member in clean_members(result))
+    elif (
         settings.target_zone is not None
         and settings.direction is not Direction.ZONE_TO_GEODETIC
     ):
@@ -1888,7 +1941,7 @@ def _method_spcs2022(zones) -> list[str]:
     return lines
 
 
-def _method_and_verification(settings) -> list[str]:
+def _method_and_verification(settings, result=None) -> list[str]:
     """The METHOD section, in the era of the zones this job actually uses.
 
     **A job cannot mix eras.** The 1983 zones are on NAD83(2011) and the 2022
@@ -1905,7 +1958,22 @@ def _method_and_verification(settings) -> list[str]:
     never runs. Called with no zone, this still returns the 1983 arm, as it
     always did - it is only no longer asked.
     """
-    zones = _job_zones(settings)
+    zones = _job_zones(settings, result)
+    if is_auto_zone_job(settings):
+        # The era is the Auto system's, and every zone used must be of it -
+        # checked, not assumed, so an Auto SPCS2022 job can never fall through
+        # to the 1983 arm below (which is what a job with no modern zone gets).
+        system = auto_system(settings)
+        stray = [zone for zone in zones if zone.system != system.value]
+        if stray or not zones:
+            raise ValueError(
+                f"This Auto zone job chose among the {system.value} zones, but "
+                f"its points name "
+                f"{', '.join(f'{z.name} ({z.code}, {z.system})' for z in zones) or 'no zone'}."
+            )
+        if system is AutoZoneSystem.SPCS2022:
+            return _method_spcs2022(list(zones))
+        return _method_spcs83()
     modern = [zone for zone in zones if zone.code in _SPCS2022_ZONE_CODES]
     legacy = [zone for zone in zones if zone.code not in _SPCS2022_ZONE_CODES]
     if modern and legacy:
@@ -1929,12 +1997,9 @@ def build_report(result: JobResult) -> str:
     """Render the job record."""
     # The W3 -> W4 write guard (require_a_disclosable_job) was called here
     # until this record could state a frame transformation; it can now, in
-    # the FRAME TRANSFORMATION block below, and the guard is gone.
-    #
-    # The Auto zone build's write guard, here as well as in exports.write_all
-    # (docs/PLAN-options-autozone.md, Z2 -> Z3): a record built for an Auto
-    # job would describe one zone, or none, for points in several.
-    require_a_disclosed_zone(result)
+    # the FRAME TRANSFORMATION block below, and the guard is gone. The Auto
+    # zone build's guard (require_a_disclosed_zone, Z2 -> Z3) stood here too,
+    # until the Auto TO block below could state each zone used.
     settings = result.settings
     if settings.input_path is None or settings.output_directory is None:
         # The record's INPUT block opens with "File" and its OUTPUT block opens
@@ -1997,6 +2062,11 @@ def build_report(result: JobResult) -> str:
     # ``job.is_zoneless`` is the one statement of it, shared with the
     # interface's elevation hints (work package W5).
     zoneless = is_zoneless(settings.direction, settings.source_zone)
+    # An Auto zone job (docs/PLAN-options-autozone.md): its points are in the
+    # zones of their counties, one clean file per zone used. Every block this
+    # gates is Auto-only, so no other job's record moves by a byte.
+    auto = is_auto_zone_job(settings)
+    auto_members = clean_members(result) if auto else ()
     # The model that derived H from h, or None when the Z column already held
     # elevations. Resolved through the same job-layer rule the computation
     # used, so the record cannot name a model the conversion did not read.
@@ -2143,7 +2213,16 @@ def build_report(result: JobResult) -> str:
     if settings.source_zone is not None:
         lines.extend(_zone_block(settings.source_zone, "FROM"))
         add("")
-    if settings.target_zone is not None and settings.direction is not Direction.ZONE_TO_GEODETIC:
+    if auto:
+        # Every zone the points were put in, and the rule that put them
+        # there (docs/PLAN-options-autozone.md, work package Z3), then each
+        # used zone's own constants, as a fixed-zone TO block states them.
+        lines.extend(_auto_zone_block(result, auto_members, frame_path))
+        add("")
+        for member in auto_members:
+            lines.extend(_zone_block(member.zone, "TO (Auto)"))
+            add("")
+    elif settings.target_zone is not None and settings.direction is not Direction.ZONE_TO_GEODETIC:
         lines.extend(_zone_block(settings.target_zone, "TO"))
         add("")
 
@@ -2170,7 +2249,7 @@ def build_report(result: JobResult) -> str:
             _method_without_a_zone(result, frame_path, transformation, swap_models)
         )
     else:
-        lines.extend(_method_and_verification(settings))
+        lines.extend(_method_and_verification(settings, result))
     if frame_path is not None:
         lines.extend(
             _frame_transformation_block(result, frame_path, verified=not zoneless)
@@ -2265,6 +2344,18 @@ def build_report(result: JobResult) -> str:
         add(f"cells read {fmt.NOT_AVAILABLE!r}, never a fabricated 1.0. The elevation")
         add("factor needs no zone and is still computed from the geoid")
         add("model at each position.")
+        add("")
+    if auto:
+        zone_count = len(auto_members)
+        lines.extend(
+            textwrap.wrap(
+                f"Each point's grid scale factor and convergence are those of its "
+                f"own zone, named in its row's Target zone cell of the _full.csv "
+                f"export. The summary below is across all {len(result.points)} "
+                f"point(s), in the {_count_of(zone_count, 'zone')} this job used.",
+                width=78,
+            )
+        )
         add("")
     add("Per-point values are in the _full.csv export. Summary across this job:")
     add("")
@@ -2627,9 +2718,18 @@ def build_report(result: JobResult) -> str:
 
     add(f"This job wrote ONE file: {stem}.zip")
     add("")
-    count = "four" if "pnezd_dms" in names else "three"
+    if auto:
+        count = _number_word(len(names))
+    else:
+        count = "four" if "pnezd_dms" in names else "three"
     add(f"It contains the {count} files below, and they are kept together on")
-    if geodetic_to_geodetic:
+    if auto:
+        # "moved between zones" would describe zone-to-zone work; an Auto job
+        # converts positions into the zones of their counties.
+        add("purpose. Coordinate files produced by a conversion should not")
+        add("circulate without the record explaining how they were derived, so")
+        add(f"the export is a single archive rather than {count} loose files.")
+    elif geodetic_to_geodetic:
         # No zone was involved; what the file was moved between is frames.
         add("purpose. A coordinate file that has been moved between reference")
         add("frames should not circulate without the record explaining how it")
@@ -2646,9 +2746,25 @@ def build_report(result: JobResult) -> str:
         add("circulate without the record explaining how it was derived, so the")
         add(f"export is a single archive rather than {count} loose files.")
     add("")
-    add(f"  {names['pnezd']}")
-    lines.extend(_clean_export_block(settings, frame_path))
-    add("")
+    if auto:
+        lines.extend(
+            textwrap.wrap(
+                f"One clean export for each zone this job used "
+                f"({len(auto_members)}), each holding exactly the points placed "
+                f"in that zone, in input file order. No file is written for a "
+                f"zone no point was placed in.",
+                width=78,
+            )
+        )
+        add("")
+        for member in auto_members:
+            add(f"  {member.name}")
+            lines.extend(_auto_clean_export_block(settings, member))
+            add("")
+    else:
+        add(f"  {names['pnezd']}")
+        lines.extend(_clean_export_block(settings, frame_path))
+        add("")
     if "pnezd_dms" in names:
         # The DMS sibling (docs/DESIGN.md #67): the same rows, the position
         # restated. Says what it is for and what it is not, because a file
@@ -2666,7 +2782,24 @@ def build_report(result: JobResult) -> str:
         add("    decimal degrees only. Convert from the _DD file.")
         add("")
     add(f"  {names['audit']}")
-    if zoneless:
+    if auto:
+        county, fips = AUTO_COUNTY_COLUMNS
+        lines.extend(
+            textwrap.wrap(
+                f"Every computed quantity for every point, with a header row: "
+                f"the input position, the zone the point was placed in (Target "
+                f"zone) and the county that placed it ({county}, {fips}), its "
+                f"coordinates in that zone, the geodetic position the "
+                f"conversion pivoted through, geoid and ellipsoid height, its "
+                f"convergence angle, the grid, elevation and combined factors, "
+                f"and any warnings. This is the file that answers 'how was this "
+                f"number derived' without re-running anything.",
+                width=78,
+                initial_indent="    ",
+                subsequent_indent="    ",
+            )
+        )
+    elif zoneless:
         # No zone: "both zones' coordinates" and "both convergence angles"
         # would describe columns that hold nothing for this job. A
         # vertical-only job holds its position in two frames only when HTDP
@@ -2753,6 +2886,163 @@ def build_report(result: JobResult) -> str:
     add(_RULE)
 
     return "\n".join(lines) + "\n"
+
+
+_NUMBER_WORDS = (
+    "zero", "one", "two", "three", "four", "five", "six", "seven", "eight",
+    "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
+    "sixteen", "seventeen", "eighteen", "nineteen", "twenty",
+)
+"""How FILES WRITTEN spells its member count. An Auto SPCS2022 job writes at
+most twenty: one clean file for each of the eighteen local zones, the audit
+CSV and this record."""
+
+
+def _number_word(count: int) -> str:
+    if not 0 <= count < len(_NUMBER_WORDS):
+        raise ValueError(f"This job record has no word for {count} files.")
+    return _NUMBER_WORDS[count]
+
+
+def _count_of(count: int, noun: str) -> str:
+    """``1 zone``, ``2 zones``: a count with its noun agreeing."""
+    return f"{count} {noun}" if count == 1 else f"{count} {noun}s"
+
+
+def _auto_zone_block(result, members, frame_path) -> list[str]:
+    """The COORDINATE SYSTEMS section's TO block on an Auto zone job.
+
+    Facts only (docs/DESIGN.md #50): which system and frame Auto chose in,
+    each zone used with its point count and the clean file holding it, the
+    rule that chose them and where it comes from, the county data and its
+    digest, the on-line rule, and what is done near a zone line (plan O2).
+    The rule paragraph is per system, because the two have different
+    authorities: SPCS 83's counties are the statute's; SPCS2022's were
+    measured by this program from NGS's beta zone polygons, and the Isle
+    Royale split is this program's own rule, which NGS publishes no text
+    for.
+    """
+    settings = result.settings
+    system = auto_system(settings)
+    frame = settings.auto_frame
+    choosable = zones_choosable(system)
+    lines = [
+        f"TO: Auto zone - each point in the zone of its county ({system.value})",
+        _zone_heading("Reference frame", frame.code),
+        _zone_heading(
+            "Zones used",
+            f"{len(members)} of the {len(choosable)} {system.value} zones Auto "
+            f"chooses among",
+        ),
+    ]
+    for member in members:
+        zone = member.zone
+        lines.append(
+            f"    {zone.name}, zone {zone.code} ({zone.abbrev}): "
+            f"{_count_of(len(member.points), 'point')}"
+        )
+        lines.append(f"      in {member.name}")
+    lines.append("")
+    if system is AutoZoneSystem.SPCS83:
+        rule = (
+            f"Each point is placed in the zone of the Michigan county its "
+            f"{frame.code} position lies in. The counties of each zone are "
+            f"those named by {autozone_spcs83.STATUTE_CITATION}: subsection (3) "
+            f"the north zone, (4) the central zone, (5) the south zone."
+        )
+    else:
+        rule = (
+            f"Each point is placed in the low-distortion zone of the Michigan "
+            f"county its {frame.code} position lies in; the statewide zone "
+            f"260001 is never chosen. NGS publishes no county list for its "
+            f"SPCS2022 zones. This program measured one from NGS's zone "
+            f"polygons: each zone is a union of whole Census TIGER counties, "
+            f"except Keweenaw County, whose Isle Royale is its own zone. "
+            f"Source: {autozone_spcs2022.NGS_POLYGONS_CITATION}."
+        )
+    lines.extend(_labelled_paragraph("Zone rule", rule))
+    if system is AutoZoneSystem.SPCS2022:
+        royale = autozone_spcs2022.ISLE_ROYALE_ZONE
+        mainland = autozone_spcs2022.KEWEENAW_MAINLAND_ZONE
+        split = fmt.exact_number(autozone_spcs2022.ISLE_ROYALE_SPLIT_LATITUDE)
+        lines.extend(
+            _labelled_paragraph(
+                "Isle Royale",
+                f"A Keweenaw County position at or north of {split} degrees N "
+                f"is placed in {royale.name}, zone {royale.code} "
+                f"({royale.abbrev}); south of it, in {mainland.name}, zone "
+                f"{mainland.code} ({mainland.abbrev}). This is this program's "
+                f"rule. NGS publishes no text stating it; NGS's zone bounds "
+                f"file ({SPCS2022_BOUNDS_FILENAME}) gives the two zones a "
+                f"shared bound at {split} degrees N.",
+            )
+        )
+    if frame_path is not None:
+        lines.extend(
+            _labelled_paragraph(
+                "Position tested",
+                f"Each point's {frame.code} position, as the frame "
+                f"transformation from {frame_path.source.code} carried it (see "
+                f"FRAME TRANSFORMATION).",
+            )
+        )
+    lines.extend(
+        _labelled_paragraph(
+            "County data",
+            f"{county_file.COUNTIES_SOURCE}, all {county_file.COUNTY_COUNT} of "
+            f"Michigan's, whose lines extend into the Great Lakes, so a "
+            f"position on the water is in a county as a position on land is. "
+            f"Bundled as {county_file.COUNTIES_FILENAME}, "
+            f"checked against SHA-256 {county_file.COUNTIES_SHA256} when read.",
+        )
+    )
+    lines.extend(
+        _labelled_paragraph(
+            "On a line",
+            "A position exactly on a county line is placed in the county east "
+            "of it, or, where the line runs exactly east-west, in the county "
+            "north of it.",
+        )
+    )
+    near = (
+        "A point near a zone line is placed by its county like every other "
+        "point, with no warning."
+    )
+    if system is AutoZoneSystem.SPCS83:
+        near += (
+            " MCL 54.234 provides that a tract of land defined by a single "
+            "description and extending from one zone into another may have "
+            "the positions of all points on its boundaries referred to either "
+            "zone, and that the zone used shall be named in the description."
+        )
+    near += " Each point's zone and county are in the _full.csv export."
+    lines.extend(_labelled_paragraph("Near a line", near))
+    return lines
+
+
+def _auto_clean_export_block(settings, member) -> list[str]:
+    """What one of an Auto job's clean exports holds."""
+    unit = settings.output_unit
+    zone = member.zone
+    held = (
+        "The 1 point placed in {name}, zone {code} ({abbrev}): its converted "
+        "coordinates"
+        if len(member.points) == 1
+        else "The {count} points placed in {name}, zone {code} ({abbrev}), in "
+        "input file order: their converted coordinates"
+    ).format(
+        count=len(member.points), name=zone.name, code=zone.code, abbrev=zone.abbrev
+    )
+    return textwrap.wrap(
+        f"{held} in that zone, in PNEZD layout - which the INPUT "
+        f"file was not: point, northing, easting, elevation, description, no "
+        f"header row. Northing, easting and elevation are {unit.name} "
+        f"({unit.code}). Nothing else. Import it into CAD as {zone.name} "
+        f"({zone.code}) coordinates.",
+        width=78,
+        initial_indent="    ",
+        subsequent_indent="    ",
+    )
 
 
 def _point_id_block(points, per_line: int = 8) -> list[str]:

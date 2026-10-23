@@ -34,7 +34,16 @@ from PySide6.QtWidgets import (
 
 from michspc import job as job_module
 from michspc.fileio import geoid
-from michspc.job import Direction, LongitudeConvention, VerticalMode, is_zoneless
+from michspc.job import (
+    AUTO_FRAMES,
+    Direction,
+    LongitudeConvention,
+    ObservationDateSource,
+    VerticalMode,
+    auto_zone_system,
+    is_zoneless,
+)
+from michspc.spc.autozone import AutoZoneSystem, zones_choosable
 from michspc.spc.units import ALL_UNITS, INTERNATIONAL_FEET, LinearUnit
 from michspc.spc.convert import require_an_applicable_path
 from michspc.spc.frames import (
@@ -99,6 +108,101 @@ class GeodeticChoice:
 
     def __str__(self) -> str:
         return self.label
+
+
+@dataclass(frozen=True)
+class AutoChoice:
+    """"Choose each point's zone from its latitude/longitude, in THIS frame".
+
+    The Auto entry of a TO dropdown (docs/PLAN-options-autozone.md L1, L2;
+    DESIGN.md #71). ``settings()`` on both tabs turns it into
+    ``JobSettings.target_zone=job.AUTO_ZONE`` with ``auto_frame=choice.frame``,
+    so the frame travels WITH the selection, exactly as ``GeodeticChoice``
+    carries its own - and that is why the dropdown item holds this record
+    rather than the bare ``AUTO_ZONE`` sentinel. ``AUTO_ZONE`` says nothing
+    about which system Auto chooses in; the frame decides that
+    (``job.AUTO_FRAMES``: NAD83(2011) chooses among the SPCS 83 zones,
+    NATRF2022 among the SPCS2022 local zones), and with the frame on the item
+    the registry-derived graying (#64) answers whether an input frame can
+    reach it, with no rule of its own.
+
+    **One entry per Auto frame, and only the one the Options name is shown.**
+    An Options change of the Auto frame therefore HIDES the selected entry and
+    the strand rule clears it, where a single entry whose data was swapped
+    would silently re-target a selection the user made in the other system -
+    a different zone, different coordinates, nothing said (recon risk 10).
+
+    Singletons, for the reason ``GeodeticChoice`` gives: ``findData``
+    compares by identity. Use ``auto_choice``; never construct one.
+    """
+
+    frame: ReferenceFrame
+
+    @property
+    def system(self) -> AutoZoneSystem:
+        """The zone system this entry chooses among - the core's own pairing."""
+        return auto_zone_system(self.frame)
+
+    @property
+    def label(self) -> str:
+        """What the dropdown calls this choice. Derived, never typed."""
+        return auto_label(self.frame)
+
+    def __str__(self) -> str:
+        return self.label
+
+
+def auto_label(frame: ReferenceFrame) -> str:
+    """"Auto - zone from latitude/longitude (SPCS 83)" - from the core's records.
+
+    The system's own registry string (``AutoZoneSystem.value``, which is the
+    zones' ``Zone.system``), so the label cannot name a system the entry does
+    not choose among. The frame is not repeated: only the entry for the
+    Options' Auto frame is ever shown, and the Options dialog names the frame.
+    """
+    return f"Auto - zone from latitude/longitude ({auto_zone_system(frame).value})"
+
+
+AUTO_CHOICES: tuple[AutoChoice, ...] = tuple(
+    AutoChoice(frame=frame) for frame, _system in AUTO_FRAMES
+)
+"""The canonical Auto selection records, one per ``job.AUTO_FRAMES`` frame,
+in that tuple's order (NAD83(2011) first). Singletons."""
+
+
+def auto_choice(frame: ReferenceFrame) -> AutoChoice:
+    """The canonical Auto entry for an Auto frame (by identity), or a refusal."""
+    for choice in AUTO_CHOICES:
+        if choice.frame is frame:
+            return choice
+    raise KeyError(
+        f"No Auto entry exists for {frame!r}. Auto chooses zones in: "
+        + ", ".join(choice.frame.code for choice in AUTO_CHOICES)
+        + " (job.AUTO_FRAMES)."
+    )
+
+
+def is_auto(data) -> bool:
+    """Whether a zone dropdown's data is an Auto entry. The one predicate."""
+    return isinstance(data, AutoChoice)
+
+
+def auto_units(choice: AutoChoice) -> tuple[LinearUnit, ...]:
+    """The units EVERY zone this Auto entry can choose publishes, in the zones' order.
+
+    The intersection, because the unit is chosen before the file is read and
+    the job may put a point in any of the zones: an SPCS2022 Auto job offers
+    metres and international feet only, never the US survey foot, which no
+    SPCS2022 zone publishes. The same intersection ``job``'s Auto unit gate
+    states in its refusal (``_require_a_unit_every_auto_zone_publishes``),
+    read from ``autozone.zones_choosable`` - the rule's own list.
+    """
+    zones = zones_choosable(choice.system)
+    return tuple(
+        unit
+        for unit in zones[0].allowed_units
+        if all(unit in zone.allowed_units for zone in zones)
+    )
 
 
 def is_geodetic(data) -> bool:
@@ -336,10 +440,19 @@ def zone_combo(parent, on_change) -> QComboBox:
        realizations and the two ITRFs - in the same declaration order
        (``geodetic_choice_groups``);
     5. a separator;
-    6. ``SPCS83_ZONES``, the three zones every Michigan job has used since
-       0.1.0 — first, because they are today's work;
+    6. the two Auto entries (``AUTO_CHOICES``, DESIGN.md #71), one per Auto
+       frame - never shown on a FROM combo, and on a TO combo only the one
+       for the Options' Auto frame (``options.visible_rows``);
     7. a separator;
-    8. ``SPCS2022_ZONES``, the nineteen zones of the modernized design.
+    8. ``SPCS83_ZONES``, the three zones every Michigan job has used since
+       0.1.0 — first, because they are today's work;
+    9. a separator;
+    10. ``SPCS2022_ZONES``, the nineteen zones of the modernized design.
+
+    **Every item is always present; the Options HIDE rows** (plan L7/L8,
+    ``apply_row_visibility``) rather than rebuilding the list, so every index
+    is the same in all four combos whatever is switched on, and a separator
+    left between two hidden groups is hidden with them.
 
     **Items 3 and 4 are work package W5 of the WGS 84 build, and the separator
     between the two geodetic groups is a layout decision for the owner's
@@ -401,6 +514,15 @@ def zone_combo(parent, on_change) -> QComboBox:
         combo.insertSeparator(combo.count())
         for choice in time_dependent:
             combo.addItem(choice.label, choice)
+    combo.insertSeparator(combo.count())
+    # The Auto entries (DESIGN.md #71): "the top option at the top of the SPC
+    # zones", the owner's words - in a block of their own, so an Auto entry
+    # is never read as one of the SPCS 83 zones beneath it. Present in all
+    # four combos so the indexes are the same in every one; HIDDEN on both
+    # FROM combos (plan L1, ``options.is_shown``), and on a TO combo only the
+    # entry for the Options' Auto frame is shown.
+    for choice in AUTO_CHOICES:
+        combo.addItem(choice.label, choice)
     combo.insertSeparator(combo.count())
     for zone in SPCS83_ZONES:
         combo.addItem(zone_label(zone), zone)
@@ -474,6 +596,8 @@ def units_for_selection(data) -> tuple[LinearUnit, ...]:
     """
     if isinstance(data, Zone):
         return data.allowed_units
+    if is_auto(data):
+        return auto_units(data)
     return ALL_UNITS
 
 
@@ -928,6 +1052,15 @@ def direction_for(source_data, target_data) -> Direction | None:
     """
     if source_data == UNCHOSEN or target_data == UNCHOSEN:
         return None
+    if is_auto(source_data):
+        # Plan L1: a northing and easting do not say which zone they are in,
+        # so Auto is never an input. Hidden on the FROM combos; reachable only
+        # programmatically, and then it describes no job.
+        return None
+    if is_auto(target_data):
+        # Auto chooses a zone from a latitude and longitude, so only a
+        # geodetic FROM makes it a job (the entry is grayed otherwise).
+        return Direction.GEODETIC_TO_ZONE if is_geodetic(source_data) else None
     if is_geodetic(source_data) and is_geodetic(target_data):
         if _has_a_transformation(source_data.frame, target_data.frame):
             return Direction.GEODETIC_TO_GEODETIC
@@ -941,8 +1074,8 @@ def direction_for(source_data, target_data) -> Direction | None:
     raise ValueError(
         f"A zone dropdown holds {source_data!r} / {target_data!r}, and at "
         f"least one of those is neither the unanswered placeholder, nor a "
-        f"geodetic entry, nor a zone. Every item zone_combo offers is one of "
-        f"those three; the separator between the eras is not selectable and "
+        f"geodetic entry, nor an Auto entry, nor a zone. Every item zone_combo "
+        f"offers is one of those four; the separators are not selectable and "
         f"carries no data. Refusing rather than reading it as a zone-to-zone "
         f"job, which would reach job.run with no zone."
     )
@@ -961,6 +1094,16 @@ It lives here rather than on either tab because both tabs say it, and one
 wording in both surfaces is the standing rule (docs/DESIGN.md amendment #17).
 """
 
+AUTO_RESET_STATUS = "Cleared: Auto zone needs a latitude/longitude input."
+"""Shown when an Auto TO selection is cleared because the FROM end moved to
+something that is not a latitude/longitude (plan L1). One sentence, in
+``FRAME_RESET_STATUS``'s form: that the program cleared it, and why."""
+
+OPTIONS_RESET_STATUS = "Cleared: that entry is switched off in Options."
+"""Shown when an Options change hides the entry a dropdown held (plan L8) -
+including an Auto entry whose frame the Options no longer choose. The
+``FRAME_RESET_STATUS`` form again: cleared by the program, and why."""
+
 
 def frame_of(data) -> ReferenceFrame | None:
     """The reference frame a zone dropdown's item is expressed in.
@@ -973,6 +1116,11 @@ def frame_of(data) -> ReferenceFrame | None:
     if isinstance(data, Zone):
         return data.frame
     if is_geodetic(data):
+        return data.frame
+    if is_auto(data):
+        # Every zone an Auto entry can choose is defined on its frame
+        # (job._check_auto_frames refuses to import otherwise), so the frame
+        # IS what that TO end is expressed in.
         return data.frame
     return None
 
@@ -1039,18 +1187,52 @@ def selection_is_compatible(candidate, other, *, candidate_is_source: bool) -> b
     does, and it would offer a NATRF2022 position against a NAD83(2011) one as
     though the pair meant something. One mechanism, no special case.
     """
-    if other == UNCHOSEN:
-        return True
+    return (
+        incompatibility(candidate, other, candidate_is_source=candidate_is_source)
+        is None
+    )
+
+
+def incompatibility(candidate, other, *, candidate_is_source: bool) -> str | None:
+    """Why ``candidate`` cannot be paired with ``other``, as its status line, or None.
+
+    ``selection_is_compatible``'s rule with its reason, so a cleared selection
+    says the true one of two (DESIGN.md #71):
+
+    * ``AUTO_RESET_STATUS`` - an Auto entry at the TO end with a FROM end that
+      is not a latitude/longitude, or an Auto entry at the FROM end at all
+      (plan L1: Auto chooses a zone from a latitude/longitude, and a
+      northing/easting does not say which zone it is in);
+    * ``FRAME_RESET_STATUS`` - the frame registry has no path between the two
+      frames (#64). An Auto entry's frame is its Auto frame, so NAD83(2011)
+      input against Auto on NATRF2022 grays and clears exactly as it does
+      against an SPCS2022 zone (plan L2) - and dissolves by itself the same
+      way when a bridge is registered.
+
+    Nothing is incompatible with the unanswered placeholder or a separator,
+    and the placeholder is incompatible with nothing.
+    """
+    if other == UNCHOSEN or candidate == UNCHOSEN:
+        return None
+    if candidate is None or other is None:
+        return None
+    source, target = (candidate, other) if candidate_is_source else (other, candidate)
+    if is_auto(source):
+        return AUTO_RESET_STATUS
+    if is_auto(target) and not is_geodetic(source):
+        return AUTO_RESET_STATUS
     candidate_frame = frame_of(candidate)
     other_frame = frame_of(other)
     if candidate_frame is None or other_frame is None:
-        return True
+        return None
     if candidate_is_source:
-        return frames_have_a_path(candidate_frame, other_frame)
-    return frames_have_a_path(other_frame, candidate_frame)
+        allowed = frames_have_a_path(candidate_frame, other_frame)
+    else:
+        allowed = frames_have_a_path(other_frame, candidate_frame)
+    return None if allowed else FRAME_RESET_STATUS
 
 
-def refresh_zone_graying(combo, other, *, is_source: bool) -> None:
+def refresh_zone_graying(combo, other, *, is_source: bool, visible=None) -> None:
     """Gray every item in ``combo`` that cannot be paired with ``other``.
 
     **Grayed - disabled in place - never removed**, the owner's word and the
@@ -1069,6 +1251,16 @@ def refresh_zone_graying(combo, other, *, is_source: bool) -> None:
     user-interface courtesy and NOT a safety barrier, and nothing downstream
     may be simplified on the strength of it: ``job.run``'s frame gate stays the
     wall, and it is pinned as the wall.
+
+    **``visible`` - the Options' row visibility (``options.visible_rows``),
+    one flag per index; None means every row is shown.** A hidden row is
+    DISABLED here as well as hidden by ``apply_row_visibility``, and that is
+    measured Qt behaviour, not belt and braces: ``QListView.setRowHidden``
+    hides a row from the popup only, while the closed combo's arrow keys and
+    mouse wheel step through every ENABLED item, hidden or not - so a
+    switched-off WGS 84 entry would be one Down-arrow away without this
+    (pinned in tests/test_gui_options.py). Folded into this one owner of the
+    flags (the #57 rule) rather than set by a second method.
     """
     model = combo.model()
     for index in range(combo.count()):
@@ -1077,7 +1269,7 @@ def refresh_zone_graying(combo, other, *, is_source: bool) -> None:
             # A separator. It carries no data, no flags and no meaning.
             continue
         item = model.item(index)
-        allowed = selection_is_compatible(
+        allowed = (visible is None or visible[index]) and selection_is_compatible(
             data, other, candidate_is_source=is_source
         )
         flags = item.flags()
@@ -1085,6 +1277,34 @@ def refresh_zone_graying(combo, other, *, is_source: bool) -> None:
             item.setFlags(flags | Qt.ItemFlag.ItemIsEnabled)
         else:
             item.setFlags(flags & ~Qt.ItemFlag.ItemIsEnabled)
+
+
+def combo_items(combo) -> tuple:
+    """Every item's data in a combo, in index order - separators as None."""
+    return tuple(combo.itemData(index) for index in range(combo.count()))
+
+
+def apply_row_visibility(combo, visible) -> None:
+    """Hide the popup rows the Options switch off; one flag per index.
+
+    ``setRowHidden`` on the combo's own list view, never a rebuild: the items
+    and their indexes stay exactly where ``zone_combo`` put them, so every
+    ``findData`` and every index a method holds stays valid, and a hidden
+    selection cannot silently turn into a different item. The flags that keep
+    a hidden row out of keyboard and wheel stepping are
+    ``refresh_zone_graying``'s (its ``visible``). Each tab calls this from one
+    method only (the #57 rule, AST-pinned).
+    """
+    visible = tuple(visible)
+    if len(visible) != combo.count():
+        raise ValueError(
+            f"Row visibility for {len(visible)} rows was applied to a dropdown "
+            f"holding {combo.count()}; the flags must come from this combo's "
+            f"own items (combo_items)."
+        )
+    view = combo.view()
+    for index, shown in enumerate(visible):
+        view.setRowHidden(index, not shown)
 
 
 def geodetic_frame_for(*sides) -> ReferenceFrame | None:
@@ -1258,6 +1478,14 @@ class ObservationDateEdit(QDateEdit):
       would show something resembling an answer while holding none;
     * the calendar opens on this month's page (``_CalendarOpensOnToday``).
 
+    **Shown only when the Options say "Enter a date on the tab"** (plan O3,
+    DESIGN.md #71). With the default, "Today", there is no date box on either
+    tab and the job is dated ``job.today_local()`` with the source stated as
+    TODAY, which the record prints - the reversal of D10's no-default rule,
+    on the owner's instruction, for that choice only. Under "Enter a date"
+    everything below holds unchanged, and the box opens unanswered at every
+    start: the date is never remembered.
+
     So the first answer comes from the calendar. Once answered, the control is
     the stock widget: each section can be typed over or stepped, and the
     calendar opens on the date chosen. Measured on the offscreen platform and
@@ -1374,7 +1602,9 @@ def observation_date_relevance(mode, source_data, target_data) -> bool:
     return False
 
 
-def frame_settings_fields(mode, direction, source_data, target_data, date_edit):
+def frame_settings_fields(
+    mode, direction, source_data, target_data, date_edit, date_source
+):
     """The WGS 84 build's two settings fields this form states, or None if incomplete.
 
     One rule for both tabs (work package W5), so they cannot thread the fields
@@ -1384,25 +1614,49 @@ def frame_settings_fields(mode, direction, source_data, target_data, date_edit):
       (``target_geodetic_frame_for``), the one direction with two geodetic
       ends. Every other direction leaves it at None, its default, which the
       core requires there.
-    * ``observation_date`` - stated only when a selected side's frame is
-      time-dependent (``observation_date_relevance``), and then REQUIRED: an
-      unanswered date returns None, so ``settings()`` returns None and Convert
-      is not offered - the core's own rule, met before it is asked. Otherwise
-      left at None, because the core refuses a date stated for a job that
-      reads none (a stray field would print an epoch into a record of a
-      conversion that used none).
+    * ``observation_date`` and ``observation_date_source`` - stated only when
+      a selected side's frame is time-dependent (``observation_date_relevance``),
+      and then always together. Otherwise both are left at None, because the
+      core refuses a date, or a source, stated for a job that reads none (a
+      stray field would print an epoch into a record of a conversion that
+      used none).
+
+    **Where the date comes from is the Options' choice** (plan O3 and L10,
+    DESIGN.md #71), passed in as ``date_source``:
+
+    * ``ObservationDateSource.TODAY`` (the default) - ``job.today_local()``,
+      the LOCAL calendar date the job runs, never ``job.today``'s
+      later-of-local-and-UTC, which exists only so that a date that is today
+      in either clock is not refused as future: a Michigan evening is already
+      tomorrow in UTC, and the record would print that as "the date the job
+      ran". Read when ``settings()`` is assembled, which is when Convert runs
+      it. The date box is hidden and not read.
+    * ``ObservationDateSource.ENTERED`` - the date box, REQUIRED: unanswered
+      returns None, so ``settings()`` returns None and Convert is not offered
+      (the WGS 84 build's gating, W5, kept).
 
     Returns a dict to merge into the ``JobSettings`` keyword arguments.
     """
+    if not isinstance(date_source, ObservationDateSource):
+        raise TypeError(
+            f"frame_settings_fields needs the Options' ObservationDateSource "
+            f"(TODAY or ENTERED); got {type(date_source).__name__} "
+            f"({date_source!r}). Guessing one would decide where every "
+            f"time-dependent position's date comes from."
+        )
     fields: dict = {}
     target_frame = target_geodetic_frame_for(direction, target_data)
     if target_frame is not None:
         fields["target_geodetic_frame"] = target_frame
     if observation_date_relevance(mode, source_data, target_data):
-        date = observation_date_for(date_edit)
-        if date is None:
-            return None
+        if date_source is ObservationDateSource.TODAY:
+            date = job_module.today_local()
+        else:
+            date = observation_date_for(date_edit)
+            if date is None:
+                return None
         fields["observation_date"] = date
+        fields["observation_date_source"] = date_source
     return fields
 
 

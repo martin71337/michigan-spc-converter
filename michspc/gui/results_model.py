@@ -20,7 +20,9 @@ from PySide6.QtGui import QBrush, QColor
 from michspc.fileio import formatting as fmt
 from michspc.fileio import pnezd
 from michspc.fileio.exports import (
+    AUTO_COUNTY_COLUMNS,
     ellipsoid_elevation_heading,
+    is_auto_zone_job,
     external_frame,
     geodetic_pair_frames,
     pivot_frame,
@@ -198,6 +200,20 @@ def table_geoid_model_name(result: JobResult | None) -> str | None:
     return None if swap is None else swap[1].name
 
 
+AUTO_ZONE_COLUMNS: tuple[str, ...] = ("Zone", "County")
+"""The two columns an AUTO job's table carries, directly after Point (DESIGN.md
+#71): the zone each point was projected into and the county that chose it.
+
+An Auto file can span zones, and northings from two zones in one unlabelled
+column would read as one grid. Each cell is the written archive's own fact -
+the zone's registry name, as the audit CSV's ``Target zone`` cell prints it,
+and TIGER's county name, as its ``County`` cell prints it - read from the
+POINT (``ConvertedPoint.auto_zone``), never from ``settings.target_zone``,
+which on an Auto job is the sentinel. Present on Auto jobs only, so every
+fixed-zone table is unchanged to the string (#65: the table describes the
+archive a run wrote)."""
+
+
 def columns_for(result: JobResult | None) -> tuple[str, ...]:
     """The header row for a job's direction. ``COLUMNS`` until a job says else.
 
@@ -258,6 +274,11 @@ def columns_for(result: JobResult | None) -> tuple[str, ...]:
             vertical_shift_heading(settings.input_unit),
             vertical_sigma_heading(settings.input_unit),
         ]
+    if is_auto_zone_job(settings):
+        # LAST of the edits, at a fixed place after Point, so every index the
+        # edits above took is unaffected; row_strings inserts its two cells
+        # at the same moment of its own construction.
+        columns[POINT_COLUMN + 1 : POINT_COLUMN + 1] = list(AUTO_ZONE_COLUMNS)
     return tuple(columns)
 
 POINT_COLUMN = 0
@@ -286,9 +307,13 @@ def _right_aligned(columns: tuple[str, ...]) -> frozenset[int]:
     Every column except Point and Warnings - exactly the set the old
     module-level constant froze for the seven-column layout (indexes 1-5),
     restated as a rule so the vertical layout's shift and sigma columns
-    right-align without a second hand-kept index list to drift.
+    right-align without a second hand-kept index list to drift - and except
+    an Auto job's Zone and County, which are names, not numbers.
     """
-    return frozenset(range(len(columns))) - {POINT_COLUMN, _warnings_index(columns)}
+    text = {POINT_COLUMN, _warnings_index(columns)} | {
+        index for index, name in enumerate(columns) if name in AUTO_ZONE_COLUMNS
+    }
+    return frozenset(range(len(columns))) - text
 
 AMBER = QColor(255, 233, 178)
 """The one colour this table paints, and it means exactly one thing.
@@ -319,6 +344,7 @@ def row_strings(result: JobResult) -> tuple[tuple[str, ...], ...]:
     to_geodetic = _geodetic_display_columns(settings)
     vertical = settings.vertical_mode.converts_elevations
     zone_columns = _shows_zone_columns(settings)
+    auto = is_auto_zone_job(settings)
 
     rows: list[tuple[str, ...]] = []
 
@@ -366,6 +392,15 @@ def row_strings(result: JobResult) -> tuple[tuple[str, ...], ...]:
             cells[ELEVATION_COLUMN + 1 : ELEVATION_COLUMN + 1] = [
                 fmt.vertical_quantity(shift_m, settings.input_unit),
                 fmt.vertical_quantity(sigma_m, settings.input_unit),
+            ]
+
+        if auto:
+            # Under AUTO_ZONE_COLUMNS, inserted where columns_for inserts
+            # them: the point's OWN zone and county.
+            assignment = _auto_assignment(point)
+            cells[POINT_COLUMN + 1 : POINT_COLUMN + 1] = [
+                assignment.zone.name,
+                assignment.county_name,
             ]
 
         rows.append(tuple(cells))
@@ -427,6 +462,10 @@ result, and it is the good one.
 # -84 deg 33' 19.80000" W says both where the point is and how the number was
 # written, which is what the parenthesis existed to say.
 ZONE_LABEL = "Zone"
+COUNTY_LABEL, COUNTY_FIPS_LABEL = AUTO_COUNTY_COLUMNS
+"""An Auto point's county rows, under the audit CSV's own two headings (#17's
+one wording): ``County`` and ``County FIPS``. Directly under the Zone row they
+explain, on Auto jobs only (DESIGN.md #71)."""
 UNITS_LABEL = "Units"
 NORTHING_LABEL = "Northing"
 EASTING_LABEL = "Easting"
@@ -888,6 +927,34 @@ def _grid_values(
     )
 
 
+def _auto_assignment(point):
+    """An Auto point's zone assignment, or a refusal - never a guess.
+
+    Every point of an Auto job carries one (``job._convert_row``), and its
+    zone IS the zone the point was projected into; a point that says
+    otherwise was assembled by hand, and showing either zone would label one
+    zone's northing with the other's name.
+    """
+    assignment = point.auto_zone
+    if assignment is None or assignment.zone is not point.conversion.target_zone:
+        raise ValueError(
+            f"Point {point.point_id} is on an Auto job but its zone assignment "
+            f"({assignment!r}) is not the zone it was projected into "
+            f"({point.conversion.target_zone!r}). Refused rather than naming "
+            f"either zone beside the other's coordinates."
+        )
+    return assignment
+
+
+def _auto_rows(point) -> tuple[ResultValue, ...]:
+    """The Zone row's companions on an Auto point: its county, name and FIPS."""
+    assignment = _auto_assignment(point)
+    return (
+        ResultValue(COUNTY_LABEL, assignment.county_name),
+        ResultValue(COUNTY_FIPS_LABEL, assignment.county_fips),
+    )
+
+
 def _elevation_dependent_values(
     factors,
     ellipsoid_input=False,
@@ -1165,6 +1232,25 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
         # longitude here, which is the branch exports.audit_rows takes at its
         # `geodetic_source` test. The elevation column is still linear and is
         # still in the input unit, so the units line stays.
+        #
+        # On an AUTO job the zone is the POINT's own (DESIGN.md #71):
+        # settings.target_zone is the AUTO_ZONE sentinel there, which names no
+        # zone, and the Zone row is what labels the northing and easting
+        # beneath it. Its county follows it.
+        auto = is_auto_zone_job(settings)
+        target_zone = (
+            _auto_assignment(point).zone if auto else settings.target_zone
+        )
+        grid = _grid_values(
+            target_zone,
+            settings.output_unit,
+            point.output_northing,
+            point.output_easting,
+            point.output_elevation,
+            elevation_label=output_elevation_label,
+        )
+        if auto:
+            grid = (grid[0], *_auto_rows(point), *grid[1:])
         source = ResultSection(
             INPUT_TITLE,
             (
@@ -1179,14 +1265,7 @@ def single_point_sections(result: JobResult) -> tuple[ResultSection, ResultSecti
         target = ResultSection(
             OUTPUT_TITLE,
             (
-                *_grid_values(
-                    settings.target_zone,
-                    settings.output_unit,
-                    point.output_northing,
-                    point.output_easting,
-                    point.output_elevation,
-                    elevation_label=output_elevation_label,
-                ),
+                *grid,
                 # The shift and its sigma read directly under the elevation
                 # they explain, before the factors.
                 *vertical_rows,

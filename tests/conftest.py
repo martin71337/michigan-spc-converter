@@ -12,6 +12,46 @@ from pathlib import Path
 
 import pytest
 
+from michspc.gui import settings_store
+
+# The Options store (plan L9, DESIGN.md #71): EVERY window this suite builds
+# reads and writes an in-memory store, never the owner's real per-user
+# registry key. Installed at import, before any test module is collected, so
+# a window built at module level is covered too; each call returns a fresh
+# empty store, so every window opens on the defaults. Pinned by
+# tests/test_gui_options.py::test_the_suite_never_builds_the_real_store.
+settings_store.set_store_factory(settings_store.MemoryStore)
+
+
+def wgs84_build_store() -> settings_store.MemoryStore:
+    """A store holding the Options the WGS 84 build's GUI tests were written under.
+
+    Those tests (W5, DESIGN.md #70) pin the five WGS 84 / ITRF entries in the
+    lists and the observation date box on the tab. Since the Options build
+    (DESIGN.md #71) both are Options - the five groups off by default and
+    "Today" as the date source - so their fixtures switch the five ON and the
+    date to "Enter a date on the tab" through the Options seam itself (a
+    remembered store, read by the window as the owner's would be), and every
+    assertion they make stands unweakened. Imported lazily: the options module
+    imports Qt, and most of the suite never does.
+    """
+    from michspc.gui import options
+    from michspc.job import ObservationDateSource
+
+    time_dependent = [
+        group
+        for group in options.LIST_GROUPS
+        if not group.is_zone_group and group.frame.is_time_dependent
+    ]
+    chosen = options.Options(
+        shown=options.DEFAULT_OPTIONS.with_groups(*time_dependent).shown,
+        auto_frame=options.DEFAULT_AUTO_FRAME,
+        date_source=ObservationDateSource.ENTERED,
+    )
+    store = settings_store.MemoryStore()
+    options.save_options(store, chosen)
+    return store
+
 
 def archive_members(archive: Path) -> dict[str, str]:
     """Every member of a written export, decoded, keyed by name.

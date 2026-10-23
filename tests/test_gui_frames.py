@@ -46,6 +46,7 @@ from PySide6.QtCore import QDate  # noqa: E402
 from michspc.gui import controls  # noqa: E402
 from michspc.gui.app import build_application  # noqa: E402
 from michspc.gui.window import MainWindow, UNITS_SNAPPED_STATUS  # noqa: E402
+from tests.conftest import wgs84_build_store  # noqa: E402
 from michspc.job import (  # noqa: E402
     Direction,
     JobSettings,
@@ -122,7 +123,7 @@ def qapp():
 @pytest.fixture
 def window(qapp):
     """A window whose modal dialogs are replaced by recorders."""
-    win = MainWindow()
+    win = MainWindow(store=wgs84_build_store())
     win.shown_failures = []
     win.overwrite_prompts = []
     win.overwrite_answer = True
@@ -181,17 +182,35 @@ def item_is_enabled(combo, data) -> bool:
 
 
 def grayed(combo) -> list:
-    """Every entry the user cannot choose right now, by data."""
+    """Every SHOWN entry the user cannot choose right now, by data.
+
+    CHANGED for the Options build (DESIGN.md #71): a row the Options hide is
+    also disabled (``refresh_zone_graying``'s ``visible`` - Qt's arrow keys
+    and wheel step through enabled rows, hidden or not), so "disabled" alone
+    no longer means "grayed". Grayed is what the user SEES disabled: shown
+    and not enabled. Hidden rows are pinned separately, in
+    tests/test_gui_options.py.
+    """
     from PySide6.QtCore import Qt as _Qt
 
     out = []
+    view = combo.view()
     for index in range(combo.count()):
         data = combo.itemData(index)
         if data is None:  # a separator, never a selection
             continue
+        if view.isRowHidden(index):
+            continue
         if not (combo.model().item(index).flags() & _Qt.ItemFlag.ItemIsEnabled):
             out.append(data)
     return out
+
+
+AUTO_NAD = controls.auto_choice(NAD83_2011)
+"""The Auto entry the default Options show on a TO combo (Auto frame
+NAD83(2011)). It is GRAYED against a zone FROM - Auto chooses a zone from a
+latitude/longitude (plan L1) - and against a NATRF2022 FROM, which has no
+path to NAD83(2011) (plan L2, #64's rule). Never shown on a FROM combo."""
 
 
 # ==========================================================================
@@ -778,7 +797,10 @@ def test_choosing_one_frame_grays_every_entry_of_the_other(window, which, end):
     # An SPCS 83 selection at one end. The five WGS 84 / ITRF entries stay
     # choosable: each holds an HTDP path to and from NAD83(2011).
     choose(chooser, MI_SOUTH)
-    assert set(grayed(other)) == {NAT, *SPCS2022_ZONES}
+    # ADDED for the Options build (DESIGN.md #71): when the other end is a TO
+    # combo it shows the Auto entry, and a zone FROM grays it (plan L1).
+    auto = {AUTO_NAD} if end == "from" else set()
+    assert set(grayed(other)) == {NAT, *SPCS2022_ZONES, *auto}
     assert item_is_enabled(other, NAD)
     assert item_is_enabled(other, controls.UNCHOSEN)
     for zone in SPCS83_ZONES:
@@ -791,7 +813,7 @@ def test_choosing_one_frame_grays_every_entry_of_the_other(window, which, end):
     # the five WGS 84 / ITRF entries, which have no path to NATRF2022 (plan
     # decision D3) and were not in any dropdown when H6 wrote {NAD, SPCS 83}.
     choose(chooser, STATEWIDE_2022)
-    assert set(grayed(other)) == {NAD, *SPCS83_ZONES, *GLOBAL}
+    assert set(grayed(other)) == {NAD, *SPCS83_ZONES, *GLOBAL, *auto}
     assert item_is_enabled(other, NAT)
     assert item_is_enabled(other, controls.UNCHOSEN)
     for zone in SPCS2022_ZONES:
@@ -816,7 +838,9 @@ def test_a_geodetic_entry_grays_the_other_frames_entries_too(window, which):
     # SUPERSEDED SET (DESIGN.md #70, plan W5): as above, the five WGS 84 /
     # ITRF entries join NATRF2022's mirror set (D3).
     choose(page.from_zone, NAT)
-    assert set(grayed(page.to_zone)) == {NAD, *SPCS83_ZONES, *GLOBAL}
+    # ADDED for the Options build (DESIGN.md #71): Auto on NAD83(2011) joins
+    # the mirror set - its frame has no path from NATRF2022 (plan L2).
+    assert set(grayed(page.to_zone)) == {NAD, *SPCS83_ZONES, *GLOBAL, AUTO_NAD}
     assert item_is_enabled(page.to_zone, NAT)
 
 
@@ -913,7 +937,9 @@ def test_the_graying_lifts_when_a_transformation_is_registered(
     """
     page = pages(window)[which]
     choose(page.from_zone, MI_SOUTH)
-    assert set(grayed(page.to_zone)) == {NAT, *SPCS2022_ZONES}
+    # The Auto entry is grayed too, and for a reason no bridge changes: a
+    # zone FROM can never feed Auto (plan L1, DESIGN.md #71).
+    assert set(grayed(page.to_zone)) == {NAT, *SPCS2022_ZONES, AUTO_NAD}
 
     bridged = dict(frames._TRANSFORMATIONS_BY_CODE)
     identity = bridged[("NAD83(2011)", "NAD83(2011)")]
@@ -925,7 +951,12 @@ def test_the_graying_lifts_when_a_transformation_is_registered(
     # differently because the registry does.
     page._update_zone_graying()
 
-    assert grayed(page.to_zone) == []
+    # Every FRAME graying lifts; only the Auto entry stays grayed, for its
+    # own reason (a zone input), which the next assertion keeps honest.
+    assert grayed(page.to_zone) == [AUTO_NAD]
+    assert controls.incompatibility(
+        AUTO_NAD, MI_SOUTH, candidate_is_source=False
+    ) == controls.AUTO_RESET_STATUS
     assert item_is_enabled(page.to_zone, NAT)
     for zone in SPCS2022_ZONES:
         assert item_is_enabled(page.to_zone, zone)
@@ -977,6 +1008,9 @@ def test_one_owner_per_property_on_both_tabs():
         "refresh_zone_graying": "_update_zone_graying",
         "refresh_unit_combo": "_update_unit_offerings",
         "refresh_geoid_combo": "_refresh_geoid_sides",
+        # The Options build (DESIGN.md #71): the rows' visibility is a
+        # property too, with one owner per tab.
+        "apply_row_visibility": "_update_list_rows",
     }
 
     for module in ("michspc/gui/window.py", "michspc/gui/single_point.py"):

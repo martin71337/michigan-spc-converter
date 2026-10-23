@@ -63,6 +63,8 @@ from michspc.gui.controls import (
     height_kind_for,
     AMBER,
     FRAME_RESET_STATUS,
+    OBSERVATION_DATE_UNANSWERED,
+    OPTIONS_RESET_STATUS,
     GEOID_MODEL_LABEL,
     INPUT_GEOID_LABEL,
     OBSERVATION_DATE_LABEL,
@@ -72,6 +74,10 @@ from michspc.gui.controls import (
     UNITS_LABEL,
     UNITS_LABEL_ELEVATION_ONLY,
     VERTICAL_MODE_LABEL,
+    apply_row_visibility,
+    combo_items,
+    incompatibility,
+    is_auto,
     VERTICAL_SOURCE_LABEL,
     VERTICAL_TARGET_LABEL,
     combined_factor_is_reported,
@@ -100,6 +106,7 @@ from michspc.gui.controls import (
     zone_combo,
 )
 from michspc.gui.dms_entry import DmsEntry
+from michspc.gui.options import DEFAULT_OPTIONS, Options, visible_rows
 from michspc.gui.result_panel import ResultPanel
 from michspc.gui.results_model import (
     ResultSection,
@@ -110,10 +117,13 @@ from michspc.gui.results_model import (
     warning_count,
 )
 from michspc.job import (
+    AUTO_ZONE,
+    AutoZoneUnplacedPointsError,
     Direction,
     JobResult,
     JobSettings,
     LongitudeConvention,
+    ObservationDateSource,
     VerticalMode,
     run,
 )
@@ -284,8 +294,15 @@ up (see ``_update_angle_format_relevance``).
 class SinglePointTab(QWidget):
     """One typed coordinate, converted and displayed. Writes nothing."""
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent=None, options: Options | None = None) -> None:
         super().__init__(parent)
+
+        self._options: Options = DEFAULT_OPTIONS if options is None else options
+        """The window's Options, which this tab READS and never edits (plan
+        L7, DESIGN.md #71): the one state the two tabs share, reversing
+        #26/#43 for the Options only. ``MainWindow.apply_options`` hands a
+        new value in through ``apply_options``; a tab built on its own - as
+        the suite builds it - holds the defaults."""
 
         self.result: JobResult | None = None
         self.last_failure: BaseException | None = None
@@ -298,6 +315,7 @@ class SinglePointTab(QWidget):
 
         self._build()
         self._update_entry_labels()
+        self._update_list_rows()
         self._update_zone_graying()
         self._update_unit_offerings()
         self._update_unit_labels()
@@ -775,14 +793,29 @@ class SinglePointTab(QWidget):
         source = self.from_zone.currentData()
         target = self.to_zone.currentData()
         source_zone = source if isinstance(source, Zone) else None
-        target_zone = target if isinstance(target, Zone) else None
+        # An Auto entry states AUTO_ZONE and the frame it chooses in (plan L1,
+        # DESIGN.md #71); job.run requires the two together and refuses
+        # either alone by name.
+        target_zone = (
+            target
+            if isinstance(target, Zone)
+            else AUTO_ZONE
+            if is_auto(target)
+            else None
+        )
 
         # The WGS 84 build's two fields (work package W5), by the one rule
         # both tabs share: the output frame of a geodetic-to-geodetic job, and
-        # the observation date when a time-dependent frame is selected - None
-        # back means that date is unanswered, so the form is incomplete.
+        # the observation date and its source when a time-dependent frame is
+        # selected - from the Options (O3): today's local date, or the date
+        # box, where None back means it is unanswered and the form incomplete.
         frame_fields = frame_settings_fields(
-            mode, direction, source, target, self.observation_date_edit
+            mode,
+            direction,
+            source,
+            target,
+            self.observation_date_edit,
+            self._options.date_source,
         )
         if frame_fields is None:
             return None
@@ -814,6 +847,8 @@ class SinglePointTab(QWidget):
         frame = geodetic_frame_for(source, target)
         if frame is not None:
             common["geodetic_frame"] = frame
+        if is_auto(target):
+            common["auto_frame"] = target.frame
         common.update(frame_fields)
 
         if direction is Direction.ZONE_TO_ZONE:
@@ -856,6 +891,7 @@ class SinglePointTab(QWidget):
             source,
             UNCHOSEN,
             self.observation_date_edit,
+            self._options.date_source,
         )
         if frame_fields is None:
             return None
@@ -969,11 +1005,12 @@ class SinglePointTab(QWidget):
             return
 
         other = self.from_zone if clear is self.to_zone else self.to_zone
-        if selection_is_compatible(
+        reason = incompatibility(
             clear.currentData(),
             other.currentData(),
             candidate_is_source=clear is self.from_zone,
-        ):
+        )
+        if reason is None:
             return
 
         self._reconciling = True
@@ -982,7 +1019,10 @@ class SinglePointTab(QWidget):
         finally:
             self._reconciling = False
         self._invalidate_result()
-        self._set_status(FRAME_RESET_STATUS)
+        # FRAME_RESET_STATUS for a frame pair with no published path, and
+        # AUTO_RESET_STATUS for an Auto TO whose FROM is not a latitude/
+        # longitude - controls.incompatibility says which (DESIGN.md #71).
+        self._set_status(reason)
 
     def _update_zone_graying(self) -> None:
         """Gray each end's incompatible entries against the other end.
@@ -998,8 +1038,86 @@ class SinglePointTab(QWidget):
         vertical_only = self.vertical_mode() is VerticalMode.VERTICAL
         source = UNCHOSEN if vertical_only else self.from_zone.currentData()
         target = UNCHOSEN if vertical_only else self.to_zone.currentData()
-        refresh_zone_graying(self.from_zone, target, is_source=True)
-        refresh_zone_graying(self.to_zone, source, is_source=False)
+        refresh_zone_graying(
+            self.from_zone,
+            target,
+            is_source=True,
+            visible=self._visible_rows(self.from_zone, is_source=True),
+        )
+        refresh_zone_graying(
+            self.to_zone,
+            source,
+            is_source=False,
+            visible=self._visible_rows(self.to_zone, is_source=False),
+        )
+
+    def _visible_rows(self, combo, *, is_source: bool) -> tuple[bool, ...]:
+        """Which rows of one zone combo the Options show (``options.visible_rows``)."""
+        return visible_rows(self._options, combo_items(combo), is_source=is_source)
+
+    def _update_list_rows(self) -> None:
+        """Hide the rows the Options switch off, on both zone combos.
+
+        **The one owner of the two combos' row visibility** (the #57 rule,
+        AST-pinned beside the graying's owner); ``options.visible_rows`` owns
+        WHICH rows, so this tab and the Multi point tab cannot filter
+        differently. The hidden rows are also disabled, by the graying's
+        owner (``refresh_zone_graying``'s ``visible``).
+        """
+        apply_row_visibility(
+            self.from_zone, self._visible_rows(self.from_zone, is_source=True)
+        )
+        apply_row_visibility(
+            self.to_zone, self._visible_rows(self.to_zone, is_source=False)
+        )
+
+    @property
+    def options(self) -> Options:
+        """The Options this tab currently reads."""
+        return self._options
+
+    def apply_options(self, options: Options) -> None:
+        """Take a new Options value from the window (plan L7, L8; DESIGN.md #71).
+
+        Every Options change discards a displayed result - the #26 stale
+        result rule: the lists, the Auto frame and the date source all change
+        what a Convert would do, and numbers left on screen would describe
+        Options that no longer hold. Then:
+
+        * the rows are re-hidden, and a selection whose row is now hidden is
+          CLEARED to the placeholder with ``OPTIONS_RESET_STATUS`` (L8) - an
+          Auto entry whose frame the Options no longer choose included;
+        * the pair is reconciled and re-grayed, the units re-offered and
+          Convert re-gated, by the path a dropdown change takes;
+        * leaving "Enter a date" empties the date box, so a date typed earlier
+          can never reappear later and be sent unseen (O3: the date is not
+          remembered).
+        """
+        if not isinstance(options, Options):
+            raise TypeError(
+                f"apply_options needs an options.Options; got "
+                f"{type(options).__name__} ({options!r})."
+            )
+        self._options = options
+        self._update_list_rows()
+        cleared = False
+        self._reconciling = True
+        try:
+            for combo, is_source in ((self.from_zone, True), (self.to_zone, False)):
+                index = combo.currentIndex()
+                shown = self._visible_rows(combo, is_source=is_source)
+                if index >= 0 and not shown[index]:
+                    combo.setCurrentIndex(combo.findData(UNCHOSEN))
+                    cleared = True
+        finally:
+            self._reconciling = False
+        if options.date_source is ObservationDateSource.TODAY:
+            self.observation_date_edit.setDate(OBSERVATION_DATE_UNANSWERED)
+        self._reconcile_zone_frames(clear=self.to_zone)
+        self._on_direction_changed()
+        self._invalidate_result()
+        if cleared:
+            self._set_status(OPTIONS_RESET_STATUS)
 
     def _update_elevation_hint(self) -> None:
         """The one owner of the elevation box's placeholder (#57's rule:
@@ -1319,6 +1437,12 @@ class SinglePointTab(QWidget):
         )
         self.observation_date_label.setEnabled(relevant)
         self.observation_date_edit.setEnabled(relevant)
+        # Shown only under the Options' "Enter a date on the tab" (plan O3):
+        # with "Today" no date is asked for, and the job is dated by
+        # job.today_local() (controls.frame_settings_fields).
+        entered = self._options.date_source is ObservationDateSource.ENTERED
+        self.observation_date_label.setVisible(entered)
+        self.observation_date_edit.setVisible(entered)
 
     def coordinates_are_typed(self) -> bool:
         """Both coordinate rows answered, on whichever page is showing.
@@ -1389,6 +1513,11 @@ class SinglePointTab(QWidget):
             result = run(settings, source=parsed)
             sections = single_point_sections(result)
             warnings = single_point_warnings(result)
+        except AutoZoneUnplacedPointsError as error:
+            # NAMED, as HtdpRefusal is below: Auto refuses a point in no
+            # Michigan county (plan L5), and the message names the point.
+            self._report_failure(error)
+            return False
         except htdp.HtdpRefusal as error:
             # NAMED, not left to the clause below (interim gate 2 of the WGS
             # 84 build, finding L4): an HTDP refusal - a position outside the

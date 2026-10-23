@@ -76,7 +76,7 @@ from michspc.spc.units import INTERNATIONAL_FEET, METERS  # noqa: E402
 from michspc.spc.vertical import NAVD88, HeightKind  # noqa: E402
 from michspc.spc.convert import project_point  # noqa: E402
 from michspc.spc.zones import MI_CENTRAL, MI_SOUTH, zone_by_code  # noqa: E402
-from tests.conftest import member_text  # noqa: E402
+from tests.conftest import member_text, wgs84_build_store  # noqa: E402
 from tests.fixtures.htdp_w3_anchors import (  # noqa: E402
     L5_RECORDS,
     L5_REVERSE_RECORDS,
@@ -123,7 +123,7 @@ def qapp():
 @pytest.fixture
 def window(qapp):
     """A window whose modal dialogs and clipboard are replaced by recorders."""
-    win = MainWindow()
+    win = MainWindow(store=wgs84_build_store())
     win.shown_failures = []
     win._show_failure = lambda error: win.shown_failures.append(
         str(error) or repr(error)

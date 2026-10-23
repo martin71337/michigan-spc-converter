@@ -65,8 +65,11 @@ from michspc.gui.controls import (
     height_kind_combo,
     height_kind_for,
     AMBER,
+    AUTO_CHOICES,
     FRAME_RESET_STATUS,
     GEODETIC_CHOICES,
+    OBSERVATION_DATE_UNANSWERED,
+    OPTIONS_RESET_STATUS,
     GEOID_MODEL_LABEL,
     INPUT_GEOID_LABEL,
     OBSERVATION_DATE_LABEL,
@@ -78,7 +81,11 @@ from michspc.gui.controls import (
     VERTICAL_MODE_LABEL,
     VERTICAL_SOURCE_LABEL,
     VERTICAL_TARGET_LABEL,
+    apply_row_visibility,
+    combo_items,
     combined_factor_is_reported,
+    incompatibility,
+    is_auto,
     direction_for,
     frame_settings_fields,
     geodetic_choice,
@@ -104,14 +111,20 @@ from michspc.gui.controls import (
     vertical_mode_for,
     zone_combo,
 )
+from michspc.gui import settings_store
 from michspc.gui.icon import application_icon
+from michspc.gui.options import Options, load_options, save_options, visible_rows
+from michspc.gui.options_dialog import OPTIONS_ACTION_TEXT, OptionsDialog
 from michspc.gui.results_model import ResultsModel, job_warning_messages, warning_count
 from michspc.gui.single_point import SinglePointTab
 from michspc.job import (
+    AUTO_ZONE,
+    AutoZoneUnplacedPointsError,
     Direction,
     JobResult,
     JobSettings,
     LongitudeConvention,
+    ObservationDateSource,
     VerticalMode,
     run,
 )
@@ -341,9 +354,17 @@ class MultiPointPage(QWidget):
 class MainWindow(QMainWindow):
     """The application window."""
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent=None, store=None) -> None:
         super().__init__(parent)
         self.setWindowTitle(WINDOW_TITLE)
+
+        # The Options (DESIGN.md #71): read once from the store before any
+        # control is built, so both tabs open on the remembered lists. The
+        # store is handed in by a caller that has one (the suite's in-memory
+        # store, the offscreen previews'); otherwise settings_store's factory
+        # supplies it - QSettings, per user, outside the suite.
+        self._store = settings_store.default_store() if store is None else store
+        self.options, options_messages = load_options(self._store)
         # Cosmetic, and the only thing in this window allowed to be absent: the
         # .ico is a build product, and a source checkout that has not run
         # tools/make_icon.py must still open (michspc.gui.icon).
@@ -361,7 +382,9 @@ class MainWindow(QMainWindow):
         combo's own handler, and the outer call has to keep the status line."""
 
         self._build()
+        self._build_menu()
         self._update_input_hint()
+        self._update_list_rows()
         self._update_zone_graying()
         self._update_unit_offerings()
         self._update_unit_labels()
@@ -370,6 +393,15 @@ class MainWindow(QMainWindow):
         self._update_vertical_rows()
         self._update_convert_enabled()
         self.resize(1000, 640)
+        if options_messages:
+            # A remembered value MCX did not recognise was reset (plan L9):
+            # said on both tabs' status lines, since the Options are both
+            # tabs'. All of them, joined - each names its option.
+            self.options_status = " ".join(options_messages)
+            self._set_status(self.options_status, style=AMBER)
+            self.single_point._set_status(self.options_status, style=AMBER)
+        else:
+            self.options_status = ""
 
     # ------------------------------------------------------------------
     # Construction
@@ -387,13 +419,87 @@ class MainWindow(QMainWindow):
         # Fully self-contained: it owns its own zone, unit and longitude-sign
         # controls and shares no state with this window, so neither tab can
         # silently alter the other (docs/DESIGN.md amendment #26).
-        self.single_point = SinglePointTab(self.tabs)
+        self.single_point = SinglePointTab(self.tabs, options=self.options)
         self.tabs.addTab(self.single_point, SINGLE_POINT_TAB)
         self.tabs.addTab(self._build_multi_point_tab(), MULTI_POINT_TAB)
 
         layout.addWidget(self.tabs)
 
         self.setCentralWidget(central)
+
+    def _build_menu(self) -> None:
+        """The menu bar: one action, "Options…", opening the Options dialog.
+
+        A top-level action rather than a menu holding one item - the owner
+        asked for an Options menu, and a menu whose only entry repeats its
+        own name is one click more for nothing. Window-level, because the
+        Options are both tabs' (plan L7).
+        """
+        self.options_action = self.menuBar().addAction(OPTIONS_ACTION_TEXT)
+        self.options_action.triggered.connect(self.open_options)
+
+    def open_options(self) -> bool:
+        """Show the Options dialog; apply its answer. True if anything changed."""
+        chosen = self._ask_options(self.options)
+        if chosen is None:
+            return False
+        return self.apply_options(chosen)
+
+    def _ask_options(self, current: Options) -> Options | None:
+        """The modal dialog's answer, or None on Cancel. Overridden in tests."""
+        dialog = OptionsDialog(current, self)
+        if dialog.exec() != OptionsDialog.DialogCode.Accepted:
+            return None
+        return dialog.options()
+
+    def apply_options(self, options: Options) -> bool:
+        """Remember new Options and apply them to both tabs (plan L7-L10).
+
+        The store is written first - only the three choices, never a date
+        (``options.save_options``) - then each tab applies them by its own
+        rule: the Single point tab discards any displayed result (every
+        Options change does, the #26 rule), and this tab re-hides its rows,
+        clears a selection the Options hid, and re-gates Convert; its table
+        is cleared only when a selection is (it describes an archive that was
+        written, #65). Unchanged Options change nothing and are not written.
+        """
+        if not isinstance(options, Options):
+            raise TypeError(
+                f"apply_options needs an options.Options; got "
+                f"{type(options).__name__} ({options!r})."
+            )
+        if options == self.options:
+            return False
+        save_options(self._store, options)
+        self.options = options
+        self.single_point.apply_options(options)
+        self._apply_multi_point_options(options)
+        return True
+
+    def _apply_multi_point_options(self, options: Options) -> None:
+        """This tab's half of ``apply_options`` - the Single point tab's rule,
+        with this tab's narrower clearing (``_clear_table``)."""
+        self._update_list_rows()
+        cleared = False
+        self._reconciling = True
+        try:
+            for combo, is_source in ((self.from_zone, True), (self.to_zone, False)):
+                index = combo.currentIndex()
+                shown = self._visible_rows(combo, is_source=is_source)
+                if index >= 0 and not shown[index]:
+                    combo.setCurrentIndex(combo.findData(UNCHOSEN))
+                    cleared = True
+        finally:
+            self._reconciling = False
+        if options.date_source is ObservationDateSource.TODAY:
+            # Leaving "Enter a date" empties the box: a date typed earlier
+            # must never reappear later and be sent unseen (plan O3).
+            self.observation_date_edit.setDate(OBSERVATION_DATE_UNANSWERED)
+        self._reconcile_zone_frames(clear=self.to_zone)
+        self._on_direction_changed()
+        if cleared:
+            self._clear_table()
+            self._set_status(OPTIONS_RESET_STATUS)
 
     def _build_multi_point_tab(self) -> QWidget:
         """The file converter, unchanged, in the shape it always had.
@@ -792,14 +898,28 @@ class MainWindow(QMainWindow):
         source = self.from_zone.currentData()
         target = self.to_zone.currentData()
         source_zone = source if isinstance(source, Zone) else None
-        target_zone = target if isinstance(target, Zone) else None
+        # An Auto entry states AUTO_ZONE and the frame it chooses in (plan L1,
+        # DESIGN.md #71) - the Single point tab's rule exactly.
+        target_zone = (
+            target
+            if isinstance(target, Zone)
+            else AUTO_ZONE
+            if is_auto(target)
+            else None
+        )
 
         # The WGS 84 build's two fields (work package W5), by the one rule
         # both tabs share: the output frame of a geodetic-to-geodetic job, and
-        # the observation date when a time-dependent frame is selected - None
-        # back means that date is unanswered, so the form is incomplete.
+        # the observation date and its source when a time-dependent frame is
+        # selected, from the Options (O3) - None back means the date box is
+        # unanswered under "Enter a date", so the form is incomplete.
         frame_fields = frame_settings_fields(
-            mode, direction, source, target, self.observation_date_edit
+            mode,
+            direction,
+            source,
+            target,
+            self.observation_date_edit,
+            self.options.date_source,
         )
         if frame_fields is None:
             return None
@@ -837,6 +957,8 @@ class MainWindow(QMainWindow):
         frame = geodetic_frame_for(source, target)
         if frame is not None:
             common["geodetic_frame"] = frame
+        if is_auto(target):
+            common["auto_frame"] = target.frame
         common.update(frame_fields)
 
         if direction is Direction.ZONE_TO_ZONE:
@@ -881,6 +1003,7 @@ class MainWindow(QMainWindow):
             source,
             UNCHOSEN,
             self.observation_date_edit,
+            self.options.date_source,
         )
         if frame_fields is None:
             return None
@@ -958,11 +1081,12 @@ class MainWindow(QMainWindow):
             return
 
         other = self.from_zone if clear is self.to_zone else self.to_zone
-        if selection_is_compatible(
+        reason = incompatibility(
             clear.currentData(),
             other.currentData(),
             candidate_is_source=clear is self.from_zone,
-        ):
+        )
+        if reason is None:
             return
 
         self._reconciling = True
@@ -971,7 +1095,9 @@ class MainWindow(QMainWindow):
         finally:
             self._reconciling = False
         self._clear_table()
-        self._set_status(FRAME_RESET_STATUS)
+        # FRAME_RESET_STATUS or AUTO_RESET_STATUS - controls.incompatibility
+        # says which reason applies (DESIGN.md #71).
+        self._set_status(reason)
 
     def _update_zone_graying(self) -> None:
         """Gray each end's incompatible entries against the other end.
@@ -993,8 +1119,36 @@ class MainWindow(QMainWindow):
         vertical_only = self.vertical_mode() is VerticalMode.VERTICAL
         source = UNCHOSEN if vertical_only else self.from_zone.currentData()
         target = UNCHOSEN if vertical_only else self.to_zone.currentData()
-        refresh_zone_graying(self.from_zone, target, is_source=True)
-        refresh_zone_graying(self.to_zone, source, is_source=False)
+        refresh_zone_graying(
+            self.from_zone,
+            target,
+            is_source=True,
+            visible=self._visible_rows(self.from_zone, is_source=True),
+        )
+        refresh_zone_graying(
+            self.to_zone,
+            source,
+            is_source=False,
+            visible=self._visible_rows(self.to_zone, is_source=False),
+        )
+
+    def _visible_rows(self, combo, *, is_source: bool) -> tuple[bool, ...]:
+        """Which rows of one zone combo the Options show (``options.visible_rows``)."""
+        return visible_rows(self.options, combo_items(combo), is_source=is_source)
+
+    def _update_list_rows(self) -> None:
+        """Hide the rows the Options switch off, on both zone combos.
+
+        **The one owner of the two combos' row visibility on this tab** (the
+        #57 rule, AST-pinned); ``options.visible_rows`` owns which rows, so
+        the two tabs cannot filter differently.
+        """
+        apply_row_visibility(
+            self.from_zone, self._visible_rows(self.from_zone, is_source=True)
+        )
+        apply_row_visibility(
+            self.to_zone, self._visible_rows(self.to_zone, is_source=False)
+        )
 
     def _update_elevation_note(self) -> None:
         """The one owner of the elevation note's TEXT.
@@ -1147,6 +1301,10 @@ class MainWindow(QMainWindow):
         )
         self.observation_date_label.setEnabled(relevant)
         self.observation_date_edit.setEnabled(relevant)
+        # Shown only under the Options' "Enter a date on the tab" (plan O3).
+        entered = self.options.date_source is ObservationDateSource.ENTERED
+        self.observation_date_label.setVisible(entered)
+        self.observation_date_edit.setVisible(entered)
 
     def _on_vertical_mode_changed(self) -> None:
         self._update_vertical_rows()
@@ -1388,6 +1546,11 @@ class MainWindow(QMainWindow):
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         try:
             result = run(settings)
+        except AutoZoneUnplacedPointsError as error:
+            # NAMED, the HtdpRefusal reasoning below: an Auto job with points
+            # in no Michigan county is refused whole, and its message names
+            # every such point - shown in full like every other refusal.
+            failure = error
         except htdp.HtdpRefusal as error:
             # NAMED, not left to the clause below (interim gate 2 of the WGS
             # 84 build, finding L4): an HTDP refusal subclasses neither

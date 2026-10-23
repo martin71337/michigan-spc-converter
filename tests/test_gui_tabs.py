@@ -218,8 +218,14 @@ def test_the_window_asks_controls_for_the_direction_in_every_combination(window)
     # SUPERSEDED COUNT (DESIGN.md #70, plan W5): the five WGS 84 and ITRF
     # frames are offered since W5, so 1 + 7 + 22 = 30 selectable entries,
     # where H6 had 1 + 2 + 22 = 25. The rule is unchanged.
-    assert len(choices) == 1 + len(GEODETIC_CHOICES) + len(ALL_ZONES)
-    assert len(choices) == 30
+    # SUPERSEDED AGAIN (DESIGN.md #71, the Options build): every combo also
+    # carries the two Auto entries (controls.AUTO_CHOICES, one per Auto
+    # frame), so 1 + 7 + 2 + 22 = 32. The sweep covers them on BOTH ends -
+    # an Auto FROM, hidden in the interface, must still answer no job.
+    assert len(choices) == (
+        1 + len(GEODETIC_CHOICES) + len(controls.AUTO_CHOICES) + len(ALL_ZONES)
+    )
+    assert len(choices) == 32
 
     checked = 0
     window.from_zone.blockSignals(True)
@@ -246,7 +252,7 @@ def test_the_window_asks_controls_for_the_direction_in_every_combination(window)
         window.from_zone.blockSignals(False)
         window.to_zone.blockSignals(False)
 
-    assert checked == 900  # 30 x 30, superseding H6's 25 x 25 = 625
+    assert checked == 1024  # 32 x 32, superseding W5's 30 x 30 = 900
 
     # The two cases the rule singles out, stated outright rather than left
     # implicit in the sweep. A zone to itself is a real job (the units are
@@ -309,6 +315,13 @@ def test_every_registered_zone_is_offered_in_all_four_zone_dropdowns(window):
         # 84 and ITRF frames in a block of their own below a third separator
         # (controls.zone_combo says why; the owner reviews it on screen):
         # 1 + 2 + 1 + 5 + 1 + 3 + 1 + 19 = 33.
+        #
+        # SUPERSEDED LAYOUT AGAIN (DESIGN.md #71, the Options build): the two
+        # Auto entries sit at the top of the zone section in a block of their
+        # own, below a fourth separator: 1 + 2 + 1 + 5 + 1 + 2 + 1 + 3 + 1 +
+        # 19 = 36. Every item is always present - the Options HIDE rows
+        # (tests/test_gui_options.py) - so these positions hold whatever is
+        # switched on.
         plate_fixed, time_dependent = controls.geodetic_choice_groups()
         assert combo.count() == (
             1
@@ -316,11 +329,13 @@ def test_every_registered_zone_is_offered_in_all_four_zone_dropdowns(window):
             + 1
             + len(time_dependent)
             + 1
+            + len(controls.AUTO_CHOICES)
+            + 1
             + len(SPCS83_ZONES)
             + 1
             + len(SPCS2022_ZONES)
         )
-        assert combo.count() == 33
+        assert combo.count() == 36
 
         assert offered[0] == UNCHOSEN
         first_separator = 1 + len(plate_fixed)
@@ -336,7 +351,14 @@ def test_every_registered_zone_is_offered_in_all_four_zone_dropdowns(window):
         assert offered[geodetic_separator] is None
         assert combo.itemText(geodetic_separator) == ""
 
-        first_zone = geodetic_separator + 1
+        # The Auto block, then its separator (DESIGN.md #71).
+        first_auto = geodetic_separator + 1
+        auto_separator = first_auto + len(controls.AUTO_CHOICES)
+        assert offered[first_auto:auto_separator] == list(controls.AUTO_CHOICES)
+        assert offered[auto_separator] is None
+        assert combo.itemText(auto_separator) == ""
+
+        first_zone = auto_separator + 1
         second_separator = first_zone + len(SPCS83_ZONES)
         assert offered[first_zone:second_separator] == list(SPCS83_ZONES)
         # A separator carries no data at all, which is what makes it a
@@ -375,11 +397,15 @@ def test_neither_separator_can_be_chosen(window):
     # SUPERSEDED POSITIONS (DESIGN.md #70, plan W5): three separators now -
     # after the plate-fixed geodetic entries, after the time-dependent ones,
     # and after the SPCS 83 zones - where H6/#64 had two.
+    # SUPERSEDED AGAIN (DESIGN.md #71): four, the Auto block having its own
+    # separator after it, before the SPCS 83 zones.
     plate_fixed, time_dependent = controls.geodetic_choice_groups()
+    autos = len(controls.AUTO_CHOICES)
     positions = (
         1 + len(plate_fixed),
         1 + len(plate_fixed) + 1 + len(time_dependent),
-        1 + len(GEODETIC_CHOICES) + 2 + len(SPCS83_ZONES),
+        1 + len(GEODETIC_CHOICES) + 2 + autos,
+        1 + len(GEODETIC_CHOICES) + 2 + autos + 1 + len(SPCS83_ZONES),
     )
     for combo in (
         window.from_zone,

@@ -229,7 +229,10 @@ def test_zone_dropdowns_are_built_from_the_registry(window):
         # so the zones start one item later than H6's single block put them.
         geodetic = [data for data in offered if is_geodetic(data)]
         assert geodetic == list(window_module.GEODETIC_CHOICES)
-        first_zone = 1 + len(geodetic) + 2  # + the two separators
+        # SUPERSEDED AGAIN (DESIGN.md #71, the Options build): the two Auto
+        # entries and their separator stand at the top of the zone section.
+        autos = len(window_module.AUTO_CHOICES)
+        first_zone = 1 + len(geodetic) + 2 + autos + 1  # + the three separators
         assert offered[first_zone - 1] is None
         assert offered[first_zone : first_zone + len(SPCS83_ZONES)] == list(
             SPCS83_ZONES

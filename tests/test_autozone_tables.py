@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import hashlib
 import html
+import json
+import math
 import re
 from functools import lru_cache
 from pathlib import Path
@@ -122,13 +124,130 @@ def test_the_ngs_capture_is_the_eighteen_local_zones():
     assert codes == [f"2610{n:02d}" for n in range(1, 19)]
 
 
-EDGE_CLEARANCE_M = 5.0
-"""Samples this close to the county's own line are skipped. NGS's lines sit on
-TIGER's to centimetres almost everywhere (RECON.md section 2.2), but not
-everywhere: at 43.9107 N 83.9530 W, on the Bay/Arenac line, a grid sample 0.51 m
-inside TIGER's Bay is 0.41 m inside NGS's 261005 - the two lines are about
-0.9 m apart there. The test is of which zone a county's land is in, not of
-NGS's line to the centimetre, so a metre-scale clearance is the honest margin."""
+def test_the_ngs_geometry_is_the_native_web_mercator_capture():
+    # The recon's measurement was made on the native capture; the outSR=4269
+    # one is server-shifted (gate-autozone-1 finding 2) and must not be it.
+    assert geo.NGS_POLYGONS.name == "mi_native.json"
+    assert geo.NGS_POLYGONS != geo.SHIFTED_4269_POLYGONS
+    document = json.loads(geo.NGS_POLYGONS.read_text(encoding="utf-8"))
+    assert document["spatialReference"] == {"wkid": 102100, "latestWkid": 3857}
+
+
+def test_the_inverse_web_mercator_is_the_spherical_formula_with_no_shift():
+    # Origin maps to origin; the sphere's quarter-circumference of easting is
+    # 90 degrees of longitude; and northing atanh(sin 45 deg) * R is 45 N -
+    # the forward formula N = R ln tan(pi/4 + lat/2) evaluated at 45 degrees.
+    r = geo.WEB_MERCATOR_RADIUS_M
+    assert geo.web_mercator_to_lonlat(0.0, 0.0) == (0.0, 0.0)
+    lon, lat = geo.web_mercator_to_lonlat(math.pi * r / 2, r * math.log(math.tan(math.pi * 3 / 8)))
+    assert lon == pytest.approx(90.0, abs=1e-12)
+    assert lat == pytest.approx(45.0, abs=1e-12)
+    # The reviewer's native vertex on the Livingston/Genesee line: it lands on
+    # TIGER's six-decimal vertex (-84.021879, 42.778817) to 1e-12 degree. The
+    # outSR=4269 counterpart is (-84.021874246, 42.7788087964), ~0.9 m away.
+    native = [
+        p for _c, _b, rings in geo.ngs_zone_polygons() for r in rings for p in r
+        if abs(p[0] + 84.021879) < 1e-9 and abs(p[1] - 42.778817) < 1e-9
+    ]
+    assert native
+    tiger = [
+        p for c in geo.county_document()["counties"] for r in c["rings"] for p in r
+        if p == [-84.021879, 42.778817]
+    ]
+    assert tiger
+
+
+def test_every_internal_ngs_line_lies_on_a_tiger_county_line():
+    """The module docstring's figure, re-measured on the geometry tested.
+
+    Every edge two NGS zones share is sampled at its vertices and at most
+    100 m apart; each sample must be within LINE_AGREEMENT_M of a TIGER line
+    two counties share. Measured 2026-10-23: 11,875 edges, 42,896 samples,
+    worst 0.025 m (on the outSR=4269 capture the same measurement gives a
+    0.90 m median and 1.08 m worst).
+    """
+    owners: dict[frozenset, set] = {}
+    for code, _bbox, rings in geo.ngs_zone_polygons():
+        for r in rings:
+            for a, b in zip(r[:-1], r[1:]):
+                owners.setdefault(frozenset((a, b)), set()).add(code)
+    internal = [tuple(k) for k, v in owners.items() if len(v) == 2 and len(k) == 2]
+    assert len(internal) > 10_000
+
+    cell = 0.01
+    index: dict[tuple, list] = {}
+    for a, b, own in geo.edges_with_owners():
+        if len(own) != 2:
+            continue
+        for i in range(math.floor(min(a[0], b[0]) / cell), math.floor(max(a[0], b[0]) / cell) + 1):
+            for j in range(math.floor(min(a[1], b[1]) / cell), math.floor(max(a[1], b[1]) / cell) + 1):
+                index.setdefault((i, j), []).append((a, b))
+
+    worst, where, samples = 0.0, None, 0
+    for a, b in internal:
+        my, mx = geo.metres_per_degree(a[1])
+        n = max(1, math.ceil(math.hypot((b[0] - a[0]) * mx, (b[1] - a[1]) * my) / 100.0))
+        for k in range(n + 1):
+            lon = a[0] + (b[0] - a[0]) * k / n
+            lat = a[1] + (b[1] - a[1]) * k / n
+            i, j = math.floor(lon / cell), math.floor(lat / cell)
+            d = min(
+                (
+                    geo.segment_distance_m(lat, lon, p, q)
+                    for di in (-1, 0, 1)
+                    for dj in (-1, 0, 1)
+                    for p, q in index.get((i + di, j + dj), ())
+                ),
+                default=math.inf,
+            )
+            samples += 1
+            if d > worst:
+                worst, where = d, (lat, lon)
+    assert samples > 40_000
+    assert worst <= LINE_AGREEMENT_M, (worst, where)
+
+
+# The reviewer's counterexample (gate-autozone-1 finding 2): 0.058 m inside
+# TIGER's Livingston, on the Livingston (261001) / Genesee (261003) line.
+COUNTEREXAMPLE = (42.7787768086129, -84.02422810074192)
+
+
+def test_the_gate_counterexample_is_livingstons_zone_on_the_native_geometry():
+    lat, lon = COUNTEREXAMPLE
+    counties = [
+        c for c in geo.county_document()["counties"] if geo.plain_even_odd(c["rings"], lon, lat)
+    ]
+    assert [c["name"] for c in counties] == ["Livingston"]
+    shipped = t22.ldp_zone(counties[0]["fips"], lat).code
+    assert shipped == "261001"
+    assert ngs_zones_at(lon, lat) == [shipped]
+    assert geo.ngs_land_zones(lon, lat) == [shipped]
+
+
+def test_the_shifted_4269_capture_would_fail_the_counterexample():
+    # Negative control: the server-shifted capture puts the same point in
+    # Genesee's zone. If the helper ever read it, the test above would fail.
+    lat, lon = COUNTEREXAMPLE
+    hits = [
+        code
+        for code, (x0, y0, x1, y1), rings in geo.shifted_4269_zone_polygons()
+        if x0 <= lon <= x1 and y0 <= lat <= y1 and geo.plain_even_odd(rings, lon, lat)
+    ]
+    assert hits == ["261003"]
+
+
+LINE_AGREEMENT_M = 0.03
+"""The worst distance from NGS's native internal zone lines to a TIGER county
+line, measured 2026-10-23 at 0.025 m (``test_every_internal_ngs_line_lies_on_a_tiger_county_line``
+re-measures it); the module docstring states the figure."""
+
+EDGE_CLEARANCE_M = 0.1
+"""Samples this close to the county's own line are skipped: over three times
+the measured worst NGS-to-TIGER line distance (0.025 m one way, 0.029 m the
+other, on the native geometry), so a sample past it is on the same side of
+both lines. (An earlier 5 m margin here was sized to a ~0.9 m disagreement
+that was the server's WGS 84 -> NAD 83 shift in the ``outSR=4269`` capture,
+not NGS's lines - gate-autozone-1 finding 2.)"""
 
 
 def _land_samples(county: dict, n: int):

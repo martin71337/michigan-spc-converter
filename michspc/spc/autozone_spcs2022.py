@@ -6,21 +6,33 @@ layer, "Beta SPCS2022 Multizone Complete Zones Feature Layer View" (item
 ``3e6a8ce23a814b62ae38993394669d8e``, owner NGS.GIS_noaa, item modified
 2026-09-21; licence "This is a beta product and zones should not be considered
 final", CC0 1.0). The autozone-r0 recon captured Michigan's 18 features from it
-on 2026-10-22 as ``review/autozone-r0/raw/ngs_fs/mi_4269.json`` (6,179,489
-bytes, SHA-256
-``658c4ead203c9ed2a727a29aee8d88ecc834a750cb1c135a83ef710c7d3f2099``, outSR
-4269) and measured (RECON.md section 2.2):
+on 2026-10-22 in the service's native Web Mercator (wkid 102100 / EPSG 3857) as
+``review/autozone-r0/raw/ngs_fs/mi_native.json`` (7,382,157 bytes, SHA-256
+``0b40098476f55a04d8bd9f5b4b162b2f573cddf00e7054c39693b7441e3c7cf7``;
+re-fetched byte-identical 2026-10-23 by ``review/autozone-z0/capture_ngs_polygons.py``).
+Inverse-projected on the EPSG 3857 sphere with no datum shift, it was measured
+(RECON.md section 2.2, re-measured 2026-10-23 on the geometry the test reads):
 
-* every internal line of those polygons lies on a Census TIGER county line,
-  0.026 m worst over 23,957 samples - the zones are unions of whole counties;
+* every internal line of those polygons lies on a Census TIGER county line -
+  0.025 m worst over 42,896 samples (every vertex of 11,875 shared edges, and
+  at most 100 m apart), and every land stretch of a TIGER county line between
+  two zones lies on an NGS line, 0.029 m worst over 42,854 samples - the zones
+  are unions of whole counties;
 * each county's land falls 100% in one zone, EXCEPT Keweenaw, whose Isle
   Royale is zone 261018 (U61K) and whose mainland is 261016 (U41H).
 
+The service's ``outSR=4269`` capture, ``mi_4269.json`` (SHA-256 ``658c4ead...``),
+is not used: the server re-projected it through a WGS 84 -> NAD 83
+transformation, moving every line about 0.9 m (1.08 m worst) off TIGER's, so a
+point 0.06 m inside Livingston at 42.7787768 N 84.0242281 W lands in Genesee's
+zone on it (gate-autozone-1 finding 2).
+
 This table is that measurement. ``tests/test_autozone_tables.py`` re-derives
-it from the capture: it samples each county's interior, tests every sample
-against all 18 NGS polygons, and requires every land sample to fall in exactly
-the zone this table gives the county (Keweenaw: on the side of the split this
-module states). Re-freeze obligation: docs/REFREEZE-NSRS.md.
+it from the native capture: it re-measures the line agreement above, samples
+each county's interior, tests every sample against all 18 NGS polygons, and
+requires every land sample to fall in exactly the zone this table gives the
+county (Keweenaw: on the side of the split this module states). Re-freeze
+obligation: docs/REFREEZE-NSRS.md.
 
 **The polygons are evidence, not the shipped data** (plan L3). They are
 clipped at the shoreline, so a Great Lakes point is in none of them, while
@@ -68,8 +80,9 @@ from michspc.spc.zones import SPCS2022_ZONES, Zone, zone_by_code
 NGS_POLYGONS_CITATION = (
     "NGS beta, 'Beta SPCS2022 Multizone Complete Zones Feature Layer View' "
     "(ArcGIS item 3e6a8ce23a814b62ae38993394669d8e, NGS.GIS_noaa), Michigan "
-    "features captured 2026-10-22, review/autozone-r0/raw/ngs_fs/mi_4269.json, "
-    "SHA-256 658c4ead203c9ed2a727a29aee8d88ecc834a750cb1c135a83ef710c7d3f2099; "
+    "features captured 2026-10-22 in native Web Mercator, "
+    "review/autozone-r0/raw/ngs_fs/mi_native.json, "
+    "SHA-256 0b40098476f55a04d8bd9f5b4b162b2f573cddf00e7054c39693b7441e3c7cf7; "
     "zones measured as unions of TIGER county lines (RECON.md section 2.2)"
 )
 

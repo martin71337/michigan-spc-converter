@@ -13,10 +13,21 @@ metre is all a 50 m band needs.
 Also: the land/water classifier (NGS's own land-only SPCS2022 polygons) and a
 plain even-odd point-in-polygon written separately from ``michspc``'s, so the
 suite's independent recomputations do not lean on the code under test.
+
+The NGS polygons are read from the feature service's NATIVE capture,
+``mi_native.json`` (Web Mercator, wkid 102100 / EPSG 3857), inverse-projected
+here on the sphere with no datum shift - the geometry the autozone-r0 recon
+measured (RECON.md section 2.2, ``load_sources.web_mercator_to_ll``). The
+service's ``outSR=4269`` capture, ``mi_4269.json``, is NOT that geometry: the
+server re-projected it through a WGS 84 -> NAD 83 transformation, moving every
+line about 0.9 m off TIGER's (gate-autozone-1 finding 2), so nothing here
+verifies against it; ``shifted_4269_zone_polygons`` reads it only as the
+negative control that proves the helper is not reading it.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 from collections import Counter
@@ -25,8 +36,20 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 COUNTY_FILE = REPO_ROOT / "data" / "mi_counties_tiger2025.json"
-NGS_POLYGONS = REPO_ROOT / "review" / "autozone-r0" / "raw" / "ngs_fs" / "mi_4269.json"
-NGS_POLYGONS_SHA256 = "658c4ead203c9ed2a727a29aee8d88ecc834a750cb1c135a83ef710c7d3f2099"
+NGS_POLYGONS = REPO_ROOT / "review" / "autozone-r0" / "raw" / "ngs_fs" / "mi_native.json"
+NGS_POLYGONS_SHA256 = "0b40098476f55a04d8bd9f5b4b162b2f573cddf00e7054c39693b7441e3c7cf7"
+NGS_POLYGONS_WKID = 3857
+"""The native capture's ``spatialReference.latestWkid``; the loader refuses any
+other, so a capture in degrees can never be read as metres or vice versa."""
+
+SHIFTED_4269_POLYGONS = REPO_ROOT / "review" / "autozone-r0" / "raw" / "ngs_fs" / "mi_4269.json"
+SHIFTED_4269_SHA256 = "658c4ead203c9ed2a727a29aee8d88ecc834a750cb1c135a83ef710c7d3f2099"
+
+WEB_MERCATOR_RADIUS_M = 6378137.0
+"""EPSG 3857's sphere: the WGS 84 semi-major axis used as a sphere radius.
+IOGP Geomatics Guidance Note 7-2 (IOGP Publication 373-7-2), coordinate
+operation method EPSG 1024 "Popular Visualisation Pseudo Mercator", section
+1.3.3.2."""
 
 LAND_BAND_M = 50.0
 WATER_BAND_M = 1000.0
@@ -117,19 +140,66 @@ def plain_even_odd(rings, lon, lat) -> bool:
     return inside
 
 
-@lru_cache(maxsize=1)
-def ngs_zone_polygons() -> tuple[tuple[str, tuple, tuple], ...]:
-    """NGS's 18 land-only LDP polygons: (zone code, bbox, rings)."""
-    document = json.loads(NGS_POLYGONS.read_text(encoding="utf-8"))
+def web_mercator_to_lonlat(x: float, y: float) -> tuple[float, float]:
+    """Inverse Popular Visualisation Pseudo Mercator (EPSG 3857), degrees.
+
+    IOGP Guidance Note 7-2, method EPSG 1024, section 1.3.3.2, with false
+    easting/northing 0 and natural origin (0, 0):
+        longitude = E / R
+        latitude  = pi/2 - 2 atan(exp(-N / R))
+    on the sphere R = 6378137 m. The coordinates are taken as they stand - NO
+    datum shift - exactly as the recon's ``load_sources.web_mercator_to_ll``
+    did for the 0.025 m measurement: the numbers NGS stores are TIGER's NAD 83
+    county-line numbers carried through the projection, whatever frame label
+    the service attaches (RECON.md section 2.2).
+    """
+    r = WEB_MERCATOR_RADIUS_M
+    return (
+        math.degrees(x / r),
+        math.degrees(math.pi / 2.0 - 2.0 * math.atan(math.exp(-y / r))),
+    )
+
+
+def _zone_polygons_from(document: dict, to_lonlat) -> tuple[tuple[str, tuple, tuple], ...]:
     out = []
     for feature in document["features"]:
-        rings = tuple(tuple(tuple(p) for p in r) for r in feature["geometry"]["rings"])
+        rings = tuple(
+            tuple(to_lonlat(p[0], p[1]) for p in r) for r in feature["geometry"]["rings"]
+        )
         xs = [p[0] for r in rings for p in r]
         ys = [p[1] for r in rings for p in r]
         out.append(
             (feature["attributes"]["ZoneCode"], (min(xs), min(ys), max(xs), max(ys)), rings)
         )
     return tuple(out)
+
+
+def _authenticated_document(path: Path, sha256: str, wkid: int) -> dict:
+    raw = path.read_bytes()
+    digest = hashlib.sha256(raw).hexdigest()
+    if digest != sha256:
+        raise ValueError(f"{path.name}: SHA-256 {digest}, expected {sha256}")
+    document = json.loads(raw.decode("utf-8"))
+    found = document["spatialReference"]["latestWkid"]
+    if found != wkid:
+        raise ValueError(f"{path.name}: spatial reference {found}, expected {wkid}")
+    return document
+
+
+@lru_cache(maxsize=1)
+def ngs_zone_polygons() -> tuple[tuple[str, tuple, tuple], ...]:
+    """NGS's 18 land-only LDP polygons, (zone code, bbox, rings), in degrees:
+    the native Web Mercator capture inverse-projected with no datum shift."""
+    document = _authenticated_document(NGS_POLYGONS, NGS_POLYGONS_SHA256, NGS_POLYGONS_WKID)
+    return _zone_polygons_from(document, web_mercator_to_lonlat)
+
+
+@lru_cache(maxsize=1)
+def shifted_4269_zone_polygons() -> tuple[tuple[str, tuple, tuple], ...]:
+    """NEGATIVE CONTROL ONLY: the server-shifted ``outSR=4269`` capture, read as
+    the degrees it states. Never a verification source (see the module doc)."""
+    document = _authenticated_document(SHIFTED_4269_POLYGONS, SHIFTED_4269_SHA256, 4269)
+    return _zone_polygons_from(document, lambda x, y: (x, y))
 
 
 def ngs_land_zones(lon, lat) -> list[str]:

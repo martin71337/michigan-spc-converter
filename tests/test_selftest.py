@@ -373,6 +373,7 @@ def test_the_check_registry_holds_every_check_by_name():
         "cross-frame refusal",
         "WGS 84 (G2296) conversion against NGS HTDP",
         "WGS 84 refusals",
+        "Auto zone against NGS NCAT",
     ]
 
 
@@ -1170,13 +1171,195 @@ def test_the_wgs84_refusal_check_passes_only_while_conversion_still_works():
 
 
 def test_the_selftest_states_its_own_check_count(tmp_path):
-    """The printed count derives from CHECKS, and CHECKS holds thirteen."""
+    """The printed count derives from CHECKS, and CHECKS holds fourteen."""
     report = tmp_path / "selftest.txt"
     assert selftest.main(["--selftest", "--report", str(report)]) == 0
 
-    assert len(selftest.CHECKS) == 13
+    assert len(selftest.CHECKS) == 14
     last = report.read_text(encoding="utf-8").strip().splitlines()[-1]
     assert last == f"SELF-TEST PASSED - {len(selftest.CHECKS)} checks."
+
+
+# --------------------------------------------------------------------------
+# Check 14: Auto zone (work package Z5).
+# --------------------------------------------------------------------------
+
+
+def _ncat_capture(relative: str) -> dict:
+    import json
+
+    return json.loads((REPO_ROOT / relative).read_text(encoding="utf-8"))
+
+
+def test_the_selftests_autozone_anchors_are_the_frozen_ncat_captures():
+    """Transcription check, exact: every figure check 14 holds the bundle to
+    is re-read here out of the raw production-NCAT response it came from,
+    and the anchor is found in tests/fixtures/autozone_anchors.py at the same
+    position with the same expected zone. NCAT prints "180,040.542"; the
+    constant must be that number, not something near it."""
+    import hashlib
+
+    from tests.fixtures.autozone_anchors import ANCHORS
+
+    by_position = {(a.system, a.latitude, a.longitude): a for a in ANCHORS}
+    for point_id, lat, lon, zone_code, county, north, east in selftest.AUTOZONE_ANCHORS:
+        anchor = by_position[("SPCS 83", lat, lon)]
+        assert anchor.category == "land"
+        assert anchor.expected == zone_code
+        assert anchor.tag.endswith(f" {county}")
+        assert anchor.distance_m >= 20000.0
+        raw_bytes = (REPO_ROOT / anchor.capture).read_bytes()
+        assert hashlib.sha256(raw_bytes).hexdigest() == anchor.sha256
+        raw = _ncat_capture(anchor.capture)
+        assert float(raw["srcLat"]) == lat and float(raw["srcLon"]) == lon
+        assert raw["spcZone"].endswith(f"-{zone_code}")
+        assert float(raw["spcNorthing_m"].replace(",", "")) == north
+        assert float(raw["spcEasting_m"].replace(",", "")) == east
+    assert len({a[3] for a in selftest.AUTOZONE_ANCHORS}) == 2  # two zones
+
+    point_id, lat, lon = selftest.AUTOZONE_OUTSIDE
+    outside = by_position[("SPCS 83", lat, lon)]
+    assert outside.tag == "toledo_oh"
+    assert outside.category == "outside"
+    assert outside.expected is None
+    assert _ncat_capture(outside.capture)["spcZone"] == "OH N-3401"
+
+
+def test_the_autozone_check_passes_from_source():
+    detail = selftest.check_autozone()
+    assert "(2113, 2111)" in detail
+    assert "refused the job by name" in detail
+
+
+def _assignment(zone_code: str, county: str, fips: str):
+    from michspc.spc.autozone import ZoneAssignment
+    from michspc.spc.zones import zone_by_code
+
+    return ZoneAssignment(
+        zone=zone_by_code(zone_code), county_name=county, county_fips=fips
+    )
+
+
+def test_the_autozone_check_fails_when_every_point_gets_one_zone(monkeypatch):
+    """A lookup answering Michigan South for everything: Kent is right by
+    accident, Marquette is not."""
+    from michspc import job
+
+    monkeypatch.setattr(
+        job, "zone_for", lambda lat, lon, system, counties: _assignment("2113", "Kent", "26081")
+    )
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_autozone()
+    message = str(raised.value)
+    assert "where NGS NCAT chooses zone 2111, Marquette County" in message
+    assert "in zone 2113, Kent County" in message
+
+
+def test_the_autozone_check_fails_when_the_outside_refusal_is_lost(monkeypatch):
+    """The lookup gives a point in no county the nearest zone instead of
+    refusing it - the one thing plan L5 forbids."""
+    from michspc import job
+    from michspc.spc.autozone import AutoZoneOutsideError
+
+    real = job.zone_for
+
+    def nearest_instead(lat, lon, system, counties):
+        try:
+            return real(lat, lon, system, counties)
+        except AutoZoneOutsideError:
+            return _assignment("2113", "Monroe", "26115")
+
+    monkeypatch.setattr(job, "zone_for", nearest_instead)
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_autozone()
+    message = str(raised.value)
+    assert "CONVERTED an Auto job holding a point at Toledo, Ohio" in message
+    assert "A3 in 2113" in message
+
+
+def test_the_autozone_check_fails_when_auto_moves_a_point(monkeypatch):
+    """Auto's coordinates must be the fixed-zone job's to the bit: a
+    nanometre added to every Auto northing - far inside NCAT's tolerance - is
+    caught by the identity, not by the NCAT comparison."""
+    import dataclasses
+
+    from michspc import job
+
+    real = job.run
+
+    def nudged(settings, source=None):
+        result = real(settings, source)
+        if settings.target_zone is not job.AUTO_ZONE:
+            return result
+        return dataclasses.replace(
+            result,
+            points=tuple(
+                dataclasses.replace(p, output_northing=p.output_northing + 1e-9)
+                for p in result.points
+            ),
+        )
+
+    monkeypatch.setattr(job, "run", nudged)
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_autozone()
+    assert "must not change a single bit of the projection" in str(raised.value)
+
+
+def test_the_autozone_check_fails_against_a_different_ncat_figure(monkeypatch):
+    """The NCAT side is live: an anchor easting 0.005 m off (2.5 times the
+    tolerance) fails, so the fixed-zone side is not the only thing compared."""
+    shifted = list(selftest.AUTOZONE_ANCHORS)
+    *head, east = shifted[1]
+    shifted[1] = (*head, east + 0.005)
+    monkeypatch.setattr(selftest, "AUTOZONE_ANCHORS", tuple(shifted))
+    with pytest.raises(selftest.SelfTestError) as raised:
+        selftest.check_autozone()
+    message = str(raised.value)
+    assert "easting" in message and "NGS NCAT prints 7,955,680.278 m" in message
+
+
+@pytest.mark.parametrize("damage", ["missing", "altered"])
+def test_the_autozone_check_fails_without_the_authentic_county_file(
+    monkeypatch, tmp_path, damage
+):
+    """A bundle without the county file, or with one byte of it changed: the
+    reader refuses before parsing, and the check reports it as the bundle's
+    failure, naming the file the spec must carry."""
+    from michspc.fileio import counties
+
+    if damage == "altered":
+        data = bytearray((REPO_ROOT / "data" / counties.COUNTIES_FILENAME).read_bytes())
+        index = data.index(b"Alcona")
+        data[index] = ord("a")
+        (tmp_path / counties.COUNTIES_FILENAME).write_bytes(bytes(data))
+    monkeypatch.setattr(counties, "DATA_DIR", tmp_path)
+    counties.default_counties.cache_clear()
+    try:
+        with pytest.raises(selftest.SelfTestError) as raised:
+            selftest.check_autozone()
+    finally:
+        monkeypatch.undo()
+        counties.default_counties.cache_clear()
+    message = str(raised.value)
+    assert "CountyDataError" in message
+    assert counties.COUNTIES_FILENAME in message
+    if damage == "altered":
+        assert "SHA-256" in message or "sha256" in message.lower()
+
+
+def test_the_autozone_and_options_modules_are_declared_for_the_bundle():
+    """Statically reachable today, declared anyway (the single-point tab's
+    precedent): the list is what the frozen bundle proves it can import."""
+    for name in (
+        "michspc.spc.autozone",
+        "michspc.spc.autozone_spcs83",
+        "michspc.spc.autozone_spcs2022",
+        "michspc.fileio.counties",
+        "michspc.gui.options",
+        "michspc.gui.options_dialog",
+        "michspc.gui.settings_store",
+    ):
+        assert name in selftest.LAZY_IMPORTS, name
 
 
 def test_the_htdp_transcription_is_declared_for_the_bundle():
@@ -1335,10 +1518,8 @@ def test_the_spec_bundles_every_ngs_grid_the_source_tree_carries():
         vertcon.VERTCON3_TRN_TILE.name,
         vertcon.VERTCON3_ERR_TILE.name,
     }
-    # The Auto zone county file (work package Z0) is named by its one reader.
-    # NOT YET IN THE SPEC: adding it to michspc.spec's datas is work package
-    # Z5. Until then the build's bundle-vs-data/ gate refuses a release build,
-    # which is the fail-closed state.
+    # The Auto zone county file (work package Z0) is named by its one reader,
+    # and the spec takes its name from there (work package Z5).
     derived |= {counties.COUNTIES_FILENAME}
     on_disk = {
         source.name for source in (REPO_ROOT / "data").iterdir() if source.is_file()
@@ -1353,6 +1534,48 @@ def test_the_spec_bundles_every_ngs_grid_the_source_tree_carries():
     assert "tile_filename for model in ALL_GEOID_MODELS" in SPEC_SOURCE
     assert "VERTCON3_TRN_TILE.name" in SPEC_SOURCE
     assert "VERTCON3_ERR_TILE.name" in SPEC_SOURCE
+    assert "from michspc.fileio.counties import COUNTIES_FILENAME" in SPEC_SOURCE
+    assert 'COUNTY_SOURCES = [REPO_ROOT / "data" / COUNTIES_FILENAME]' in SPEC_SOURCE
+    assert "SHIPPED_DATA_SOURCES = NGS_GRID_SOURCES + COUNTY_SOURCES" in SPEC_SOURCE
+
+
+def test_the_spec_bundles_the_county_file_where_its_reader_looks(monkeypatch, tmp_path):
+    """The county file goes to ``data/`` in the bundle, which is where
+    ``counties.DATA_DIR`` resolves it: ``ngs_grid.shipped_data_directory``,
+    ``sys._MEIPASS/data`` when frozen. ``DATA_DIR`` is computed at import, so
+    the frozen branch is asserted on the function it was computed from, and
+    the module's own constant is asserted to BE that function's answer here."""
+    from michspc.fileio import counties, ngs_grid
+
+    assert counties.DATA_DIR == ngs_grid.shipped_data_directory()
+    assert "DATA_DIR = ngs_grid.shipped_data_directory()" in (
+        (REPO_ROOT / "michspc" / "fileio" / "counties.py").read_text(encoding="utf-8")
+    )
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
+    assert ngs_grid.shipped_data_directory() == tmp_path / "data"
+    assert 'DATA_DESTINATION = "data"' in SPEC_SOURCE
+    assert (REPO_ROOT / "data" / counties.COUNTIES_FILENAME).is_file()
+
+
+def test_the_bundle_gate_finds_no_review_copy_among_the_shipped_data_files(tmp_path):
+    """Gate 6's provenance rule over exactly what the spec ships under data/.
+
+    The county file is DERIVED (re-serialised from the TIGER zip by
+    review/autozone-z0/derive_counties.py), never copied from a capture, so no
+    file under review/ has its bytes. Checked here on a synthetic bundle made
+    of the real data/ files and the real review/ folder, so a later commit
+    that drops a copy of the county file into review/ fails in the suite
+    rather than twenty minutes into a release build."""
+    import shutil
+
+    from tools import build_release
+
+    bundled = tmp_path / "_internal" / "data"
+    bundled.mkdir(parents=True)
+    for source in (REPO_ROOT / "data").iterdir():
+        if source.is_file():
+            shutil.copyfile(source, bundled / source.name)
+    assert build_release.foreign_bundle_files(tmp_path) == []
 
 
 def test_the_spec_bundles_the_icon_where_the_loader_looks():
@@ -1402,8 +1625,9 @@ def test_the_spec_ships_nothing_from_review_and_no_htdp_source():
     transcription is verified against (docs/PLAN-wgs84.md section 3.2), and
     production never reads it: ``michspc/spc/htdp_data.py`` is the
     transcription. So the spec names nothing under ``review/``, builds its
-    data list from exactly two sources - the NGS grids in ``data/`` and the
-    generated icon - and collects no tree of files wholesale. The built
+    data list from exactly two sources - the files in ``data/`` (the NGS
+    grids and, since Z5, the county file) and the generated icon - and
+    collects no tree of files wholesale. The built
     bundle is checked the same way at gate 6 (``foreign_bundle_files``, pinned
     below on synthetic trees).
     """
@@ -1411,7 +1635,7 @@ def test_the_spec_ships_nothing_from_review_and_no_htdp_source():
     for spelling in ("review/", '"review"', "'review'", "review\\"):
         assert spelling not in SPEC_SOURCE
     assert ".f\"" not in SPEC_SOURCE and "htdp" not in SPEC_SOURCE.lower()
-    assert "datas = [(str(path), DATA_DESTINATION) for path in NGS_GRID_SOURCES]" in (
+    assert "datas = [(str(path), DATA_DESTINATION) for path in SHIPPED_DATA_SOURCES]" in (
         SPEC_SOURCE
     )
     assert "datas.append((str(ICON_FILE), ICON_DESTINATION))" in SPEC_SOURCE

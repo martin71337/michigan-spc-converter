@@ -403,12 +403,13 @@ def gate_bundle() -> Path:
     )
     if absent:
         raise BuildError(
-            f"the bundle is missing NGS grid files that data/ carries: "
+            f"the bundle is missing data files that data/ carries: "
             f"{', '.join(absent)}. Expected them under {bundled_data}. The "
             f"spec derives NGS_GRID_FILENAMES from geoid.ALL_GEOID_MODELS "
-            f"and vertcon's tile constants, so a missing file means a grid "
-            f"landed in data/ without a registry record - add the record, "
-            f"not a filename literal."
+            f"and vertcon's tile constants, and the county file's name from "
+            f"counties.COUNTIES_FILENAME, so a missing file means one landed "
+            f"in data/ without a registry record or a reader - add that, not "
+            f"a filename literal."
         )
 
     # The other direction: what must NOT ship. NGS's HTDP Fortran source is

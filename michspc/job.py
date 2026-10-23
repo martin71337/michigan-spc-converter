@@ -532,14 +532,15 @@ class JobSettings:
 
     Stated only beside an observation date, and refused by name on a job that
     reads no time-dependent frame, as a stray date is. When TODAY, the date
-    must equal ``today_local()``. **Not yet required** when a date is: the
-    two interface tabs do not send it until work package Z4, and the frozen
-    WGS 84 disclosure pins build settings without it, so None is still
-    accepted beside a date. The record prints it since work package Z3
+    must equal ``today_local()``. **Optional beside a date, by decision**
+    (the session lead's ruling at work package Z4): a frozen W4 record
+    digest and about 180 core tests state a date with no source, and a
+    record without one says nothing false - with None it prints the date line
+    exactly as before, and with a source it adds Z3's sentence
     (``report._observation_date_source_text``: "the date the job ran
-    (Options default)" or "entered by the user"); with None it prints the
-    date line exactly as before, so every frozen record digest holds. Z4
-    decides whether it becomes required.
+    (Options default)" or "entered by the user"). The interface always
+    sends one beside a date, on both tabs (``controls.frame_settings_fields``,
+    pinned in tests/test_gui_options.py).
     """
 
 

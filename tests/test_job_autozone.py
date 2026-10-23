@@ -818,11 +818,15 @@ def test_an_observation_date_source_must_be_the_enum(evening):
         run(_dated(LOCAL, "today"), source((1, *CALHOUN, None)))
 
 
-def test_a_date_without_its_source_is_still_accepted_until_z4(evening):
-    """TRANSITIONAL, and pinned so the change is a conscious one: the plan
-    makes the source required beside a date, but neither interface tab sends
-    one until Z4 and the frozen W4 disclosure pins build settings without it.
-    Z3/Z4 flip this test when the record prints the source."""
+def test_the_core_accepts_a_date_without_its_source_by_decision(evening):
+    """FINAL, the session lead's ruling at Z4 (plan L10 asked for the source
+    to be required; this is the recorded deviation): the core keeps
+    ``observation_date_source`` optional beside a date. A frozen W4 record
+    digest and about 180 core tests state a date with no source, and a record
+    without one says nothing false - it prints the date line exactly as
+    before the source existed. The interface always sends one beside a date
+    on both tabs, which tests/test_gui_options.py pins
+    (``test_both_tabs_send_a_source_whenever_they_send_a_date``)."""
     run(_dated(LOCAL, None), source((1, *CALHOUN, None)))
 
 

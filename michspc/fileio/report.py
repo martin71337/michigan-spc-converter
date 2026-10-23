@@ -1641,9 +1641,9 @@ a description of a setting."""
 def _observation_date_source_text(source) -> str:
     """The words after the date, or nothing when the job stated no source.
 
-    None is the transitional state (``JobSettings.observation_date_source``):
-    a job that states no source prints the line exactly as before the Auto
-    build, so every frozen record digest holds. A source with no sentence
+    None stays accepted by decision (``JobSettings.observation_date_source``,
+    the lead's ruling at Z4): a job that states no source prints the line
+    exactly as before the Auto build, so every frozen record digest holds. A source with no sentence
     registered refuses rather than printing a date of unstated origin.
     """
     if source is None:

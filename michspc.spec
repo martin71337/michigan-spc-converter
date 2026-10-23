@@ -49,6 +49,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from michspc import APP_FULL_NAME, APP_NAME, APP_PUBLISHER, __version__  # noqa: E402
+from michspc.fileio.counties import COUNTIES_FILENAME  # noqa: E402
 from michspc.fileio.geoid import ALL_GEOID_MODELS  # noqa: E402
 from michspc.fileio.vertcon import VERTCON3_ERR_TILE, VERTCON3_TRN_TILE  # noqa: E402
 from michspc.selftest import LAZY_IMPORTS  # noqa: E402
@@ -89,25 +90,38 @@ NGS_GRID_FILENAMES = tuple(model.tile_filename for model in ALL_GEOID_MODELS) + 
 
 NGS_GRID_SOURCES = [REPO_ROOT / "data" / name for name in NGS_GRID_FILENAMES]
 
+# The Auto zone county polygons (docs/PLAN-options-autozone.md, work package
+# Z5): Michigan's 83 TIGER 2025 counties, US Census data rather than an NGS
+# grid, so listed apart from the grids. The name comes from the file's one
+# reader, michspc.fileio.counties, which resolves it through
+# ngs_grid.shipped_data_directory like the grids and authenticates it against
+# counties.COUNTIES_SHA256 at every load. It is a DERIVED serialization, never
+# a copy of any captured file in the repository (gate 6 refuses one).
+COUNTY_SOURCES = [REPO_ROOT / "data" / COUNTIES_FILENAME]
+
+SHIPPED_DATA_SOURCES = NGS_GRID_SOURCES + COUNTY_SOURCES
+"""Everything the bundle carries under data/: exactly the files data/ holds."""
+
 ICON_DESTINATION = "assets/icon"
 """``michspc.gui.icon.icon_candidates`` reads
 sys._MEIPASS/assets/icon/coord-convert.ico."""
 
-missing = [str(path) for path in NGS_GRID_SOURCES if not path.is_file()]
+missing = [str(path) for path in SHIPPED_DATA_SOURCES if not path.is_file()]
 if missing:
     raise SystemExit(
-        "NGS grid files are missing from the source tree: "
+        "Data files are missing from the source tree: "
         + ", ".join(missing)
         + ". These ship with the program: without the geoid tile the bundle "
-        "cannot compute an elevation or combined factor for any point, and "
+        "cannot compute an elevation or combined factor for any point, "
         "without the VERTCON pair it cannot convert a height between vertical "
-        "datums. The self-test would refuse the build anyway."
+        "datums, and without the county file no Auto zone job can choose a "
+        "zone. The self-test would refuse the build anyway."
     )
 
 # Derived here so a bundle can never ship yesterday's artwork.
 ICON_FILE = make_icon.generate()
 
-datas = [(str(path), DATA_DESTINATION) for path in NGS_GRID_SOURCES]
+datas = [(str(path), DATA_DESTINATION) for path in SHIPPED_DATA_SOURCES]
 datas.append((str(ICON_FILE), ICON_DESTINATION))
 
 # ---------------------------------------------------------------------------

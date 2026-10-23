@@ -51,7 +51,41 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: the WGS 84 build in flight, W0 done (2026-10-20)
+## Current state: 0.8.0 in flight, WGS 84 build + Options/Auto zone, Z0-Z5 done (2026-10-23)
+
+**Read `docs/PLAN-options-autozone.md` and DESIGN.md #71 (and #70 for the
+WGS 84 half) before touching this work.** 0.8.0 is two builds in one
+release: the WGS 84 / ITRF build (closing gate APPROVED, block below) and
+the owner's 2026-10-22 round: an **Options menu** (list groups, the five
+WGS 84 / ITRF frames off by default, remembered per user in QSettings,
+never a date), **Auto zone** (per point, by TIGER 2025 county; SPCS 83 by
+MCL 54.231, the 18 SPCS2022 local zones from NGS's beta polygons with the
+Isle Royale split at 47.65 N; one CAD file per zone used; a point in no
+county refuses the whole job), and the **observation date in Options**
+("today", the local date the job runs, by default: a reversal of
+PLAN-wgs84 D10 on his instruction). **0.7.1 is still the released version;
+the literal is `0.8.0-dev`, nothing tagged.**
+
+**Done:** Z0-Z1 (county data, `zone_for`, 247 NCAT anchors), Z2 (Auto in
+`job.run`), **interim Codex gate 1** over Z0-Z2 (1 HIGH, 1 MEDIUM, no wrong
+zone; fixed in 2e06514 and Z3; `review/gate-autozone-1/`), Z3 (per-zone
+outputs, 223 non-Auto configurations byte-identical), Z4 (Options, Auto
+entry, date in Options; the core keeps `ObservationDateSource` optional by
+the lead's ruling, the GUI always sends one, pinned), **Z5** (the county
+file in `michspc.spec`'s datas via `SHIPPED_DATA_SOURCES`; self-test check
+**14**, an Auto job against two production-NCAT zone picks plus a Toledo
+refusal; seven `NGS beta` artifacts acknowledged, five in 0.7.x; release
+notes still DRAFT). Suite **5,754** in both modes. NGS's own Windows
+`htdp.exe` check is DONE: last digit only (#71).
+
+**What remains, in order:** the **closing Codex gate over Z0-Z5** and its
+narrowing re-confirmation; the **owner's screen review** of both tabs and
+the Options dialog (previews in `review/autozone-z4/`); then the release
+build on his machine (`py tools/build_release.py --acknowledge-ngs-beta`,
+drop `-dev` first), tag, GitHub Release. **Still human:** one real WGS 84 /
+PPP dataset end to end, and the clean-profile install proof (METHOD.md §6).
+
+## Superseded status: the WGS 84 build in flight, W0 done (2026-10-20)
 
 **Read `docs/PLAN-wgs84.md` and DESIGN.md #70 before touching this work.**
 The owner asked for WGS 84 ⇄ the other systems and instructed the build under

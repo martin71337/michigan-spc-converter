@@ -40,7 +40,11 @@ So the shipped executable answers ``--selftest`` by exercising itself:
    and
 8. the two WGS 84 refusals are still there: a bare "WGS 84" refuses naming
    the realizations to choose from, and WGS84(G2296) into an SPCS2022 zone
-   refuses, both asked through the public conversion path.
+   refuses, both asked through the public conversion path; and
+9. an Auto zone job reads the bundled county file (authenticated against its
+   pinned SHA-256), places two points in the two zones **NGS NCAT chose** for
+   them, at exactly the fixed-zone job's coordinates, and refuses the whole
+   job when a third point lies outside Michigan.
 
 ``tools/build_release.py`` runs this against the freshly built bundle as a hard
 gate. A bundle that fails its own self-test is not a release.
@@ -262,6 +266,34 @@ HTDP_GRID_SCALE_BOUND = 1.001
 """An upper bound on an SPCS 83 Michigan zone's grid scale factor anywhere
 inside its extent (the anchor's own is 1.000103). Generous on purpose: it
 enters the tolerance as a factor of 1.001."""
+
+# tests/fixtures/autozone_anchors.py, two of Z0's production-NCAT SPCS 83
+# zone-pick anchors (https://geodesy.noaa.gov/api/ncat/llh, NAD83(2011) in and
+# out, no spcZone given, so NCAT chose the zone itself), captured 2026-10-22:
+#
+#   'COUNTY 26081 Kent'       review/autozone-z0/raw/z0_spcs83_040.json
+#       spcZone "MI S-2113", spcNorthing_m "180,040.542",
+#       spcEasting_m "3,903,211.824"
+#   'COUNTY 26103 Marquette'  review/autozone-z0/raw/z0_spcs83_051.json
+#       spcZone "MI N-2111", spcNorthing_m "197,505.178",
+#       spcEasting_m "7,955,680.273"
+#
+# Both at least 20 km from any zone line (the fixture's distance_m). Two
+# zones on purpose: a bundle whose Auto answered one zone for every point
+# would pass a one-point check. And one production-NCAT 'outside' anchor,
+# 'toledo_oh' (review/autozone-r0/raw/ncat_probe/spcs83_083.json): NCAT
+# answers "OH N-3401" there, an Ohio zone, so no Michigan county holds it and
+# Auto must refuse it. Production NCAT, not beta: these lines carry no
+# pre-release number. tests/test_selftest.py re-reads every figure out of the
+# raw capture it names and requires it to equal the constant here.
+AUTOZONE_ANCHORS = (
+    # (point id, latitude, longitude negative west, NCAT zone code,
+    #  NCAT county as the fixture tags it, NCAT northing m, NCAT easting m)
+    ("A1", 43.114691, -85.55601, "2113", "Kent", 180040.542, 3903211.824),
+    ("A2", 46.558887, -87.57804, "2111", "Marquette", 197505.178, 7955680.273),
+)
+AUTOZONE_OUTSIDE = ("A3", 41.65, -83.55)
+"""Toledo, Ohio: point id, latitude, longitude negative west."""
 
 
 def _htdp_anchor_grid_tolerance_m() -> float:
@@ -746,6 +778,21 @@ LAZY_IMPORTS: tuple[str, ...] = (
     # it is the only module in the program that turns typed text into an angle.
     "michspc.gui.dms_entry",
     "michspc.fileio.dms",
+    # Auto zone and the Options (DESIGN.md #71, work package Z5). All
+    # statically reachable today - job.py imports the county reader and the
+    # zone lookup, autozone.py its two county tables, window.py and
+    # single_point.py the three Options modules - and declared on the
+    # single-point tab's precedent: this list is what the bundle PROVES it can
+    # import. check_autozone below is what proves the county file is present
+    # and authenticates; the Options modules have no check of their own, and
+    # a missing one would show as a window that never opens.
+    "michspc.spc.autozone",
+    "michspc.spc.autozone_spcs83",
+    "michspc.spc.autozone_spcs2022",
+    "michspc.fileio.counties",
+    "michspc.gui.options",
+    "michspc.gui.options_dialog",
+    "michspc.gui.settings_store",
     # Standard-library modules the shipped code paths reach for. Cheap to check
     # and they have been dropped from bundles before by an over-eager exclude.
     "csv",
@@ -1401,6 +1448,160 @@ def check_wgs84_refusals() -> str:
     )
 
 
+def check_autozone() -> str:
+    """Auto zone chooses NCAT's zone from the bundled county file, and refuses outside Michigan.
+
+    Auto zone (docs/PLAN-options-autozone.md, DESIGN.md #71) picks each
+    point's State Plane zone by the county it lies in, from
+    ``data/mi_counties_tiger2025.json`` - a data file this bundle must carry,
+    read by ``michspc.fileio.counties``, which authenticates it against its
+    pinned SHA-256 before a byte of it is parsed. Nothing else in this
+    self-test reads that file, so a bundle missing it, or carrying an altered
+    one, would pass every other check and refuse (or misplace) the first Auto
+    job a surveyor ran.
+
+    Through ``job.run``, the public path both tabs take, on an in-memory
+    PNEZD file of the two production-NCAT anchors above (NAD83(2011), Auto
+    on NAD83(2011), metres):
+
+    * each point lands in the zone NCAT chose for it, in the county the
+      fixture names - two different zones in one job;
+    * each Auto point's northing and easting are EXACTLY (==) those of a
+      fixed-zone job into NCAT's zone: Auto chooses a zone and nothing else;
+    * and those coordinates agree with NCAT's own printed figures, so the
+      fixed-zone side is not this program agreeing with itself;
+    * a third point at Toledo, Ohio, in no Michigan county, refuses the WHOLE
+      job, naming that point and only that point - never the nearest zone.
+    """
+    from michspc.fileio import counties as county_file
+    from michspc.fileio import pnezd
+    from michspc.job import (
+        AUTO_ZONE,
+        AutoZoneUnplacedPointsError,
+        Direction,
+        JobSettings,
+        LongitudeConvention,
+        run,
+    )
+    from michspc.spc.frames import NAD83_2011
+    from michspc.spc.units import METERS
+    from michspc.spc.zones import zone_by_code
+
+    def settings(target_zone):
+        return JobSettings(
+            input_path=None,
+            output_directory=None,
+            direction=Direction.GEODETIC_TO_ZONE,
+            source_zone=None,
+            target_zone=target_zone,
+            input_unit=METERS,
+            output_unit=METERS,
+            longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+            auto_frame=NAD83_2011 if target_zone is AUTO_ZONE else None,
+        )
+
+    def parsed(rows):
+        return pnezd.parse_lines(
+            [f"{point_id},{lat!r},{lon!r},,selftest\n" for point_id, lat, lon in rows]
+        )
+
+    rows = [(point_id, lat, lon) for point_id, lat, lon, *_rest in AUTOZONE_ANCHORS]
+    try:
+        result = run(settings(AUTO_ZONE), parsed(rows))
+    except Exception as error:  # noqa: BLE001 — any failure is fatal here
+        raise SelfTestError(
+            f"an Auto zone job that converts in the source tree failed in this "
+            f"bundle: {type(error).__name__}: {error}. Auto reads the bundled "
+            f"county file {county_file.COUNTIES_FILENAME}; michspc.spec must "
+            f"carry it under data/."
+        ) from error
+
+    if len(result.points) != len(AUTOZONE_ANCHORS):
+        raise SelfTestError(
+            f"the Auto job returned {len(result.points)} points for "
+            f"{len(AUTOZONE_ANCHORS)} rows."
+        )
+
+    worst_m = 0.0
+    for point, anchor in zip(result.points, AUTOZONE_ANCHORS):
+        point_id, lat, lon, zone_code, county, ncat_n, ncat_e = anchor
+        assignment = point.auto_zone
+        chosen = None if assignment is None else assignment.zone.code
+        if chosen != zone_code or assignment.county_name != county:
+            raise SelfTestError(
+                f"this bundle's Auto zone placed {lat}, {lon} (NAD83(2011)) in "
+                f"zone {chosen}"
+                + ("" if assignment is None else f", {assignment.county_name} County")
+                + f", where NGS NCAT chooses zone {zone_code}, {county} County. A "
+                f"point in the wrong zone gets a coordinate that is entirely "
+                f"ordinary and entirely wrong."
+            )
+        fixed = run(settings(zone_by_code(zone_code)), parsed([(point_id, lat, lon)]))
+        fixed_point = fixed.points[0]
+        if (point.output_northing, point.output_easting) != (
+            fixed_point.output_northing,
+            fixed_point.output_easting,
+        ):
+            raise SelfTestError(
+                f"this bundle's Auto job put {point_id} at N "
+                f"{point.output_northing!r}, E {point.output_easting!r} m in "
+                f"zone {zone_code}, where the fixed-zone job into that zone "
+                f"computes N {fixed_point.output_northing!r}, E "
+                f"{fixed_point.output_easting!r} m. Auto chooses a zone and "
+                f"must not change a single bit of the projection."
+            )
+        for label, produced, expected in (
+            ("northing", point.output_northing, ncat_n),
+            ("easting", point.output_easting, ncat_e),
+        ):
+            difference = abs(produced - expected)
+            worst_m = max(worst_m, difference)
+            if difference > LINEAR_TOLERANCE_M:
+                raise SelfTestError(
+                    f"this bundle's Auto job produced a {label} of "
+                    f"{produced:,.4f} m for {point_id} in zone {zone_code}, "
+                    f"where NGS NCAT prints {expected:,.3f} m - out by "
+                    f"{difference:.4f} m, against {LINEAR_TOLERANCE_M} m."
+                )
+
+    outside_id, outside_lat, outside_lon = AUTOZONE_OUTSIDE
+    try:
+        refused = run(settings(AUTO_ZONE), parsed(rows + [AUTOZONE_OUTSIDE]))
+    except AutoZoneUnplacedPointsError as error:
+        if error.points != ((outside_id, outside_lat, outside_lon),):
+            raise SelfTestError(
+                f"this bundle refused the Auto job holding a point at Toledo, "
+                f"Ohio, but named {error.points!r} where only "
+                f"{AUTOZONE_OUTSIDE!r} is in no Michigan county."
+            ) from error
+    except Exception as error:  # noqa: BLE001 — any other outcome is a failure
+        raise SelfTestError(
+            f"an Auto job holding a point at Toledo, Ohio raised "
+            f"{type(error).__name__} rather than AutoZoneUnplacedPointsError: "
+            f"{error}"
+        ) from error
+    else:
+        placed = [
+            f"{p.row.point_id} in "
+            f"{'no zone' if p.auto_zone is None else p.auto_zone.zone.code}"
+            for p in refused.points
+        ]
+        raise SelfTestError(
+            f"this bundle CONVERTED an Auto job holding a point at Toledo, "
+            f"Ohio ({'; '.join(placed)}). A point in no Michigan county must "
+            f"refuse the whole job by name, never take the nearest zone."
+        )
+
+    return (
+        f"{len(AUTOZONE_ANCHORS)} points placed in NCAT's zones "
+        f"({', '.join(a[3] for a in AUTOZONE_ANCHORS)}) from "
+        f"{county_file.COUNTIES_FILENAME} (SHA-256 "
+        f"{county_file.COUNTIES_SHA256[:12]}...), identical to the fixed-zone "
+        f"jobs and within {worst_m:.4f} m of NCAT; a Toledo, Ohio point "
+        f"refused the job by name"
+    )
+
+
 CHECKS: tuple[tuple[str, object], ...] = (
     ("version and application name", check_version),
     ("bundled GEOID18 grid", check_geoid_grid),
@@ -1415,6 +1616,7 @@ CHECKS: tuple[tuple[str, object], ...] = (
     ("cross-frame refusal", check_frame_refusal),
     ("WGS 84 (G2296) conversion against NGS HTDP", check_wgs84_conversion),
     ("WGS 84 refusals", check_wgs84_refusals),
+    ("Auto zone against NGS NCAT", check_autozone),
 )
 
 

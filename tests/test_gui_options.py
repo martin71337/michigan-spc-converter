@@ -972,6 +972,47 @@ def test_wgs84_input_with_auto_on_nad83_converts(window):
     assert tab.result.settings.observation_date_source is ObservationDateSource.TODAY
 
 
+@pytest.mark.parametrize("date_source", list(ObservationDateSource))
+@pytest.mark.parametrize("which", ["single", "multi"])
+def test_both_tabs_send_a_source_whenever_they_send_a_date(
+    window, which, date_source, tmp_path
+):
+    """The GUI half of the Z4 ruling: the core accepts a date with no source
+    (tests/test_job_autozone.py,
+    ``test_the_core_accepts_a_date_without_its_source_by_decision``), so it is
+    the interface that must never send one. Swept over every FROM entry the
+    lists offer a time-dependent frame or NAD83(2011) in, into a fixed zone
+    and into Auto, under both Options choices: whenever the settings carry a
+    date they carry the Options' source, and whenever they carry none they
+    carry no source."""
+    page = pages(window)[which]
+    window.apply_options(with_time_dependent(date_source=date_source))
+    if which == "multi":
+        file_job(window, tmp_path, f"1,{CALHOUN[0]},{CALHOUN[1]},,A\n")
+    else:
+        type_point(page, *CALHOUN)
+    if date_source is ObservationDateSource.ENTERED:
+        page.observation_date_edit.setDate(QDate(2025, 6, 15))
+    dated = 0
+    for source_choice in (*TIME_DEPENDENT, NAD):
+        for target in (MI_SOUTH, AUTO_NAD):
+            choose(page.from_zone, source_choice)
+            choose(page.to_zone, target)
+            settings = page.settings()
+            assert settings is not None, (source_choice, target)
+            if settings.observation_date is None:
+                assert settings.observation_date_source is None, (source_choice, target)
+            else:
+                dated += 1
+                assert settings.observation_date_source is date_source, (
+                    source_choice,
+                    target,
+                )
+    # Five time-dependent frames, two targets each, all dated; NAD83(2011)
+    # into either target is not.
+    assert dated == 2 * len(TIME_DEPENDENT) == 10
+
+
 # ==========================================================================
 # 7. The dialog and the menu.
 # ==========================================================================

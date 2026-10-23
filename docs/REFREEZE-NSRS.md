@@ -75,6 +75,10 @@ acknowledgement and listing those artifacts, so the release's own evidence
 records what era it was built from. When this document's table is empty — the
 re-freeze done — the gate passes silently and the flag is no longer needed.
 
+The count it prints is the table's row count: five artifacts for 0.7.0 and
+0.7.1, seven since the Auto zone build (the county-to-SPCS2022 table and the
+zone-pick anchors, work package Z0).
+
 ## Tagged artifacts
 
 **This is the table `tests/test_refreeze_inventory.py` parses, and its format
@@ -92,7 +96,7 @@ checklist can neither miss an artifact nor outlive one.
 | --- | --- | --- | --- |
 | `michspc/spc/zones.py` | The nineteen SPCS2022 zone records — every defining constant transcribed from `zoneDefinitions.json`, every extent and easting range from `zoneBounds.json` — and the shared citation carrying both files' capture dates and digests. | `review/nsrs-n0/capture_spcs.py` | `tests/test_zone_registry.py` |
 | `michspc/spc/frames.py` | NATRF2022's record and citation: the frame is defined by NOAA TR NOS NGS 62, and everything this program carries for it (zones, anchors) is beta. | `review/nsrs-h3-recon/ifdm/capture_pubs.py` | `tests/test_convert.py::test_natrf2022s_citation_carries_its_authority_and_its_beta_provenance` |
-| `michspc/fileio/report.py` | The job record's SPCS2022 METHOD and verification prose — the capture dates, both digests, and the beta-NCAT anchor count it states to the surveyor. | `review/nsrs-h1-anchors/capture_h1_anchors.py` | `tests/test_spcs2022_disclosure.py` |
+| `michspc/fileio/report.py` | The job record's SPCS2022 METHOD and verification prose — the capture dates, both digests, and the beta-NCAT anchor count it states to the surveyor. Since the Auto zone build, also the Auto zone SPCS2022 TO block (`_auto_zone_block`): its Zone rule paragraph cites NGS's beta "Multizone Complete Zones" polygons by quoting `autozone_spcs2022.NGS_POLYGONS_CITATION` whole (captured 2026-10-22, `mi_native.json`, SHA-256 `0b400984…7cf7`), and its Isle Royale paragraph states the 47.65 N rule those polygons and beta NCAT support. Re-freezing the table row below without re-reading this block would leave every Auto SPCS2022 record citing a superseded capture. | `review/nsrs-h1-anchors/capture_h1_anchors.py`; for the Auto TO block, `review/autozone-z0/capture_ngs_polygons.py` | `tests/test_spcs2022_disclosure.py`; for the Auto TO block, `tests/test_autozone_outputs.py::test_the_spcs2022_to_block_reads_exactly` |
 | `michspc/selftest.py` | The frozen bundle's own SPCS2022 anchor: zone 261008's `origin -0.15/-0.25` position, northing, easting and scale factor, transcribed from the fixture below because `tests/` is not in the bundle. | `review/nsrs-h1-anchors/capture_h1_anchors.py` | `tests/test_selftest.py::test_the_selftests_spcs2022_anchor_is_the_frozen_beta_ncat_value` |
 | `tests/fixtures/spcs2022_engine_anchors.py` | The 63 beta-NCAT projection anchors and the 19 published zone-parameter rows they are checked beside. | `review/nsrs-h1-anchors/capture_h1_anchors.py` | `tests/test_projection_engines.py` |
 | `michspc/spc/autozone_spcs2022.py` | Auto zone's county -> SPCS2022 low-distortion zone table and the Isle Royale rule (Keweenaw at or north of 47.65 N is U61K), measured from NGS's beta "Multizone Complete Zones" feature layer in its native Web Mercator, captured 2026-10-22. | `review/autozone-z0/capture_ngs_polygons.py` | `tests/test_autozone_tables.py` |

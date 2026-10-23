@@ -1329,12 +1329,17 @@ def test_the_spec_bundles_every_ngs_grid_the_source_tree_carries():
     *built* bundle. This one fails in the suite, seconds after the omission,
     rather than twenty minutes into a release build.
     """
-    from michspc.fileio import vertcon
+    from michspc.fileio import counties, vertcon
 
     derived = {model.tile_filename for model in geoid.ALL_GEOID_MODELS} | {
         vertcon.VERTCON3_TRN_TILE.name,
         vertcon.VERTCON3_ERR_TILE.name,
     }
+    # The Auto zone county file (work package Z0) is named by its one reader.
+    # NOT YET IN THE SPEC: adding it to michspc.spec's datas is work package
+    # Z5. Until then the build's bundle-vs-data/ gate refuses a release build,
+    # which is the fail-closed state.
+    derived |= {counties.COUNTIES_FILENAME}
     on_disk = {
         source.name for source in (REPO_ROOT / "data").iterdir() if source.is_file()
     }

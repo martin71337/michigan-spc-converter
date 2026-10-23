@@ -95,6 +95,8 @@ checklist can neither miss an artifact nor outlive one.
 | `michspc/fileio/report.py` | The job record's SPCS2022 METHOD and verification prose — the capture dates, both digests, and the beta-NCAT anchor count it states to the surveyor. | `review/nsrs-h1-anchors/capture_h1_anchors.py` | `tests/test_spcs2022_disclosure.py` |
 | `michspc/selftest.py` | The frozen bundle's own SPCS2022 anchor: zone 261008's `origin -0.15/-0.25` position, northing, easting and scale factor, transcribed from the fixture below because `tests/` is not in the bundle. | `review/nsrs-h1-anchors/capture_h1_anchors.py` | `tests/test_selftest.py::test_the_selftests_spcs2022_anchor_is_the_frozen_beta_ncat_value` |
 | `tests/fixtures/spcs2022_engine_anchors.py` | The 63 beta-NCAT projection anchors and the 19 published zone-parameter rows they are checked beside. | `review/nsrs-h1-anchors/capture_h1_anchors.py` | `tests/test_projection_engines.py` |
+| `michspc/spc/autozone_spcs2022.py` | Auto zone's county -> SPCS2022 low-distortion zone table and the Isle Royale rule (Keweenaw at or north of 47.65 N is U61K), measured from NGS's beta "Multizone Complete Zones" feature layer, captured 2026-10-22. | `review/autozone-z0/capture_ngs_polygons.py` | `tests/test_autozone_tables.py` |
+| `tests/fixtures/autozone_anchors.py` | The 123 beta-NCAT SPCS2022 zone-pick anchors Auto zone is pinned to (Z0's live captures and the autozone-r0 recon's), beside 124 production-NCAT SPCS 83 picks; all captured 2026-10-22. | `review/autozone-z0/capture_anchors.py` | `tests/test_autozone_anchors.py` |
 
 ## The frozen captures those artifacts were read from
 
@@ -108,6 +110,7 @@ the harnesses above re-fetch and what the digests authenticate.
 | `review/nsrs-n0/raw/zoneBounds.json` | 654,390 | `040f9d5a6e4af2587cb8306d05829a0efefd17a482b37f55678e4ea861f48b66` | 2026-08-29 |
 | `review/nsrs-h1-anchors/anchors.json` | 98,787 | `76d2b61e57d2b9ddeb5466bcc3add92907f687efe8221cd0914c595707390a2d` | 2026-08-28 |
 | `review/nsrs-h3-recon/ifdm/raw/pubs/NOAA_TR_NOS_NGS_0062.pdf` | 4,505,404 | `b0d25a26d827daf6ff01c8ba8d96ee66b12ca200be335f72732f10794d2ae72a` | 2026-08-29 |
+| `review/autozone-r0/raw/ngs_fs/mi_4269.json` | 6,179,489 | `658c4ead203c9ed2a727a29aee8d88ecc834a750cb1c135a83ef710c7d3f2099` | 2026-10-22 (re-fetched byte-identical by the harness the same day) |
 
 The per-request manifests beside each capture (`review/nsrs-n0/raw/*_manifest.json`,
 `review/nsrs-h1-anchors/raw/manifest.json`) record one digest per fetched

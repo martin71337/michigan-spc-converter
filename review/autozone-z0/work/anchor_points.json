@@ -1,0 +1,583 @@
+[
+ {
+  "tag": "COUNTY 26001 Alcona",
+  "fips": "26001",
+  "lat": 44.682131,
+  "lon": -83.622405,
+  "depth_m": 19006.9
+ },
+ {
+  "tag": "COUNTY 26003 Alger",
+  "fips": "26003",
+  "lat": 46.52275,
+  "lon": -86.685698,
+  "depth_m": 21743.4
+ },
+ {
+  "tag": "COUNTY 26005 Allegan",
+  "fips": "26005",
+  "lat": 42.596486,
+  "lon": -86.023584,
+  "depth_m": 19155.5
+ },
+ {
+  "tag": "COUNTY 26007 Alpena",
+  "fips": "26007",
+  "lat": 45.029804,
+  "lon": -83.276066,
+  "depth_m": 19016.0
+ },
+ {
+  "tag": "COUNTY 26009 Antrim",
+  "fips": "26009",
+  "lat": 44.985964,
+  "lon": -85.079028,
+  "depth_m": 14141.9
+ },
+ {
+  "tag": "COUNTY 26011 Arenac",
+  "fips": "26011",
+  "lat": 44.013412,
+  "lon": -83.735857,
+  "depth_m": 16407.6
+ },
+ {
+  "tag": "COUNTY 26013 Baraga",
+  "fips": "26013",
+  "lat": 46.693798,
+  "lon": -88.394063,
+  "depth_m": 21314.7
+ },
+ {
+  "tag": "COUNTY 26015 Barry",
+  "fips": "26015",
+  "lat": 42.599534,
+  "lon": -85.314372,
+  "depth_m": 18807.2
+ },
+ {
+  "tag": "COUNTY 26017 Bay",
+  "fips": "26017",
+  "lat": 43.70623,
+  "lon": -83.939195,
+  "depth_m": 17831.2
+ },
+ {
+  "tag": "COUNTY 26019 Benzie",
+  "fips": "26019",
+  "lat": 44.649086,
+  "lon": -86.01644,
+  "depth_m": 14400.0
+ },
+ {
+  "tag": "COUNTY 26021 Berrien",
+  "fips": "26021",
+  "lat": 41.995611,
+  "lon": -86.53512,
+  "depth_m": 25875.8
+ },
+ {
+  "tag": "COUNTY 26023 Branch",
+  "fips": "26023",
+  "lat": 41.920019,
+  "lon": -85.030785,
+  "depth_m": 16979.2
+ },
+ {
+  "tag": "COUNTY 26025 Calhoun",
+  "fips": "26025",
+  "lat": 42.250568,
+  "lon": -84.954191,
+  "depth_m": 19055.2
+ },
+ {
+  "tag": "COUNTY 26027 Cass",
+  "fips": "26027",
+  "lat": 41.911464,
+  "lon": -85.964693,
+  "depth_m": 16827.9
+ },
+ {
+  "tag": "COUNTY 26029 Charlevoix",
+  "fips": "26029",
+  "lat": 45.695844,
+  "lon": -85.567228,
+  "depth_m": 20472.9
+ },
+ {
+  "tag": "COUNTY 26031 Cheboygan",
+  "fips": "26031",
+  "lat": 45.377655,
+  "lon": -84.487198,
+  "depth_m": 18767.5
+ },
+ {
+  "tag": "COUNTY 26033 Chippewa",
+  "fips": "26033",
+  "lat": 46.395244,
+  "lon": -84.887609,
+  "depth_m": 24033.8
+ },
+ {
+  "tag": "COUNTY 26035 Clare",
+  "fips": "26035",
+  "lat": 43.984684,
+  "lon": -84.841524,
+  "depth_m": 18878.7
+ },
+ {
+  "tag": "COUNTY 26037 Clinton",
+  "fips": "26037",
+  "lat": 42.939904,
+  "lon": -84.606429,
+  "depth_m": 18871.2
+ },
+ {
+  "tag": "COUNTY 26039 Crawford",
+  "fips": "26039",
+  "lat": 44.678523,
+  "lon": -84.604951,
+  "depth_m": 18496.5
+ },
+ {
+  "tag": "COUNTY 26041 Delta",
+  "fips": "26041",
+  "lat": 45.813209,
+  "lon": -86.902477,
+  "depth_m": 32635.7
+ },
+ {
+  "tag": "COUNTY 26043 Dickinson",
+  "fips": "26043",
+  "lat": 46.029531,
+  "lon": -87.869321,
+  "depth_m": 19219.0
+ },
+ {
+  "tag": "COUNTY 26045 Eaton",
+  "fips": "26045",
+  "lat": 42.600366,
+  "lon": -84.843789,
+  "depth_m": 18898.2
+ },
+ {
+  "tag": "COUNTY 26047 Emmet",
+  "fips": "26047",
+  "lat": 45.636713,
+  "lon": -85.012109,
+  "depth_m": 21534.4
+ },
+ {
+  "tag": "COUNTY 26049 Genesee",
+  "fips": "26049",
+  "lat": 43.039734,
+  "lon": -83.698523,
+  "depth_m": 18727.4
+ },
+ {
+  "tag": "COUNTY 26051 Gladwin",
+  "fips": "26051",
+  "lat": 43.991931,
+  "lon": -84.381611,
+  "depth_m": 17271.2
+ },
+ {
+  "tag": "COUNTY 26053 Gogebic",
+  "fips": "26053",
+  "lat": 46.627269,
+  "lon": -90.104983,
+  "depth_m": 16232.4
+ },
+ {
+  "tag": "COUNTY 26055 Grand Traverse",
+  "fips": "26055",
+  "lat": 44.64563,
+  "lon": -85.557576,
+  "depth_m": 14834.3
+ },
+ {
+  "tag": "COUNTY 26057 Gratiot",
+  "fips": "26057",
+  "lat": 43.287711,
+  "lon": -84.601027,
+  "depth_m": 18801.5
+ },
+ {
+  "tag": "COUNTY 26059 Hillsdale",
+  "fips": "26059",
+  "lat": 41.880185,
+  "lon": -84.599137,
+  "depth_m": 18757.8
+ },
+ {
+  "tag": "COUNTY 26061 Houghton",
+  "fips": "26061",
+  "lat": 47.116047,
+  "lon": -88.644786,
+  "depth_m": 20948.7
+ },
+ {
+  "tag": "COUNTY 26063 Huron",
+  "fips": "26063",
+  "lat": 43.925495,
+  "lon": -82.9869,
+  "depth_m": 27257.2
+ },
+ {
+  "tag": "COUNTY 26065 Ingham",
+  "fips": "26065",
+  "lat": 42.603614,
+  "lon": -84.37751,
+  "depth_m": 18465.4
+ },
+ {
+  "tag": "COUNTY 26067 Ionia",
+  "fips": "26067",
+  "lat": 42.949204,
+  "lon": -85.080535,
+  "depth_m": 18880.6
+ },
+ {
+  "tag": "COUNTY 26069 Iosco",
+  "fips": "26069",
+  "lat": 44.34118,
+  "lon": -83.367674,
+  "depth_m": 18951.7
+ },
+ {
+  "tag": "COUNTY 26071 Iron",
+  "fips": "26071",
+  "lat": 46.213114,
+  "lon": -88.415244,
+  "depth_m": 22740.6
+ },
+ {
+  "tag": "COUNTY 26073 Isabella",
+  "fips": "26073",
+  "lat": 43.636425,
+  "lon": -84.841525,
+  "depth_m": 18843.8
+ },
+ {
+  "tag": "COUNTY 26075 Jackson",
+  "fips": "26075",
+  "lat": 42.243278,
+  "lon": -84.474885,
+  "depth_m": 18923.0
+ },
+ {
+  "tag": "COUNTY 26077 Kalamazoo",
+  "fips": "26077",
+  "lat": 42.24972,
+  "lon": -85.535606,
+  "depth_m": 19018.3
+ },
+ {
+  "tag": "COUNTY 26079 Kalkaska",
+  "fips": "26079",
+  "lat": 44.680701,
+  "lon": -85.096512,
+  "depth_m": 18779.4
+ },
+ {
+  "tag": "COUNTY 26081 Kent",
+  "fips": "26081",
+  "lat": 43.114691,
+  "lon": -85.55601,
+  "depth_m": 18970.4
+ },
+ {
+  "tag": "COUNTY 26083 Keweenaw",
+  "fips": "26083",
+  "lat": 47.469548,
+  "lon": -87.989202,
+  "depth_m": 27870.5
+ },
+ {
+  "tag": "COUNTY 26085 Lake",
+  "fips": "26085",
+  "lat": 43.986266,
+  "lon": -85.797045,
+  "depth_m": 18797.9
+ },
+ {
+  "tag": "COUNTY 26087 Lapeer",
+  "fips": "26087",
+  "lat": 43.065615,
+  "lon": -83.228014,
+  "depth_m": 18811.5
+ },
+ {
+  "tag": "COUNTY 26089 Leelanau",
+  "fips": "26089",
+  "lat": 45.069913,
+  "lon": -85.987607,
+  "depth_m": 27689.7
+ },
+ {
+  "tag": "COUNTY 26091 Lenawee",
+  "fips": "26091",
+  "lat": 41.889926,
+  "lon": -84.114455,
+  "depth_m": 19566.7
+ },
+ {
+  "tag": "COUNTY 26093 Livingston",
+  "fips": "26093",
+  "lat": 42.599201,
+  "lon": -83.905482,
+  "depth_m": 18758.2
+ },
+ {
+  "tag": "COUNTY 26095 Luce",
+  "fips": "26095",
+  "lat": 46.477501,
+  "lon": -85.557387,
+  "depth_m": 23607.9
+ },
+ {
+  "tag": "COUNTY 26097 Mackinac",
+  "fips": "26097",
+  "lat": 45.975832,
+  "lon": -84.627543,
+  "depth_m": 19569.0
+ },
+ {
+  "tag": "COUNTY 26099 Macomb",
+  "fips": "26099",
+  "lat": 42.666804,
+  "lon": -82.909269,
+  "depth_m": 15090.4
+ },
+ {
+  "tag": "COUNTY 26101 Manistee",
+  "fips": "26101",
+  "lat": 44.346282,
+  "lon": -86.217237,
+  "depth_m": 19080.5
+ },
+ {
+  "tag": "COUNTY 26103 Marquette",
+  "fips": "26103",
+  "lat": 46.558887,
+  "lon": -87.57804,
+  "depth_m": 34409.0
+ },
+ {
+  "tag": "COUNTY 26105 Mason",
+  "fips": "26105",
+  "lat": 43.994626,
+  "lon": -86.295253,
+  "depth_m": 19622.9
+ },
+ {
+  "tag": "COUNTY 26107 Mecosta",
+  "fips": "26107",
+  "lat": 43.645096,
+  "lon": -85.329783,
+  "depth_m": 18758.9
+ },
+ {
+  "tag": "COUNTY 26109 Menominee",
+  "fips": "26109",
+  "lat": 45.520132,
+  "lon": -87.554397,
+  "depth_m": 17859.5
+ },
+ {
+  "tag": "COUNTY 26111 Midland",
+  "fips": "26111",
+  "lat": 43.6428,
+  "lon": -84.392899,
+  "depth_m": 17350.8
+ },
+ {
+  "tag": "COUNTY 26113 Missaukee",
+  "fips": "26113",
+  "lat": 44.341132,
+  "lon": -85.100611,
+  "depth_m": 18825.6
+ },
+ {
+  "tag": "COUNTY 26115 Monroe",
+  "fips": "26115",
+  "lat": 41.904398,
+  "lon": -83.531924,
+  "depth_m": 19268.8
+ },
+ {
+  "tag": "COUNTY 26117 Montcalm",
+  "fips": "26117",
+  "lat": 43.297813,
+  "lon": -85.083707,
+  "depth_m": 18559.9
+ },
+ {
+  "tag": "COUNTY 26119 Montmorency",
+  "fips": "26119",
+  "lat": 45.024176,
+  "lon": -84.132156,
+  "depth_m": 18694.0
+ },
+ {
+  "tag": "COUNTY 26121 Muskegon",
+  "fips": "26121",
+  "lat": 43.291147,
+  "lon": -86.286808,
+  "depth_m": 19204.9
+ },
+ {
+  "tag": "COUNTY 26123 Newaygo",
+  "fips": "26123",
+  "lat": 43.471393,
+  "lon": -85.795191,
+  "depth_m": 18839.1
+ },
+ {
+  "tag": "COUNTY 26125 Oakland",
+  "fips": "26125",
+  "lat": 42.665492,
+  "lon": -83.393806,
+  "depth_m": 23519.3
+ },
+ {
+  "tag": "COUNTY 26127 Oceana",
+  "fips": "26127",
+  "lat": 43.64117,
+  "lon": -86.279885,
+  "depth_m": 18989.1
+ },
+ {
+  "tag": "COUNTY 26129 Ogemaw",
+  "fips": "26129",
+  "lat": 44.339156,
+  "lon": -84.132856,
+  "depth_m": 18768.5
+ },
+ {
+  "tag": "COUNTY 26131 Ontonagon",
+  "fips": "26131",
+  "lat": 46.838007,
+  "lon": -89.411707,
+  "depth_m": 35419.5
+ },
+ {
+  "tag": "COUNTY 26133 Osceola",
+  "fips": "26133",
+  "lat": 43.99363,
+  "lon": -85.32016,
+  "depth_m": 18637.3
+ },
+ {
+  "tag": "COUNTY 26135 Oscoda",
+  "fips": "26135",
+  "lat": 44.677588,
+  "lon": -84.1353,
+  "depth_m": 18740.8
+ },
+ {
+  "tag": "COUNTY 26137 Otsego",
+  "fips": "26137",
+  "lat": 45.007284,
+  "lon": -84.582323,
+  "depth_m": 16672.1
+ },
+ {
+  "tag": "COUNTY 26139 Ottawa",
+  "fips": "26139",
+  "lat": 42.947963,
+  "lon": -86.040721,
+  "depth_m": 18907.6
+ },
+ {
+  "tag": "COUNTY 26141 Presque Isle",
+  "fips": "26141",
+  "lat": 45.452723,
+  "lon": -83.865366,
+  "depth_m": 27782.3
+ },
+ {
+  "tag": "COUNTY 26143 Roscommon",
+  "fips": "26143",
+  "lat": 44.340248,
+  "lon": -84.617032,
+  "depth_m": 18928.8
+ },
+ {
+  "tag": "COUNTY 26145 Saginaw",
+  "fips": "26145",
+  "lat": 43.311076,
+  "lon": -84.139567,
+  "depth_m": 18654.9
+ },
+ {
+  "tag": "COUNTY 26147 St. Clair",
+  "fips": "26147",
+  "lat": 43.018371,
+  "lon": -82.624788,
+  "depth_m": 16226.5
+ },
+ {
+  "tag": "COUNTY 26149 St. Joseph",
+  "fips": "26149",
+  "lat": 41.911441,
+  "lon": -85.511473,
+  "depth_m": 16897.3
+ },
+ {
+  "tag": "COUNTY 26151 Sanilac",
+  "fips": "26151",
+  "lat": 43.431447,
+  "lon": -82.585192,
+  "depth_m": 28799.2
+ },
+ {
+  "tag": "COUNTY 26153 Schoolcraft",
+  "fips": "26153",
+  "lat": 46.076051,
+  "lon": -86.170856,
+  "depth_m": 23720.0
+ },
+ {
+  "tag": "COUNTY 26155 Shiawassee",
+  "fips": "26155",
+  "lat": 42.967341,
+  "lon": -84.150635,
+  "depth_m": 17568.1
+ },
+ {
+  "tag": "COUNTY 26157 Tuscola",
+  "fips": "26157",
+  "lat": 43.488039,
+  "lon": -83.442931,
+  "depth_m": 19761.5
+ },
+ {
+  "tag": "COUNTY 26159 Van Buren",
+  "fips": "26159",
+  "lat": 42.240712,
+  "lon": -85.98923,
+  "depth_m": 18423.7
+ },
+ {
+  "tag": "COUNTY 26161 Washtenaw",
+  "fips": "26161",
+  "lat": 42.257806,
+  "lon": -83.785972,
+  "depth_m": 18955.8
+ },
+ {
+  "tag": "COUNTY 26163 Wayne",
+  "fips": "26163",
+  "lat": 42.286105,
+  "lon": -83.336737,
+  "depth_m": 17133.9
+ },
+ {
+  "tag": "COUNTY 26165 Wexford",
+  "fips": "26165",
+  "lat": 44.334344,
+  "lon": -85.58367,
+  "depth_m": 18823.5
+ }
+]

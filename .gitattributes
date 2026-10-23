@@ -15,3 +15,11 @@ review/wgs84-w3/w3_truth.json -text
 # Auto zone recon captures (statute, NGS, NCAT, MGF): SHA-256 recorded in
 # review/autozone-r0/RECON.md, so they keep the bytes as fetched.
 review/autozone-r0/raw/** -text
+
+# Auto zone county polygons (derived from TIGER 2025, Z0): SHA-256 pinned in
+# michspc/fileio/counties.py, so a Windows checkout must not rewrite its LFs.
+data/mi_counties_tiger2025.json -text
+
+# Z0 live NCAT zone captures: SHA-256 recorded per file in
+# tests/fixtures/autozone_anchors.py, so they keep the bytes as fetched.
+review/autozone-z0/raw/** -text

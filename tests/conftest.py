@@ -133,4 +133,28 @@ def record_root_normalised(text: str, root: Path) -> str:
     for index, line in enumerate(lines):
         if line.startswith(tuple(label + "<ROOT>" for label in _PATH_LINE_LABELS)):
             lines[index] = line.replace("\\", "/")
-    return "\n".join(lines)
+    return software_line_as_frozen("\n".join(lines))
+
+
+# The version every record digest in the suite was frozen under: the WGS 84
+# build's pins were taken at 8201968 and later, all while the literal read
+# 0.8.0-dev. The record's Software line (report.py, "Software ... version")
+# names the running version, so it moves at every release while no other
+# byte does - the line the release notes call out as differing.
+FROZEN_SOFTWARE_LINE = "Software           MCX version 0.8.0-dev\n"
+
+
+def software_line_as_frozen(text: str) -> str:
+    """``text`` with its one Software line respelled to the frozen version.
+
+    Respelled, not re-frozen, on #66/#68's precedent: the digests keep every
+    other byte of the record. The line must occur EXACTLY once, so a record
+    that lost it, or grew a second, still fails its digest.
+    """
+    from michspc import APP_NAME, __version__
+
+    current = f"Software           {APP_NAME} version {__version__}\n"
+    found = text.count(current)
+    if found != 1:
+        raise AssertionError(f"expected exactly one {current!r} in the record, found {found}")
+    return text.replace(current, FROZEN_SOFTWARE_LINE)

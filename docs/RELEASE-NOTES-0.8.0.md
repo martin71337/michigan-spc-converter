@@ -1,13 +1,4 @@
-# MCX 0.8.0 (DRAFT)
-
-**DRAFT. Not released.** The version literal still carries its `-dev` marker
-(`0.8.0-dev`), nothing is tagged, and the owner has not seen the new
-controls on a real screen. The release has two parts. The WGS 84 and ITRF
-part has had its closing review gate, and its findings are fixed (below,
-under Verified). The Options, Auto zone and observation date part has had
-its interim gate and its closing gate (below, under Verified). The release build is made on the owner's machine. This file is
-written so that what the release claims can be checked against what was
-actually verified.
+# MCX 0.8.0
 
 ---
 
@@ -416,27 +407,15 @@ and the monthly tripwire now watches NGS's HTDP repository for that change.
   taken as the local date at Convert. Its verdict: APPROVED, with nothing
   found.
 
-## Not verified yet: still to do before this ships
+## Still to do: by the owner, after release
 
-- **The owner's screen review of both tabs and the Options dialog**,
-  including:
-  - the Options dialog itself, and the Auto entry at the top of the zone
-    section of the TO dropdown;
-  - the zone and county shown for each point on both tabs;
-  - the separate group for the five frames in the dropdowns;
-  - the observation date box under "Enter a date on the tab", and **whether
-    a keyboard-only first answer works** (F4 or Alt+Down could not be
-    confirmed offscreen);
-  - the zone-less hints: "optional" on the Single point tab, blank on the
-    Multi point tab;
-  - whether the vertical-only geodetic table and panel should also drop
-    their N/A grid and combined factor cells, as geodetic to geodetic now
-    does.
+The owner reviewed both tabs and the Options dialog on a real screen and
+approved them before this release was built (2026-10-23). Two checks remain
+his, as they have for earlier releases:
+
 - **One real WGS 84 or PPP dataset, end to end**, against the tool it came
   from.
 - **The clean-profile install proof**: install on a clean profile and run
   one real job end to end.
-- **The release build**: `py tools/build_release.py --acknowledge-ngs-beta`
-  on the owner's machine.
 
 Verify the download against `SHA256SUMS.txt` on this page.

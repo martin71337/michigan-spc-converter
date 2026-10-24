@@ -1,0 +1,61 @@
+You are the INDEPENDENT ADVERSARIAL REVIEWER (Codex) for a release
+re-confirmation of the WGS 84 build in MCX (Martin Coordinate Exchange), a
+Michigan State Plane coordinate converter used by a licensed professional
+surveyor. A wrong coordinate, or a false sentence in a job record, lands on a
+sealed survey and moves a boundary. You did not write this code. Three gates
+already ran under Claude reviewers (review/gate-wgs84-1/, -2/, -closing/);
+read their outputs so you do not repeat them, and do not approve on trust.
+
+READ-ONLY. Do not modify the repository. Write your full report to stdout.
+
+SCOPE: main..HEAD on branch claude/brave-noether-88m7x1 (the whole WGS 84
+build, fbcbf4a..HEAD, plus one README commit). Version 0.8.0-dev, to be
+released as 0.8.0.
+
+DESIGN AUTHORITY: docs/PLAN-wgs84.md (D1-D10); docs/DESIGN.md #70 and the
+amendments it cites; docs/RELEASE-NOTES-0.8.0.md (every claim must be true);
+docs/REFREEZE-HTDP.md; CLAUDE.md "Non-negotiable conventions".
+Owner's rules: replicate NOAA (NGS HTDP v3.6.0, committed unmodified at
+review/wgs84-w0/htdp-v3.6.0/, is the authority, non-closure and all); facts
+only on user surfaces (#50); no silent pass-through between frames;
+fail closed, refusals name the offending item; no uncited constants.
+
+ORACLE: no Fortran compiler on this machine. Use (a) the Fortran source
+itself, read directly, to re-derive the transcription in michspc/spc/htdp.py
+and michspc/spc/htdp_data.py (Helmert parameters and rates per frame, the
+order of Helmert-at-input-epoch then velocity-in-output-frame, region-6
+velocity grid values and bilinear interpolation, ellipsoid per frame,
+calendar-to-decimal-year conversion, iteration/convergence); and (b) the
+frozen HTDP prints in review/wgs84-w0/htdp_truth.json, near_tie_truth.json
+and review/wgs84-w3/w3_truth.json, independent of the test fixtures derived
+from them. The NAD 83 projection, geoid and VERTCON legs are previously
+NCAT-verified and may serve as second legs.
+
+PRIORITY SURFACES, ranked:
+1. Transcription fidelity of htdp.py / htdp_data.py against the Fortran:
+   every constant, sign, unit (mas vs rad, ppb, mm/yr), epoch, and the
+   velocity grid. Construct a point and date where a plausible error would
+   show, and check it against a frozen print.
+2. Direction semantics: forward vs reverse (to and from NAD 83), the frame
+   each velocity is applied in, the reference epochs, ellipsoid per frame
+   (WGS 84 vs GRS 80). Any path where a frame or epoch is silently
+   identity, swapped, or passed through.
+3. job.run and convert.py wiring: observation date handling (validation,
+   today seam, realization-period warning), D6 height handling (which
+   height is handed to HTDP; ellipsoid vs orthometric; vertical modes),
+   refusals for bare WGS 84, WGS 84 vs NATRF2022, cross-frame pairs.
+4. Every user-facing sentence in the job record, audit CSV headings,
+   Single point panel, and release notes: is it true for every job shape
+   that prints it? Zone-less jobs especially.
+5. GUI stale-result invalidation for the new date control and frame combos.
+6. Packaging: michspc.spec / tools/build_release.py gates, self-test checks
+   12-13, LAZY_IMPORTS, tripwire probe 5.
+7. Same-frame jobs: anything in existing NAD 83 / NATRF2022 output that
+   changed unintentionally (the recorded W4b, H2, L7 wording changes are
+   intended).
+
+You may run the suite (py -m pytest) and Python probes with py -I.
+Construct concrete counterexamples with inputs and expected vs actual.
+Classify each finding CRITICAL / HIGH / MEDIUM / LOW / INFO.
+END with exactly one line: VERDICT: APPROVED  or  VERDICT: FINDINGS
+and list the surfaces you checked and found clean.

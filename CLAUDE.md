@@ -51,7 +51,22 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.8.0 in flight, WGS 84 build + Options/Auto zone, Z0-Z5 done (2026-10-23)
+## Current state: 0.8.0 RELEASED (2026-10-23)
+
+**0.8.0 is built, gated, tagged and published** (DESIGN.md #71): the
+WGS 84 / ITRF build (#70) and the Options menu / Auto zone build (#71),
+merged to `main` as a fast-forward. All nine gates, beta acknowledgement
+7 artifacts; suite 5,753 + the release-number skip in both modes; frozen
+self-test 14 of 14; `mcx-0.8.0-setup.exe` + `SHA256SUMS.txt` on the GitHub
+Release, tagged `v0.8.0`. The owner reviewed the screens on his machine and
+approved them before the build. **One defect found by the release build
+itself:** four record digest pins froze the `0.8.0-dev` Software line and
+failed gate 4 once the literal became a release number; the line is now
+respelled to the frozen version before digesting (tests/conftest.py), not
+re-frozen. **Still human:** one real WGS 84 / PPP dataset end to end, and
+the clean-profile install proof (METHOD.md §6).
+
+## Superseded status: 0.8.0 in flight, WGS 84 build + Options/Auto zone, Z0-Z5 done (2026-10-23)
 
 **Read `docs/PLAN-options-autozone.md` and DESIGN.md #71 (and #70 for the
 WGS 84 half) before touching this work.** 0.8.0 is two builds in one

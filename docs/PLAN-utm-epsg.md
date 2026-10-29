@@ -157,9 +157,15 @@ the H2 precedent.
   both frames (WGS 84 / ITRF -> NAD83 UTM works; NATRF2022 UTM against
   NAD83(2011) refuses, as SPCS2022 does; the NATRF2022 ellipsoid-height gate
   covers NATRF2022 UTM); end-to-end jobs through real files on both frames;
-  audit CSV and clean export. **Interim gate over U1-U3.**
-- **U4** the record: the UTM METHOD arm, the era check by frame, the
-  `Conversion` line; every SPCS 83 and SPCS2022 record byte-identical.
+  audit CSV and clean export.
+- **Deviation (lead, 2026-10-29): U3 and U4 are one package, and the interim
+  gate covers U1-U4.** The record's era check sorts zones by SPCS2022 code, so
+  a NATRF2022 UTM job beside an SPCS2022 zone raises when its record is
+  written; U3's end-to-end jobs on that frame cannot run before U4's era
+  check by frame. The GUI still offers no UTM zone until after the gate.
+- **U4** (built with U3) the record: the UTM METHOD arm, the era check by
+  frame, the `Conversion` line; every SPCS 83 and SPCS2022 record
+  byte-identical. **Interim gate over U1-U4.**
 - **U5** GUI: the UTM block, Options group, unit filtering on both tabs, the
   "not yet offered" pin retired; offscreen previews for the owner.
 - **U6** self-test check (one UTM point per frame against a frozen anchor),

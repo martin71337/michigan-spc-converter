@@ -101,6 +101,7 @@ checklist can neither miss an artifact nor outlive one.
 | `tests/fixtures/spcs2022_engine_anchors.py` | The 63 beta-NCAT projection anchors and the 19 published zone-parameter rows they are checked beside. | `review/nsrs-h1-anchors/capture_h1_anchors.py` | `tests/test_projection_engines.py` |
 | `michspc/spc/autozone_spcs2022.py` | Auto zone's county -> SPCS2022 low-distortion zone table and the Isle Royale rule (Keweenaw at or north of 47.65 N is U61K), measured from NGS's beta "Multizone Complete Zones" feature layer in its native Web Mercator, captured 2026-10-22. | `review/autozone-z0/capture_ngs_polygons.py` | `tests/test_autozone_tables.py` |
 | `tests/fixtures/autozone_anchors.py` | The 123 beta-NCAT SPCS2022 zone-pick anchors Auto zone is pinned to (Z0's live captures and the autozone-r0 recon's), beside 124 production-NCAT SPCS 83 picks; all captured 2026-10-22. | `review/autozone-z0/capture_anchors.py` | `tests/test_autozone_anchors.py` |
+| `tests/fixtures/utm_anchors.py` | The 34 beta-NCAT NATRF2022 UTM anchors (zone 16N, northing, easting, convergence and scale as beta NCAT printed them) the NATRF2022 UTM zones are pinned to, beside 212 production-NCAT NAD83(2011) UTM anchors; all captured 2026-10-22 (DESIGN.md #72). | `review/autozone-r0/probe_ncat.py`, `review/autozone-r0/probe3_ncat.py` (recapture); `review/utm-u0/build_anchor_fixture.py` (rewrites the fixture) | `tests/test_utm.py` |
 
 ## The frozen captures those artifacts were read from
 

@@ -1050,7 +1050,9 @@ def test_each_zone_offers_exactly_the_units_it_publishes(window, which):
     the job would accept.
     """
     page = pages(window)[which]
-    for zone in ALL_ZONES:
+    # The zones the dropdowns OFFER (controls.OFFERED_ZONES): UTM joins at U5
+    # (DESIGN.md #72), and choosing a zone the combo does not hold tests nothing.
+    for zone in controls.OFFERED_ZONES:
         choose(page.from_zone, zone)
         assert offered_units(page.input_unit) == list(zone.allowed_units)
         assert offered_units(page.input_unit) != []
@@ -1090,7 +1092,7 @@ def test_a_unit_selector_is_never_disabled_whatever_the_zone(window, which):
     over every zone rather than argued about.
     """
     page = pages(window)[which]
-    for zone in (*ALL_ZONES, MI_SOUTH):
+    for zone in (*controls.OFFERED_ZONES, MI_SOUTH):
         choose(page.from_zone, zone)
         choose(page.to_zone, zone)
         assert page.input_unit.isEnabled()

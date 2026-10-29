@@ -694,6 +694,21 @@ one closing gate.
    PROJ.
 4. **Build under the established method as planned**, target 0.9.0.
 
+**U1 accepted (lead's review, 2026-10-29).** Six records, 246 NCAT anchors
+(212 production on NAD83(2011), 34 beta on NATRF2022) re-hashed and re-parsed
+from the frozen captures, 13 seeds caught. Re-derived by the lead through the
+public dispatcher: 212 of 212 at 0.5 mm, zone 15 against PROJ at 0.002 mm.
+**One measured fact about the manual's series at UTM widths**: section 3.23's
+forward scale series and section 3.24's inverse disagree by up to 2.4e-10 at
+the anchors and 3.5e-9 at 4.6 degrees from the meridian, and against PROJ it is
+the FORWARD series that drifts (2.8e-10 at 3 degrees, 3.5e-9 at 4.6; the
+inverse stays within 6e-11). 3.5e-9 is 0.0035 ppm, under NCAT's printed 1e-8
+and immaterial to any survey; recorded, not changed. The inverse check carries
+a measured 3e-10 slack for it (``tests/test_utm.py``). Until U5 the dropdowns
+offer the zones of ``controls.OFFERED_ZONE_BLOCKS`` only, which excludes UTM;
+``job.run`` itself accepts a UTM zone from U1, as it accepted a 2022 zone from
+H2, and the record that would describe one is U4's.
+
 ### #71 — 2026-10-22 — Options menu, Auto zone, the observation date in Options; the release machine's suite
 
 **The owner's instructions (2026-10-22)**, given when asked whether to tag

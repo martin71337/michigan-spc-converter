@@ -10,7 +10,8 @@ Two eras live here, and they are kept apart by name:
 
     SPCS83_ZONES     Michigan's three 1983 zones, on NAD83(2011)
     SPCS2022_ZONES   Michigan's nineteen 2022 zones, on NATRF2022
-    ALL_ZONES        both, derived by concatenation
+    UTM_ZONES        the three UTM zones over Michigan, on each frame (six)
+    ALL_ZONES        all three tuples, derived by concatenation
 
 A conversion between the eras crosses reference frames and is refused
 (michspc.spc.frames) until a transformation is implemented. Nothing in this
@@ -264,7 +265,8 @@ class Zone:
     """One State Plane zone."""
 
     code: str
-    """NGS zone number, e.g. "2113"."""
+    """NGS zone number, e.g. "2113" - or, for a UTM zone, its number and
+    hemisphere, with "-2022" on the NATRF2022 records: "16N", "16N-2022"."""
 
     abbrev: str
     """Short label used in output file names, e.g. "MI-S"."""
@@ -1027,8 +1029,152 @@ NGS's, not this program's.
 """
 
 
-ALL_ZONES: tuple[Zone, ...] = SPCS83_ZONES + SPCS2022_ZONES
-"""Every zone in the registry, both eras. **Derived, never written out.**
+# --------------------------------------------------------------------------
+# Universal Transverse Mercator: the three zones that cover Michigan, on BOTH
+# frames (docs/DESIGN.md amendment #72, docs/PLAN-utm-epsg.md decisions D4
+# and D5, the owner's instructions of 2026-10-29).
+#
+# **Not a State Plane system, and not a third era.** UTM is one global grid of
+# sixty six-degree zones, and it is not an NGS product (NGS's own SPCS2022
+# page: "The Universal Transverse Mercator (UTM) coordinate system and the
+# United States National Grid (USNG) are not NGS products. However, NGS
+# currently provides UTM and USNG coordinates and will continue to do so in
+# the Modernized NSRS. The definitions of UTM and USNG will not change",
+# frozen at review/nsrs-n0/raw/spcs/learn-more.html). Each zone is carried on
+# each frame, so a UTM zone belongs to the era of its frame: NAD83(2011)
+# beside the SPCS 83 zones, NATRF2022 beside the SPCS2022 zones, and a job
+# across the two frames refuses exactly as an SPCS 83 to SPCS2022 job does.
+#
+# Michigan lies across three zones: 15N (west of 90 W, the western tip of
+# Gogebic County), 16N (90 W to 84 W) and 17N (east of 84 W).
+#
+# Defining constants: UTM's definition - zone z has its central meridian at
+# 6z - 183 degrees, scale 0.9996 on it, false easting 500,000 m and, north of
+# the equator, false northing 0 m at the equator (DMA Technical Manual 8358.2,
+# "The Universal Grids: Universal Transverse Mercator (UTM) and Universal
+# Polar Stereographic (UPS)", 18 September 1989). Every figure below was read
+# from the EPSG Geodetic Parameter Dataset v12.029 (2025-10-02), conversions
+# EPSG 16015, 16016 and 16017 ("UTM zone 15N/16N/17N"), and is held against
+# frozen NCAT output on both frames in tests/test_utm.py.
+# --------------------------------------------------------------------------
+
+UTM_SYSTEM = "UTM"
+"""The system string every UTM zone carries, and what an audit column and a
+job record print beside it. Named once because the unit gate, the record and
+the Options groups all ask it."""
+
+_UTM_UNITS: tuple[LinearUnit, ...] = (METERS,)
+"""What a UTM job may be read or written in. **Metres only** (plan D4).
+
+UTM is defined in metres (its false easting is 500,000 m), NCAT prints UTM
+coordinates in metres and in no foot on either frame, and the EPSG dataset
+defines NAD83(2011) UTM zones 15N-17N in metres only (EPSG 6344-6346; it
+carries no foot variant of them). A UTM coordinate written in feet would be a
+number no published figure can be checked against - the SPCS2022 survey-foot
+reason, applied to both feet.
+"""
+
+_UTM_EASTING_WINDOW_M = 400000.0
+"""Half-width of a UTM zone's easting range, metres, about 500,000 m.
+
+The same 400 km the SPCS 83 zones use, for the same purpose: a coordinate from
+the wrong system (an SPCS 83 easting is millions of metres, an SPCS2022 one
+hundreds of thousands to two million) is flagged, and no legitimate Michigan
+point is. A point at the edge of its own six-degree band at 41.7 N is about
+250 km from the central meridian; zone 16N stretched over the whole Lower
+Peninsula reaches 82.4 W, about 382 km. Never a refusal (docs/DESIGN.md
+amendment #1).
+"""
+
+_UTM_LATITUDES = (41.6, 48.4)
+"""The latitudes a Michigan UTM zone is used over: Michigan's span, the SPCS 83
+zones' combined extent. A warning aid only - UTM itself runs 0 to 84 N."""
+
+_UTM_EPSG_CONVERSIONS = {15: 16015, 16: 16016, 17: 16017}
+"""Zone number -> the EPSG conversion that states its constants
+("UTM zone 15N" is EPSG 16015, and so on, dataset v12.029)."""
+
+_UTM_CITATION = (
+    "UTM as defined by DMA Technical Manual 8358.2, 'The Universal Grids: "
+    "Universal Transverse Mercator (UTM) and Universal Polar Stereographic "
+    "(UPS)', 18 September 1989; defining constants as stated by the EPSG "
+    "Geodetic Parameter Dataset v12.029 (2025-10-02), conversion EPSG "
+    "{conversion} ('UTM zone {number}N')"
+)
+
+
+def _utm_zone(number: int, frame: ReferenceFrame, code_suffix: str) -> Zone:
+    """One northern-hemisphere UTM zone on ``frame``, from its zone number.
+
+    The central meridian is DERIVED - 6z - 183 degrees - and so is the band,
+    so a record cannot carry another zone's meridian; every other defining
+    constant is the same for all sixty zones. The name is EPSG's own form,
+    "NAD83(2011) / UTM zone 16N", built from the frame's code, so the audit
+    CSV's zone cell (which prints the name alone) names the frame too.
+    ``code_suffix`` is "" on NAD83(2011) and "-2022" on NATRF2022, keeping
+    every code and abbreviation unique across the frames (plan D5).
+    """
+    zone_id = f"{number}N"
+    lon_origin = 6.0 * number - 183.0
+    return Zone(
+        code=f"{zone_id}{code_suffix}",
+        abbrev=f"UTM{zone_id}{code_suffix}",
+        name=f"{frame.code} / UTM zone {zone_id}",
+        system=UTM_SYSTEM,
+        frame=frame,
+        definition=TransverseMercatorDef(
+            lat_grid_origin=0.0,  # the equator
+            lon_origin=lon_origin,
+            k_origin=0.9996,
+            northing_grid_origin=0.0,  # northern hemisphere
+            easting_origin=500000.0,
+        ),
+        citation=_UTM_CITATION.format(
+            conversion=_UTM_EPSG_CONVERSIONS[number], number=number
+        ),
+        allowed_units=_UTM_UNITS,
+        easting_range_m=(
+            500000.0 - _UTM_EASTING_WINDOW_M,  # false easting from the definition above
+            500000.0 + _UTM_EASTING_WINDOW_M,
+        ),
+        lat_min=_UTM_LATITUDES[0],
+        lat_max=_UTM_LATITUDES[1],
+        # The zone's own six-degree band.
+        lon_min=lon_origin - 3.0,
+        lon_max=lon_origin + 3.0,
+    )
+
+
+UTM_ZONES: tuple[Zone, ...] = (
+    *(_utm_zone(number, NAD83_2011, "") for number in (15, 16, 17)),
+    *(_utm_zone(number, NATRF2022, "-2022") for number in (15, 16, 17)),
+)
+"""The three UTM zones over Michigan on NAD83(2011), then the same three on
+NATRF2022, west to east. Order is the order a dropdown offers (plan D6)."""
+
+
+def _check_utm_bands_match_their_meridians(zones: tuple[Zone, ...]) -> None:
+    """Refuse to import a UTM zone whose band is not centred on its meridian.
+
+    The band and the meridian are both derived from the zone number in
+    ``_utm_zone``; this is the check that they still agree after any hand
+    edit, because a band copied onto the wrong zone would warn about every
+    point in the middle of it. if/raise rather than assert, because -O strips
+    asserts.
+    """
+    for zone in zones:
+        centre = (zone.lon_min + zone.lon_max) / 2.0
+        if zone.lon_max - zone.lon_min != 6.0 or centre != zone.definition.lon_origin:
+            raise ZoneRegistryError(
+                f"{zone.name} ({zone.code}) has the longitude band "
+                f"{zone.lon_min} to {zone.lon_max}, which is not the six "
+                f"degrees centred on its central meridian "
+                f"{zone.definition.lon_origin}."
+            )
+
+
+ALL_ZONES: tuple[Zone, ...] = SPCS83_ZONES + SPCS2022_ZONES + UTM_ZONES
+"""Every zone in the registry, both eras and UTM. **Derived, never written out.**
 
 A zone belongs to exactly one era tuple, and this is their concatenation, so a
 zone cannot be added to one and forgotten in the other. Callers that mean one
@@ -1129,6 +1275,7 @@ def _check_every_easting_range_brackets_its_false_easting(
 
 
 _check_every_easting_range_brackets_its_false_easting(ALL_ZONES)
+_check_utm_bands_match_their_meridians(UTM_ZONES)
 
 
 _BY_CODE = {zone.code: zone for zone in ALL_ZONES}

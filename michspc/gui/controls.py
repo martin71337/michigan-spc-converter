@@ -219,6 +219,25 @@ def is_geodetic(data) -> bool:
     """
     return isinstance(data, GeodeticChoice)
 
+OFFERED_ZONE_BLOCKS: tuple[tuple[Zone, ...], ...] = (SPCS83_ZONES, SPCS2022_ZONES)
+"""The zone blocks every zone dropdown offers, in order, a separator before each.
+
+**THE one statement of which zones reach the interface.** ``zone_combo``
+builds its zone rows from it, and the Options groups (``options.LIST_GROUPS``)
+are derived from it, so a group can never switch rows that no dropdown holds.
+
+**``UTM_ZONES`` is deliberately absent until work package U5**
+(docs/PLAN-utm-epsg.md section 4, DESIGN.md #72): the six UTM records are in
+the registry from U1, but no UTM zone may reach a dropdown before the job
+record can describe a UTM job (U4) - the #41 rule, disclosure before
+reachability, and the H2 precedent of gating the 2022 zones out of the
+dropdowns until H5/H6. A pin in tests/test_gui_tabs.py holds the absence.
+"""
+
+OFFERED_ZONES: tuple[Zone, ...] = tuple(zone for block in OFFERED_ZONE_BLOCKS for zone in block)
+"""Every zone a dropdown offers, in dropdown order. Derived, never written out."""
+
+
 UNITS_LABEL = "Units:"
 UNITS_LABEL_ELEVATION_ONLY = "Units (elevation only):"
 """The two spellings of a unit selector's label.
@@ -523,12 +542,10 @@ def zone_combo(parent, on_change) -> QComboBox:
     # entry for the Options' Auto frame is shown.
     for choice in AUTO_CHOICES:
         combo.addItem(choice.label, choice)
-    combo.insertSeparator(combo.count())
-    for zone in SPCS83_ZONES:
-        combo.addItem(zone_label(zone), zone)
-    combo.insertSeparator(combo.count())
-    for zone in SPCS2022_ZONES:
-        combo.addItem(zone_label(zone), zone)
+    for block in OFFERED_ZONE_BLOCKS:
+        combo.insertSeparator(combo.count())
+        for zone in block:
+            combo.addItem(zone_label(zone), zone)
     combo.currentIndexChanged.connect(on_change)
     return combo
 

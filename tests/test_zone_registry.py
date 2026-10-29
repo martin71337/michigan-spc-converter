@@ -55,6 +55,7 @@ from michspc.spc.zones import (
     ALL_ZONES,
     SPCS2022_ZONES,
     SPCS83_ZONES,
+    UTM_ZONES,
     LambertOneParallelDef,
     LambertTwoParallelDef,
     ObliqueMercatorCenterDef,
@@ -436,9 +437,10 @@ def test_every_2022_citation_names_its_row_and_its_capture(zone: Zone):
 # --------------------------------------------------------------------------
 
 
-def test_all_zones_is_the_two_eras_concatenated():
-    assert ALL_ZONES == SPCS83_ZONES + SPCS2022_ZONES
-    assert len(ALL_ZONES) == 22
+def test_all_zones_is_the_three_tuples_concatenated():
+    """Both State Plane eras, then the six UTM records (DESIGN.md #72): 3 + 19 + 6."""
+    assert ALL_ZONES == SPCS83_ZONES + SPCS2022_ZONES + UTM_ZONES
+    assert len(ALL_ZONES) == 28
 
 
 def test_the_two_eras_do_not_overlap():
@@ -458,9 +460,13 @@ def test_the_two_system_spellings_are_ngs_s_own_and_are_different():
     """"SPCS 83" has a space; "SPCS2022" does not. Both are NGS's.
 
     These strings reach an audit column and a job record, so the difference is
-    a fact about the outputs and not a style choice.
+    a fact about the outputs and not a style choice. The third system is UTM
+    (DESIGN.md #72), which is not a State Plane system and is on both frames.
     """
-    assert {zone.system for zone in ALL_ZONES} == {"SPCS 83", "SPCS2022"}
+    assert {zone.system for zone in SPCS83_ZONES} == {"SPCS 83"}
+    assert {zone.system for zone in SPCS2022_ZONES} == {"SPCS2022"}
+    assert {zone.system for zone in UTM_ZONES} == {"UTM"}
+    assert {zone.system for zone in ALL_ZONES} == {"SPCS 83", "SPCS2022", "UTM"}
     assert "SPCS 2022" not in {zone.system for zone in ALL_ZONES}
 
 
@@ -469,7 +475,7 @@ def test_every_zone_is_reachable_by_code():
         assert zone_by_code(zone.code) is zone
 
 
-def test_every_zone_is_hashable_and_all_twenty_two_are_distinct():
+def test_every_zone_is_hashable_and_all_twenty_eight_are_distinct():
     """``projection.constants_for`` caches on the Zone itself.
 
     ``allowed_units`` is a tuple rather than a set or a list precisely so this
@@ -478,8 +484,8 @@ def test_every_zone_is_hashable_and_all_twenty_two_are_distinct():
     """
     for zone in ALL_ZONES:
         hash(zone)
-    assert len({hash(zone) for zone in ALL_ZONES}) == 22
-    assert len(set(ALL_ZONES)) == 22
+    assert len({hash(zone) for zone in ALL_ZONES}) == 28
+    assert len(set(ALL_ZONES)) == 28
 
 
 @pytest.mark.parametrize("field_name", ["code", "abbrev", "name"])
@@ -573,10 +579,18 @@ def test_spcs2022_zones_offer_metres_and_international_feet_only():
 
 
 def test_every_zone_offers_at_least_one_unit_and_michigan_s_legislated_one():
-    """An empty offering would leave a job with no writable unit at all."""
+    """An empty offering would leave a job with no writable unit at all.
+
+    Michigan's legislated foot is a State Plane rule: every SPCS zone of both
+    eras offers it. A UTM zone offers metres only (DESIGN.md #72, plan D4) -
+    UTM is defined in metres and NCAT and EPSG publish it in no foot.
+    """
     for zone in ALL_ZONES:
         assert zone.allowed_units
+    for zone in SPCS83_ZONES + SPCS2022_ZONES:
         assert INTERNATIONAL_FEET in zone.allowed_units
+    for zone in UTM_ZONES:
+        assert zone.allowed_units == (METERS,)
 
 
 def test_spcs83_keeps_its_four_hundred_kilometre_easting_range():

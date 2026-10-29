@@ -29,13 +29,14 @@ from dataclasses import dataclass
 
 from michspc.gui.controls import (
     GEODETIC_CHOICES,
+    OFFERED_ZONES,
     UNCHOSEN,
     is_auto,
     is_geodetic,
 )
 from michspc.job import AUTO_FRAMES, ObservationDateSource
 from michspc.spc.frames import ReferenceFrame
-from michspc.spc.zones import ALL_ZONES, Zone
+from michspc.spc.zones import Zone
 
 
 @dataclass(frozen=True)
@@ -93,8 +94,14 @@ class ListGroup:
 
 
 def _zone_systems() -> tuple[str, ...]:
+    """The zone systems the dropdowns offer, in dropdown order.
+
+    From ``controls.OFFERED_ZONES``, not the whole registry, so a system
+    whose zones are registered but not yet offered (UTM until work package
+    U5, DESIGN.md #72) gets no group that would switch nothing.
+    """
     systems: list[str] = []
-    for zone in ALL_ZONES:
+    for zone in OFFERED_ZONES:
         if zone.system not in systems:
             systems.append(zone.system)
     return tuple(systems)

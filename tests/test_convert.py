@@ -79,8 +79,10 @@ CROSS_ERA_PAIRS = [
 ]
 """Every ordered pair whose two zones are in different reference frames.
 
-Six of the twenty-two zones' 462 ordered pairs are within SPCS 83, 342 within
-SPCS2022, and the remaining 114 cross the eras. Those 114 must REFUSE today:
+The twenty-eight zones - three SPCS 83 and three UTM on NAD83(2011), nineteen
+SPCS2022 and three UTM on NATRF2022 (DESIGN.md #72) - give 756 ordered pairs:
+6x5 = 30 within NAD83(2011), 22x21 = 462 within NATRF2022, and the remaining
+2 x 6 x 22 = 264 cross the frames. Those 264 must REFUSE today:
 NAD83(2011) and NATRF2022 differ by one to two metres over North America, and
 no transformation between them is implemented (H3). This is honest behaviour,
 not a gap being papered over, and it is pinned below so that when H3 lands the
@@ -867,7 +869,7 @@ def test_spcs2022_zone_to_zone_preserves_the_geodetic_position(source, target):
 
 
 def test_every_cross_era_pair_refuses():
-    """SPCS 83 to SPCS2022, and back, in either direction: refused, all 114.
+    """Every zone pair across NAD83(2011) and NATRF2022, either way: all 264 refuse.
 
     Not a limitation being hidden - it is the frame refusal doing exactly what
     DESIGN.md section 6 says it is for, and the alternative is a coordinate
@@ -875,11 +877,14 @@ def test_every_cross_era_pair_refuses():
     names both frames.
 
     The count is asserted so this cannot pass by iterating an empty list, and
-    so the arithmetic is on the record: 22 zones give 462 ordered pairs, of
-    which 3x2 = 6 are SPCS 83 internal and 19x18 = 342 are SPCS2022 internal,
-    leaving 2 x 3 x 19 = 114 crossing.
+    so the arithmetic is on the record: 28 zones give 756 ordered pairs. Six
+    are on NAD83(2011) (the SPCS 83 zones and UTM 15N-17N) and twenty-two on
+    NATRF2022 (the SPCS2022 zones and UTM 15N-17N on that frame), so
+    2 x 6 x 22 = 264 cross. ZONE_PAIRS (3x2 = 6) and SPCS2022_PAIRS
+    (19x18 = 342) are the State Plane pairs within each era, unchanged.
     """
-    assert len(CROSS_ERA_PAIRS) == 114
+    assert len(ALL_ZONES) == 28
+    assert len(CROSS_ERA_PAIRS) == 264
     assert len(ZONE_PAIRS) == 6
     assert len(SPCS2022_PAIRS) == 342
 

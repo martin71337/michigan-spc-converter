@@ -222,8 +222,11 @@ def test_the_window_asks_controls_for_the_direction_in_every_combination(window)
     # carries the two Auto entries (controls.AUTO_CHOICES, one per Auto
     # frame), so 1 + 7 + 2 + 22 = 32. The sweep covers them on BOTH ends -
     # an Auto FROM, hidden in the interface, must still answer no job.
+    # INTERIM (DESIGN.md #72, plan section 4): the six UTM records are in the
+    # registry from U1 but reach no dropdown until U5, so the zones counted are
+    # the ones the dropdowns offer (controls.OFFERED_ZONES), still 22.
     assert len(choices) == (
-        1 + len(GEODETIC_CHOICES) + len(controls.AUTO_CHOICES) + len(ALL_ZONES)
+        1 + len(GEODETIC_CHOICES) + len(controls.AUTO_CHOICES) + len(controls.OFFERED_ZONES)
     )
     assert len(choices) == 32
 
@@ -436,7 +439,10 @@ def test_the_dropdown_pin_has_something_to_find():
     """
     assert len(SPCS2022_ZONES) == 19
     assert len(SPCS83_ZONES) == 3
-    assert len(ALL_ZONES) == 22
+    # The registry holds 28 since U1 (DESIGN.md #72); the dropdowns offer the
+    # 22 State Plane zones until U5 (the pin below).
+    assert len(ALL_ZONES) == 28
+    assert controls.OFFERED_ZONES == SPCS83_ZONES + SPCS2022_ZONES
 
     # Seven of the declared frames are offered. The bare WGS 84 label is
     # declared and NOT usable, and its absence from the dropdown is the whole
@@ -456,3 +462,30 @@ def test_the_dropdown_pin_has_something_to_find():
         "ITRF2014",
         "ITRF2020",
     ]
+
+
+def test_no_utm_zone_reaches_a_dropdown_or_an_options_group_before_u5(window):
+    """INTERIM PIN, retired by work package U5 (docs/PLAN-utm-epsg.md section 4).
+
+    The six UTM records are in the registry from U1, but no UTM zone may be
+    selectable before the job record can describe a UTM job (U4): the #41
+    rule, disclosure before reachability, and the H2 precedent, which gated
+    the 2022 zones out of the dropdowns the same way until H5/H6. Checked on
+    all four combos and on the Options groups, which derive from the same
+    ``controls.OFFERED_ZONES`` - so a "UTM zones" toggle that switches nothing
+    cannot appear either.
+    """
+    from michspc.gui import options
+    from michspc.spc.zones import UTM_SYSTEM, UTM_ZONES
+
+    assert len(UTM_ZONES) == 6
+    assert not set(UTM_ZONES) & set(controls.OFFERED_ZONES)
+    for combo in (
+        window.from_zone,
+        window.to_zone,
+        window.single_point.from_zone,
+        window.single_point.to_zone,
+    ):
+        for zone in UTM_ZONES:
+            assert combo.findData(zone) == -1, zone.name
+    assert UTM_SYSTEM not in {group.system for group in options.LIST_GROUPS}

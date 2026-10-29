@@ -93,6 +93,7 @@ from michspc.gui.controls import (
     observation_date_relevance,
     refresh_geoid_combo,
     refresh_unit_combo,
+    connect_zone_labels_to_unit,
     refresh_zone_graying,
     selection_is_compatible,
     refusal_status,
@@ -377,6 +378,10 @@ class SinglePointTab(QWidget):
         self.to_zone = zone_combo(box, self._on_to_zone_changed)
         self.input_unit = unit_combo(box)
         self.output_unit = unit_combo(box)
+        # Each side's EPSG codes follow its own Units box (DESIGN.md #72, D1):
+        # FROM reads the input unit, TO the output unit.
+        connect_zone_labels_to_unit(self.from_zone, self.input_unit)
+        connect_zone_labels_to_unit(self.to_zone, self.output_unit)
 
         # Every control that can change the answer invalidates a displayed one.
         # The unit combos have no other handler at all, so without this a

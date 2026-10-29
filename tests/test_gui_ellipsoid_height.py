@@ -478,8 +478,10 @@ def test_every_geodetic_selection_names_the_datum(window, tab):
             # Derived from the frame record, not typed: the label follows the
             # mathematics by itself, which is the reason the owner gave.
             assert combo.itemText(at) == geodetic_label(choice.frame)
-            assert combo.itemText(at) == (
-                f"{choice.frame.code} geodetic (latitude / longitude)"
+            # Since DESIGN.md #72 the frame's geographic 2D EPSG code follows
+            # in parentheses, when EPSG has one (all seven offered frames do).
+            assert combo.itemText(at).startswith(
+                f"{choice.frame.code} geodetic (latitude / longitude) (EPSG "
             )
             assert choice.frame.code in combo.itemText(at)
 

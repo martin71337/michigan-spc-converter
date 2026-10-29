@@ -58,7 +58,8 @@ from michspc.spc.vertical import (
     HeightKind,
     VerticalDatum,
 )
-from michspc.spc.zones import ALL_ZONES, SPCS2022_ZONES, SPCS83_ZONES, Zone
+from michspc.spc.epsg import frame_label_suffix, zone_label_suffix
+from michspc.spc.zones import ALL_ZONES, SPCS2022_ZONES, SPCS83_ZONES, UTM_SYSTEM, Zone
 
 UNCHOSEN = "unchosen"
 """Sentinel for a dropdown the user has not answered yet.
@@ -275,8 +276,8 @@ text stays legible; the hue is what carries the meaning.
 """
 
 
-def zone_label(zone: Zone) -> str:
-    """"Michigan South 2113 - NAD83(2011)" — built from the registry.
+def zone_label(zone: Zone, unit: LinearUnit | None = None) -> str:
+    """"Michigan South 2113 - NAD83(2011) (EPSG 6499 ift)" — built from the registry.
 
     **The frame joins the label at H6**, and it is not decoration: two eras of
     Michigan zone are offered in one dropdown from this release on, the two
@@ -288,9 +289,54 @@ def zone_label(zone: Zone) -> str:
     Derived from the record's own fields — name, code, and the frame's code —
     so a label cannot drift from the mathematics the zone converts through,
     which is the #58 rule applied to the zone entries for the same reason it
-    was applied to the geodetic ones.
+    was applied to the geodetic ones. A UTM zone's name is EPSG's own form,
+    "NAD83(2011) / UTM zone 16N", which already carries its frame and its
+    zone number, so its label is the name (DESIGN.md #72).
+
+    **The EPSG code follows the side's Units box** (the owner's decision D1,
+    DESIGN.md #72): given that side's current ``unit``, the code shown is the
+    one for the unit the Units box WOULD hold if this zone were chosen -
+    ``unit_if_chosen``, the very rule ``refresh_unit_combo`` applies - with
+    the unit named, "(EPSG 6499 ift)". No code where EPSG has none (D2): any
+    SPCS2022 zone, any NATRF2022 UTM zone, any zone in US survey feet. With
+    ``unit`` None the label carries no code at all.
     """
-    return f"{zone.name} {zone.code} - {zone.frame.code}"
+    if zone.system == UTM_SYSTEM:
+        title = zone.name
+    else:
+        title = f"{zone.name} {zone.code} - {zone.frame.code}"
+    if unit is None:
+        return title
+    return f"{title}{zone_label_suffix(zone, unit_if_chosen(zone, unit))}"
+
+
+def relabel_zone_rows(combo, unit_combo_widget) -> None:
+    """Re-render every zone row of a zone dropdown for its side's current unit.
+
+    ``setItemText`` only: no row is added, removed or selected, so no
+    ``currentIndexChanged`` fires and no handler runs (DESIGN.md #72, D1).
+    Called whenever the side's Units box changes, and once at construction.
+    A Units box caught mid-rebuild (``refresh_unit_combo`` clears it, so it
+    briefly holds nothing) is skipped; the rebuild's own final selection
+    signals again and the rows are re-rendered then.
+    """
+    unit = unit_combo_widget.currentData()
+    if not isinstance(unit, LinearUnit):
+        return
+    for index in range(combo.count()):
+        data = combo.itemData(index)
+        if isinstance(data, Zone):
+            text = zone_label(data, unit)
+            if combo.itemText(index) != text:
+                combo.setItemText(index, text)
+
+
+def connect_zone_labels_to_unit(combo, unit_combo_widget) -> None:
+    """Make a zone dropdown's EPSG codes follow its side's Units box, now and on change."""
+    unit_combo_widget.currentIndexChanged.connect(
+        lambda _index: relabel_zone_rows(combo, unit_combo_widget)
+    )
+    relabel_zone_rows(combo, unit_combo_widget)
 
 
 def geodetic_label(frame: ReferenceFrame) -> str:
@@ -313,7 +359,8 @@ def geodetic_label(frame: ReferenceFrame) -> str:
     It carries the realization as well as the datum - "NAD83(2011)", not
     "NAD83" - because the frame record's own code is the authoritative string.
     """
-    return f"{frame.code} geodetic (latitude / longitude)"
+    # D3 (DESIGN.md #72): the frame's geographic 2D EPSG code, no unit.
+    return f"{frame.code} geodetic (latitude / longitude){frame_label_suffix(frame)}"
 
 
 def _has_a_transformation(source: ReferenceFrame, target: ReferenceFrame) -> bool:
@@ -663,15 +710,31 @@ def refresh_unit_combo(combo, units) -> bool:
     combo.clear()
     for unit in units:
         combo.addItem(unit.name, unit)
-    preferred = (
-        previous
-        if previous in units
-        else INTERNATIONAL_FEET
-        if INTERNATIONAL_FEET in units
-        else units[0]
-    )
+    preferred = preferred_unit(previous, units)
     combo.setCurrentIndex(combo.findData(preferred))
     return preferred is not previous
+
+
+def preferred_unit(previous, units) -> LinearUnit:
+    """The unit a Units box holds once it offers ``units``: THE one rule.
+
+    The previous selection when it survives, else Michigan's legislated
+    international foot when offered, else the first unit offered.
+    ``refresh_unit_combo`` applies it, and the zone labels predict with it
+    (``unit_if_chosen``), so the EPSG code a dropdown row shows is the code of
+    the unit the job will actually use if that row is chosen (DESIGN.md #72).
+    """
+    units = tuple(units)
+    if previous in units:
+        return previous
+    if INTERNATIONAL_FEET in units:
+        return INTERNATIONAL_FEET
+    return units[0]
+
+
+def unit_if_chosen(zone: Zone, current: LinearUnit) -> LinearUnit:
+    """The unit a side's Units box would hold if ``zone`` were chosen there."""
+    return preferred_unit(current, zone.allowed_units)
 
 
 DEFAULT_LONGITUDE_CONVENTION = LongitudeConvention.POSITIVE_WEST

@@ -43,6 +43,7 @@ from michspc.gui.window import (  # noqa: E402
     MainWindow,
 )
 from michspc.spc.frames import ALL_FRAMES, NAD83_2011  # noqa: E402
+from michspc.spc.units import INTERNATIONAL_FEET  # noqa: E402
 from michspc.spc.zones import (  # noqa: E402
     ALL_ZONES,
     SPCS2022_ZONES,
@@ -374,8 +375,10 @@ def test_every_registered_zone_is_offered_in_all_four_zone_dropdowns(window):
         for zone in (*SPCS83_ZONES, *SPCS2022_ZONES):
             position = combo.findData(zone)
             assert position >= 0, f"{zone.name} is not selectable"
-            assert combo.itemText(position) == (
-                f"{zone.name} {zone.code} - {zone.frame.code}"
+            # With the side's unit's EPSG code since DESIGN.md #72; both
+            # sides open on international feet.
+            assert combo.itemText(position) == controls.zone_label(
+                zone, INTERNATIONAL_FEET
             )
 
 

@@ -300,7 +300,7 @@ def test_zone_to_zone_values_are_the_formatters_output():
     source, target = rm.single_point_sections(result)
 
     assert _by_label(source) == {
-        "Zone": zone_label(MI_SOUTH),
+        "Zone": zone_label(MI_SOUTH, settings.input_unit),
         "Units": f"{INTERNATIONAL_FEET.name} ({INTERNATIONAL_FEET.code})",
         "Northing": fmt.coordinate(point.row.northing, settings.input_unit),
         "Easting": fmt.coordinate(point.row.easting, settings.input_unit),
@@ -309,7 +309,7 @@ def test_zone_to_zone_values_are_the_formatters_output():
         "Convergence": fmt.convergence_display(conversion.source_convergence),
     }
     assert _by_label(target) == {
-        "Zone": zone_label(MI_CENTRAL),
+        "Zone": zone_label(MI_CENTRAL, settings.output_unit),
         "Units": f"{INTERNATIONAL_FEET.name} ({INTERNATIONAL_FEET.code})",
         "Northing": fmt.coordinate(point.output_northing, settings.output_unit),
         "Easting": fmt.coordinate(point.output_easting, settings.output_unit),
@@ -343,7 +343,7 @@ def test_zone_to_geodetic_values_are_the_formatters_output():
     source, target = rm.single_point_sections(result)
 
     assert _by_label(source) == {
-        "Zone": zone_label(MI_SOUTH),
+        "Zone": zone_label(MI_SOUTH, settings.input_unit),
         "Units": f"{INTERNATIONAL_FEET.name} ({INTERNATIONAL_FEET.code})",
         "Northing": fmt.coordinate(point.row.northing, settings.input_unit),
         "Easting": fmt.coordinate(point.row.easting, settings.input_unit),
@@ -400,7 +400,7 @@ def test_geodetic_to_zone_values_are_the_formatters_output():
     assert values["Longitude (DMS)"] == fmt.longitude_dms(conversion.longitude)
 
     assert _by_label(target) == {
-        "Zone": zone_label(MI_SOUTH),
+        "Zone": zone_label(MI_SOUTH, settings.output_unit),
         "Units": f"{INTERNATIONAL_FEET.name} ({INTERNATIONAL_FEET.code})",
         "Northing": fmt.coordinate(point.output_northing, settings.output_unit),
         "Easting": fmt.coordinate(point.output_easting, settings.output_unit),

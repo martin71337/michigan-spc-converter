@@ -37,7 +37,7 @@ from PySide6.QtWidgets import QApplication  # noqa: E402
 from tests.conftest import archive_members, member_text
 
 from michspc.fileio import exports, formatting as fmt, pnezd  # noqa: E402
-from michspc.gui import icon, results_model, window as window_module  # noqa: E402
+from michspc.gui import controls, icon, results_model, window as window_module  # noqa: E402
 from michspc.gui.app import build_application  # noqa: E402
 from michspc.gui.window import (  # noqa: E402
     geodetic_choice,
@@ -241,10 +241,16 @@ def test_zone_dropdowns_are_built_from_the_registry(window):
             position = combo.findData(zone)
             assert position >= 0, f"{zone.name} is not selectable"
             # The label is assembled from the registry record itself - and it
-            # names the frame since H6, because two eras share this dropdown.
-            assert combo.itemText(position) == (
-                f"{zone.name} {zone.code} - {zone.frame.code}"
+            # names the frame since H6, because two eras share this dropdown -
+            # and since DESIGN.md #72 the EPSG code of the side's unit:
+            # international feet, the default, on both sides here.
+            assert combo.itemText(position) == controls.zone_label(
+                zone, INTERNATIONAL_FEET
             )
+            assert combo.itemText(position).startswith(
+                f"{zone.name} {zone.code} - {zone.frame.code} (EPSG "
+            )
+            assert combo.itemText(position).endswith(" ift)")
 
 
 def test_unit_dropdowns_offer_every_unit_and_default_to_international_feet(window):

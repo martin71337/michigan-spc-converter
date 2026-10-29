@@ -745,8 +745,10 @@ def test_an_auto_single_point_result_names_its_zone_and_county(tab):
     point = tab.result.points[0]
     assert point.auto_zone.zone is MI_SOUTH
     rows = dict(tab.displayed_rows())
-    assert rows["Zone"] == controls.zone_label(MI_SOUTH) == (
-        "Michigan South 2113 - NAD83(2011)"
+    # The Zone row names the EPSG code of the unit the point was written in
+    # (DESIGN.md #72): international feet, "NAD83(2011) / Michigan South (ft)".
+    assert rows["Zone"] == controls.zone_label(MI_SOUTH, INTERNATIONAL_FEET) == (
+        "Michigan South 2113 - NAD83(2011) (EPSG 6499 ift)"
     )
     assert rows["County"] == "Calhoun"
     assert rows["County FIPS"] == "26025"
@@ -756,7 +758,7 @@ def test_an_auto_single_point_result_names_its_zone_and_county(tab):
 
     assert tab.copy_all() is True
     copied = tab.clipboard[-1]
-    assert "Zone\tMichigan South 2113 - NAD83(2011)" in copied
+    assert "Zone\tMichigan South 2113 - NAD83(2011) (EPSG 6499 ift)" in copied
     assert "County\tCalhoun" in copied
     assert "County FIPS\t26025" in copied
     assert copied == single_point_clipboard_text(tab.sections)

@@ -919,7 +919,7 @@ def _grid_values(
     else - the label moves, the value's formatter never does.
     """
     return (
-        ResultValue(ZONE_LABEL, zone_label(zone)),
+        ResultValue(ZONE_LABEL, zone_label(zone, unit)),
         ResultValue(UNITS_LABEL, _units_text(unit)),
         ResultValue(NORTHING_LABEL, fmt.coordinate(northing, unit)),
         ResultValue(EASTING_LABEL, fmt.coordinate(easting, unit)),

@@ -709,6 +709,17 @@ offer the zones of ``controls.OFFERED_ZONE_BLOCKS`` only, which excludes UTM;
 ``job.run`` itself accepts a UTM zone from U1, as it accepted a 2022 zone from
 H2, and the record that would describe one is U4's.
 
+**U2 accepted (lead's review, 2026-10-29).** The EPSG table (`spc/epsg.py`)
+and the unit-following labels on both tabs. `preferred_unit` is now the one
+rule the Units rebuild applies and the labels predict with. Re-checked by the
+lead against the EPSG database: all 9 zone codes by name and unit factor, all
+7 frame codes by name and 2D type. Six seeds caught. **One addition beyond
+the brief, left in for the owner's review:** the Single point panel's Zone row
+(and Copy all) now carries the code of the unit the job used, e.g.
+"Michigan South 2113 - NAD83(2011) (EPSG 6499 ift)". Screen and clipboard
+only; no file carries a code, which the unchanged record and export digest
+pins prove.
+
 ### #71 — 2026-10-22 — Options menu, Auto zone, the observation date in Options; the release machine's suite
 
 **The owner's instructions (2026-10-22)**, given when asked whether to tag

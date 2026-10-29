@@ -78,6 +78,7 @@ from michspc.spc.zones import (  # noqa: E402
     MI_SOUTH,
     SPCS2022_ZONES,
     SPCS83_ZONES,
+    UTM_SYSTEM,
     zone_by_code,
 )
 from tests.fixtures.vertcon_anchors import NGVD29_TO_NAVD88_ANCHORS  # noqa: E402
@@ -447,8 +448,11 @@ def test_the_wgs84_and_itrf_frames_reach_every_dropdown(window):
             position = combo.findData(choice)
             assert position >= 0, f"{frame.code} is not offered"
             # Derived, never typed (#58): "WGS84(G2296) geodetic (latitude /
-            # longitude)", from the record's own code.
-            assert labels[position] == f"{frame.code} geodetic (latitude / longitude)"
+            # longitude) (EPSG 10606)", from the record's own code and the
+            # EPSG table (DESIGN.md #72).
+            assert labels[position].startswith(
+                f"{frame.code} geodetic (latitude / longitude) (EPSG "
+            )
             assert labels[position] == controls.geodetic_label(frame)
         for index in range(combo.count()):
             data = combo.itemData(index)
@@ -464,15 +468,25 @@ def test_every_zone_label_is_derived_from_its_own_record():
     zone in the registry, in both eras, so a label typed out for any one of
     them fails here.
     """
+    # The State Plane zones: "name code - frame". A UTM zone's name is EPSG's
+    # own form, "NAD83(2011) / UTM zone 16N", which carries the frame and the
+    # zone number already, so its label is the name (DESIGN.md #72). With no
+    # unit given, no EPSG code.
     for zone in ALL_ZONES:
-        assert controls.zone_label(zone) == (
-            f"{zone.name} {zone.code} - {zone.frame.code}"
-        )
+        if zone.system == UTM_SYSTEM:
+            assert controls.zone_label(zone) == zone.name
+            assert zone.name.startswith(f"{zone.frame.code} / UTM zone ")
+        else:
+            assert controls.zone_label(zone) == (
+                f"{zone.name} {zone.code} - {zone.frame.code}"
+            )
         assert zone.frame.code in controls.zone_label(zone)
 
     # And the two eras really do produce different frame codes, so the pin is
-    # not passing on twenty-two copies of one string.
-    codes = {controls.zone_label(z).rsplit(" - ", 1)[1] for z in ALL_ZONES}
+    # not passing on twenty-eight copies of one string.
+    codes = {
+        z.frame.code for z in ALL_ZONES if z.frame.code in controls.zone_label(z)
+    }
     assert codes == {"NAD83(2011)", "NATRF2022"}
 
 

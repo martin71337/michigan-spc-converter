@@ -1278,6 +1278,38 @@ _check_every_easting_range_brackets_its_false_easting(ALL_ZONES)
 _check_utm_bands_match_their_meridians(UTM_ZONES)
 
 
+STATE_PLANE_GRID = "State Plane"
+UTM_GRID = "UTM"
+
+
+def grid_name(zone) -> str:
+    """"State Plane" or "UTM": what kind of grid coordinate this zone holds.
+
+    The one rule every refusal, warning and record sentence uses when it names
+    a zone's coordinates in words - "a vertical-only job reading State Plane
+    coordinates", "UTM to geodetic" - so a sentence written when every zone was
+    State Plane cannot call a UTM coordinate one (DESIGN.md #72, work package
+    U3). Anything that is not a UTM ``Zone`` - every State Plane zone, and a
+    value that has not yet passed validation - reads "State Plane", the wording
+    those sentences always printed, so no State Plane job's text moves.
+    """
+    if isinstance(zone, Zone) and zone.system == UTM_SYSTEM:
+        return UTM_GRID
+    return STATE_PLANE_GRID
+
+
+def grid_names_phrase(zones) -> str:
+    """"State Plane", "UTM" or "State Plane and UTM": the grids these zones hold."""
+    names = []
+    for zone in zones:
+        name = grid_name(zone)
+        if name not in names:
+            names.append(name)
+    if UTM_GRID in names and STATE_PLANE_GRID in names:
+        return f"{STATE_PLANE_GRID} and {UTM_GRID}"
+    return names[0] if names else STATE_PLANE_GRID
+
+
 _BY_CODE = {zone.code: zone for zone in ALL_ZONES}
 
 

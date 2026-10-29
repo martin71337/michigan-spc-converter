@@ -720,6 +720,19 @@ the brief, left in for the owner's review:** the Single point panel's Zone row
 only; no file carries a code, which the unchanged record and export digest
 pins prove.
 
+**U3-U4 accepted (lead's review, 2026-10-29).** The job path and the record,
+built as one package (the plan's recorded deviation). SPCS 83 to UTM jobs take
+NCAT's own State Plane coordinate in and return NCAT's own UTM coordinate for
+the same position, across all six Michigan zone pairings and 204 anchors,
+through the written ZIP; SPCS2022 to UTM-2022 across 34 beta anchors. The era
+check now sorts by frame. The UTM METHOD arm is pinned whole for each frame,
+and ends "The NCAT checks compare this software against NGS, not against
+itself" rather than the State Plane arms' "Neither compares it against
+itself", because the zone 15 check is a self-comparison. Every State Plane and
+geodetic record is byte-identical. **Left for the interim gate:** the
+"NOAA Manual NOS NGS 5 publishes SPCS 83 in meters (PDF p. 21)" units line,
+which a UTM or SPCS2022 job prints as it always has.
+
 ### #71 — 2026-10-22 — Options menu, Auto zone, the observation date in Options; the release machine's suite
 
 **The owner's instructions (2026-10-22)**, given when asked whether to tag

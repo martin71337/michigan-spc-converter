@@ -68,7 +68,7 @@ from michspc.spc.frames import (
 )
 from michspc.spc.projection import forward as project_forward
 from michspc.spc.projection import inverse as project_inverse
-from michspc.spc.zones import Zone
+from michspc.spc.zones import Zone, grid_name
 
 class WarningCode(Enum):
     """Machine-readable warning kinds, so the report can group them."""
@@ -972,7 +972,8 @@ def project_point(
             f"expressed in, as its third argument; got "
             f"{type(source_frame).__name__} ({source_frame!r}). A latitude and "
             f"longitude do not carry their own frame, and the frame decides "
-            f"whether the resulting State Plane coordinate is right or is one "
+            f"whether the resulting {grid_name(target_zone)} coordinate is "
+            f"right or is one "
             f"to two metres out. Pass michspc.spc.frames.NAD83_2011 for an "
             f"NAD 83 position."
         )

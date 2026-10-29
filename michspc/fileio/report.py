@@ -53,13 +53,16 @@ from michspc.spc.zones import (
     SPCS2022_DEFINITIONS_FILENAME,
     SPCS2022_DEFINITIONS_SHA256,
     SPCS2022_POLICY_CITATION,
-    SPCS2022_ZONES,
+    UTM_GRID,
+    UTM_SYSTEM,
     LambertOneParallelDef,
     LambertTwoParallelDef,
     ObliqueMercatorCenterDef,
     ProjectionKind,
     TransverseMercatorDef,
+    grid_name,
 )
+from michspc.spc.frames import NAD83_2011, NATRF2022
 
 _RULE = "=" * 78
 _THIN = "-" * 78
@@ -1671,13 +1674,6 @@ than the job actually used - a sealed document understating its own method -
 and ``_equation_lines`` refuses instead.
 """
 
-_SPCS2022_ZONE_CODES = frozenset(zone.code for zone in SPCS2022_ZONES)
-"""The 2022 era, derived from the registry's own tuple rather than restated.
-
-A zone added to ``SPCS2022_ZONES`` is in this set the moment it is added, so a
-new 2022 zone cannot be described by the 1983 era's METHOD section.
-"""
-
 
 def _job_zones(settings, result=None) -> tuple:
     """Every zone this record DESCRIBES, source first.
@@ -1941,6 +1937,230 @@ def _method_spcs2022(zones) -> list[str]:
     return lines
 
 
+UTM_NAD83_2011_ANCHOR_COUNT = 212
+UTM_NAD83_2011_ANCHOR_WORDS = "Two hundred twelve"
+UTM_NATRF2022_ANCHOR_COUNT = 34
+UTM_NATRF2022_ANCHOR_WORDS = "Thirty-four"
+UTM_ANCHORS_CAPTURED = "2026-10-22"
+"""The UTM verification counts and capture date this record prints.
+
+Literals, as the State Plane arms' "Twenty-seven" and "Sixty-three" are, and
+held against the length of ``tests/fixtures/utm_anchors.py``'s two tuples by
+the suite - so the record cannot claim more anchors than the suite checks.
+"""
+
+
+def _spcs83_verification_paragraphs() -> list[str]:
+    """The 1983 arm's two verification paragraphs, byte for byte, from the arm itself.
+
+    Sliced out of ``_method_spcs83`` rather than retyped, so the record cannot
+    describe the SPCS 83 verification in two wordings. A marker that has moved
+    refuses rather than slicing the wrong lines.
+    """
+    arm = _method_spcs83()
+    start = arm.index("The zone constants used above are not taken on trust. The manual")
+    end = arm.index("Both checks compare this software against NGS. Neither compares it")
+    return arm[start:end]
+
+
+def _spcs2022_paragraphs(zones) -> tuple[list[str], list[str]]:
+    """The 2022 arm's authority-and-data lines and its verification paragraphs.
+
+    Sliced out of ``_method_spcs2022`` for the reason the 1983 paragraphs
+    are: one wording of each fact. The authority slice starts at the SPCS2022
+    policy paragraph (the arm's first paragraph is the manual, which the UTM
+    arm states in its own words) and ends before Equations.
+    """
+    arm = _method_spcs2022(zones)
+    policy = next(
+        i for i, line in enumerate(arm) if SPCS2022_POLICY_CITATION.split()[0] in line
+        and i > 0 and arm[i - 1] == ""
+    )
+    equations = next(i for i, line in enumerate(arm) if line.startswith("Equations"))
+    verified = arm.index("HOW THIS SOFTWARE IS VERIFIED")
+    end = arm.index("Both checks compare this software against NGS. Neither compares it")
+    return arm[policy:equations], arm[verified + 2 : end]
+
+
+def _wrapped(text: str) -> list[str]:
+    return textwrap.wrap(text, width=78, break_long_words=False, break_on_hyphens=False)
+
+
+def _utm_verification_paragraphs(frame) -> list[str]:
+    """How the UTM equations are checked, for the frame this job's UTM zone is on."""
+    lines: list[str] = []
+    lines.extend(
+        _wrapped(
+            "The UTM zone constants are not taken on trust. UTM is "
+            "defined by constants every zone shares - scale 0.9996 on the "
+            "central meridian, a false easting of 500,000 m, a false northing "
+            "of 0 m at the equator - and by its central meridian, 6z - 183 "
+            "degrees for zone z. This software stores those and derives the "
+            "rest; its test suite holds each stored zone to them."
+        )
+    )
+    lines.append("")
+    if frame is NATRF2022:
+        lines.extend(
+            _wrapped(
+                f"The conversion itself is checked against the National "
+                f"Geodetic Survey's own Coordinate Conversion and "
+                f"Transformation Tool (NCAT). {UTM_NATRF2022_ANCHOR_WORDS} "
+                f"positions in UTM zone 16 were converted by beta NCAT in "
+                f"NATRF2022 (captured {UTM_ANCHORS_CAPTURED}), and those "
+                f"results are held in the test suite as fixed reference "
+                f"values. This software reproduces their northing, easting, "
+                f"convergence and scale factor within the precision NCAT "
+                f"prints, converting both to and from the grid."
+            )
+        )
+        lines.append("")
+        lines.extend(
+            _wrapped(
+                f"The equations do not depend on the frame: a UTM zone on "
+                f"NATRF2022 has exactly the constants of the same zone on "
+                f"NAD83(2011), so the "
+                f"{UTM_NAD83_2011_ANCHOR_WORDS.lower()} production NCAT "
+                f"positions in NAD83(2011) zones 16 and 17 check the same "
+                f"equations. Zone 15, which covers only the western tip of "
+                f"Gogebic County, has no NCAT position on either frame; it is "
+                f"the same projection with its central meridian six degrees "
+                f"west of zone 16's, and the suite holds it to zone 16 at "
+                f"points the same distance from their meridians."
+            )
+        )
+        lines.append("")
+        lines.extend(
+            _wrapped(
+                "The NATRF2022 anchors come from NGS's beta products, "
+                "published ahead of the official release for implementation. "
+                "They are to be re-frozen against NGS's official release when "
+                "it is published, and the difference measured "
+                "(docs/REFREEZE-NSRS.md)."
+            )
+        )
+    else:
+        lines.extend(
+            _wrapped(
+                f"The conversion itself is checked against the National "
+                f"Geodetic Survey's own Coordinate Conversion and "
+                f"Transformation Tool (NCAT). {UTM_NAD83_2011_ANCHOR_WORDS} "
+                f"positions across Michigan in UTM zones 16 and 17 were "
+                f"converted by production NCAT in NAD83(2011) (captured "
+                f"{UTM_ANCHORS_CAPTURED}), and those results are held in the "
+                f"test suite as fixed reference values. This software "
+                f"reproduces their northing, easting, convergence and scale "
+                f"factor within the precision NCAT prints, converting both to "
+                f"and from the grid."
+            )
+        )
+        lines.append("")
+        lines.extend(
+            _wrapped(
+                "Zone 15, which covers only the western tip of Gogebic "
+                "County, has no NCAT position in Michigan. It is the same "
+                "projection with its central meridian six degrees west of "
+                "zone 16's, and the suite holds it to zone 16 at points the "
+                "same distance from their meridians."
+            )
+        )
+    lines.append("")
+    return lines
+
+
+def _method_with_utm(zones) -> list[str]:
+    """The METHOD and verification sections for any job with a UTM zone in it.
+
+    DESIGN.md #72, work package U4. UTM is not a State Plane system, so
+    neither State Plane arm can describe it: the 1983 arm says "Lambert",
+    "Appendix C" and "Twenty-seven positions spanning the three zones", and
+    the 2022 arm says every constant came from NGS's SPCS2022 capture. This
+    arm states what is true of a UTM job, in the record's own voice: the
+    manual's equations for the projections present, UTM's defining authority,
+    and the NCAT anchors of the job's frame - plus, when a State Plane zone of
+    the same frame is also in the job, that era's own verification paragraphs,
+    sliced from its arm so they read the same as they always have.
+
+    All zones are on one frame; ``_method_and_verification`` checks that
+    before calling.
+    """
+    frame = zones[0].frame
+    state_plane = [zone for zone in zones if zone.system != UTM_SYSTEM]
+    spcs2022 = [zone for zone in state_plane if zone.frame is NATRF2022]
+    spcs83 = [zone for zone in state_plane if zone.frame is NAD83_2011]
+
+    lines: list[str] = []
+    add = lines.append
+    lines.extend(
+        _labelled_paragraph(
+            "Authority",
+            "NOAA Manual NOS NGS 5, State Plane Coordinate System of 1983 "
+            "(Stem, January 1989; reprinted with minor corrections March "
+            "1990) - the mapping equations, one set per projection, that "
+            "every zone in this job is projected with.",
+        )
+    )
+    add("")
+    lines.extend(
+        _labelled_paragraph(
+            "",
+            "DMA Technical Manual 8358.2, 'The Universal Grids: Universal "
+            "Transverse Mercator (UTM) and Universal Polar Stereographic "
+            "(UPS)', 18 September 1989 - the definition of UTM. Its constants "
+            "as stated by the EPSG Geodetic Parameter Dataset v12.029 "
+            "(2025-10-02), conversions EPSG 16015, 16016 and 16017 (UTM zones "
+            "15N, 16N and 17N).",
+        )
+    )
+    add("")
+    if spcs2022:
+        authority_2022, _ = _spcs2022_paragraphs(spcs2022)
+        lines.extend(authority_2022)
+    lines.extend(
+        _labelled_paragraph(
+            "Equations",
+            "The rigorous mapping equations of NOAA Manual NOS NGS 5, one set "
+            "per projection this job uses:",
+        )
+    )
+    lines.extend(_equation_lines(zones))
+    add("")
+    if frame is NATRF2022:
+        ellipsoid = (
+            "GRS 80 - the ellipsoid of NAD 83 and of NATRF2022 alike (NOAA "
+            "Technical Report NOS NGS 62)."
+        )
+    else:
+        ellipsoid = "GRS 80, the ellipsoid of NAD 83 (manual section 1.7)."
+    lines.extend(
+        _labelled_paragraph(
+            "Ellipsoid",
+            f"{ellipsoid} Only the semimajor axis and the flattening are "
+            f"stored; every other constant is derived from those two.",
+        )
+    )
+    add("")
+    add("HOW THIS SOFTWARE IS VERIFIED")
+    add("")
+    if spcs83:
+        add("The SPCS 83 zone:")
+        add("")
+        lines.extend(_spcs83_verification_paragraphs())
+        add("The UTM zone:")
+        add("")
+    elif spcs2022:
+        _, verified_2022 = _spcs2022_paragraphs(spcs2022)
+        add("The SPCS2022 zone:")
+        add("")
+        lines.extend(verified_2022)
+        add("The UTM zone:")
+        add("")
+    lines.extend(_utm_verification_paragraphs(frame))
+    add("The NCAT checks compare this software against NGS, not against itself.")
+    add("")
+    return lines
+
+
 def _method_and_verification(settings, result=None) -> list[str]:
     """The METHOD section, in the era of the zones this job actually uses.
 
@@ -1974,8 +2194,13 @@ def _method_and_verification(settings, result=None) -> list[str]:
         if system is AutoZoneSystem.SPCS2022:
             return _method_spcs2022(list(zones))
         return _method_spcs83()
-    modern = [zone for zone in zones if zone.code in _SPCS2022_ZONE_CODES]
-    legacy = [zone for zone in zones if zone.code not in _SPCS2022_ZONE_CODES]
+    # The era is the FRAME's (DESIGN.md #72, U4): a UTM zone belongs to the era
+    # of the frame it is carried on, so a NATRF2022 UTM zone beside an
+    # SPCS2022 zone is one era and converts, and NAD83(2011) UTM beside an
+    # SPCS 83 zone likewise. Sorting by SPCS2022 code put every UTM zone in
+    # the 1983 era and refused the first pair.
+    modern = [zone for zone in zones if zone.frame is NATRF2022]
+    legacy = [zone for zone in zones if zone.frame is not NATRF2022]
     if modern and legacy:
         raise ValueError(
             f"This job names zones from two eras - "
@@ -1988,9 +2213,29 @@ def _method_and_verification(settings, result=None) -> list[str]:
             f"(docs/DEFERRED-NATRF2022-BRIDGE.md); a conversion between the "
             f"eras is refused before any coordinate is computed."
         )
+    if any(zone.system == UTM_SYSTEM for zone in zones):
+        return _method_with_utm(list(zones))
     if modern:
         return _method_spcs2022(modern)
     return _method_spcs83()
+
+
+def _conversion_text(settings) -> str:
+    """The OUTPUT block's Conversion line: the direction, naming the zone's grid.
+
+    ``Direction``'s two State Plane values name the grid as "State Plane",
+    which is false of a UTM end (DESIGN.md #72, U4): a UTM job reads "geodetic
+    to UTM" or "UTM to geodetic". Every State Plane job's line is the
+    direction's value exactly, as it always was. "zone to zone" stays as it is
+    on every job, a UTM end included: a UTM zone is a zone, and the record's
+    FROM and TO blocks name each zone's system.
+    """
+    text = settings.direction.value
+    if settings.direction is Direction.GEODETIC_TO_ZONE:
+        return text.replace("State Plane", grid_name(settings.target_zone))
+    if settings.direction is Direction.ZONE_TO_GEODETIC:
+        return text.replace("State Plane", grid_name(settings.source_zone))
+    return text
 
 
 def build_report(result: JobResult) -> str:
@@ -2125,7 +2370,7 @@ def build_report(result: JobResult) -> str:
     add("OUTPUT")
     add(_THIN)
     add(f"Folder             {settings.output_directory}")
-    add(f"Conversion         {settings.direction.value}")
+    add(f"Conversion         {_conversion_text(settings)}")
     if settings.direction is Direction.VERTICAL_ONLY:
         # The one direction whose OUTPUT is not a converted coordinate. Said
         # here, at the line a reader consults first, so nobody takes the
@@ -2327,7 +2572,10 @@ def build_report(result: JobResult) -> str:
         if settings.source_zone is not None:
             add("No output zone exists in this mode, so the grid scale factor,")
             add("convergence and combined factor below are the INPUT zone's at")
-            add("each point - exactly as a State Plane to geodetic job reports")
+            add(
+                f"each point - exactly as a {grid_name(settings.source_zone)} "
+                f"to geodetic job reports"
+            )
             add("them.")
         else:
             add("No State Plane zone is involved in this job, so no grid scale")

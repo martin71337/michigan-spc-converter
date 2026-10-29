@@ -70,7 +70,7 @@ from michspc.spc.vertical import (
     require_vertical_pair,
     signed_shift,
 )
-from michspc.spc.zones import Zone
+from michspc.spc.zones import UTM_SYSTEM, Zone, grid_name, grid_names_phrase
 
 
 class Direction(Enum):
@@ -1122,7 +1122,7 @@ def _stray_zone_message(settings: JobSettings, field: str) -> str:
 
 _AUTO_TARGET_REASONS = {
     Direction.ZONE_TO_ZONE: (
-        "its input is State Plane coordinates, and Auto chooses a zone from a "
+        "its input is {grid} coordinates, and Auto chooses a zone from a "
         "latitude and longitude only (docs/PLAN-options-autozone.md L1)"
     ),
     Direction.ZONE_TO_GEODETIC: (
@@ -1172,7 +1172,10 @@ def _require_auto_zone_settings(settings: JobSettings) -> None:
             f"but Auto zone is the output of a "
             f"{Direction.GEODETIC_TO_ZONE.name} job only - it chooses each "
             f"point's zone from that point's latitude and longitude - and "
-            f"this job {_AUTO_TARGET_REASONS[settings.direction]}. State the "
+            f"this job "
+            # The input's own grid (DESIGN.md #72): a UTM input is not State
+            # Plane coordinates. Only the ZONE_TO_ZONE reason has the slot.
+            f"{_AUTO_TARGET_REASONS[settings.direction].format(grid=grid_name(settings.source_zone))}. State the "
             f"zone, or None where this direction has no zone."
         )
     if settings.auto_frame is None:
@@ -1378,7 +1381,7 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
         and settings.longitude_convention is not None
     ):
         raise ValueError(
-            f"A vertical-only job reading State Plane coordinates was given "
+            f"A vertical-only job reading {grid_name(settings.source_zone)} coordinates was given "
             f"a longitude sign convention "
             f"({settings.longitude_convention.value!r}). The input file "
             f"carries no longitude column and none is written - the pivot "
@@ -1833,8 +1836,8 @@ def _require_no_stray_frame_fields(settings: JobSettings) -> None:
         reading = (
             "both ends are zones"
             if settings.direction is Direction.ZONE_TO_ZONE
-            else "the input is State Plane coordinates and nothing is written "
-            "as latitude and longitude"
+            else f"the input is {grid_name(settings.source_zone)} coordinates and "
+            "nothing is written as latitude and longitude"
         )
         raise ValueError(
             f"A {settings.direction.name} job was given geodetic_frame="
@@ -2124,7 +2127,13 @@ def _require_the_observation_date(
                     f"its positions are in {frame_path.source.code}, a "
                     f"plate-fixed frame published at its reference epoch."
                     if frame_path is not None
-                    else "it reads and writes only State Plane coordinates."
+                    else "it reads and writes only "
+                    + grid_names_phrase(
+                        z
+                        for z in (settings.source_zone, settings.target_zone)
+                        if z is not None
+                    )
+                    + " coordinates."
                 )
                 + " A date stated for a job that used none would put an "
                 f"observation epoch into a record of a conversion that never "
@@ -2383,6 +2392,20 @@ def _require_units_the_zones_publish(settings: JobSettings) -> None:
         # all three units - but a message that explained a 2022 restriction on
         # some other system's zone would be a false sentence in a refusal, the
         # class this project has repeatedly had to go back and delete.
+        if zone.system == UTM_SYSTEM:
+            # UTM's own reason (DESIGN.md #72, plan D4). Not "does not
+            # publish": UTM is not an NGS product and is published by no one
+            # zone by zone - it is DEFINED in metres.
+            raise ValueError(
+                f"{zone.name} is defined in metres only, so this job's {label} "
+                f"unit, {unit.name} ({unit.code}), cannot be used for it. UTM "
+                f"is defined in metres - its false easting is 500,000 m - NCAT "
+                f"prints UTM coordinates in metres only, and the EPSG dataset "
+                f"defines Michigan's NAD83(2011) UTM zones in metres only, so a "
+                f"UTM coordinate written in feet could be checked against no "
+                f"published figure. UTM zones may be read and written in: "
+                f"{allowed}. The zone's authority: {zone.citation}."
+            )
         if zone.system == "SPCS2022":
             authority = (
                 " NGS publishes every SPCS2022 zone's false origin in metres "
@@ -2660,7 +2683,8 @@ def _require_geodetic_in_range(
             f"does not read from a file: 275.5 east and -84.5 both name the "
             f"same meridian, and the NGS grid files use 0-360 internally, so "
             f"an unconverted 0-360 longitude would look up plausible geoid "
-            f"and VERTCON values while the State Plane conversion placed the "
+            f"and VERTCON values while the "
+            f"{grid_name(settings.target_zone)} conversion placed the "
             f"point thousands of kilometres away. " + advice
         )
 

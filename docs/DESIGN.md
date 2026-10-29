@@ -612,6 +612,34 @@ gateless cadence does not apply here). The horizontal work packages H1–H6
 proceed per the plan; the first code lands only after this amendment, which
 is the H0 exit condition.
 
+### #73 — 2026-10-29 — Owner: the Auto refusal reads as one line, and a refusal no longer widens the window
+
+**The owner's instructions (2026-10-29)**, from his screen, on the Single
+point tab's Auto refusal for a point at 49.0 N, 86.0 W: "change this warning
+to be a simple one line 'coordinates out of range' or something like that",
+and "when that error triggers the window expands larger than the screen".
+Work package R1, built in an isolated worktree beside the UTM build (#72),
+gated with it.
+
+**The one line.** The dialog for an Auto refusal states a headline, and the
+full refusal, which names every point, the position tested and its frame,
+moves behind Show Details. Two reasons reach this refusal and the headline
+must be true of each: a point in **no Michigan county** ("Coordinates out of
+range: 1 point is outside Michigan.") and a point **claimed by two county
+polygons**, which is not out of range at all and gets its own line. The core
+message is unchanged and still pinned; the headline is a GUI presentation of
+it, chosen from data the error carries, never parsed from its text. The
+informative sentence "This message names the problem exactly; it is not a
+summary" is dropped from this dialog only, because there it would be false.
+Every other refusal's dialog is unchanged.
+
+**The window growth is general, not this message's.** The status line on both
+tabs is a non-wrapping label given the first line of a refusal, and refusals
+are single long lines, so the label's width became the window's minimum
+width. The Auto refusal is simply the longest yet. Fixed for every message:
+the status line shows one elided line, its tooltip carries the full text, and
+it no longer sets the window's minimum width.
+
 ### #72 — 2026-10-29 — EPSG codes in every system label, and the Michigan UTM zones: scope, U0 measurement, the owner's decisions
 
 **The owner's instructions (2026-10-29):** "add the epsg code for the system

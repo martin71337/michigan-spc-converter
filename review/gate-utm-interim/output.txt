@@ -1,0 +1,227 @@
+MCX interim gate over U1-U4 + R1 (UTM zones, EPSG labels, UTM job path and record,
+the one-line Auto refusal / non-widening status line)
+Range: 3a3bdb6..HEAD on claude/epsg-codes-system-labels-2a945a (c2448c3)
+Reviewer: independent Opus reviewer (Codex not available in this container)
+Date: 2026-10-29
+
+Suite, run unpiped, exit codes read: `pytest` 6727 passed, 1 skipped, 5 failed
+(exit 1); `python -O -m pytest` 6727 passed, 1 skipped, 5 failed (exit 1). The 5
+are exactly the stated container baseline (three test_fileio test_r3_3_*, the
+DMS half-way point, test_every_captured_value_is_in_the_page_ngs_served).
+
+All scratch scripts are under the session scratchpad; no repository file other
+than this one was modified (git status clean after every seed, which were
+restored from snapshot copies, never git checkout).
+
+==============================================================================
+FINDINGS
+==============================================================================
+
+MEDIUM 1 - A UTM coordinate far from its central meridian is wrong by
+centimetres while the record says "The coordinate is computed correctly".
+
+  Where: michspc/spc/convert.py:750-770 (_check_extent's message, now reached
+  by UTM zones), michspc/spc/zones.py:1141-1145 (UTM extent = the 6-degree
+  band), engine michspc/spc/tm.py (the manual's section 3.23/3.24 series).
+
+  The manual's TM series is accurate inside a UTM band but degrades fast
+  outside it, and the INVERSE much faster than the forward. Measured against
+  PROJ 9.8.1 / EPSG 6344-6346 (whose Poder/Engsager series is accurate to
+  nanometres at these distances), at Michigan positions, worst over 41.7-47.5 N:
+
+    17N used at  -86.0: fwd 0.1 mm  inv  0.4 mm
+    17N used at  -88.0: fwd 0.7 mm  inv  5.5 mm
+    17N used at  -89.0: fwd 2.0 mm  inv 16.2 mm
+    17N used at  -90.4: fwd 6.8 mm  inv 60.6 mm
+    15N used at  -86.0: fwd 0.7 mm  inv  5.5 mm
+    15N used at  -84.0: fwd 4.9 mm  inv 42.4 mm
+    15N used at -82.42: fwd 17.3 mm inv 159.8 mm
+    (16N anywhere in Michigan, <= 4.6 deg: <= 0.2 mm - fine.)
+
+  Concrete failing input (through job.run and the written ZIP):
+    GEODETIC_TO_ZONE, NAD83(2011), metres, target 15N, row
+    "2,42.0,-82.5,200,Q" writes N 4703441.2095 E 1370080.9937, grid scale
+    1.00892914. PROJ: N 4703441.1954 E 1370080.9866, scale 1.00892868.
+    Wrong by 14.1 mm / 7.1 mm and 0.46 ppm (printed digits 6-8 of the factor
+    are wrong). Inverse of PROJ's coordinate through MCX lands 0.139 m south
+    of the true position. A ZONE_TO_ZONE job 17N -> 2113 (ift) over a lattice
+    spanning -90.3..-82.6 differed from PROJ by 0.417 ft in northing.
+    The job record's WARNINGS block for that point says: "lies outside the
+    area NAD83(2011) / UTM zone 15N covers (41.6 to 48.4 N, -96.0 to -90.0 E).
+    The coordinate is computed correctly, but distortion grows with distance
+    from the zone" - a false sentence in a sealed record for a UTM job.
+    (The plan's section 2 says "far outside the band the existing extent
+    warning fires"; it fires, but it asserts correctness.)
+
+  The configuration is unusual (a UTM zone used 5-10 deg from its meridian)
+  but it is accepted, written and certified. No test exercises a UTM zone
+  beyond 4 deg from its meridian (test_every_zone_agrees_with_proj_over_michigan
+  stops at meridian +/- 4), so nothing would notice.
+
+  Suggested fix (any one): refuse a UTM point beyond a measured distance from
+  the meridian (the inverse passes 0.5 mm at about 5.1 deg; 4.6 deg covers all
+  of Michigan in 16N) naming the measured error; or give UTM zones a warning
+  that does not claim correctness and states the measured error; or replace
+  the UTM path with the Krueger n-series (Karney 2011, 6th order), holding it
+  to the same 246 NCAT anchors in band and to PROJ out of band. Pin with the
+  42.0/-82.5 15N input above and a far-band inverse.
+
+MEDIUM 2 - The classic UTM blunder (a file in one UTM zone declared as
+another) passes with no warning at all; the record says "None. Every point
+converted cleanly, inside its zone."
+
+  Where: michspc/spc/zones.py:1141-1145 (extent = the whole 6-degree band at
+  Michigan's latitudes), michspc/spc/convert.py easting_looks_wrong_for_zone
+  (every UTM zone shares FE 500,000 m, so it cannot distinguish them).
+
+  Inputs (ZONE_TO_GEODETIC, NAD83(2011), metres, real coordinates from PROJ):
+    a 16N point at 43.8 N 85.5 W declared as 17N -> written as 43.8 N,
+      -79.5 (Ontario), no warning, geoid N -36.416 found, record clean;
+    a 17N point at 42.5 N 83.5 W declared as 16N -> written as 42.5 N,
+      -89.5 (Wisconsin), no warning;
+    a 16N point at 46.0 N 87.0 W declared as 15N -> -93.0 (Minnesota), no
+      warning.
+  The State Plane analog (a Michigan South coordinate declared as Central)
+  raises easting-unlike-selected-zone and the record shows it, because the
+  SPCS 83 false eastings were chosen 2,000 km apart for exactly this. UTM has
+  no such protection, so the zone choice is the only guard and the extent
+  check is the only place left to catch it - and the band (17N to -78.0,
+  15N to -96.0) extends hundreds of km outside Michigan.
+
+  Suggested fix: make a UTM zone's warning extent its band intersected with
+  Michigan (lon -90.42..-82.41; the SPCS 83 zones' combined extent already
+  gives it), so 17N -> -79.5 and 15N -> -93 warn; consider additionally
+  warning on a point in no Michigan county (the TIGER county set is loaded
+  for Auto already) for UTM jobs. Pin with the three inputs above.
+
+LOW 1 - A mixed SPCS 83 + UTM record's verification text is unpinned.
+  michspc/fileio/report.py:2145-2150. Seeded: deleting the whole "The SPCS 83
+  zone:" block (and its paragraphs) from _method_with_utm -> all 1920 tests
+  in test_utm*.py, test_epsg_labels, test_refusal_headline, test_zone_registry,
+  test_convert, test_gui_tabs pass (exit 0); no test in the suite contains
+  "The SPCS 83 zone:". Only the NATRF2022 mixed case is checked, and only by
+  substring. Fix: pin one whole SPCS 83 <-> UTM record (as the two pure-UTM
+  records are pinned) or at least the slice's presence and position.
+
+LOW 2 - "within the precision NCAT prints, converting both to and from the
+  grid" is false for one NATRF2022 anchor's scale factor on the inverse.
+  michspc/fileio/report.py:2004-2014 (NATRF2022 paragraph). Anchor
+  review/autozone-r0/raw/ncat_probe/r3k1_spcs2022_000.html (47.9, -89.2;
+  N 5307528.477 E 335577.031): NCAT prints 0.999932211, MCX's inverse
+  reports 0.999932210464, 5.36e-10 off - 1.07 half-units of the 9th decimal.
+  test_inverse_matches_ncat passes only because it adds the 3e-10
+  INVERSE_SCALE_SERIES_SLACK on top of the half-unit. 0.0005 ppm, immaterial
+  to a survey, but the sentence is a claim about the suite. Fix: word the
+  inverse claim as the test holds it ("and the inverse within 0.0003 ppm
+  more"), or say "northing, easting and convergence ... converting both
+  ways; the scale factor ..." All 212 NAD83(2011) anchors are within the
+  half-unit on the inverse (worst 0.998), so only the NATRF2022 paragraph
+  needs it.
+
+LOW 3 - The units citation on a UTM job names SPCS 83.
+  Every UTM record (review/utm-u4/record_*.txt lines 21 and 31, and a UTM
+  vertical-only record) prints under "Units in"/"Units out":
+  "NOAA Manual NOS NGS 5 publishes SPCS 83 in meters (PDF p. 21)". The lead
+  left this for the gate. Literally true, but it is offered as the authority
+  for the unit of a UTM coordinate, which that page is not. Fix: for a UTM
+  end, cite UTM's definition (DMA TM 8358.2 / EPSG 16015-16017, metres), as
+  the unit gate's refusal already does.
+
+LOW 4 - The extent warning's wording for UTM: "lies outside the area
+  NAD83(2011) / UTM zone 15N covers (41.6 to 48.4 N, ...)". UTM 15N covers
+  0-84 N; 41.6-48.4 is Michigan's span (zones.py:1089 says so). Fold into the
+  MEDIUM 2 fix ("outside the part of ... used in Michigan").
+
+LOW 5 - R1: the Auto refusal dialog drops "Nothing was written." along with
+  the sentence DESIGN.md #73 says is dropped.
+  michspc/gui/controls.py:1828 sets informativeText "" ; #73 names only
+  "This message names the problem exactly; it is not a summary" as false of
+  a headline. The visible dialog now never says nothing was written (the
+  Details text says "nothing was converted"). Pinned as "" in
+  tests/test_refusal_headline.py:152, so it is deliberate in code but beyond
+  the recorded decision. Owner's call; either record it in #73 or keep
+  "Nothing was written." as the informative line.
+  Wording nit in the same function (controls.py:1773): the two-county
+  headline says "where two counties overlap"; the core reason is "inside more
+  than one county polygon", which at a corner can be three.
+
+==============================================================================
+NEGATIVES ESTABLISHED (what was tried and held)
+==============================================================================
+
+Numbers
+- UTM constants re-derived: k0 0.9996, FE 500,000, FN 0 at the equator,
+  CM = 6z-183 (-93/-87/-81); all six records carry them; NATRF2022 records
+  identical to their NAD83(2011) twins but for frame/code/name.
+- Engine vs PROJ (EPSG 6344-6346), 60,000 random points within 3.5 deg of
+  each meridian over 41.6-48.4 N: worst N 3 um, E 8 um, scale 7.0e-10,
+  convergence 8e-9 deg; inverse 1.9e-10 deg lat, 2.4e-11 deg lon.
+- My OWN parse of the frozen captures (not parse_capture): 212 production
+  JSON + 35 beta HTML UTM rows found. Engine vs NCAT: NAD83(2011) worst
+  0.498 mm N, 0.498 mm E, 0.0050" conv, 4.99e-9 scale; NATRF2022 worst
+  0.488 mm, 0.495 mm, 0.0049", 4.9e-10. Every fixture row equals my parse
+  of its raw file field for field (0 mismatches of 246). The two beta pages
+  the fixture skips are correctly skipped: r3dA is NAD83(2011)->NATRF2022
+  (input != output) and r4b is NAD83(2011) epoch 2010 on beta.
+- Job path vs PROJ through real files and the written ZIP: SPCS 83 (m and
+  ift, 2111/2112/2113) <-> 15N/16N/17N, geodetic <-> UTM, all agree to the
+  4-decimal export wherever the point is inside about 5 deg of the meridian
+  (the larger figures in that sweep are MEDIUM 1's far-band points only).
+  WGS84(G2296) dated -> 16N, 16N -> WGS84(G2296) dated, ITRF2020 -> 15N all
+  accepted and route through HTDP.
+
+Refusals (all refused, naming the offending item, before any coordinate):
+  16N <-> 16N-2022; 16N-2022 <-> 2113; 261008 -> 16N; geodetic NAD83 ->
+  16N-2022; NATRF2022 geodetic -> 16N; 16N-2022 -> NAD83 geodetic; 16N ->
+  NATRF2022 geodetic; WGS84(G2296) -> 16N-2022 and 16N-2022 -> WGS84(G2296)
+  (HTDP has no NATRF2022); feet on UTM in every direction and side,
+  including vertical-only (ift in), each with UTM's own reason; WGS84 job
+  without a date; ELLIPSOID heights on any NATRF2022 UTM job (geodetic,
+  zone-to-zone, vertical-only); stray observation date, stray geodetic
+  frame, Auto target from a UTM input (texts name UTM). No silent
+  pass-through found. Accepted and correct: 16N->16N, ellipsoid heights on
+  NAD83(2011) UTM, vertical-only and H+V from UTM, UTM -> geodetic with a
+  feet ELEVATION unit (elevation only).
+- Era check by frame: a NATRF2022 UTM + SPCS2022 job writes, with both
+  verification blocks; a hand-built two-frame settings still refuses in the
+  record.
+
+State Plane / geodetic byte identity
+- Ran 25 configurations (zone-to-zone in all units, SPCS2022, geodetic
+  both frames and positive-west, WGS84/ITRF dated both ways,
+  geodetic-to-geodetic, vertical-only zone and geodetic, H+V, ellipsoid
+  height, Auto on both frames, Auto outside refusal, and eight refusals
+  whose wording U3 touched) at 3a3bdb6 (git archive into the scratchpad)
+  and at HEAD: all 66 written members and refusal messages identical after
+  normalising Generated/Software lines and the folder. No digest pin was
+  edited in the range.
+
+EPSG
+- Every code in michspc/spc/epsg.py checked in pyproj 3.8.0 / PROJ 9.8.1,
+  EPSG v12.029 2025-10-02: 6493-6496/6498/6499 projected, names and units
+  (metre / foot 0.3048) as labelled; 6344-6346 projected metre; 6318,
+  10968, 9057, 9755, 10606, 9000, 9990 all Geographic 2D of the named
+  realization. Confirmed absent from v12.029: any NAD83(2011) Michigan US
+  survey foot CRS, any NATRF2022 Michigan or UTM CRS, any NAD83(2011) UTM
+  foot CRS. 6497 is the oblique Mercator, as the test comment says.
+- No combo is rebuilt by Options (rows are hidden), nothing reads item text,
+  no signals are blocked; relabelling follows both Units boxes on both
+  tabs including the usft -> SPCS2022 snap; prediction rule is the Units
+  rebuild's own function.
+
+R1
+- Window minimumSizeHint 831 px before and after a 4,000-character
+  refusal on both tabs; status keeps full text, tooltip carries it.
+- Headline: outside_count derives from the exception class, never text;
+  outside / two-county / mixed all read true.
+
+Seeds (each restored from a snapshot copy; git status clean after):
+  caught - mixed headline reported as "outside"; UTM unit-gate reason
+  removed; era check reverted to SPCS2022 system; status label asking for
+  its width; FE +0.2 mm; easting window 250 km; label ignoring the unit
+  prediction; grid_names_phrase always "State Plane"; outside flag
+  inverted; NATRF2022 verification paragraph replaced by NAD83's.
+  NOT caught - S1, the SPCS 83 verification block in a mixed record
+  (LOW 1).
+
+VERDICT: FINDINGS

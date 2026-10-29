@@ -36,6 +36,7 @@ from michspc import job as job_module
 from michspc.fileio import geoid
 from michspc.job import (
     AUTO_FRAMES,
+    AutoZoneUnplacedPointsError,
     Direction,
     LongitudeConvention,
     ObservationDateSource,
@@ -1677,6 +1678,58 @@ def frame_settings_fields(
     return fields
 
 
+def _points(count: int) -> str:
+    """"1 point" or "3 points"."""
+    return f"{count} point" if count == 1 else f"{count} points"
+
+
+def refusal_headline(error: BaseException) -> str | None:
+    """A one-line headline for a refusal, or None to show the refusal as raised.
+
+    The owner's instruction, 2026-10-29 (DESIGN.md #73): the Auto refusal is
+    to read as "a simple one line 'coordinates out of range' or something
+    like that". Only that refusal has a headline. Every other refusal is
+    shown exactly as raised, as it always was.
+
+    The headline is chosen from the error's DATA, never from its message
+    text, and it says only what is true of every point it counts: "outside
+    Michigan" when every unplaced point is in no Michigan county
+    (``outside_count``), otherwise a wording that also covers a point two
+    county polygons claim. The full refusal, naming each point, stays one
+    click away in the dialog's details and in the status line's tooltip.
+    """
+    if not isinstance(error, AutoZoneUnplacedPointsError):
+        return None
+    total = len(error.points)
+    if error.outside_count == total:
+        verb = "is" if total == 1 else "are"
+        return f"Coordinates out of range: {_points(total)} {verb} outside Michigan."
+    if error.outside_count == 0:
+        verb = "lies" if total == 1 else "lie"
+        return (
+            f"Auto could not choose a zone: {_points(total)} {verb} where two "
+            f"counties overlap."
+        )
+    return (
+        f"Auto could not choose a zone: {_points(total)} could not be placed in "
+        f"one Michigan county."
+    )
+
+
+def refusal_status(error: BaseException) -> str:
+    """The status line's text for a refusal, on both tabs.
+
+    "Refused: " and the headline when the refusal has one, else the first
+    line of the message as raised - one rule, so the two tabs cannot word
+    the same refusal differently.
+    """
+    headline = refusal_headline(error)
+    if headline is not None:
+        return f"Refused: {headline}"
+    message = str(error) or repr(error)
+    return f"Refused: {message.splitlines()[0]}"
+
+
 def show_failure_dialog(parent, error: BaseException, title: str) -> None:
     """The failure dialog. Overridden in tests, which cannot answer a modal."""
     box = QMessageBox(parent)
@@ -1686,13 +1739,34 @@ def show_failure_dialog(parent, error: BaseException, title: str) -> None:
     # quote file content back, and no part of a refusal may be rendered
     # away as markup.
     box.setTextFormat(Qt.TextFormat.PlainText)
+    fill_failure_dialog(box, error)
+    box.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+    box.exec()
+
+
+FAILURE_INFORMATIVE_TEXT = (
+    "Nothing was written. This message names the problem exactly; it is "
+    "not a summary."
+)
+
+
+def fill_failure_dialog(box: QMessageBox, error: BaseException) -> None:
+    """Put a refusal into the failure dialog. Separate so the suite can read it.
+
+    A refusal with a headline (``refusal_headline``) shows the headline
+    alone, and its full message - every point it names - under Show
+    Details. There is no informative line on that box: "it is not a summary"
+    would be false of a headline. Every other refusal is unchanged: the full
+    message, the informative line, and the traceback under Show Details.
+    """
+    headline = refusal_headline(error)
+    if headline is not None:
+        box.setText(headline)
+        box.setInformativeText("")
+        box.setDetailedText(str(error))
+        return
     box.setText(str(error) or repr(error))
-    box.setInformativeText(
-        "Nothing was written. This message names the problem exactly; it is "
-        "not a summary."
-    )
+    box.setInformativeText(FAILURE_INFORMATIVE_TEXT)
     box.setDetailedText(
         "".join(traceback.format_exception(type(error), error, error.__traceback__))
     )
-    box.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-    box.exec()

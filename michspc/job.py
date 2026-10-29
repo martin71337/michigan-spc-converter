@@ -918,6 +918,12 @@ class AutoZoneUnplacedPointsError(ValueError):
     with the position tested and its frame, so the file can be corrected in
     one pass. ``points`` carries them as data: ``(point id, latitude,
     longitude)``, signed decimal degrees, negative west, in ``frame``.
+
+    ``outside_count`` is how many of ``points`` are in no Michigan county;
+    the rest are claimed by two county polygons. Carried as data so the
+    interface's one-line headline (DESIGN.md #73, the owner's instruction)
+    can say "outside Michigan" only when that is true of every point, without
+    reading it back out of the message text.
     """
 
     def __init__(
@@ -926,10 +932,17 @@ class AutoZoneUnplacedPointsError(ValueError):
         *,
         points: tuple[tuple[str, float, float], ...],
         frame: ReferenceFrame,
+        outside_count: int,
     ) -> None:
         super().__init__(message)
+        if not 0 <= outside_count <= len(points):
+            raise ValueError(
+                f"outside_count {outside_count!r} cannot exceed the "
+                f"{len(points)} unplaced point(s) it counts."
+            )
         self.points = points
         self.frame = frame
+        self.outside_count = outside_count
 
 
 @dataclass(frozen=True)
@@ -942,6 +955,9 @@ class _UnplacedPoint:
     frame: ReferenceFrame
     reason: str
     transformed_from: ReferenceFrame | None
+    outside: bool
+    """True when the point is in no Michigan county; False when two county
+    polygons claim it."""
 
 
 class _AutoZoneUnplaced(Exception):
@@ -2911,6 +2927,7 @@ def _unplaced_points_refusal(
         f"the points from the file, or choose the zone yourself.",
         points=tuple((p.point_id, p.latitude, p.longitude) for p in unplaced),
         frame=frame,
+        outside_count=sum(1 for p in unplaced if p.outside),
     )
 
 
@@ -2971,6 +2988,7 @@ def _auto_zone_for(
                 transformed_from=(
                     settings.geodetic_frame if position.is_transformed else None
                 ),
+                outside=not isinstance(error, AutoZoneAmbiguousError),
             )
         ) from error
     return assignment, (position.latitude, position.longitude)

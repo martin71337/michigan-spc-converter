@@ -101,6 +101,7 @@ from michspc.gui.controls import (
     refresh_unit_combo,
     refresh_zone_graying,
     selection_is_compatible,
+    refusal_status,
     show_failure_dialog,
     unit_combo,
     unit_for,
@@ -111,6 +112,7 @@ from michspc.gui.controls import (
     vertical_mode_for,
     zone_combo,
 )
+from michspc.gui.status_label import StatusLabel
 from michspc.gui import settings_store
 from michspc.gui.icon import application_icon
 from michspc.gui.options import Options, load_options, save_options, visible_rows
@@ -776,7 +778,8 @@ class MainWindow(QMainWindow):
 
     def _build_status_line(self) -> QHBoxLayout:
         row = QHBoxLayout()
-        self.status_label = QLabel("Ready.", self)
+        # Never widens the window, whatever it is given (DESIGN.md #73).
+        self.status_label = StatusLabel("Ready.", self)
         self.status_label.setTextInteractionFlags(
             Qt.TextInteractionFlag.TextSelectableByMouse
         )
@@ -1666,7 +1669,7 @@ class MainWindow(QMainWindow):
         """
         self.last_failure = error
         message = str(error) or repr(error)
-        self._set_status(f"Refused: {message.splitlines()[0]}", style=RED)
+        self._set_status(refusal_status(error), style=RED)
         self.status_label.setToolTip(message)
         self._show_failure(error)
 

@@ -612,6 +612,60 @@ gateless cadence does not apply here). The horizontal work packages H1–H6
 proceed per the plan; the first code lands only after this amendment, which
 is the H0 exit condition.
 
+### #72 — 2026-10-29 — EPSG codes in every system label, and the Michigan UTM zones: scope, U0 measurement, the owner's decisions
+
+**The owner's instructions (2026-10-29):** "add the epsg code for the system
+in parenthesis for each system", and "add capability to convert to the utm
+zones that cover michigan". Plan: `docs/PLAN-utm-epsg.md`. Ships as 0.9.0.
+
+**Revisits §10's UTM deferral.** Its two reasons were "Not requested" and
+"Requires the transverse Mercator engine (manual §3.2)". The owner has
+requested it, and `tm.py` has existed since H1 (#62/#63). The row is struck
+by this amendment; the body edit lands with U6.
+
+**Process note, recorded because the owner asked.** The lead began building
+inline before any plan existed, and stopped when the owner asked whether the
+established method was in use. That draft was set aside uncommitted and is
+evidence for the builders' briefs, not accepted work. Everything from here is
+the standing method: the lead plans, Opus subagents build, the lead reviews
+every diff and re-derives the load-bearing figures, an independent Opus
+reviewer gates (Codex is not available in this container), one interim and
+one closing gate.
+
+**U0, measured by the lead** (`review/utm-u0/measure.py`,
+`measure_natrf2022.py`; figures in the plan §2):
+
+- Every EPSG code was read from the EPSG dataset v12.029 (2025-10-02) and run
+  against MCX's own records, not matched by name. **EPSG numbers Michigan
+  Central (6493) before North (6495)**; the lead's first recollection had them
+  the other way round, which is why the codes are read and never recalled.
+- No Michigan SPCS2022 zone has an EPSG code in v12.029, and no NAD83(2011)
+  Michigan zone has a US survey foot code. Newer EPSG releases could not be
+  checked: epsg.io and apps.epsg.org are blocked from this container.
+- **The UTM oracle was already in the repository.** The existing `tm.py`,
+  given UTM's constants, reproduces 212 frozen production NCAT responses
+  (NAD83(2011), zones 16 and 17, `review/autozone-r0/raw/ncat_probe/`) and 34
+  frozen beta NCAT pages (NATRF2022, zone 16) at NCAT's printed precision:
+  0.5 mm, 5e-9 in scale, 0.005" in convergence. **No anchor falls in zone
+  15**, which covers only the western tip of Gogebic County. PROJ, as a third
+  opinion, agrees to 0.04 mm within 4.6 degrees of any meridian, and to 2.9 mm
+  at 8.5 degrees.
+
+**The owner's decisions (2026-10-29), on the lead's questions:**
+
+1. **The zone label's EPSG code follows that side's Units box, with the unit
+   named**: `(EPSG 6499 ift)`, `(EPSG 6498 m)`. The lead had recommended
+   stating both codes. The code shown is the one for the unit the Units box
+   would hold if that zone were chosen, by the same rule that rebuilds the
+   Units box, so the label cannot name a unit the job will not use.
+2. **Where EPSG has no code, the label shows none.** Never "pending", never a
+   code guessed from the numbering around it.
+3. **UTM on both frames, metres only**: NAD83(2011) and NATRF2022, zones 15N,
+   16N and 17N. The lead had recommended NAD83(2011) only. The 34 beta NCAT
+   anchors make the NATRF2022 half checkable against NGS, not only against
+   PROJ.
+4. **Build under the established method as planned**, target 0.9.0.
+
 ### #71 — 2026-10-22 — Options menu, Auto zone, the observation date in Options; the release machine's suite
 
 **The owner's instructions (2026-10-22)**, given when asked whether to tag

@@ -1,8 +1,8 @@
 # PLAN: EPSG codes in every system label, and the three Michigan UTM zones
 
-**Status: PROPOSAL, written by the session lead 2026-10-29. Nothing built is
-accepted; no code is committed.** DESIGN.md #72 will open it when the owner
-settles §1.2. Two owner instructions of 2026-10-29: (1) "add the epsg code for
+**Status: APPROVED by the owner 2026-10-29, building. Written by the session
+lead.** DESIGN.md #72 opens it and records the owner's decisions; §1.2 below
+is updated to them. Two owner instructions of 2026-10-29: (1) "add the epsg code for
 the system in parenthesis for each system"; (2) "add capability to convert to
 the utm zones that cover michigan".
 
@@ -29,38 +29,38 @@ approved. Every pin is falsified by seeding; suite green in `pytest` and `-O`.
   (west of 90 W, the western tip of Gogebic County), **16N** (90 W to 84 W),
   **17N** (east of 84 W).
 
-### 1.2 Decisions for the owner (the lead's recommendation first)
+### 1.2 Decisions (owner's, 2026-10-29, unless marked lead's)
 
-- **D1. An SPCS 83 zone shows two codes, one per unit.** An EPSG projected
-  CRS is a zone *and* a unit: Michigan South is 6498 in metres and 6499 in
-  international feet. Recommended label:
-  `Michigan South 2113 - NAD83(2011) (EPSG 6498 m / 6499 ift)`.
-  Alternative: one code that follows the Units selector (more moving parts,
-  and the label would change under the user's hand).
-- **D2. Where no EPSG code exists, the label shows none.** Two real
-  absences: (a) **no US survey foot code exists for any NAD83(2011) Michigan
-  zone**; (b) **none of the 19 Michigan SPCS2022 zones has an EPSG code** in
-  the newest dataset reachable here (v12.029, 2025-10-02). Newer EPSG
-  versions could not be checked: epsg.io and apps.epsg.org are blocked from
-  this container. A code is never guessed from the numbering around it.
-- **D3. Geodetic entries take the geographic 2D code** (NAD83(2011) 6318,
-  not 3D 6319), because the height beside the latitude may be an elevation.
-- **D4. UTM is metres only.** NCAT prints UTM in metres only, and EPSG
-  defines NAD83(2011) UTM 15N/16N/17N in metres only (6344/6345/6346). A UTM
-  job in feet is refused by the existing per-zone unit gate, naming the
-  reason.
-- **D5. UTM is on NAD83(2011) only.** Any-to-any with the SPCS 83 zones,
-  NAD83(2011) geodetic, and the WGS 84 / ITRF frames through the existing
-  HTDP path. **Not on NATRF2022**: no EPSG code exists for it, and NCAT
-  publishes no NATRF2022 UTM anchor this project has captured. NATRF2022 UTM
-  is the same records on the other frame, and can follow later as data.
-- **D6. UTM gets its own block, last in each dropdown, and its own Options
-  group ("UTM zones"), on by default.**
-- **D7. Auto zone stays State Plane only.** Auto picks SPC zones by county
-  (MCL 54.231). UTM zone choice is by longitude, a different rule, and is
-  not asked for.
-- **D8. The release is 0.9.0** (a new coordinate system is a minor bump);
-  the literal becomes `0.9.0-dev` in U1.
+- **D1 (owner). The zone label's code follows that side's Units box, unit
+  named.** `Michigan South 2113 - NAD83(2011) (EPSG 6499 ift)` with
+  international feet, `(EPSG 6498 m)` with metres, no code with US survey
+  feet. The code shown is for the unit the Units box WOULD hold if that zone
+  were chosen: the current unit if the zone publishes it, else the fallback
+  `refresh_unit_combo` already applies (international feet if offered, else
+  the zone's first unit). **One function states that rule and both the Units
+  rebuild and the label call it.** Every zone label on a side is re-rendered
+  (`setItemText`, which changes no selection and fires no index signal)
+  whenever that side's Units box changes. FROM follows the input unit, TO the
+  output unit.
+- **D2 (owner). No EPSG code, no code shown**: every SPCS2022 zone, the
+  NATRF2022 UTM zones, any zone in US survey feet. Never a guessed code.
+- **D3 (lead's). Geodetic entries take the geographic 2D code** (6318, not
+  6319): the height beside the latitude may be an elevation. No unit is named
+  on a geodetic entry; its code does not depend on one.
+- **D4 (owner). UTM is metres only.** The existing per-zone unit gate refuses
+  feet, with UTM's own reason.
+- **D5 (owner). UTM on both frames**: NAD83(2011) and NATRF2022, 15N/16N/17N,
+  six records. Identifiers (lead's): codes `15N`/`16N`/`17N` on NAD83(2011)
+  and `15N-2022`/`16N-2022`/`17N-2022` on NATRF2022; abbreviations
+  `UTM15N` ... and `UTM15N-2022` ...; names in EPSG's own form,
+  `NAD83(2011) / UTM zone 16N` and `NATRF2022 / UTM zone 16N`, so the audit
+  CSV's zone cell, which prints the name alone, names the frame. A UTM label
+  is the name, since it already carries the frame.
+- **D6 (lead's). UTM is its own block, last in each dropdown, and one Options
+  group, "UTM zones", on by default.** NAD83(2011) entries first, then
+  NATRF2022. The frame graying of #64 applies unchanged.
+- **D7 (lead's). Auto zone stays State Plane only.**
+- **D8 (owner). Release 0.9.0**; the literal is `0.9.0-dev` from U1.
 
 ## 2. Recon already measured (U0, by the lead, 2026-10-29)
 
@@ -111,10 +111,11 @@ Reproducible from `review/utm-u0/` (to be committed with U1).
 
 ## 3. Architecture
 
-- **Zones are data** (`zones.py`): `UTM_ZONES`, three records built from the
-  zone number (central meridian derived as 6z - 183, never typed),
+- **Zones are data** (`zones.py`): `UTM_ZONES`, six records (three zones on
+  each frame) built from the zone number (central meridian derived as
+  6z - 183, never typed),
   `TransverseMercatorDef(lat 0, k 0.9996, FN 0, FE 500,000 m)`, system `"UTM"`,
-  frame NAD83(2011), units (metres,), easting range FE +/- 400 km (the SPCS 83
+  frame NAD83(2011) or NATRF2022, units (metres,), easting range FE +/- 400 km (the SPCS 83
   reasoning), extent = the zone's six-degree band over Michigan's latitudes.
   `ALL_ZONES` appends them, so every existing index is unchanged.
 - **One EPSG table** (`spc/epsg.py`), keyed by zone code + unit and by frame,
@@ -124,8 +125,11 @@ Reproducible from `review/utm-u0/` (to be committed with U1).
   the suffix; a UTM zone's code is not repeated after its name.
 - **Record** (`fileio/report.py`): a third METHOD arm for any job with a UTM
   zone (equations listed per projection present, UTM's defining authority,
-  verification naming the 212 anchors and, when an SPCS 83 zone is also
-  present, the Appendix C and 27-anchor paragraphs). The `Conversion` line
+  verification naming the NCAT anchors of the job's frame and, when a State
+  Plane zone of either era is also present, that era's own verification
+  paragraphs). **The era check moves from zone codes to frames**: UTM on
+  NATRF2022 with an SPCS2022 zone is one frame and must convert; today's
+  check sorts any non-SPCS2022 code into the 1983 era and would refuse it. The `Conversion` line
   names UTM rather than State Plane on a UTM job. **Every SPCS 83 and
   SPCS2022 record stays byte-identical** (the cross-version digest pins).
 - **No change to** the projection engines, frames, HTDP, Auto zone, the
@@ -133,23 +137,35 @@ Reproducible from `review/utm-u0/` (to be committed with U1).
 
 ## 4. Work packages
 
-- **U0** recon (done, §2) plus the committed harness `review/utm-u0/`.
-- **U1** EPSG table and labels (E), every dropdown pin updated to the new
-  labels, the version literal to `0.9.0-dev`.
-- **U2** UTM zone records; the NCAT anchor fixture built from the 212 frozen
-  responses (each re-hashed against its pin); forward and inverse pinned at
-  NCAT's printed digit; a zone 15 pin by the meridian-shift identity; the
-  PROJ third opinion as an optional, skipping test.
-- **U3** the job path: unit gate and refusal prose; end-to-end jobs
-  UTM <-> SPCS 83, UTM <-> NAD83(2011) geodetic, WGS 84 -> UTM; the audit CSV
-  and clean export. **Interim gate over U1-U3.**
-- **U4** the record: the UTM METHOD arm, the `Conversion` line, every
-  non-UTM digest unchanged.
-- **U5** GUI: the UTM block, Options group, unit filtering on both tabs;
-  offscreen previews for the owner.
-- **U6** self-test check (one UTM point against a frozen NCAT anchor),
-  release notes `docs/RELEASE-NOTES-0.9.0.md` DRAFT, DESIGN.md §2/§10 body
-  edits. **Closing gate over U0-U6**, fixes, re-confirmation.
+Reordered from the proposal: the zone records come first because the EPSG
+table is checked against them, and **no UTM zone reaches a dropdown before
+the record can describe it** (U5 after U4, the #41 rule). Until U5 the GUI
+builds its zone lists from the era tuples it names today, and a pin says so,
+the H2 precedent.
+
+- **U0** recon (done, §2): `review/utm-u0/`.
+- **U1** the six UTM records; the NCAT anchor fixtures built from the frozen
+  responses (each file re-hashed against its pin, both frames); forward and
+  inverse, convergence and scale pinned at NCAT's printed digit; zone 15 by
+  the meridian-shift identity; PROJ as an optional, skipping third opinion;
+  registry churn updated to true counts; the interim "not yet offered" GUI
+  pin; version `0.9.0-dev`.
+- **U2** the EPSG table (`spc/epsg.py`), checked against the registries at
+  import; the unit-following labels (D1) on both tabs, one rule shared with
+  `refresh_unit_combo`; every dropdown label pin updated.
+- **U3** the job path: the unit gate's UTM reason; the frame gates for UTM on
+  both frames (WGS 84 / ITRF -> NAD83 UTM works; NATRF2022 UTM against
+  NAD83(2011) refuses, as SPCS2022 does; the NATRF2022 ellipsoid-height gate
+  covers NATRF2022 UTM); end-to-end jobs through real files on both frames;
+  audit CSV and clean export. **Interim gate over U1-U3.**
+- **U4** the record: the UTM METHOD arm, the era check by frame, the
+  `Conversion` line; every SPCS 83 and SPCS2022 record byte-identical.
+- **U5** GUI: the UTM block, Options group, unit filtering on both tabs, the
+  "not yet offered" pin retired; offscreen previews for the owner.
+- **U6** self-test check (one UTM point per frame against a frozen anchor),
+  `docs/RELEASE-NOTES-0.9.0.md` DRAFT, DESIGN.md §2/§10 body edits, REFREEZE
+  row for the beta UTM anchors. **Closing gate over U0-U6**, fixes,
+  re-confirmation.
 
 **Known test churn.** Adding the three records breaks 20 existing pins that
 count or enumerate zones, labels and Options groups (e.g. "all twenty-two",
@@ -164,8 +180,7 @@ package that causes it, to the new true count, never weakened to a range.
 
 ## 6. The lead's draft (not accepted)
 
-Before this plan existed the lead drafted, inline and outside the method,
-`michspc/spc/epsg.py`, the UTM records in `zones.py`, and the label change in
-`gui/controls.py`. They are **uncommitted and ungated**, and are evidence for
-U1/U2's briefs, not accepted work: the builder may start from them or
-replace them, and the diff is reviewed as any other.
+Before this plan existed the lead drafted, inline and outside the method, an
+EPSG table, three UTM records and a label change. They were removed from the
+working tree before U1 (kept outside the repository as a patch) and are not
+accepted work; the builders work from this plan.

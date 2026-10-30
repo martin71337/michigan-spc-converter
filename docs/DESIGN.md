@@ -32,6 +32,14 @@ Direct consequences, adopted:
 - Conversion of coordinate files between the three Michigan SPCS 83 zones:
   MI North 2111, MI Central 2112, MI South 2113 — all Lambert conformal conic.
 - Geodetic (latitude/longitude) ⇄ State Plane, either direction.
+- The nineteen Michigan SPCS2022 zones on NATRF2022, any-to-any within that
+  frame, with NATRF2022 geodetic in and out (0.7.0, #61–#64).
+- The three UTM zones covering Michigan, 15N, 16N and 17N, on NAD83(2011) and
+  on NATRF2022, metres only, any-to-any within each frame; the transverse
+  Mercator engine refuses beyond 4.8 degrees of a zone's central meridian
+  (0.9.0, #72).
+- Every system in the zone dropdowns names its EPSG code, following that
+  side's Units box, where EPSG publishes one (0.9.0, #72).
 - Grid scale factor, convergence angle, elevation factor and combined factor
   per point, with geoid separation from a registry of geoid models — GEOID18
   (default) and GEOID12B (#40).
@@ -46,8 +54,9 @@ Direct consequences, adopted:
 
 **Deliberately out of scope** (see §10 for the reasons)
 
-UTM; SPCS2022 zones; NAD83 ↔ NATRF2022 transformation; other states; NAD 27;
-two-point azimuth/distance computation.
+NAD83 ↔ NATRF2022 transformation; other states; NAD 27; two-point
+azimuth/distance computation. (UTM and the SPCS2022 zones stood on this list
+until they were built: SPCS2022 in 0.7.0, #61–#64; UTM in 0.9.0, #72.)
 
 ## 3. Primary sources
 
@@ -201,9 +210,9 @@ docs/             DESIGN.md (authority), method/, the NOAA manual, reference/
 
 | Item | Reason deferred |
 |---|---|
-| SPCS2022 Michigan zones | Beta until 2027. The seam (§6) is built; the zones arrive as registry data plus a citation to NOAA SP NOS NGS 13 once NGS finalizes them. |
+| ~~SPCS2022 Michigan zones~~ | ~~Beta until 2027. The seam (§6) is built; the zones arrive as registry data plus a citation to NOAA SP NOS NGS 13 once NGS finalizes them.~~ **Built in 0.7.0 on NGS's beta definitions, with a re-freeze obligation (#61–#64, docs/REFREEZE-NSRS.md).** |
 | NAD 83 ↔ NATRF2022 transformation | Requires NGS transformation grids that are not final. Refuses loudly meanwhile (§6). |
-| UTM | Not requested. Requires the transverse Mercator engine (manual §3.2). |
+| ~~UTM~~ | ~~Not requested. Requires the transverse Mercator engine (manual §3.2).~~ **Revisited and built in 0.9.0 (#72):** the owner requested it 2026-10-29, and the engine existed since H1. |
 | IGLD 85 (International Great Lakes Datum of 1985) | **Cannot be built the way this program builds anything.** NGS's own converter runs two steps and both need data NGS does not publish for download: NAVD 88 -> dynamic height via **NGS's NAVD 88 gravity model**, then dynamic -> IGLD 85 via a **hydraulic corrector** (per-lake grids that flatten each lake to its master gauge). `PC_PROD/IGLD85/` is a 404; the corrector grids exist only inside NGS's web tool, and queried live they returned **"out of bounds" at Detroit and Sault Ste. Marie** while neighbouring points succeeded — the model does not blanket Michigan. Measured through NGS's tool, IGLD 85 minus NAVD 88 runs about **-15 cm to +2 cm** across Michigan, crossing zero near 45.5 N; not constant, not smooth (the corrector alone accounts for up to 9 cm). Facts worth keeping: `H_dyn = C / gamma_45` with **gamma_45 = 980.6199 gals = 9.806199 m/s²** (Zilkoski, NGS; Heck & Craymer, FIG 2021 §3.1.4, two independent NGS-authored sources); IGLD 85 and NAVD 88 share their zero at Father Point/Rimouski and their geopotential numbers, differing only in height TYPE. **The Michigan statute is IGLD 1955, not 1985** — MCL 324.32502 fixes the ordinary high water mark on IGLD 1955 (Superior 601.5 ft, Michigan/Huron 579.8 ft, St. Clair 574.7 ft, Erie 571.6 ft); EGLE publishes an IGLD 85 equivalent table administratively. NGS datasheets carry a `DYNAMIC HEIGHT` field (API `geodesy.noaa.gov/api/nde/radial`) with **no corrector applied** — it must never be labelled IGLD 85. **Revisit when IGLD 2020 lands (~2027, already slipped twice)**: it is tied to NAPGD2022, keeps dynamic heights, expects much smaller correctors, and will move lake elevations by **as much as 60 cm** as it removes a ~35 cm tilt in the NAVD 88 leveling. That is the same dependency the roadmap already has (#32, #21). Researched 2026-08-11 at the owner's request. |
 | Two-point azimuth/distance | Not selected by the owner. The three defects it inherits from the MATLAB tool are recorded in amendment #1 so the fixes travel with the feature if it is ever added. |
 | Other states, NAD 27 | Out of scope by design. A Michigan tool is not a national one. |

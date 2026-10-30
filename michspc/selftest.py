@@ -194,6 +194,54 @@ SPCS2022_ANCHOR_SCALE_FACTOR = 1.000021412
 SPCS2022_LINEAR_TOLERANCE_M = 0.0005
 SPCS2022_SCALE_TOLERANCE = 5e-10
 
+# tests/fixtures/utm_anchors.py, the two UTM anchors check 15 holds the bundle
+# to (DESIGN.md #72, work package U6). NCAT's own figures, nothing this program
+# produced; each re-read from its raw capture by tests/test_selftest.py.
+#
+# NAD83(2011), UTM zone 16N: PRODUCTION NCAT (geodesy.noaa.gov/api/ncat/llh,
+# NAD83(2011) in and out), captured 2026-10-22, raw response
+# review/autozone-r0/raw/ncat_probe/r3_spcs83_050.json. Production NCAT prints
+# the scale factor to 8 decimals. Chosen among the 181 zone 16 anchors for the
+# widest margin to every printed rounding boundary (9% of the budget on the
+# worst axis), so the gate is never one rounding boundary from a false refusal.
+UTM_NAD83_ZONE_CODE = "16N"
+UTM_NAD83_ANCHOR_LATITUDE = 43.8145345300
+UTM_NAD83_ANCHOR_LONGITUDE = -84.8107363100
+UTM_NAD83_ANCHOR_NORTHING_M = 4853603.367
+UTM_NAD83_ANCHOR_EASTING_M = 676069.946
+UTM_NAD83_ANCHOR_SCALE_FACTOR = 0.99998131
+UTM_NAD83_SCALE_TOLERANCE = 5e-9
+
+# NATRF2022, UTM zone 16N: BETA NCAT (beta.ngs.noaa.gov/NCAT/, NATRF2022 epoch
+# 2020.00 in and out), captured 2026-10-22, saved page
+# review/autozone-r0/raw/ncat_probe/r3k0_2_spcs2022_000.html. **NGS beta.**
+# These lines came from NGS's pre-release product and MUST be re-frozen
+# against NGS's official release (docs/REFREEZE-NSRS.md, which lists this
+# file). Beta NCAT prints the scale factor to 9 decimals. The widest margin of
+# the 34 (19% of the budget on the worst axis).
+UTM_NATRF2022_ZONE_CODE = "16N-2022"
+UTM_NATRF2022_ANCHOR_LATITUDE = 47.6687500000
+UTM_NATRF2022_ANCHOR_LONGITUDE = -88.1687500000
+UTM_NATRF2022_ANCHOR_NORTHING_M = 5280145.826
+UTM_NATRF2022_ANCHOR_EASTING_M = 412260.423
+UTM_NATRF2022_ANCHOR_SCALE_FACTOR = 0.999694599
+UTM_NATRF2022_SCALE_TOLERANCE = 5e-10
+
+# NCAT prints both linear figures to 0.001 m, so +-0.0005 m per axis, as for
+# the SPCS2022 anchor above: a single leg, nothing written to a file between.
+UTM_LINEAR_TOLERANCE_M = 0.0005
+
+# Check 16: a position the transverse Mercator engine must refuse. 42.0 N,
+# 82.5 W (St. Clair County) into NAD83(2011) UTM zone 15N lies 10.5 degrees
+# from the zone's central meridian (93 W), more than twice the engine's
+# 4.8-degree verified domain (michspc.spc.tm.DOMAIN_LIMIT_DEGREES); the
+# manual's series is 19 mm off forward and 177 mm off inverse there, against
+# PROJ (DESIGN.md #72, the interim gate's MEDIUM 1, whose own counterexample
+# this is).
+UTM_DOMAIN_ZONE_CODE = "15N"
+UTM_DOMAIN_LATITUDE = 42.0
+UTM_DOMAIN_LONGITUDE = -82.5
+
 # tests/fixtures/htdp_anchors.py, HtdpRun "calfwd_2026-10-20", record
 # "P073H600" - NGS HTDP v3.6.0, github.com/noaa-ngs/HTDP commit
 # 59fdbe6b7cf5fabf79f901801ecdc33e7ca2095c, compiled from its committed source
@@ -793,6 +841,13 @@ LAZY_IMPORTS: tuple[str, ...] = (
     "michspc.gui.options",
     "michspc.gui.options_dialog",
     "michspc.gui.settings_store",
+    # UTM and the EPSG labels (DESIGN.md #72, work package U6). Both statically
+    # reachable today - controls.py imports epsg at module level, zones.py
+    # holds the UTM records - and declared on the same precedent: this list is
+    # what the bundle PROVES it can import. A missing epsg would show as a
+    # window that never opens; check_utm_conversion proves the UTM records
+    # and the engine's domain rule are intact.
+    "michspc.spc.epsg",
     # Standard-library modules the shipped code paths reach for. Cheap to check
     # and they have been dropped from bundles before by an over-eager exclude.
     "csv",
@@ -1602,6 +1657,133 @@ def check_autozone() -> str:
     )
 
 
+def check_utm_conversion() -> str:
+    """One UTM conversion per frame, end to end, against NCAT's own figures.
+
+    UTM (DESIGN.md #72) reaches the transverse Mercator engine through the
+    same dispatch table the SPCS2022 TM zones use, and its six zone records
+    are new in 0.9.0. This proves, from inside the bundle and through the
+    public conversion path a job takes (``convert.project_point``, which also
+    runs the frame gate and the engine's domain check), that a NAD83(2011)
+    position lands where production NCAT puts it in UTM zone 16N, and a
+    NATRF2022 position where beta NCAT puts it in the NATRF2022 zone 16N.
+
+    Both frames, because they are separate records: a bundle whose NATRF2022
+    UTM records carried the NAD83 frame, or none, would pass a NAD83 check and
+    fail here at the frame gate.
+    """
+    import math
+
+    from michspc.spc.convert import project_point
+    from michspc.spc.frames import NAD83_2011, NATRF2022
+    from michspc.spc.zones import zone_by_code
+
+    cases = (
+        (
+            NAD83_2011, UTM_NAD83_ZONE_CODE, UTM_NAD83_ANCHOR_LATITUDE,
+            UTM_NAD83_ANCHOR_LONGITUDE, UTM_NAD83_ANCHOR_NORTHING_M,
+            UTM_NAD83_ANCHOR_EASTING_M, UTM_NAD83_ANCHOR_SCALE_FACTOR,
+            UTM_NAD83_SCALE_TOLERANCE, "production NCAT",
+        ),
+        (
+            NATRF2022, UTM_NATRF2022_ZONE_CODE, UTM_NATRF2022_ANCHOR_LATITUDE,
+            UTM_NATRF2022_ANCHOR_LONGITUDE, UTM_NATRF2022_ANCHOR_NORTHING_M,
+            UTM_NATRF2022_ANCHOR_EASTING_M, UTM_NATRF2022_ANCHOR_SCALE_FACTOR,
+            UTM_NATRF2022_SCALE_TOLERANCE, "beta NCAT",
+        ),
+    )
+    landed = []
+    for (frame, code, latitude, longitude, north, east, expected_scale,
+         scale_tolerance, source) in cases:
+        zone = zone_by_code(code)
+        try:
+            converted = project_point(latitude, longitude, frame, zone)
+        except Exception as error:  # noqa: BLE001 — any failure is fatal here
+            raise SelfTestError(
+                f"a UTM conversion that succeeds in the source tree failed in "
+                f"this bundle: {latitude}, {longitude} ({frame.code}) into "
+                f"{zone.name}: {type(error).__name__}: {error}."
+            ) from error
+        northing = converted.target_northing
+        easting = converted.target_easting
+        if northing is None or easting is None:
+            raise SelfTestError(
+                f"the UTM conversion produced no grid coordinate at "
+                f"{latitude}, {longitude} in {zone.name}."
+            )
+        distance = math.hypot(northing - north, easting - east)
+        if (
+            abs(northing - north) > UTM_LINEAR_TOLERANCE_M
+            or abs(easting - east) > UTM_LINEAR_TOLERANCE_M
+        ):
+            raise SelfTestError(
+                f"this bundle projected {latitude}, {longitude} "
+                f"({frame.code}) into {zone.name} and produced "
+                f"N {northing:,.4f} m, E {easting:,.4f} m, where NGS's "
+                f"{source} computes N {north:,.3f} m, E {east:,.3f} m - the "
+                f"point landed {distance:.4f} m away, against a tolerance of "
+                f"{UTM_LINEAR_TOLERANCE_M} m per axis. The UTM mathematics in "
+                f"this bundle does not agree with the mathematics the test "
+                f"suite verified."
+            )
+        scale = converted.target_scale_factor
+        if scale is None or abs(scale - expected_scale) > scale_tolerance:
+            raise SelfTestError(
+                f"this bundle reported a grid scale factor of {scale} at "
+                f"{latitude}, {longitude} in {zone.name}, where NGS's "
+                f"{source} prints {expected_scale}. A coordinate can be right "
+                f"while the factor a surveyor scales a distance by is wrong."
+            )
+        landed.append(f"{zone.abbrev} {distance:.4f} m from {source}")
+
+    return "UTM zone 16N on both frames: " + ", ".join(landed)
+
+
+def check_utm_domain_refusal() -> str:
+    """The transverse Mercator engine's domain refusal is alive in this bundle.
+
+    Beyond 4.8 degrees from a zone's central meridian the manual's series
+    drifts by centimetres while returning a coordinate that looks entirely
+    ordinary (DESIGN.md #72). The engine refuses there; a bundle that lost the
+    refusal is a bundle that writes those centimetres. Asked through the
+    public conversion path, and that the refusal is the engine's own class,
+    which every caller turns into a refusal of the job. ``check_utm_conversion``
+    above is what proves the gate does not refuse everything.
+    """
+    from michspc.spc.convert import project_point
+    from michspc.spc.frames import NAD83_2011
+    from michspc.spc.tm import DOMAIN_LIMIT_DEGREES, TransverseMercatorDomainError
+    from michspc.spc.zones import zone_by_code
+
+    zone = zone_by_code(UTM_DOMAIN_ZONE_CODE)
+    try:
+        converted = project_point(
+            UTM_DOMAIN_LATITUDE, UTM_DOMAIN_LONGITUDE, NAD83_2011, zone
+        )
+    except TransverseMercatorDomainError:
+        pass
+    except Exception as error:  # noqa: BLE001 — any other outcome is a failure
+        raise SelfTestError(
+            f"projecting {UTM_DOMAIN_LATITUDE}, {UTM_DOMAIN_LONGITUDE} into "
+            f"{zone.name} raised {type(error).__name__} rather than the "
+            f"TransverseMercatorDomainError the engine refuses with: {error}."
+        ) from error
+    else:
+        raise SelfTestError(
+            f"this bundle PROJECTED {UTM_DOMAIN_LATITUDE}, "
+            f"{UTM_DOMAIN_LONGITUDE} into {zone.name} and returned N "
+            f"{converted.target_northing:,.3f} m, E "
+            f"{converted.target_easting:,.3f} m. That point is beyond the "
+            f"engine's {DOMAIN_LIMIT_DEGREES}-degree domain, where the series "
+            f"is centimetres wrong; the refusal did not reach this bundle."
+        )
+
+    return (
+        f"{UTM_DOMAIN_LATITUDE}, {UTM_DOMAIN_LONGITUDE} into {zone.abbrev} "
+        f"refused beyond the {DOMAIN_LIMIT_DEGREES}-degree domain, by name"
+    )
+
+
 CHECKS: tuple[tuple[str, object], ...] = (
     ("version and application name", check_version),
     ("bundled GEOID18 grid", check_geoid_grid),
@@ -1617,6 +1799,8 @@ CHECKS: tuple[tuple[str, object], ...] = (
     ("WGS 84 (G2296) conversion against NGS HTDP", check_wgs84_conversion),
     ("WGS 84 refusals", check_wgs84_refusals),
     ("Auto zone against NGS NCAT", check_autozone),
+    ("UTM conversion against NGS NCAT", check_utm_conversion),
+    ("transverse Mercator domain refusal", check_utm_domain_refusal),
 )
 
 

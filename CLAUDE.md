@@ -51,7 +51,46 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.8.0 RELEASED (2026-10-23)
+## Current state: 0.9.0 in flight - EPSG labels, UTM, the refusal round; U0-U6 done, closing gate next (2026-10-30)
+
+**Read `docs/PLAN-utm-epsg.md` and DESIGN.md #72 and #73 before touching this
+work.** Branch `claude/epsg-codes-system-labels-2a945a`. The owner's three
+instructions of 2026-10-29: every system in the dropdowns names its EPSG code
+(the code follows that side's Units box, unit named; none where EPSG has none:
+SPCS2022, NATRF2022 UTM, US survey feet); UTM zones 15N/16N/17N on NAD83(2011)
+AND NATRF2022, metres only; and (#73) the Auto refusal reads as one line
+("Coordinates out of range: 1 point is outside Michigan.") while a long
+refusal no longer widens the window. **The literal is `0.9.0-dev`; 0.8.0 is
+still the released version.**
+
+**The fact to know first: the TM engine refuses beyond 4.8 degrees from a
+zone's central meridian** (`tm.DOMAIN_LIMIT_DEGREES`), because the manual's
+section 3.23/3.24 series drifts (19/177 mm forward/inverse at 10.7 degrees);
+4.8 keeps positions within 0.26 mm and the printed scale factor within half a
+unit of its 8th decimal against PROJ. 16N converts all of Michigan's land; 17N
+refuses west of 85.8 W (Muskegon, Ludington), 15N east of 88.2 W. Two tiers
+(write 4.8 + 1e-7, read 4.8 + 2e-7) so written coordinates read back; three
+edge refusals are recorded residuals, never wrong numbers. A UTM point in no
+Michigan county warns (every UTM zone shares the 500,000 m false easting).
+
+**Oracle:** 212 production + 34 beta NCAT responses already frozen in
+`review/autozone-r0/raw/ncat_probe/` carry NGS's own UTM values; EPSG codes
+read from the EPSG dataset v12.029 via pyproj. **Process:** the lead began
+inline, stopped when the owner asked about method (#72 records it); from then
+the standing method. Interim gate FINDINGS (2 MEDIUM, 5 LOW), four narrowing
+re-confirmations, closed by the lead's ruling with residuals recorded.
+Suite **6,870** in both modes here, plus the five container failures; self-test
+**16** checks. **Next:** the closing gate over `3a3bdb6..HEAD`, then the
+owner's screen review (`review/utm-u2/`, `review/utm-u5/`,
+`review/refusal-r1/`), then the release build on his machine. **Open for the
+owner:** whether the one-line Auto refusal should say "Nothing was written."
+
+**This container:** Python 3.14 venv at `/root/venv314` (PySide6, pytest,
+pyproj); the two `review/nsrs-n0/raw/*.json` files were converted to CRLF
+locally and marked assume-unchanged so `test_zone_registry.py` collects -
+never commit them.
+
+## Superseded status: 0.8.0 RELEASED (2026-10-23)
 
 **0.8.0 is built, gated, tagged and published** (DESIGN.md #71): the
 WGS 84 / ITRF build (#70) and the Options menu / Auto zone build (#71),

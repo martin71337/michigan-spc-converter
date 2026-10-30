@@ -374,6 +374,8 @@ def test_the_check_registry_holds_every_check_by_name():
         "WGS 84 (G2296) conversion against NGS HTDP",
         "WGS 84 refusals",
         "Auto zone against NGS NCAT",
+        "UTM conversion against NGS NCAT",
+        "transverse Mercator domain refusal",
     ]
 
 
@@ -1171,11 +1173,11 @@ def test_the_wgs84_refusal_check_passes_only_while_conversion_still_works():
 
 
 def test_the_selftest_states_its_own_check_count(tmp_path):
-    """The printed count derives from CHECKS, and CHECKS holds fourteen."""
+    """The printed count derives from CHECKS, and CHECKS holds sixteen."""
     report = tmp_path / "selftest.txt"
     assert selftest.main(["--selftest", "--report", str(report)]) == 0
 
-    assert len(selftest.CHECKS) == 14
+    assert len(selftest.CHECKS) == 16
     last = report.read_text(encoding="utf-8").strip().splitlines()[-1]
     assert last == f"SELF-TEST PASSED - {len(selftest.CHECKS)} checks."
 
@@ -2025,3 +2027,125 @@ def test_the_installer_script_freezes_one_appid_and_uses_hka_conventions():
     assert "{autopf}" in inno
     assert "{autoprograms}" in inno
     assert "PrivilegesRequiredOverridesAllowed=dialog" in inno
+
+
+# --------------------------------------------------------------------------
+# Checks 15 and 16: UTM (DESIGN.md #72, work package U6).
+# --------------------------------------------------------------------------
+
+
+def _utm_fixture_row(capture: str):
+    from tests.fixtures.utm_anchors import NAD83_2011_ANCHORS, NATRF2022_ANCHORS
+
+    return next(
+        a for a in NAD83_2011_ANCHORS + NATRF2022_ANCHORS if a.capture == capture
+    )
+
+
+@pytest.mark.parametrize(
+    "capture, prefix",
+    [
+        ("review/autozone-r0/raw/ncat_probe/r3_spcs83_050.json", "UTM_NAD83"),
+        ("review/autozone-r0/raw/ncat_probe/r3k0_2_spcs2022_000.html", "UTM_NATRF2022"),
+    ],
+)
+def test_the_selftests_utm_anchors_are_the_frozen_ncat_captures(capture, prefix):
+    """Transcription check, exact: each figure check 15 holds the bundle to is
+    the fixture's row for that capture, and the fixture's row is what the raw
+    NCAT capture says (re-hashed and re-parsed here with the fixture
+    generator's own parser), so the self-test cannot drift from NGS's bytes.
+    ``==`` on the printed text's value: the claim is "the same number"."""
+    import hashlib
+    import importlib.util
+
+    row = _utm_fixture_row(capture)
+    raw = (REPO_ROOT / capture).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == row.sha256
+
+    spec = importlib.util.spec_from_file_location(
+        "build_anchor_fixture", REPO_ROOT / "review/utm-u0/build_anchor_fixture.py"
+    )
+    builder = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(builder)
+    assert builder.parse_capture(capture, raw) == tuple(row)[2:]
+
+    frame_code = "NAD83(2011)" if prefix == "UTM_NAD83" else "NATRF2022"
+    assert row.frame == frame_code
+    assert row.zone == 16
+    assert getattr(selftest, f"{prefix}_ZONE_CODE") == (
+        "16N" if prefix == "UTM_NAD83" else "16N-2022"
+    )
+    assert getattr(selftest, f"{prefix}_ANCHOR_LATITUDE") == float(row.latitude)
+    assert getattr(selftest, f"{prefix}_ANCHOR_LONGITUDE") == float(row.longitude)
+    assert getattr(selftest, f"{prefix}_ANCHOR_NORTHING_M") == float(row.northing)
+    assert getattr(selftest, f"{prefix}_ANCHOR_EASTING_M") == float(row.easting)
+    assert getattr(selftest, f"{prefix}_ANCHOR_SCALE_FACTOR") == float(row.scale_factor)
+
+
+def test_the_selftests_utm_scale_tolerances_are_half_ncats_last_printed_place():
+    """Production NCAT prints the scale to 8 decimals, beta NCAT to 9: half a
+    unit in the last place is 5e-9 and 5e-10. Linear figures to 0.001 m."""
+    from tests.fixtures.utm_anchors import NAD83_2011_ANCHORS, NATRF2022_ANCHORS
+
+    assert all(len(a.scale_factor.split(".")[1]) == 8 for a in NAD83_2011_ANCHORS)
+    assert all(len(a.scale_factor.split(".")[1]) == 9 for a in NATRF2022_ANCHORS)
+    assert selftest.UTM_NAD83_SCALE_TOLERANCE == 5e-9
+    assert selftest.UTM_NATRF2022_SCALE_TOLERANCE == 5e-10
+    assert selftest.UTM_LINEAR_TOLERANCE_M == 0.0005
+
+
+def test_the_utm_domain_refusal_point_is_beyond_the_engines_limit():
+    """Check 16's point must actually lie beyond the limit, or the check would
+    pass by converting. Stated as arithmetic on the zone's own meridian."""
+    from michspc.spc import tm
+
+    zone = selftest_zone(selftest.UTM_DOMAIN_ZONE_CODE)
+    distance = abs(selftest.UTM_DOMAIN_LONGITUDE - zone.definition.lon_origin)
+    assert distance > 2 * tm.DOMAIN_LIMIT_DEGREES
+
+
+def test_check_15_fails_when_the_bundle_projects_elsewhere(monkeypatch):
+    """Falsification in the suite: a 1 mm shift of the expected northing on
+    either frame must make check 15 refuse."""
+    assert selftest.check_utm_conversion()
+    monkeypatch.setattr(
+        selftest, "UTM_NATRF2022_ANCHOR_NORTHING_M",
+        selftest.UTM_NATRF2022_ANCHOR_NORTHING_M + 0.001,
+    )
+    with pytest.raises(selftest.SelfTestError, match="UTM zone 16N"):
+        selftest.check_utm_conversion()
+
+
+def test_check_16_fails_when_the_engine_stops_refusing(monkeypatch):
+    """With the engine's limit widened past the point, check 16 must refuse
+    the bundle - a bundle that lost the refusal writes centimetres."""
+    from michspc.spc import tm
+
+    assert selftest.check_utm_domain_refusal()
+    monkeypatch.setattr(tm, "DOMAIN_LIMIT_DEGREES", 11.0)
+    with pytest.raises(selftest.SelfTestError, match="PROJECTED"):
+        selftest.check_utm_domain_refusal()
+
+
+def test_the_utm_checks_are_in_checks():
+    names = [name for name, _check in selftest.CHECKS]
+    assert names[-2:] == [
+        "UTM conversion against NGS NCAT",
+        "transverse Mercator domain refusal",
+    ]
+    assert "michspc.spc.epsg" in selftest.LAZY_IMPORTS
+
+
+def test_the_natrf2022_utm_anchor_carries_its_own_beta_token():
+    """The re-freeze inventory scans per FILE, and selftest.py was already
+    tagged by its SPCS2022 anchor, so the file-level scan cannot see the UTM
+    anchor's tag go missing. The comment block directly above the NATRF2022
+    UTM constants must say ``NGS beta`` itself (docs/REFREEZE-NSRS.md)."""
+    lines = (REPO_ROOT / "michspc" / "selftest.py").read_text(encoding="utf-8").splitlines()
+    start = next(i for i, line in enumerate(lines) if line.startswith("UTM_NATRF2022_ZONE_CODE"))
+    block = []
+    for line in reversed(lines[:start]):
+        if not line.startswith("#"):
+            break
+        block.append(line)
+    assert "NGS beta" in " ".join(block)

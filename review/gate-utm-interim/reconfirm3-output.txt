@@ -1,0 +1,252 @@
+MCX interim gate over U1-U4 + R1 - THIRD NARROWING RE-CONFIRMATION
+Range: fd844ae..cf0c90e on claude/epsg-codes-system-labels-2a945a
+Reviewer: independent Opus reviewer (did not write the code; Codex unavailable)
+Date: 2026-10-30
+
+Suite, run unpiped in the checkout, exit codes read:
+  pytest     6795 passed, 1 skipped, 5 failed (exit 1)
+  python -O  6795 passed, 1 skipped, 5 failed (exit 1)
+The 5 failures are exactly the container baseline: test_fileio's three
+test_r3_3_*, test_geodetic_dms_export's half-way point, and
+test_every_captured_value_is_in_the_page_ngs_served.
+
+Oracle: pyproj 3.8.0 / PROJ 9.8.1, using +proj=tmerc built from each zone
+record, get_factors().meridional_scale and meridian_convergence. Scripts are
+in the session scratchpad. Seeds ran in the checkout and were restored from
+snapshots, never git checkout. sha256 of convert.py, projection.py, tm.py
+and job.py was verified identical to before after every seed. No repository
+file was written except this one.
+
+==============================================================================
+1. THE ITEMS
+==============================================================================
+
+R2-1 (read-back at the limit) - CLOSED for what it named.
+  The second re-confirmation's own inputs:
+  - GEODETIC_TO_ZONE 17N "1,41.7,-85.8,200,P" writes
+    "1,4627612.7742,100559.4963,200.0000,P". That row now reads back under
+    ZONE_TO_GEODETIC 17N and VERTICAL_ONLY 17N.
+  - Meridian lines at 85.8 W (17N), 88.2 W (15N) and 82.2 W (16N), plus the
+    three NATRF2022 UTM twins, latitudes 41.60 to 48.40 in 0.01-degree
+    steps. That is 681 rows per zone. Each was written through a real job
+    and read back through real jobs:
+      ZONE_TO_GEODETIC: 681/681 on all six zones (worst longitude 9.18e-10
+        degrees from the limit).
+      VERTICAL_ONLY: 681/681 on the three NAD83(2011) zones.
+      ZONE_TO_GEODETIC into WGS84(G2296) via HTDP: 681/681.
+    This was 339/553, 111/229 and 41/50 refused at fd844ae.
+  - The 16N NCAT anchor 44.5/-82.2 at full precision reads back under
+    ZONE_TO_GEODETIC and VERTICAL_ONLY, and converts to 2113, 2112 and 17N.
+  - Engine sweep on all 11 transverse Mercator zones (6 UTM, 5 SPCS2022 TM),
+    latitudes 41.6 to 48.4 in steps of 0.0005, at exactly +/-4.8 degrees
+    and a random hair inside it, written at 4 decimals in every allowed
+    unit (m, and ift on the SPCS2022 TM zones). 870,400 written
+    coordinates:
+      same-zone read-back: 0 failures
+      zone to zone into every other zone of the frame (UTM <-> SPCS 83
+        Lambert, UTM-2022 <-> SPCS2022 OM/LC1/TM, UTM <-> UTM): 1,691,305
+        accepted, 0 failures
+      the target file read back to the source and to itself: 3,382,610
+        read-backs, 0 failures, 0 misses > 1 mm
+    The only refusals were target TM zones the point lies beyond (397,655).
+  - Supplied positions are still held to exactly 4.8 on every path that
+    takes one:
+      GEODETIC_TO_ZONE 17N -85.8: converts. -85.80000001 (negative west),
+        85.80000001 (positive west) and NATRF2022 into 17N-2022: refused.
+      SPCS2022 TM 261001 at 4.8 + 1e-8: refused.
+      WGS84(G2296) and ITRF2020 via HTDP into 17N: a pivot 1e-9, 5e-8 or
+        9.9e-8 degrees past the limit is refused. A pivot 1e-9 inside it
+        converts.
+      Single point tab: it runs job.run, so the same rule applies. UTM is
+        not offered in the GUI yet (U5), so this was checked on SPCS2022 TM
+        261001.
+      Auto: it chooses SPCS zones only, and goes through project_point
+        (strict).
+    Code audit: recovered=True is passed only in convert.convert_point.
+    That function is reached only from grid input: zone to zone,
+    zone_to_geodetic and the zone VERTICAL_ONLY branch. project_point,
+    geodetic_position and geodetic_to_geodetic never set it. No caller in
+    michspc/ or tools/ outside convert.py and job.py.
+  - PROJ check of the widened branch: 33,052 points across the 11 zones,
+    from 4.8 - 1e-8 to 4.8 + 3e-7 degrees.
+      0 accepted beyond 4.8 + 1e-7; 0 refused inside it.
+      Worst position 0.056 mm (< 0.5 mm).
+      Worst scale 4.573e-9 (< 5e-9).
+      Worst convergence 0.00014".
+  BUT the rule has an edge of its own: see R3-1. A zone-to-zone job INTO a
+  transverse Mercator zone now writes coordinates up to 4.8 + 1e-7 degrees,
+  and a strip of those does not read back. R2-1 is closed. The commit's
+  claim "every coordinate the program writes at the limit reads back" is
+  not.
+
+R2-2 (sign-convention sentence) - CLOSED on the multi-point path.
+  - Negative west, "1,43.0,84.5,200,P" -> 16N: the refusal names file
+    84.500000, negative west, and the point at 84.500000.
+  - Positive west, "1,43.0,-84.5,200,P" -> 16N, and 261001 at 42.3/-83.7:
+    the refusal names file -84.500000 / -83.700000, positive west, and the
+    point at +84.5 / +83.7. Both statements are true.
+  - A west-longitude refusal (15N at -82.5) carries no sign sentence.
+  The sentence is not true on the Single point tab (NEW LOW R3-2).
+
+SCALE-DIGIT WORDING - CLOSED.
+  tm.py's DOMAIN_LIMIT_DEGREES docstring and DESIGN.md #72 state the
+  half-unit bound exactly. They say it is not equality with PROJ's
+  rounding, and that 6c7bb71's message overstated it. No other doc or
+  docstring in the repo repeats "every printed digit holds". The only hits
+  outside review/ are unrelated: PLAN-wgs84 on HTDP, DESIGN #36 on
+  VERTCON.
+
+NaN CLOSURE - CLOSED.
+  test_a_nan_closure_refuses_on_its_own patches _forward_series to return
+  NaN, so the recovered longitude stays finite and passes the domain test.
+  The second re-confirmation's seed (closure written as
+  "not miss > INVERSE_CLOSURE_TOLERANCE_M") now fails exactly that test.
+
+==============================================================================
+2. NEW FINDINGS (all LOW; fail closed or wording; no wrong number written)
+==============================================================================
+
+R3-1 LOW - A zone-to-zone file written INTO UTM at the allowance's own edge
+  does not read back. R2-1's defect, moved from 4.8 to 4.8 + 1e-7.
+  Where:
+    michspc/spc/convert.py:975. convert_point always passes recovered=True,
+      so a State Plane source point gets the inverse's allowance in the UTM
+      forward: up to 4.8 + 1e-7 degrees, about 8 mm beyond the limit, even
+      though no transverse Mercator inverse produced it.
+    michspc/spc/tm.py:625-630. The inverse that reads the written UTM
+      coordinate back has the SAME allowance, 1e-7. The 4-decimal write
+      adds up to about 1e-9 degrees, so a point written within about 1e-9
+      of 4.8 + 1e-7 recovers just past the allowance and refuses.
+  Input: ZONE_TO_ZONE 2112 (ift) -> 17N,
+    "1,-63665.6573,19302281.4939,200.0,P". This is 43.1328 N,
+    -85.8000000997, Michigan land near the Kent/Ottawa line.
+  Output: the program writes "1,4786755.1882,109573.2866,60.9600,P".
+  Read back, that row is REFUSED on all four paths:
+    ZONE_TO_GEODETIC 17N
+    VERTICAL_ONLY 17N
+    17N -> 2112, which is the job's own source zone
+    17N -> 2113
+  The refusal contradicts itself: "give longitude -85.800000, 4.800000
+  degrees from the central meridian ... converts only within 4.8 degrees".
+  Reproduced on 2113->16N, 2112->16N, 2111->17N, 2111->15N,
+  260001->16N-2022, 260001->17N-2022, 261016->15N-2022 and
+  261001->17N-2022. 740 of 24,446 accepted conversions failed, but the
+  sample was weighted toward the edge.
+  The strip is about 1e-9 degrees (~0.08 mm) wide, at 8 mm outside the
+  stated limit. A real job will almost never land in it, but it is
+  deterministic, and it is the exact property the commit message claims.
+  The same position typed as latitude and longitude is refused into 17N.
+  So DESIGN #72's "17N refuses west of 85.8 W" holds for geodetic input
+  and is 1e-7 degrees wide for State Plane input. That is a nit, not a
+  finding.
+  Fix (lead's call): give the inverse more room than the recovered forward
+  - inverse 2e-7, recovered forward 1e-7 - and have the same-zone
+  re-projection in convert_point (source == target) accept whatever the
+  inverse accepted.
+    One hop: writes reach at most L + A; read-back reaches L + A + ~1e-9,
+      which is <= L + 2A; same-zone re-projection is fine; a cross-zone
+      hop back to the source is fine.
+    Round trips (UTM -> SPCS -> UTM) still take only about 2e-9 per hop
+      against a margin of 1e-7.
+  Pin with the input above through ZONE_TO_ZONE, then ZONE_TO_GEODETIC,
+  VERTICAL_ONLY, and back to the source zone.
+
+R3-2 LOW - The new sign-convention sentence is false on the Single point
+  tab, worst with DMS entry.
+  Where: michspc/job.py:2936-2967, _with_sign_convention_hint, reached from
+    job.py:3209. The Single point tab calls job.run with
+    source=pnezd.parse_typed_point(...) (gui/single_point.py:1513-1520).
+  Input (real GUI, offscreen): Single point tab, NATRF2022 geodetic ->
+    261001, positive west, DMS page, 42-18-00 N / 83-42-00 E.
+  Output: "... The file gives longitude -83.700000, and this job reads
+    longitudes as positive west, which puts the point at 83.700000 - east of
+    Greenwich, where no Michigan point is. A file written in the other
+    longitude sign convention lands every point on the other side of
+    Greenwich: check that the convention chosen for this job is the one this
+    file uses."
+  What is wrong:
+    - There is no file.
+    - The user never typed -83.7. They typed 83 deg 42 min E.
+    - The advice cannot fix it. A DMS entry converts identically under both
+      conventions; that is pinned by
+      test_a_dms_entry_means_the_same_point_under_both_conventions. The
+      same entry under negative west gives the same refusal, saying "The
+      file gives longitude 83.700000". The cause is the E letter.
+  With decimal entry, "The file gives" is still wrong on a tab that has no
+  file. That is the #26 class: "this file was wrong the moment a typed
+  point could raise this warning", job.py's own comment at the easting
+  warning.
+  Fails closed, so this is LOW.
+  Fix: word the sentence for a typed point, without "file" (job.run can
+  tell from `source`). Either the tab names the hemisphere letter on its
+  DMS page, or the sentence states both causes: a longitude entered east,
+  or the other sign convention. Pin the DMS E case under both
+  conventions.
+
+R3-3 LOW (test gap) - Nothing pins the outer bound of the recovered
+  forward.
+  Seed: tm.forward_recovered's allowance changed from
+    INVERSE_DOMAIN_ALLOWANCE_DEGREES to 1.0 degree (tm.py:511-516).
+  Result: the four UTM and projection-engine test files pass (only the
+    baseline failure).
+  Under the seed, zone to zone 2112 -> 17N at 44.3 N is accepted at:
+    -85.9: scale error 5.1e-9 against PROJ
+    -86.3: scale error 8.2e-9
+    -86.8: scale error 1.4e-8, position 0.18 mm
+  So factors more than half a unit off would be written with no refusal.
+  The production constant is right (PROJ check above). No test asserts
+  that a zone-to-zone job into a transverse Mercator zone refuses beyond
+  4.8 + allowance.
+  Fix: pin a State Plane point at 4.8 + 2e-7 and at 4.9 degrees from a
+  UTM meridian refusing through convert_point and through a ZONE_TO_ZONE
+  job.
+
+==============================================================================
+3. NEGATIVES
+==============================================================================
+
+Byte identity. 23 configurations were run in three trees, normalised only
+for the Generated/Software lines and the output folder. Members were
+compared as text.
+  vs fd844ae: all 23 configurations, 78 members, IDENTICAL. That includes
+    every UTM job: geodetic->16N, 16N->geodetic, 16N->2113, 2112->17N,
+    17N vertical-only, WGS84(G2296)->16N, 16N->WGS84(G2296), and
+    261001->17N-2022.
+  vs 3a3bdb6: the 15 configurations that exist there, 52 members,
+    IDENTICAL:
+      SPCS 83 zone to zone, ift->ift and m->usft
+      zone to geodetic
+      geodetic to zone, negative and positive west
+      Auto on NAD83(2011) and on NATRF2022
+      261001 forward
+      261016 -> geodetic
+      261014 -> 261015
+      261002 -> 260001
+      vertical-only
+      H+V zone to zone
+      a State Plane point far outside its zone
+      a positive longitude into a Lambert zone
+cf0c90e only widens acceptance. No legitimate Michigan job is newly
+refused.
+
+Seeds, 9 in all:
+  Caught (8):
+    S1  convert_point recovered=True removed
+    S2  projection.forward ignores recovered
+    S3  forward_recovered allowance 0
+    S4  project_point passes recovered=True (caught only by
+        test_a_supplied_position_is_not_widened_by_the_allowance)
+    S6  the hint names the signed longitude as the file's
+    S7  the hint on every refusal
+    S8  NaN closure "not miss > tol"
+    S10 convention name hard-coded to "negative west"
+  Not caught (1):
+    S9  forward_recovered allowance 1.0 degree -> R3-3
+  (S5 was not run separately: widening from_geodetic's default reaches
+  project_point the same way S4 does.)
+
+The R2-2 sentence states the file's own value and the convention in force
+in both mismatch directions on the multi-point tab. The engine hint that
+precedes it is retained.
+
+VERDICT: FINDINGS

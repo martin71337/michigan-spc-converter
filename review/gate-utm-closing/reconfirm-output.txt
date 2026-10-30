@@ -205,3 +205,68 @@ CLAUDE.md's 0.9.0 block. All text; no wrong number, no output change outside
 the intended preamble.
 
 VERDICT: FINDINGS
+
+==============================================================================
+SECOND SECTION - 2026-10-30 - follow-up over b03eba1..a643f8d
+==============================================================================
+Same reviewer. Suite unpiped, exit codes read directly:
+  pytest     6879 passed, 1 skipped, 5 failed (exit 1)
+  python -O  6879 passed, 1 skipped, 5 failed (exit 1)
+  The 5 are exactly the container baseline. launch.py --selftest: SELF-TEST
+  PASSED - 16 checks (exit 0). Seeds in a scratch copy, restored byte for
+  byte and diffed identical to the checkout afterwards.
+
+LOW 1 - CLOSED
+  DESIGN.md:786-788 "with two warnings, the easting one and an extent
+  warning that said the coordinate was computed correctly" and release notes
+  :141-142 "with an easting warning and an extent warning that called the
+  coordinate correct". Both match the 0.8.0 record measured in the first
+  section (COORDINATES MAY NOT BE IN THE SELECTED SOURCE ZONE + POINTS
+  OUTSIDE THE TARGET ZONE'S AREA, "The coordinate is computed correctly").
+
+LOW 6 - CLOSED
+  report.py:3001-3023 branches on settings.source_zone. Records written at
+  a643f8d, every branch, preamble read from each:
+    grid wording ("most likely means the coordinates were declared in the
+    wrong zone or unit"): 16N data declared 17N -> geodetic (NAD83(2011));
+    the NATRF2022 16N-2022 anchor declared 17N-2022 -> geodetic; the same
+    as a VERTICAL-ONLY job on 17N and on 17N-2022; 16N data declared 17N ->
+    2113 (UTM to State Plane); a 2113 coordinate of Toledo -> 17N (State
+    Plane to UTM). On each a wrong zone or unit is a possible cause, and the
+    "most likely" is a hedge, not a claim of fact. TRUE.
+    geodetic wording ("the latitude and longitude given lie outside
+    Michigan"): Toledo into 17N on NAD83(2011), on NATRF2022 (17N-2022), and
+    as WGS 84 (G2296) dated 2026-06-01 through HTDP; 0.5 N, 82.21 W into
+    16N. All four positions are outside Michigan. TRUE.
+    A wrong sign on geodetic input still refuses before any record (44.0,
+    85.0 into 16N; -83.0 positive west into 17N). A UTM job whose only
+    warning is the extent one prints the old sentence.
+  Seeds: condition inverted (2 pins fail); grid wording always (the new
+  geodetic pin fails); geodetic wording always (the grid pin fails). All
+  caught.
+  Byte identity against 3a3bdb6: 7 non-UTM configurations, 23 written
+  members (the same sample as the first section, 4 of them records with
+  the old preamble): 23 of 23 identical.
+  Nit, not a finding: on an HTDP job the outside-Michigan test runs at the
+  NAD83(2011) pivot, about a metre from the position given, so "the
+  latitude and longitude given" is exact except within a metre of
+  Michigan's border.
+
+NEW LOW A (status sentences) - CLOSED
+  Release notes :3-5 "The closing gate has run (seven LOW, no wrong number;
+  all fixed)" and :176-178. The CLAUDE.md 0.9.0 heading and block now say the
+  closing gate is done, suite 6,879 (measured above), next the owner's screen
+  review and the release build. True at a643f8d.
+  CLAUDE.md:30 EPSG sentence now reads "where EPSG publishes one". True.
+
+report.py comment nit - CLOSED
+  The comment's "DESIGN.md #72" is now accurate: #72 (DESIGN.md:863-883)
+  records the closing gate, its seven LOW, and the grid/geodetic preamble
+  ruling. I checked that paragraph's figures against the closing gate's
+  output (212 NCAT, 0.5 mm, 34 beta anchors, HTDP 0.046 mm, 92 of 98) and
+  against this file: all agree.
+
+New findings in b03eba1..a643f8d: none. The only production-code change is
+the preamble branch; no other output moved. No digest pin was edited.
+
+VERDICT: APPROVED

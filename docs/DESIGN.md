@@ -880,7 +880,10 @@ the preamble now names the cause that can apply - **grid input: the zone or
 unit it was declared in; geodetic input: the latitude and longitude
 themselves**, because no unit applies to them and a wrong longitude sign
 refuses at the TM limit before any record exists. Every other record keeps
-its sentence byte for byte.
+its sentence byte for byte. **The follow-up re-confirmation returned APPROVED**
+(no new finding; 23 of 23 non-UTM files identical to 0.8.0). The build is
+done on the lead's side; the owner's screen review and the release build
+remain.
 
 
 ### #71 — 2026-10-22 — Options menu, Auto zone, the observation date in Options; the release machine's suite

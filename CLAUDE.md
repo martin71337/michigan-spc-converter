@@ -87,7 +87,8 @@ re-confirmations, closed by the lead's ruling with residuals recorded.
 Suite **6,879** in both modes here, plus the five container failures; self-test
 **16** checks. **The closing gate is done** (`review/gate-utm-closing/`):
 seven LOW, no wrong number, all fixed; its narrowing re-confirmation closed
-five and the lead fixed the last two as text. **Next:** the owner's screen
+five, the lead fixed the last two as text, and its follow-up returned
+**APPROVED** (23 of 23 non-UTM files identical to 0.8.0). **Next:** the owner's screen
 review (`review/utm-u2/`, `review/utm-u5/`, `review/refusal-r1/`), then the
 release build on his machine (drop `-dev`, `py tools/build_release.py
 --acknowledge-ngs-beta`, tag, GitHub Release). **Open for the owner:**

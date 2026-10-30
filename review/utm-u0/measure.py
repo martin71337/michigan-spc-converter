@@ -6,7 +6,7 @@ Run from the repository root: py review/utm-u0/measure.py   (needs pyproj)
    that carries a UTM result is reproduced with michspc.spc.tm given UTM's
    defining constants; the worst residual per quantity is printed.
 2. PROJ (EPSG 6344-6346) as a third opinion over Michigan's latitudes, at
-   3.0, 4.6 and 5.0 degrees from each central meridian (the engine's domain
+   3.0, 4.6 and 4.8 degrees from each central meridian (the engine's domain
    limit), and the refusal just beyond it and at 8.5 degrees.
 3. The EPSG dataset version, and each NAD83(2011) Michigan SPCS 83 CRS run
    against MCX's own zone record.

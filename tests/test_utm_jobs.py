@@ -562,16 +562,18 @@ def test_a_state_plane_coordinate_fed_as_utm_refuses(tmp_path):
         )
     message = str(refused.value)
     assert message.startswith("point 1 (NAD83(2011) / UTM zone 16N): ")
-    assert "44.2618 degrees from the central meridian of zone 16N" in message
+    assert "44.261839 degrees from the central meridian of zone 16N" in message
     assert "choose that zone" not in message
     assert "not a coordinate in this zone" in message
 
 
 def test_a_utm_easting_out_of_range_still_warns_inside_the_domain():
     """The UTM easting range (500,000 m +/- 400 km) still stands. In a job a
-    coordinate that far off is refused by the engine's domain first - every
-    easting the domain admits at Michigan's latitudes is inside the range - so
-    the range is held here directly."""
+    coordinate that far off is refused by the engine first - by the domain
+    limit, or, where the inverse series turns over and recovers a longitude
+    back inside it (an easting about 1.4 million metres or more off the false
+    easting), by the inverse closure check (the re-confirmation's N1) - so the
+    range is held here directly."""
     from michspc.spc.convert import easting_looks_wrong_for_zone
 
     assert easting_looks_wrong_for_zone(6016088.527, UTM16)

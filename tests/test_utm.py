@@ -126,10 +126,11 @@ def test_every_utm_record_carries_utms_defining_constants(zone):
     )
     assert zone.allowed_units == (METERS,)
     assert zone.easting_range_m == (100000.0, 900000.0)
-    # The zone's band clipped to Michigan's longitudes, -90.5 to -82.3 (the
-    # interim gate's MEDIUM 2), hand-stated per zone: 15N's band is -96 to
+    # The zone's band clipped to Michigan's longitudes, -90.42 to -82.12 (the
+    # county set's own bounds rounded outward; the interim gate's MEDIUM 2 and
+    # the re-confirmation's N2), hand-stated per zone: 15N's band is -96 to
     # -90, 16N's -90 to -84, 17N's -84 to -78.
-    expected_extent = {15: (-90.5, -90.0), 16: (-90.0, -84.0), 17: (-84.0, -82.3)}[number]
+    expected_extent = {15: (-90.42, -90.0), 16: (-90.0, -84.0), 17: (-84.0, -82.12)}[number]
     assert (zone.lon_min, zone.lon_max) == expected_extent
     assert (zone.lat_min, zone.lat_max) == (41.6, 48.4)
     conversion = {15: "16015", 16: "16016", 17: "16017"}[number]
@@ -146,7 +147,7 @@ def test_all_zones_is_the_three_tuples_in_order():
 @pytest.mark.parametrize(
     "lon_min, lon_max",
     [
-        (-84.0, -82.3),  # the next zone's extent
+        (-84.0, -82.12),  # the next zone's extent
         (-90.0, -84.0 + 1e-9),  # off by a hair at the east edge
         (-93.0, -84.0),  # the whole band west, not clipped to Michigan
         (-90.0, -81.0),  # not clipped east
@@ -364,7 +365,7 @@ def test_every_zone_agrees_with_proj_over_michigan():
             latitude = 41.6 + i * 0.85
             for j in range(9):
                 longitude = meridian - 4.0 + j
-                if not -90.5 <= longitude <= -82.3:
+                if not -90.42 <= longitude <= -82.12:
                     continue
                 easting, northing = transformer.transform(longitude, latitude)
                 result = convert.project_point(latitude, longitude, NAD83_2011, zone)

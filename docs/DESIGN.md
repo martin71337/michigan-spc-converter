@@ -742,16 +742,31 @@ reviewer's inputs, 12 seeds caught; suite 6,759 in both modes.
   drifts beyond about 5 degrees from a meridian, the inverse fastest; the lead
   reproduced it against PROJ (0.07/0.36 mm forward/inverse at 5.0 degrees,
   2/16 mm at 8, 19/177 mm at 10.7). **The lead's ruling: `tm.py` refuses any
-  point more than 5.0 degrees from its zone's central meridian, both
+  point beyond its domain limit from its zone's central meridian, both
   directions**, naming the UTM zone that does cover it. This is the engine's
-  verified domain, not a zone extent, so it does not contradict #1. 16N used
-  over all of Michigan reaches 4.6 degrees and converts; 17N in the western
-  Upper Peninsula, or 15N east of 88 W, refuses. The widest SPCS2022 TM zone
-  reaches 1.29 degrees. **It changes one existing behaviour:** an SPCS2022 TM
-  job whose points lie more than 5 degrees from the zone's meridian - hundreds
-  of kilometres outside a low-distortion zone, never a real job - used to
-  convert with up to 20 mm of error and now refuses. The Krueger n-series
-  would remove the limit; it is not built, and is the owner's call.
+  verified domain, not a zone extent, so it does not contradict #1. **The
+  limit is 4.8 degrees, set by the grid scale factor, not the position**
+  (corrected at the narrowing re-confirmation, which first placed it at 5.0):
+  the record prints scale and combined factors to 8 decimals, and the forward
+  scale series stays within half a unit of PROJ (4.6e-9) to 4.8 degrees and
+  not at 4.9 (5.2e-9); the position is inside 0.06/0.26 mm there. **Where each
+  zone refuses in Michigan, at 4.8:** 15N (meridian 93 W) east of 88.2 W - all
+  of Michigan but the far western Upper Peninsula; 17N (81 W) west of 85.8 W -
+  the whole Upper Peninsula west of it and the Lower Peninsula's Lake Michigan
+  shore, Muskegon, Ludington, Manistee, South Haven and St. Joseph among its
+  towns; 16N (87 W) converts every point of Michigan's land (82.41 W, Port
+  Huron, is 4.59 degrees) and refuses only Michigan's Lake Huron waters east
+  of 82.2 W. The widest SPCS2022 TM zone reaches 1.29 degrees. **It changes
+  one existing behaviour:** an SPCS2022 TM job whose points lie beyond the
+  limit from the zone's meridian - hundreds of kilometres outside a
+  low-distortion zone, never a real job - used to convert with up to 20 mm of
+  error and now refuses. The Krueger n-series would remove the limit; it is
+  not built, and is the owner's call. The re-confirmation also closed a
+  second door to the same false sentence: far beyond any zone the inverse
+  series turns over and recovers a longitude back inside the limit (16N's
+  N 7,175,000 m, E 4,475,000 m came back in Monroe County), so the inverse
+  now re-projects what it recovered and refuses a coordinate that does not
+  close within 1 mm (inside the domain the worst closure is 0.232 mm).
 - **MEDIUM 2, a UTM file declared in the wrong zone.** Every UTM zone shares
   the 500,000 m false easting, so a 16N file read as 17N landed in Ontario
   with no warning. A UTM zone's extent is now its band clipped to Michigan's

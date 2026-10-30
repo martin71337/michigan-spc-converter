@@ -89,11 +89,30 @@ def _codes(result):
 # ==========================================================================
 
 
-def test_the_domain_limit_is_five_degrees():
-    """The lead's ruling, on the measurement in tm.DOMAIN_LIMIT_DEGREES's
-    docstring: 0.073 mm forward and 0.364 mm inverse at 5.0 degrees, both
-    inside the half millimetre NCAT prints."""
-    assert DOMAIN_LIMIT_DEGREES == 5.0
+PROJ_SCALE_AT_45_7_N = (
+    # (degrees east of 16N's meridian, PROJ's grid scale factor): PROJ 9.8.1,
+    # EPSG v12.029, Proj("EPSG:6345").get_factors(lon, 45.7).meridional_scale,
+    # computed 2026-10-30. 45.7 N is where the manual's forward scale series
+    # drifts most over Michigan's latitudes at these distances.
+    (4.8, 1.0013170289249773),
+    (4.9, 1.0013893326681462),
+)
+
+
+def test_the_domain_limit_is_four_point_eight_degrees():
+    """The lead's ruling (the re-confirmation's scale measurement, in
+    tm.DOMAIN_LIMIT_DEGREES's docstring): the record prints scale factors to 8
+    decimals, so the forward scale series must be within half a unit, 5e-9,
+    everywhere the engine accepts a point. At 4.8 degrees it is (4.6e-9); at
+    4.9 it is not (5.2e-9). Measured here against frozen PROJ values, so the
+    limit's reason is executable, not only stated."""
+    assert DOMAIN_LIMIT_DEGREES == 4.8
+    constants = projection.constants_for(UTM16)
+    (at_limit, proj_at_limit), (beyond, proj_beyond) = PROJ_SCALE_AT_45_7_N
+    inside = tm._forward_series(45.7, -87.0 + at_limit, constants).scale_factor
+    outside = tm._forward_series(45.7, -87.0 + beyond, constants).scale_factor
+    assert abs(inside - proj_at_limit) < 5e-9
+    assert abs(outside - proj_beyond) > 5e-9
 
 
 def test_the_reviewers_15n_case_refuses_through_the_job(tmp_path):
@@ -105,8 +124,8 @@ def test_the_reviewers_15n_case_refuses_through_the_job(tmp_path):
         _job(tmp_path, "2,42.0,-82.5,200,Q\n", **_geodetic_to(UTM15))
     message = str(refused.value)
     assert message.startswith("point 2 (NAD83(2011) / UTM zone 15N): ")
-    assert "longitude -82.500000, 10.5000 degrees from the central meridian of zone 15N" in message
-    assert "within 5.0 degrees of its central meridian" in message
+    assert "longitude -82.500000, 10.500000 degrees from the central meridian of zone 15N" in message
+    assert "within 4.8 degrees of its central meridian" in message
     assert "19 mm and 177 mm at 10.7 degrees" in message
     assert message.endswith("lies in UTM zone 17N (central meridian -81 degrees); choose that zone.")
     assert not list(tmp_path.glob("*.zip"))
@@ -125,21 +144,117 @@ def test_17n_used_at_the_far_west_of_the_upper_peninsula_refuses_inverse():
 
 @pytest.mark.parametrize("zone", UTM_ZONES[:3], ids=lambda z: z.code)
 def test_the_boundary_is_the_limit_in_both_directions(zone):
-    """4.999 degrees converts both ways; 5.001 refuses both ways, east and west."""
+    """4.799 degrees converts both ways; 4.801 refuses both ways, east and west."""
     meridian = zone.definition.lon_origin
     constants = projection.constants_for(zone)
     for side in (-1.0, 1.0):
-        inside = meridian + side * 4.999
+        inside = meridian + side * 4.799
         point = projection.forward(45.0, inside, zone)
         back = projection.inverse(point.northing, point.easting, zone)
         assert back.longitude == pytest.approx(inside, abs=1e-8)
 
-        outside = meridian + side * 5.001
+        outside = meridian + side * 4.801
         with pytest.raises(TransverseMercatorDomainError):
             projection.forward(45.0, outside, zone)
         grid = tm._forward_series(45.0, outside, constants)
         with pytest.raises(TransverseMercatorDomainError):
             projection.inverse(grid.northing, grid.easting, zone)
+
+
+@pytest.mark.parametrize("zone", UTM_ZONES[:3], ids=lambda z: z.code)
+def test_a_point_exactly_at_the_limit_reads_back(zone):
+    """The re-confirmation's N5: whatever the forward accepts must read back.
+    A point exactly 4.8 degrees from the meridian, east and west, at Michigan's
+    southern and northern latitudes: projected, rounded to the 0.1 mm the
+    program writes, and converted back - it converts, and comes back to the
+    point. Without INVERSE_DOMAIN_ALLOWANCE_DEGREES the recovered longitude
+    lands up to 9.1e-10 degrees past the limit and refuses."""
+    meridian = zone.definition.lon_origin
+    for latitude in (41.6, 45.0, 48.4):
+        for side in (-1.0, 1.0):
+            longitude = meridian + side * DOMAIN_LIMIT_DEGREES
+            point = projection.forward(latitude, longitude, zone)
+            back = projection.inverse(
+                round(point.northing, 4), round(point.easting, 4), zone
+            )
+            assert back.longitude == pytest.approx(longitude, abs=1e-8)
+            assert back.latitude == pytest.approx(latitude, abs=1e-8)
+
+
+def test_a_file_written_at_the_limit_reads_back_through_the_job(tmp_path):
+    """The reviewer's N5 case moved to the new limit: geodetic 45.0, -85.8 into
+    17N (4.8 degrees west of -81) writes, and the row it wrote reads back as
+    17N to the same position."""
+    _result, archive = _job(tmp_path, "1,45.0,-85.8,200,P\n", **_geodetic_to(UTM17))
+    clean = member_text(archive, f"{archive.stem}.csv").strip()
+    back_dir = tmp_path / "back"
+    back_dir.mkdir()
+    result, _archive = _job(back_dir, clean + "\n", **_zone_to_geodetic(UTM17))
+    (point,) = result.points
+    assert point.conversion.latitude == pytest.approx(45.0, abs=1e-8)
+    assert point.conversion.longitude == pytest.approx(-85.8, abs=1e-8)
+
+
+# --------------------------------------------------------------------------
+# The re-confirmation's N1: a grid coordinate the inverse does not close on.
+# --------------------------------------------------------------------------
+
+FOLD_BACKS = (
+    # The reviewer's two inputs, ZONE_TO_GEODETIC NAD83(2011) metres, 16N:
+    # before the closure check each was written as a plausible position -
+    # the first inside a Monroe County polygon (41.871079, -83.479228), where
+    # PROJ (EPSG 6345) puts that grid coordinate at 29.825 S, 48.869 E.
+    ("7175000.0", "4475000.0"),
+    # A real Michigan South coordinate in international feet, read as 16N
+    # metres: written as -33.561297, -87.911882; PROJ: 12.029 S, 2.209 E.
+    ("982054.0253", "13477274.7744"),
+    # Further far-off grid inputs, east and west of the false easting.
+    ("5000000.0", "2500000.0"),
+    ("5000000.0", "-2500000.0"),
+    ("1000000.0", "8000000.0"),
+)
+
+
+@pytest.mark.parametrize("northing, easting", FOLD_BACKS)
+def test_a_grid_coordinate_the_inverse_cannot_close_on_refuses(tmp_path, northing, easting):
+    with pytest.raises(TransverseMercatorDomainError) as refused:
+        _job(tmp_path, f"1,{northing},{easting},200,P\n", **_zone_to_geodetic(UTM16))
+    message = str(refused.value)
+    assert message.startswith("point 1 (NAD83(2011) / UTM zone 16N): ")
+    assert "check the zone and the units" in message
+    assert not list(tmp_path.glob("*.zip"))
+
+
+def test_the_closure_message_names_the_coordinate_and_the_miss():
+    with pytest.raises(TransverseMercatorDomainError) as refused:
+        projection.inverse(7175000.0, 4475000.0, UTM16)
+    message = str(refused.value)
+    assert message.startswith(
+        "Northing 7175000.0 m and easting 4475000.0 m are not a coordinate in zone 16N: "
+    )
+    assert "within 1 mm" in message
+    assert "3,975,000 m from the zone's false easting of 500,000 m" in message
+
+
+def test_the_closure_tolerance_is_measured_with_margin():
+    """INVERSE_CLOSURE_TOLERANCE_M is 1 mm, and inside the domain the worst
+    closure measured is 0.232 mm (the 0.1 mm-rounded coordinate of a point at
+    the limit). Re-measured here on all three zones at the limit, so the
+    margin is held, not just stated."""
+    assert tm.INVERSE_CLOSURE_TOLERANCE_M == 0.001
+    worst = 0.0
+    for zone in UTM_ZONES[:3]:
+        constants = projection.constants_for(zone)
+        for k in range(35):
+            latitude = 41.6 + k * 0.2
+            for side in (-1.0, 1.0):
+                longitude = zone.definition.lon_origin + side * DOMAIN_LIMIT_DEGREES
+                grid = tm._forward_series(latitude, longitude, constants)
+                n, e = round(grid.northing, 4), round(grid.easting, 4)
+                position = tm._inverse_series(n, e, constants)
+                again = tm._forward_series(position.latitude, position.longitude, constants)
+                worst = max(worst, math.hypot(again.northing - n, again.easting - e))
+    assert 0.0002 < worst < tm.INVERSE_CLOSURE_TOLERANCE_M / 4
 
 
 PROJ_16N_EAST_EDGE = (
@@ -280,9 +395,9 @@ def test_the_warning_reaches_the_single_point_path():
 
 
 def test_utm_extents_are_the_band_over_michigan():
-    """15N -90.5 to -90.0, 16N -90.0 to -84.0, 17N -84.0 to -82.3, both frames:
+    """15N -90.42 to -90.0, 16N -90.0 to -84.0, 17N -84.0 to -82.12, both frames:
     17N used at 79.5 W and 15N at 93.0 W are outside them."""
-    expected = {15: (-90.5, -90.0), 16: (-90.0, -84.0), 17: (-84.0, -82.3)}
+    expected = {15: (-90.42, -90.0), 16: (-90.0, -84.0), 17: (-84.0, -82.12)}
     for zone in UTM_ZONES:
         number = int(zone.code[:2])
         assert (zone.lon_min, zone.lon_max) == expected[number]
@@ -356,7 +471,7 @@ def test_the_utm_extent_warning_names_the_part_over_michigan(tmp_path):
     assert warning.code is WarningCode.OUTSIDE_ZONE_EXTENT
     assert (
         "lies outside the part of NAD83(2011) / UTM zone 16N over Michigan "
-        "(41.6 to 48.4 N, -90.0 to -84.0 E)" in warning.message
+        "(41.6 to 48.4 N, -90.00 to -84.00 E)" in warning.message
     )
 
 
@@ -364,3 +479,124 @@ def test_the_state_plane_extent_sentence_is_unchanged(tmp_path):
     result, _archive = _job(tmp_path, "1,43.5,-87.6,,P\n", **_geodetic_to(MI_SOUTH))
     (warning,) = [w for p in result.points for w in p.warnings]
     assert "lies outside the area Michigan South covers (41.6 to 44.3 N" in warning.message
+
+
+# ==========================================================================
+# The narrowing re-confirmation's N2-N4, and the Great Lakes negative.
+# ==========================================================================
+
+
+def test_michigans_longitudes_are_the_county_sets_rounded_outward():
+    """N2: zones.MICHIGAN_LONGITUDES is a literal (the core reads no files),
+    so it is held here against the bundled county set it was taken from:
+    every county vertex inside it, and each edge within 0.01 degree of the
+    set's own bound - rounded outward, never inward. The latitudes contain
+    every county too."""
+    from michspc.fileio.counties import default_counties
+    from michspc.spc.zones import MICHIGAN_LATITUDES, MICHIGAN_LONGITUDES
+
+    longitudes: list[float] = []
+    latitudes: list[float] = []
+
+    def walk(item):
+        if (
+            isinstance(item, tuple)
+            and len(item) == 2
+            and all(isinstance(v, float) for v in item)
+        ):
+            longitudes.append(item[0])
+            latitudes.append(item[1])
+            return
+        for child in item:
+            walk(child)
+
+    for county in default_counties().counties:
+        walk(county.rings)
+    west, east = MICHIGAN_LONGITUDES
+    assert west <= min(longitudes) < west + 0.01
+    assert east - 0.01 < max(longitudes) <= east
+    assert MICHIGAN_LATITUDES[0] <= min(latitudes)
+    assert max(latitudes) <= MICHIGAN_LATITUDES[1]
+
+
+def test_a_17n_point_in_michigans_lake_huron_east_of_82_3_w_does_not_warn(tmp_path):
+    """N2, the reviewer's input: 43.8 N, 82.2 W into 17N is in Lake Huron
+    inside the Huron County polygon. With the old -82.3 east edge it was told
+    it lay outside the part of 17N over Michigan; it is in Michigan."""
+    result, _archive = _job(tmp_path, "1,43.8,-82.2,180,P\n", **_geodetic_to(UTM17))
+    assert _codes(result) == []
+
+
+@pytest.mark.parametrize(
+    "zone, latitude, longitude, county",
+    [
+        # Lake Superior off Gogebic County, west of 90 W: 15N.
+        (UTM15, 46.8, -90.1, "Gogebic"),
+        # Lake Michigan, mid-lake, Michigan's side (an autozone anchor): 16N.
+        (UTM16, 44.0, -86.9, "Mason"),
+        # Lake Huron, Michigan's waters (an autozone anchor): 17N.
+        (UTM17, 44.5, -82.7, "Iosco"),
+    ],
+    ids=["15N-superior", "16N-michigan", "17N-huron"],
+)
+def test_a_great_lakes_water_point_in_michigan_does_not_warn(
+    tmp_path, zone, latitude, longitude, county
+):
+    """The reviewer's missing negative: Michigan's Great Lakes waters are
+    Michigan, so a UTM job's water point gets neither the outside-Michigan nor
+    the extent warning. The county named is the water-extended polygon the
+    point lies in (checked here, so the case cannot silently become land)."""
+    from michspc.fileio.counties import default_counties
+
+    assert [c.name for c in default_counties().containing(longitude, latitude)] == [county]
+    result, _archive = _job(
+        tmp_path, f"1,{latitude},{longitude},180,P\n", **_geodetic_to(zone)
+    )
+    assert _codes(result) == []
+
+
+def test_a_state_plane_to_utm_point_outside_michigan_names_its_northing_and_easting(tmp_path):
+    """N3, the reviewer's input: ZONE_TO_ZONE 2113 (international feet) -> 16N,
+    the 2113 coordinate of 41.55 N, 86.0 W (Indiana). The input holds a
+    northing and easting, so the advice names those and the zone and unit
+    they were declared in - not a latitude and longitude the file does not
+    have. The coordinate is the engine's own, 2113 forward at that position."""
+    result, _archive = _job(
+        tmp_path,
+        "1,22559.89445232862,12676222.158558782,200,P\n",
+        direction=Direction.ZONE_TO_ZONE,
+        source_zone=MI_SOUTH,
+        target_zone=UTM16,
+        input_unit=INTERNATIONAL_FEET,
+    )
+    outside = [w for p in result.points for w in p.warnings if w.code is OUTSIDE]
+    assert len(outside) == 1
+    assert outside[0].message.endswith(
+        "it is outside Michigan. Check the northing and easting, and that "
+        "Michigan South is the zone, and the unit, these coordinates were "
+        "declared in."
+    )
+    assert "latitude and longitude" not in outside[0].message
+
+
+def test_a_positive_west_file_read_as_negative_west_names_the_sign_convention(tmp_path):
+    """N4, the reviewer's input: geodetic "1,43.0,84.5,200,P" into 16N under
+    the negative-west convention - a positive-west file. The refusal names the
+    longitude sign convention, which is the cause, not only the zone and the
+    units."""
+    with pytest.raises(TransverseMercatorDomainError) as refused:
+        _job(tmp_path, "1,43.0,84.5,200,P\n", **_geodetic_to(UTM16))
+    message = str(refused.value)
+    assert message.endswith(
+        "The longitude given, 84.500000, is east of Greenwich, and every "
+        "Michigan longitude is west of it: if this file's longitudes are "
+        "positive west, check the longitude sign convention chosen for this job."
+    )
+
+
+def test_a_west_longitude_refusal_does_not_blame_the_sign_convention(tmp_path):
+    """The N4 sentence is for a longitude east of Greenwich only: 15N used at
+    82.5 W is a wrong zone, not a wrong sign."""
+    with pytest.raises(TransverseMercatorDomainError) as refused:
+        _job(tmp_path, "1,42.0,-82.5,200,P\n", **_geodetic_to(UTM15))
+    assert "sign convention" not in str(refused.value)

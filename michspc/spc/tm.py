@@ -58,7 +58,7 @@ from michspc.spc.projection import (
 from michspc.spc.zones import UTM_SYSTEM, TransverseMercatorDef, zone_by_code
 
 
-DOMAIN_LIMIT_DEGREES = 5.0
+DOMAIN_LIMIT_DEGREES = 4.8
 """How far from its central meridian, in degrees of longitude, a point may be
 for this engine to convert it - in either direction. Beyond it, it refuses.
 
@@ -68,34 +68,70 @@ Q on the inverse); it is exact enough inside any zone it was written for and
 drifts fast outside one, the inverse fastest. Measured against PROJ 9.8.1
 (EPSG 6344-6346, whose Poder/Engsager series is accurate to nanometres at these
 distances) over Michigan's latitudes, 41.6 to 48.4 N, worst forward / inverse
-position error (DESIGN.md #72, the interim gate's MEDIUM 1, reproduced by the
-lead):
+position error and worst forward grid scale factor error (DESIGN.md #72, the
+interim gate's MEDIUM 1 and the re-confirmation's scale measurement):
 
-    from the meridian   forward     inverse
-        3.0 deg          0.003 mm    0.007 mm
-        4.6 deg          0.043 mm    0.186 mm   (16N over all of Michigan)
-        5.0 deg          0.073 mm    0.364 mm
+    from the meridian   forward     inverse     scale factor
+        3.0 deg          0.003 mm    0.007 mm    2.9e-10
+        4.0 deg          0.018 mm    0.061 mm    1.5e-9
+        4.6 deg          0.043 mm    0.186 mm    3.5e-9   (16N over all of Michigan)
+        4.8 deg          0.056 mm    0.262 mm    4.6e-9   (THE LIMIT)
+        4.9 deg          0.064 mm    0.310 mm    5.2e-9
+        5.0 deg          0.073 mm    0.364 mm    5.8e-9
         6.0 deg          0.246 mm    1.586 mm
         8.0 deg          1.97  mm   16.4   mm
-       10.7 deg         18.9   mm  177     mm   (15N used at 82.4 W)
+       10.7 deg         18.9   mm  177     mm             (15N used at 82.4 W)
 
-At 5.0 degrees both directions are inside half a millimetre, the precision NCAT
-prints. Past it, the engine would return a coordinate centimetres wrong that
-looks exactly like a right one, so it refuses instead.
+**The scale factor sets the limit, not the position.** The job record and the
+audit CSV print the grid scale and combined factors to 8 decimal places, so
+the factor must be within half a unit, 5e-9, everywhere the engine accepts a
+point; that holds to 4.8 degrees and fails by 4.9. At 4.8 degrees the position
+is inside half a millimetre, the precision NCAT prints, in both directions,
+and the convergence agrees with PROJ to 0.0002 seconds. Past the limit the
+engine would return numbers that look exactly like right ones, so it refuses
+instead.
 
 This does NOT contradict docs/DESIGN.md amendment #1 ("never a reason to refuse
 a conversion"): that rule is about a zone's EXTENT - a project straddling a
 zone boundary must still convert, and the extent warning says so without
-refusing. This limit is about the ENGINE: no zone's legitimate use comes near
-it. Every UTM zone's own band is 3 degrees either side of its meridian; the
-widest SPCS2022 transverse Mercator zone (261016, Houghton) reaches 1.29
-degrees from its meridian at NGS's published bounds.
+refusing. This limit is about the ENGINE. Every UTM zone's own band is 3
+degrees either side of its meridian, and 16N over all of Michigan reaches 4.59
+degrees (82.41 W); the widest SPCS2022 transverse Mercator zone (261016,
+Houghton) reaches 1.29 degrees from its meridian at NGS's published bounds.
 """
 
+INVERSE_DOMAIN_ALLOWANCE_DEGREES = 1e-7
+"""How far past ``DOMAIN_LIMIT_DEGREES`` the inverse accepts a RECOVERED
+longitude, so that whatever the forward accepted reads back (the
+re-confirmation's N5: a point written at exactly the limit refused on read-back).
+
+The inverse recovers the longitude with its own series error, and the written
+coordinate is rounded to 0.1 mm, so a point the forward put exactly on the
+limit comes back a hair beyond it: measured over Michigan's latitudes on all
+three UTM zones, at most 9.1e-10 degrees past the limit. 1e-7 degrees (about
+7 mm of longitude in Michigan) is more than a hundred times that, and changes
+nothing in the error table above."""
+
+INVERSE_CLOSURE_TOLERANCE_M = 0.001
+"""How closely the forward series must reproduce a grid coordinate from the
+position the inverse recovered for it, metres (the re-confirmation's N1).
+
+The inverse series is a power series in the easting offset; far beyond any
+zone (an easting millions of metres off the false easting) it turns over and
+returns a longitude back inside the domain, with a position that is not the
+coordinate's at all - 16N's N 7,175,000 m, E 4,475,000 m came back as a point
+in Monroe County, where PROJ puts it at 29.8 S, 48.9 E. Re-projecting the
+recovered position exposes that: there the forward misses by 4,470 km.
+Measured inside the domain, rounded to the 0.1 mm the program writes, the
+closure is at most 0.232 mm on the three UTM zones and 0.0005 mm on the
+SPCS2022 transverse Mercator zones at NGS's published bounds; 1 mm leaves four
+times that."""
+
 DOMAIN_LIMIT_MEASUREMENT = (
-    "the manual's series drifts beyond it - against PROJ, 0.25 mm forward and "
-    "1.6 mm inverse at 6 degrees, 2 mm and 16 mm at 8 degrees, 19 mm and "
-    "177 mm at 10.7 degrees"
+    "the manual's series drifts beyond it - against PROJ, the grid scale factor "
+    "is off by 5.2e-9 at 4.9 degrees (the record prints it to 8 decimals), and "
+    "the position by 0.25 mm forward and 1.6 mm inverse at 6 degrees, 2 mm and "
+    "16 mm at 8 degrees, 19 mm and 177 mm at 10.7 degrees"
 )
 """The measured drift, in the words every refusal quotes (DOMAIN_LIMIT_DEGREES)."""
 
@@ -159,21 +195,25 @@ def _covering_utm_hint(longitude: float, zone_code: str | None) -> str:
 
 
 def _require_within_domain(
-    longitude: float, constants: "TransverseMercatorConstants", what: str
+    longitude: float,
+    constants: "TransverseMercatorConstants",
+    what: str,
+    allowance: float = 0.0,
 ) -> None:
     """Refuse a point beyond ``DOMAIN_LIMIT_DEGREES`` from the central meridian.
 
     ``what`` opens the sentence and names where the longitude came from -
     "The point is at" on the forward, "Northing ... and easting ... give" on
-    the inverse, whose longitude is the one the series recovered. Stated as a
+    the inverse, whose longitude is the one the series recovered, and which
+    passes ``INVERSE_DOMAIN_ALLOWANCE_DEGREES`` as ``allowance``. Stated as a
     containment test so a NaN is refused too.
     """
     distance = abs(longitude - constants.lon_origin)
-    if distance <= DOMAIN_LIMIT_DEGREES:
+    if distance <= DOMAIN_LIMIT_DEGREES + allowance:
         return
     zone = f"zone {constants.zone_code}" if constants.zone_code else "this zone"
     raise TransverseMercatorDomainError(
-        f"{what} longitude {longitude:.6f}, {distance:.4f} degrees from the "
+        f"{what} longitude {longitude:.6f}, {distance:.6f} degrees from the "
         f"central meridian of {zone} ({constants.lon_origin} degrees). "
         f"This transverse Mercator converts only within "
         f"{DOMAIN_LIMIT_DEGREES:.1f} degrees of its central meridian, where it "
@@ -546,7 +586,9 @@ def inverse(
     northing: float, easting: float, constants: TransverseMercatorConstants
 ) -> GeodeticPoint:
     """Grid to geodetic, refused when the position recovered lies beyond
-    ``DOMAIN_LIMIT_DEGREES`` from the central meridian.
+    ``DOMAIN_LIMIT_DEGREES`` (plus ``INVERSE_DOMAIN_ALLOWANCE_DEGREES``) from the
+    central meridian, or when it does not reproduce the coordinate
+    (``INVERSE_CLOSURE_TOLERANCE_M``).
 
     The public mapping; the series itself is ``_inverse_series``.
     """
@@ -555,8 +597,49 @@ def inverse(
         position.longitude,
         constants,
         f"Northing {northing} m and easting {easting} m give",
+        allowance=INVERSE_DOMAIN_ALLOWANCE_DEGREES,
     )
+    _require_inverse_closes(northing, easting, position, constants)
     return position
+
+
+def _require_inverse_closes(
+    northing: float,
+    easting: float,
+    position: GeodeticPoint,
+    constants: TransverseMercatorConstants,
+) -> None:
+    """Refuse a grid coordinate the recovered position does not reproduce.
+
+    See ``INVERSE_CLOSURE_TOLERANCE_M``: far beyond any zone the inverse series
+    turns over and returns a plausible position that is not the coordinate's.
+    The forward series is re-run on the recovered position and must land
+    within the tolerance of the coordinate it was given. A re-projection that
+    cannot run at all (a recovered latitude at a pole) or a NaN misses too.
+    """
+    try:
+        back = _forward_series(position.latitude, position.longitude, constants)
+        miss = math.hypot(back.northing - northing, back.easting - easting)
+    except ValueError:
+        miss = math.inf
+    if miss <= INVERSE_CLOSURE_TOLERANCE_M:
+        return
+    zone = f"zone {constants.zone_code}" if constants.zone_code else "this zone"
+    raise TransverseMercatorDomainError(
+        f"Northing {northing} m and easting {easting} m are not a coordinate in "
+        f"{zone}: converted to a latitude and longitude and back, they miss "
+        f"themselves by {miss:,.3f} m, where any coordinate in the zone closes "
+        f"within {INVERSE_CLOSURE_TOLERANCE_M * 1000:.0f} mm. The easting is "
+        f"{abs(easting - constants.easting_origin):,.0f} m from the zone's false "
+        f"easting of {constants.easting_origin:,.0f} m, far beyond where this "
+        f"transverse Mercator converts. Refused rather than return a position "
+        f"that is not this coordinate's. This is what a coordinate from another "
+        f"grid, or in another unit, looks like: check the zone and the units "
+        f"these coordinates are in.",
+        longitude=position.longitude,
+        lon_origin=constants.lon_origin,
+        zone_code=constants.zone_code,
+    )
 
 
 def _inverse_series(

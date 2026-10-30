@@ -780,16 +780,21 @@ def _check_extent(zone: Zone, latitude: float, longitude: float, context: str):
     # in a six-degree band - but the part of that band over Michigan
     # (zones.MICHIGAN_LONGITUDES), so its sentence says so (the interim
     # gate's LOW 4). The State Plane sentence is unchanged, byte for byte.
+    # Its longitudes print to 0.01 degree, the precision they are stated to
+    # (zones.MICHIGAN_LONGITUDES); one decimal would print -90.42 as -90.4, an
+    # edge a point at -90.41 is inside of. State Plane keeps one decimal.
     if grid_name(zone) == UTM_GRID:
         area = f"the part of {zone.name} over Michigan"
+        west, east = f"{zone.lon_min:.2f}", f"{zone.lon_max:.2f}"
     else:
         area = f"the area {zone.name} covers"
+        west, east = f"{zone.lon_min:.1f}", f"{zone.lon_max:.1f}"
     return ConversionWarning(
         code=WarningCode.OUTSIDE_ZONE_EXTENT,
         message=(
             f"{context}: {latitude:.6f}, {longitude:.6f} lies outside "
             f"{area} ({zone.lat_min:.1f} to {zone.lat_max:.1f} N, "
-            f"{zone.lon_min:.1f} to {zone.lon_max:.1f} E). The coordinate is "
+            f"{west} to {east} E). The coordinate is "
             f"computed correctly, but distortion grows with distance from the "
             f"zone and another zone may suit this point better."
         ),
@@ -1040,13 +1045,31 @@ def project_point(
         path, latitude, longitude, epoch, height
     )
 
-    (
-        northing,
-        easting,
-        convergence,
-        scale,
-        warnings,
-    ) = from_geodetic(pivot_latitude, pivot_longitude, target_zone, context)
+    try:
+        (
+            northing,
+            easting,
+            convergence,
+            scale,
+            warnings,
+        ) = from_geodetic(pivot_latitude, pivot_longitude, target_zone, context)
+    except TransverseMercatorDomainError as error:
+        if not longitude > 0.0:
+            raise
+        # A geodetic input east of Greenwich (the re-confirmation's N4): no
+        # Michigan point is, and the commonest way to produce one is a
+        # positive-west file read as negative-west. The engine's own hint
+        # can only blame the zone and units, so the cause the user can
+        # actually fix is named here, where the input is known to be geodetic.
+        raise TransverseMercatorDomainError(
+            f"{error} The longitude given, {longitude:.6f}, is east of "
+            f"Greenwich, and every Michigan longitude is west of it: if this "
+            f"file's longitudes are positive west, check the longitude sign "
+            f"convention chosen for this job.",
+            longitude=error.longitude,
+            lon_origin=error.lon_origin,
+            zone_code=error.zone_code,
+        ) from error
 
     return PointConversion(
         source_zone=target_zone,

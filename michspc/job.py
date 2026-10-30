@@ -3064,6 +3064,14 @@ def _outside_michigan_warning(
             f"converts to an ordinary-looking position six degrees away. Check "
             f"that {source.name} is the zone these coordinates are in."
         )
+    elif isinstance(source, Zone):
+        # A State Plane source (the re-confirmation's N3): the input holds
+        # northings and eastings, so the advice names those, not columns the
+        # file does not have.
+        advice = (
+            f" Check the northing and easting, and that {source.name} is the "
+            f"zone, and the unit, these coordinates were declared in."
+        )
     else:
         advice = " Check the latitude and longitude."
     return ConversionWarning(

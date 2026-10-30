@@ -1090,15 +1090,24 @@ MICHIGAN_LATITUDES: tuple[float, float] = (
     min(zone.lat_min for zone in SPCS83_ZONES),
     max(zone.lat_max for zone in SPCS83_ZONES),
 )
-MICHIGAN_LONGITUDES: tuple[float, float] = (
-    min(zone.lon_min for zone in SPCS83_ZONES),
-    max(zone.lon_max for zone in SPCS83_ZONES),
-)
-"""Michigan's span, (south, north) and (west, east) in degrees: the SPCS 83
-zones' combined extent (41.6 to 48.4 N, -90.5 to -82.3), derived from those
-records rather than typed a second time. The part of each UTM zone this
-program serves is its band clipped to these (DESIGN.md #72, the interim gate's
-MEDIUM 2). A warning aid only - UTM itself runs 0 to 84 N, 180 W to 180 E."""
+MICHIGAN_LONGITUDES: tuple[float, float] = (-90.42, -82.12)
+"""Michigan's span, (south, north) and (west, east) in degrees. The part of
+each UTM zone this program serves is its band clipped to these (DESIGN.md #72,
+the interim gate's MEDIUM 2). A warning aid only - UTM itself runs 0 to 84 N,
+180 W to 180 E.
+
+The latitudes are the SPCS 83 zones' combined extent (41.6 to 48.4 N), derived
+from those records; they contain every Michigan county (41.696 to 48.306 N).
+**The longitudes are the bundled county set's own bounds, rounded outward to
+0.01 degree** (data/mi_counties_tiger2025.json, water-extended: -90.418392 to
+-82.122971), NOT the SPCS 83 extents, whose east edge of -82.3 cuts off
+Michigan's Lake Huron waters east of 82.3 W (the re-confirmation's N2: a 17N
+point at 43.8 N, 82.2 W, inside the Huron County polygon, was told it lay
+outside Michigan). A literal because this module reads no files; the suite
+checks it against the county file (tests/test_utm_gate_fixes.py). The SPCS 83
+zones' own -82.3 east edge has the same gap and is left as it is: those
+extents are in every SPCS 83 record's warnings, which are pinned byte for byte
+across versions."""
 
 UTM_HALF_BAND_DEGREES = 3.0
 """Half the width of every UTM zone's six-degree band (DMA TM 8358.2)."""
@@ -1155,8 +1164,8 @@ def _utm_zone(number: int, frame: ReferenceFrame, code_suffix: str) -> Zone:
         # MEDIUM 2): every UTM zone shares the 500,000 m false easting, so a
         # file in one UTM zone declared as its neighbour lands six degrees
         # away - in Ontario, Wisconsin or Minnesota - inside the neighbour's
-        # band, and only Michigan's edge can notice. 15N -90.5 to -90.0,
-        # 16N -90.0 to -84.0, 17N -84.0 to -82.3.
+        # band, and only Michigan's edge can notice. 15N -90.42 to -90.0,
+        # 16N -90.0 to -84.0, 17N -84.0 to -82.12.
         lat_min=MICHIGAN_LATITUDES[0],
         lat_max=MICHIGAN_LATITUDES[1],
         lon_min=max(lon_origin - UTM_HALF_BAND_DEGREES, MICHIGAN_LONGITUDES[0]),

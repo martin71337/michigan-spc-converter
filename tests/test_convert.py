@@ -751,7 +751,7 @@ def test_zone_to_zone_preserves_the_geodetic_position(source, target):
 # term the manual publishes is kept - it is what the method is.
 #
 # **Since the interim gate of the UTM build (DESIGN.md #72, MEDIUM 1) the
-# engine refuses past tm.DOMAIN_LIMIT_DEGREES (5.0) from its central meridian**,
+# engine refuses past tm.DOMAIN_LIMIT_DEGREES (4.8) from its central meridian**,
 # where the drift reaches half a millimetre against PROJ. So a point now falls
 # in one of THREE regimes, decided by the TARGET zone: inside its own longitude
 # extent; outside it but within the transverse Mercator domain; or beyond the
@@ -860,8 +860,9 @@ def test_the_strict_round_trip_regime_is_actually_reached():
 
     assert strict > 0 and loose > 0 and refused > 0
     # 342 pairs x 25 lattice points = 8,550 checks in all; measured when the
-    # domain limit landed: 2,755 strict, 5,585 loose, 210 refused.
-    assert (strict, loose, refused) == (2755, 5585, 210)
+    # domain limit landed at 5.0 degrees (2,755 strict, 5,585 loose, 210
+    # refused) and re-measured at 4.8 (the re-confirmation's scale ruling).
+    assert (strict, loose, refused) == (2755, 5545, 250)
     assert strict + loose + refused == 342 * 25
 
 

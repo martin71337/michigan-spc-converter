@@ -1,0 +1,198 @@
+MCX interim gate over U1-U4 + R1 - NARROWING RE-CONFIRMATION of the fixes
+Range: 9f9d166..d945aec on claude/epsg-codes-system-labels-2a945a
+Reviewer: independent Opus reviewer (did not write the code; Codex unavailable)
+Date: 2026-10-30
+
+Suite, run unpiped, exit codes read: `pytest` 6759 passed, 1 skipped, 5 failed
+(exit 1); `python -O -m pytest` 6759 passed, 1 skipped, 5 failed (exit 1). The
+5 are exactly the container baseline (three test_fileio test_r3_3_*, the DMS
+half-way point, test_every_captured_value_is_in_the_page_ngs_served).
+
+Scratch scripts are in the session scratchpad. Seeds were applied to a
+`git archive HEAD` copy in the scratchpad and restored from snapshot copies
+(never git checkout); the restored files' SHA-256s match the repository.
+No repository file but this one was written.
+
+==============================================================================
+THE SEVEN FINDINGS
+==============================================================================
+
+MEDIUM 1 (TM series far from the meridian) - CLOSED for the class it named,
+with one residual recorded below as new LOW N1.
+  - The reviewer's inputs: GEODETIC_TO_ZONE 15N "2,42.0,-82.5,200,Q" now
+    refuses, naming the point, 10.5000 degrees, the limit, the measured drift
+    and "lies in UTM zone 17N"; no ZIP. PROJ's own 15N coordinate for that
+    position (N 4703441.1954, E 1370080.9866) refuses on the inverse. The
+    17N -> 2113 lattice over -90.3..-82.6 refuses at its first far point; the
+    same job restricted to -85.99..-82.6 agrees with PROJ (EPSG 6499) to
+    0.0013 ft.
+  - Against pyproj 3.8.0 / PROJ 9.8.1 (EPSG 6344/6345/6346), 40,000 random
+    points plus a boundary set per zone, all six zones (NATRF2022 zones use the
+    same GRS80 projection), latitudes 41.6-48.4, within 5.0 degrees: worst
+    forward 0.043 mm N / 0.063 mm E; worst inverse position 0.364 mm; inverse
+    scale 9.9e-11; forward convergence 1.6e-4", inverse 5.1e-4". 0 points
+    inside the limit refused, 0 outside accepted (forward). The docstring's
+    drift table reproduced to every digit (3.0: 0.003/0.007 mm ... 10.7:
+    18.952/177.326 mm).
+  - Boundary: 4.9999999 accepted, 5.0000001 refused, both sides, both
+    directions (see N5 for the exact-5.0 edge).
+  - No program bypass: _forward_series/_inverse_series are called only from
+    tm.forward/tm.inverse (and two test files); the dispatcher registers
+    tm.forward/tm.inverse; review/utm-u0 scripts use the public functions.
+  - SPCS2022 TM zones: corners of all five published bounds convert both ways
+    (widest 261016, 1.29 deg). 26-configuration byte identity (below)
+    includes 261016, 261001, 261014->261015, 261002->260001 and 261016 ->
+    NATRF2022 geodetic: identical.
+  - Observation, not a finding: the FORWARD scale factor drifts to 5.8e-9 at
+    5.0 deg (3.5e-9 at 4.6), so the 8th printed decimal can be one unit off
+    near the limit (0.006 ppm). No record sentence claims otherwise.
+
+MEDIUM 2 (wrong UTM zone silent) - CLOSED.
+  - The three blunders, ZONE_TO_GEODETIC and ZONE_TO_ZONE (-> 2113): every
+    one warns POINT_OUTSIDE_MICHIGAN; the record carries "POINTS OUTSIDE
+    MICHIGAN" and no longer says "None. Every point converted cleanly".
+    Also warns on VERTICAL_ONLY (16N coordinate declared 17N), WGS 84 (G2296)
+    -> 16N and NATRF2022 -> 16N-2022.
+  - Single point path: run(settings, source=parsed) loads the county set the
+    same way (the test pins it; single_point_warnings renders every warning).
+  - Correct in-Michigan points (16N 43.8/-85.5, 46.0/-87.0; 17N 42.5/-83.5):
+    no warning.
+  - Great Lakes waters: Saginaw Bay, Lake St. Clair (US), Grand Traverse Bay,
+    Whitefish Bay, Lake Superior near Isle Royale and mid-lake, Lake Michigan
+    (Michigan side), Thunder Bay, Lake Erie (Michigan), St. Marys River,
+    Lake Huron (Michigan side), Beaver Island waters: no warning. Ontario,
+    Ohio, Wisconsin controls warn. A Detroit River point at 42.30/-83.08 warns
+    and is in no county polygon (Canadian half of the river) - correct.
+  - State Plane / geodetic byte identity against 3a3bdb6 (git archive), 26
+    configurations of my choosing, 77 written members + 4 refusal messages,
+    normalised only for Generated/Software lines and the folder: ALL
+    IDENTICAL. Covered: SPCS 83 zone-to-zone m/ift/usft, zone-to-geodetic,
+    geodetic-to-zone positive and negative west, Auto on both frames, Auto
+    outside refusal, SPCS2022 TM (five configurations), WGS 84 dated both
+    ways, ITRF2020, geodetic-to-geodetic, vertical-only zone and geodetic,
+    H+V, ellipsoid heights, points far outside a State Plane zone, cross-frame
+    / usft-on-2022 / no-convention refusals.
+  - 5,000-point 16N job: 0.23 s (2113: 0.17 s); the county test is cheap.
+
+LOW 1 (mixed record unpinned) - CLOSED. Seeds S16 (delete the "The SPCS 83
+  zone:" block) and S17 (delete only its paragraphs) both caught by
+  test_the_mixed_records_method_section_is_pinned_whole[SPCS83+UTM].
+LOW 2 (NATRF2022 inverse scale sentence) - CLOSED. The sentence now states
+  0.0008 ppm; the worst anchor is 5.36e-10; the NAD83(2011) inverse is now held
+  at the half-unit with no slack and passes; seed S12 (bound words) caught by
+  the whole-record pin.
+LOW 3 (units citation) - CLOSED. UTM sides cite DMA TM 8358.2; mixed jobs cite
+  each side; ift elevation keeps its own; State Plane unchanged (identity
+  above). Seed S7 caught. (Nit: the citation has no page, against the
+  house "document and page" rule.)
+LOW 4 (extent wording) - CLOSED for the wording ("the part of ... over
+  Michigan"; seed S14 caught). The extent itself is wrong at the east edge -
+  new LOW N2.
+LOW 5 (Auto dialog) - CLOSED as recorded: "county boundaries overlap" (seed
+  S13 caught); the dropped "Nothing was written." is recorded in #72 as the
+  owner's call.
+
+==============================================================================
+NEW FINDINGS (all LOW; no wrong number for any input a Michigan system
+produces in its own zone and unit)
+==============================================================================
+
+N1 LOW - The inverse domain check reads the series' own recovered longitude,
+  so a grid input millions of metres off the false easting folds back inside
+  5 degrees and is accepted with a fabricated position.
+  michspc/spc/tm.py:545-559 (inverse checks position.longitude from
+  _inverse_series; L = Q(1+B3Q^2+B5Q^4+B7Q^6) turns over past |Q| ~ 0.8).
+  Inputs (ZONE_TO_GEODETIC, NAD83(2011), metres, zone 16N):
+    "1,7175000.0,4475000.0,200,P" -> written 41.871079, -83.479228 (inside a
+      Monroe County polygon, so no outside-Michigan warning). PROJ (EPSG 6345)
+      puts that grid coordinate at -29.825, 48.869. 16N -> 2113 writes a clean
+      Michigan South coordinate for it.
+    A real Michigan South coordinate in ift read as 16N metres,
+      "1,982054.0253,13477274.7744,200,P" -> written -33.561297, -87.911882;
+      PROJ: -12.029, 2.209.
+  The record says "Every point below was converted, and the coordinate
+  written for it is correct" and the extent warning says "The coordinate is
+  computed correctly" - MEDIUM 1's false sentence, by another route. Guards
+  that still fire: EASTING_UNLIKE_SELECTED_ZONE on every such point (fold-back
+  needs |E - 500,000| >= about 1.4 million m at any non-polar northing), and
+  POINT_OUTSIDE_MICHIGAN in every case drawn from a real Michigan system (42
+  fold-backs in 118,800 misdeclared SPCS 83/SPCS2022 inputs, none landing in
+  a county). Pre-existing, not introduced, but the fix's "refuses beyond 5
+  degrees, both directions" is not true of the inverse; and the docstring of
+  tests/test_utm_jobs.py::test_a_utm_easting_out_of_range_still_warns_inside_the_domain
+  ("every easting the domain admits at Michigan's latitudes is inside the
+  range") is false (E 4,475,000 admitted at 41.87 N).
+  Fix: in tm.inverse, re-forward the recovered position through
+  _forward_series and refuse unless it reproduces N/E (e.g. to 1 mm), or bound
+  |Q|. Pin with the two inputs above.
+
+N2 LOW - The UTM "part over Michigan" east edge, -82.3, is not Michigan's:
+  a Michigan point in 17N east of 82.3 W now gets a false extent warning.
+  michspc/spc/zones.py:1089-1101 (MICHIGAN_LONGITUDES from the SPCS 83
+  extents only, documented as "Michigan's span"), 1157-1163.
+  Input: GEODETIC_TO_ZONE 17N "1,43.8,-82.2,180,P" (Lake Huron, inside the
+  Huron County polygon; Michigan's counties reach -82.13, and this file's own
+  260001 record carries NGS's -82.12). Output warning: "lies outside the part
+  of NAD83(2011) / UTM zone 17N over Michigan (41.6 to 48.4 N, -84.0 to -82.3
+  E) ... another zone may suit this point better" - false on both counts;
+  before d945aec (band -84 to -78) no warning. Offshore only, warning only.
+  Fix: take the east edge from all Michigan extents (SPCS 83 + SPCS2022 gives
+  -82.12) or from the county set; pin with 43.8/-82.2.
+
+N3 LOW - POINT_OUTSIDE_MICHIGAN tells a State Plane -> UTM job to "Check the
+  latitude and longitude." michspc/job.py:3067-3068 (the else branch fires
+  whenever the source is not UTM). Input: ZONE_TO_ZONE 2113 (ift) -> 16N,
+  the 2113 coordinate of 41.55/-86.0. The input file holds northings and
+  eastings; the advice names columns it does not have. Fix: for a zone source,
+  advise checking the source zone and units; pin it.
+
+N4 LOW - On a geodetic input with the wrong longitude sign, the domain refusal
+  blames the zone and units. michspc/spc/tm.py:125-158 (_covering_utm_hint
+  has no direction). Input: GEODETIC_TO_ZONE 16N, negative-west convention,
+  "1,43.0,84.5,200,P" (a positive-west file): "Longitude 84.500000 is far
+  outside Michigan, so this is not a coordinate in this zone: check the zone
+  and the units these coordinates are in." The input is not a coordinate in
+  any zone; the cause is the sign convention, which goes unnamed. Fails
+  closed. Fix: on the forward, name the longitude and the sign convention.
+
+N5 LOW - The limit is a knife edge: a file the program wrote at exactly 5.0
+  degrees cannot be read back. Geodetic "1,45.0,-86.0,200,P" -> 17N is
+  accepted and written (N 4995124.5324, E 105923.2549); that row read as 17N
+  refuses with "give longitude -86.000000, 5.0000 degrees from the central
+  meridian ... converts only within 5.0 degrees" (the 0.1 mm rounding and the
+  0.36 mm inverse error push the recovered longitude a few 1e-9 deg past).
+  Same at -88.000000 for 15N (a Michigan meridian). Fix: an inverse slack of
+  the measured error at the limit (e.g. 1e-7 deg), or more printed digits in
+  the distance.
+
+N6 LOW (record of the behaviour change) - DESIGN.md #72 says "17N in the
+  western Upper Peninsula, or 15N east of 88 W, refuses". 17N refuses
+  everywhere west of 86.0 W, including the Lake Michigan shore of the Lower
+  Peninsula: "1,43.23,-86.25,200,P" (Muskegon) -> 17N refuses (5.25 deg);
+  likewise Ludington, Manistee, South Haven, St. Joseph. The owner should read
+  the true extent of what now refuses.
+
+==============================================================================
+NEGATIVES ESTABLISHED
+==============================================================================
+- Refusal zone hints: 1,894 inverse refusals over 15/16/17N at Michigan
+  northings that name a UTM zone; every one names the zone PROJ's true
+  longitude lies in.
+- No production assert added; refusals are if/raise, so -O is unaffected.
+- TransverseMercatorDomainError is a ValueError and refuses the whole job in
+  every mode tried (horizontal, vertical-only, H+V); no catch turns it into a
+  per-point warning or a pass-through.
+- Seeds, 17 in all, every one CAUGHT: limit 5.0->5.5; inverse check removed;
+  forward check removed; outside warning only for a UTM source; counties
+  loaded only for Auto; UTM extent unclipped (import check); citation
+  reverted; advice text swapped; hint zone number by round(); limit tightened
+  by 0.01; containment inverted; containment offset 0.3 deg; NATRF bound
+  words; headline wording; UTM area wording; and LOW 1's two (S16, S17).
+- Not caught by design, recorded: no test pins that a Great Lakes water
+  point does NOT warn on a UTM job (the Auto suite relies on the same
+  polygons), and none covers N3's direction.
+- Outside the scope of these fixes, noted only: SPCS2022 coordinates in feet,
+  transposed, can read as plausible UTM coordinates inside Michigan (610 of
+  the misdeclared inputs above); no easting window can tell them apart.
+
+VERDICT: FINDINGS

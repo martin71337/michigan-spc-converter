@@ -24,7 +24,12 @@ factor per point, with geoid separation from a bundled GEOID18 grid.
 Since the 0.7.0 build it also converts on the **19 Michigan SPCS2022 zones**,
 with NATRF2022 geodetic in and out — any-to-any **within** each datum.
 
-It deliberately does **not** do UTM, the **NAD 83 ↔ NATRF2022 transformation**
+Since the 0.9.0 build it also converts on the **three UTM zones over Michigan**
+(15N/16N/17N) on both NAD83(2011) and NATRF2022, metres only, within 4.8
+degrees of each zone's central meridian (DESIGN.md #72), and every system in
+the dropdowns names its EPSG code.
+
+It deliberately does **not** do the **NAD 83 ↔ NATRF2022 transformation**
 (held on measured evidence, `docs/DEFERRED-NATRF2022-BRIDGE.md`), **NAPGD2022 /
 GEOID2022 elevations** (`docs/DEFERRED-NAPGD2022.md`), other states, NAD 27, or
 two-point azimuth/distance. See DESIGN.md §10, #61 and #62 for why each was

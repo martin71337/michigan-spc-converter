@@ -470,6 +470,36 @@ def test_a_utm_file_declared_in_the_wrong_zone_warns(
     assert "None. Every point converted cleanly" not in record
 
 
+def test_the_warnings_preamble_qualifies_correct_beside_an_outside_point(tmp_path):
+    """The closing gate's LOW 6, the reviewer's case: a 16N coordinate
+    declared 17N lands in Ontario, and the record must not say, directly above
+    POINTS OUTSIDE MICHIGAN, that the coordinate written is correct without
+    qualification. Every other record keeps the old sentence (the State Plane
+    digest pins hold that)."""
+    _name, northing, easting, declared, _lands = BLUNDERS[0]
+    _result, archive = _job(
+        tmp_path, f"1,{northing},{easting},,P\n", **_zone_to_geodetic(declared)
+    )
+    record = member_text(archive, "_README.txt")
+    assert (
+        "A warning is not an error. Every point below was converted, and the\n"
+        "coordinate written for it is computed correctly for the input as declared.\n"
+        "A point outside Michigan most likely means the input was declared wrongly -\n"
+        "a different zone, unit or longitude sign - and is worth checking before use.\n"
+    ) in record
+    assert "coordinate written for it is correct. A warning means" not in record
+
+
+def test_a_utm_job_with_other_warnings_keeps_the_old_preamble(tmp_path):
+    """A UTM job whose only warning is the extent one keeps the original
+    sentence: 16N used at 43.0 N, 83.5 W (Lapeer County, in Michigan, east of
+    16N's band) warns on the extent and on nothing else."""
+    result, archive = _job(tmp_path, "1,43.0,-83.5,,P\n", **_geodetic_to(UTM16))
+    assert _codes(result) == [WarningCode.OUTSIDE_ZONE_EXTENT]
+    record = member_text(archive, "_README.txt")
+    assert "coordinate written for it is correct. A warning means" in record
+
+
 def test_the_right_zone_does_not_warn(tmp_path):
     """The same 16N coordinate declared as 16N: no warning of any kind."""
     _name, northing, easting, _declared, _lands = BLUNDERS[0]
@@ -573,6 +603,54 @@ def test_a_foot_elevation_on_the_geodetic_side_keeps_its_own_citation(tmp_path):
 def test_a_state_plane_meters_job_still_cites_the_spcs83_manual(tmp_path):
     _result, archive = _job(tmp_path, "1,42.5,-84.4,200,P\n", **_geodetic_to(MI_SOUTH))
     assert _units_lines(archive) == (SPCS83_CITATION, SPCS83_CITATION)
+
+
+def test_a_vertical_only_utm_record_cites_utm_on_both_units_lines(tmp_path):
+    """The closing gate's LOW 4, seed S30: a vertical-only job has no output
+    zone of its own, and the record's "Units out" line once fell back to the
+    SPCS 83 manual for it. Both lines of a 16N vertical-only record cite UTM's
+    definition."""
+    _result, archive = _job(
+        tmp_path, f"1,{BLUNDERS[0][1]},{BLUNDERS[0][2]},200,P\n",
+        **_vertical_only(UTM16),
+    )
+    assert _units_lines(archive) == (UTM_CITATION, UTM_CITATION)
+
+
+# A beta NCAT anchor's NATRF2022 16N coordinate (tests/fixtures/utm_anchors.py,
+# 47.666 N - the closing gate's own case): declared 17N-2022 it lands at
+# 82.16875 W, inside 17N's extent over Michigan, so the outside-Michigan
+# warning is the ONLY warning that can say the zone is wrong.
+NATRF2022_16N_ROW = "1,5280145.826,412260.423,,P"
+
+
+def test_a_natrf2022_utm_file_declared_in_the_wrong_zone_warns(tmp_path):
+    """The closing gate's LOW 4, seed S38: the NATRF2022 half of the
+    outside-Michigan warning (interim MEDIUM 2) had no pin."""
+    declared = zone_by_code("17N-2022")
+    result, archive = _job(
+        tmp_path, NATRF2022_16N_ROW + "\n",
+        direction=Direction.ZONE_TO_GEODETIC,
+        source_zone=declared,
+        target_zone=None,
+        geodetic_frame=NATRF2022,
+    )
+    (point,) = result.points
+    assert point.conversion.longitude == pytest.approx(-82.16875, abs=1e-5)
+    assert _codes(result) == [OUTSIDE]
+    assert f"Check that {declared.name} is the zone" in point.warnings[0].message
+    assert "POINTS OUTSIDE MICHIGAN" in member_text(archive, "_README.txt")
+
+
+def test_the_same_natrf2022_coordinate_in_its_own_zone_does_not_warn(tmp_path):
+    result, _archive = _job(
+        tmp_path, NATRF2022_16N_ROW + "\n",
+        direction=Direction.ZONE_TO_GEODETIC,
+        source_zone=zone_by_code("16N-2022"),
+        target_zone=None,
+        geodetic_frame=NATRF2022,
+    )
+    assert _codes(result) == []
 
 
 # ==========================================================================

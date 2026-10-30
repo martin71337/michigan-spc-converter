@@ -2127,6 +2127,37 @@ def test_check_16_fails_when_the_engine_stops_refusing(monkeypatch):
         selftest.check_utm_domain_refusal()
 
 
+@pytest.mark.parametrize(
+    "constant",
+    ["UTM_NAD83_ANCHOR_SCALE_FACTOR", "UTM_NATRF2022_ANCHOR_SCALE_FACTOR"],
+)
+def test_check_15_fails_when_the_bundle_scales_distances_wrong(monkeypatch, constant):
+    """The closing gate's LOW 5, seed S12: check 15's scale-factor comparison
+    had no pin, so deleting it survived the suite. A 1e-8 shift of either
+    frame's expected scale factor - one unit in the eighth decimal NCAT prints
+    and the record writes - must make check 15 refuse."""
+    assert selftest.check_utm_conversion()
+    monkeypatch.setattr(selftest, constant, getattr(selftest, constant) + 1e-8)
+    with pytest.raises(selftest.SelfTestError, match="UTM zone 16N"):
+        selftest.check_utm_conversion()
+
+
+def test_check_16_fails_when_the_projection_raises_something_else(monkeypatch):
+    """The closing gate's LOW 5, seed S36: only the engine's own
+    TransverseMercatorDomainError is a refusal. A bundle whose projection
+    raised anything else - an ImportError from a module the build dropped,
+    say - must fail check 16, not pass it as "refused"."""
+    from michspc.spc import convert
+
+    def broken(*_args, **_kwargs):
+        raise ImportError("a module the bundle dropped")
+
+    assert selftest.check_utm_domain_refusal()
+    monkeypatch.setattr(convert, "project_point", broken)
+    with pytest.raises(selftest.SelfTestError, match="rather than the"):
+        selftest.check_utm_domain_refusal()
+
+
 def test_the_utm_checks_are_in_checks():
     names = [name for name, _check in selftest.CHECKS]
     assert names[-2:] == [

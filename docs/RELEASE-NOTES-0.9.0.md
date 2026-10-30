@@ -63,7 +63,7 @@ beyond it.** At 4.8 degrees positions agree with PROJ within 0.26 mm and the
 printed scale factor within half a unit of its 8th decimal. In Michigan:
 
 - **16N converts every point on Michigan's land**, including the east edge of
-  the Lower Peninsula at Port Huron (82.42 W, 4.58 degrees from its meridian).
+  the Lower Peninsula at Port Huron (82.41 W, 4.59 degrees from its meridian).
   It refuses only Michigan's Lake Huron waters east of 82.2 W.
 - **17N refuses west of 85.8 W.** That includes the Lake Michigan shore towns:
   Muskegon, Ludington, Manistee, South Haven and St. Joseph.
@@ -131,11 +131,16 @@ its width.
 ## Changed
 
 - **A transverse Mercator point more than 4.8 degrees from its zone's central
-  meridian now refuses on the SPCS2022 transverse Mercator zones too.** Such a
-  point is hundreds of kilometres outside a low-distortion zone; it used to
-  convert with up to 20 mm of error. No Michigan point inside a zone's
-  published bounds is affected: the widest SPCS2022 transverse Mercator zone
-  reaches 1.29 degrees from its meridian.
+  meridian now refuses on the SPCS2022 transverse Mercator zones too.** In
+  0.8.0 such a point converted, and the error grew without bound past the
+  limit: 69 mm at 12.6 degrees, 113 mm at 13.4, measured against PROJ. Two
+  real mistakes converted to coordinates nowhere near the point: a longitude
+  with the wrong sign (tens of thousands of kilometres off, where the
+  equations no longer mean anything), and a file in international feet read
+  as metres (a zone 261001 file read that way landed at 43.708 N, 72.985 W,
+  in Vermont, with only an easting warning). 0.9.0 refuses all of them. No point
+  inside a zone's published bounds is affected: the widest SPCS2022
+  transverse Mercator zone reaches 1.29 degrees from its meridian.
 - The Options error that asked for "at least one group of State Plane zones"
   now asks for "at least one group of zones", because the UTM group alone
   satisfies it.
@@ -165,8 +170,9 @@ its width.
   work returned two MEDIUM and five LOW findings, none a wrong number inside a
   zone's band. Four narrowing re-confirmations followed, each closing the round
   before it. Every finding is fixed and pinned at the reviewer's own input,
-  except three edge cases recorded below. **The closing gate is still to
-  run.**
+  except three edge cases recorded below and one wording question left to
+  the owner: whether the one-line Auto refusal dialog should also say
+  "Nothing was written." **The closing gate is still to run.**
 
 ## Recorded, not fixed
 
@@ -182,9 +188,11 @@ in principle convert. **Each is a refusal, never a wrong number**:
 
 ## Not included
 
-- **Any UTM zone anywhere in Michigan.** The 4.8-degree limit comes from the
-  manual's equations. A different series (Krueger's) would remove it; it is
-  not built.
+- **UTM beyond 4.8 degrees of a zone's central meridian**, so one UTM zone
+  cannot be used across all of Michigan: 17N refuses at Muskegon, 15N east of
+  88.2 W (16N is the exception and covers all of Michigan's land). The limit
+  comes from the manual's equations; a different series (Krueger's) would
+  remove it. It is not built.
 - **EPSG codes for the SPCS2022 and NATRF2022 UTM zones**, until EPSG
   publishes them, and for zones in US survey feet, which EPSG does not define.
 - **The NAD83(2011) to NATRF2022 transformation**, unchanged: NGS has not

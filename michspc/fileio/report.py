@@ -2998,9 +2998,25 @@ def build_report(result: JobResult) -> str:
         else:
             add(f"{len(all_warnings)} warning(s) across {len(result.points)} points.")
         add("")
-        add("A warning is not an error. Every point below was converted, and the")
-        add("coordinate written for it is correct. A warning means something about")
-        add("the job is worth a second look.")
+        if any(
+            warning.code is WarningCode.POINT_OUTSIDE_MICHIGAN
+            for _point_id, warning in all_warnings
+        ):
+            # The closing gate's LOW 6 (DESIGN.md #72): this warning exists
+            # because the input was probably declared wrongly - a different
+            # zone on a grid-input job, a longitude sign on a geodetic one -
+            # so "the coordinate written for it is correct" would sit directly
+            # above the warning that says the input probably is not.
+            # UTM jobs only - the only jobs that raise it - so every other
+            # record keeps the sentence below byte for byte.
+            add("A warning is not an error. Every point below was converted, and the")
+            add("coordinate written for it is computed correctly for the input as declared.")
+            add("A point outside Michigan most likely means the input was declared wrongly -")
+            add("a different zone, unit or longitude sign - and is worth checking before use.")
+        else:
+            add("A warning is not an error. Every point below was converted, and the")
+            add("coordinate written for it is correct. A warning means something about")
+            add("the job is worth a second look.")
         job_codes = []
         for warning in job_warnings:
             if warning.code not in job_codes:

@@ -774,9 +774,16 @@ reviewer's inputs, 12 seeds caught; suite 6,759 in both modes.
   Huron, is 4.59 degrees) and refuses only Michigan's Lake Huron waters east
   of 82.2 W. The widest SPCS2022 TM zone reaches 1.29 degrees. **It changes
   one existing behaviour:** an SPCS2022 TM job whose points lie beyond the
-  limit from the zone's meridian - hundreds of kilometres outside a
-  low-distortion zone, never a real job - used to convert with up to 20 mm of
-  error and now refuses. The Krueger n-series would remove the limit; it is
+  limit from the zone's meridian now refuses. **Corrected at the closing
+  gate** (`review/gate-utm-closing/output.txt`, LOW 1): this bullet first said
+  such a point was "never a real job" and "used to convert with up to 20 mm
+  of error". Both were false. Measured in the 0.8.0 tree against PROJ, the
+  error grew without bound past the limit - 69 mm at 12.6 degrees (261015),
+  113 mm at 13.4 (261016) - and two real mistakes converted to coordinates
+  nowhere near the point: a positive longitude (73,000 to 87,000 km from PROJ
+  on 261001, 261015, 261016, where the series no longer means anything), and
+  a 261001 file in international feet read as metres, which 0.8.0 converted
+  to 43.708335, -72.985026 (Vermont) with only the easting warning. 0.9.0 refuses all of them. The Krueger n-series would remove the limit; it is
   not built, and is the owner's call. The re-confirmation also closed a
   second door to the same false sentence: far beyond any zone the inverse
   series turns over and recovers a longitude back inside the limit (16N's

@@ -810,6 +810,29 @@ the fixes, none a wrong number. What they settled, in the end state:
 - **The sign hint names its source**: a file, a typed decimal, or a DMS entry
   (where the convention does not apply and the hemisphere letter is named).
 
+**The fourth re-confirmation** (`reconfirm4-output.txt`) closed R3-1 to R3-3
+and found three LOW items, every one a refusal at the very edge of the limit,
+never a wrong number; against PROJ nothing any tier accepts exceeds 0.26 mm or
+4.571e-9 in scale, and State Plane and geodetic outputs are byte-identical to
+0.8.0. **The lead's ruling: the loop stops here, the three are recorded as
+residuals, not answered with a further tier** - any finite cap has an edge,
+and a fifth tier would only move it:
+
+- **R4-1.** A coordinate within a few 1e-9 degree of the write cap can refuse
+  after a further round trip through another zone (about 4% of inputs within
+  3e-9 of the cap).
+- **R4-2.** "Nothing the program writes fails to read back" has one named
+  exception: a geodetic position written from a coordinate in the write tier
+  (e.g. -85.80000010 from 17N) refuses back into its own zone, because a
+  supplied position is held to exactly 4.8 degrees.
+- **R4-3.** A same-zone job is not capped by the write allowance; repeated
+  same-zone jobs drift by the inverse's error (0.229 mm per 17N to 17N run at
+  4.8 degrees, inside the recorded 0.26 mm) and eventually refuse. Two
+  sentences in `tm.py` that said every write was capped are corrected.
+
+**Interim gate CLOSED**, the lead's judgement on four re-confirmations, with
+those residuals recorded.
+
 
 ### #71 — 2026-10-22 — Options menu, Auto zone, the observation date in Options; the release machine's suite
 

@@ -108,9 +108,14 @@ WRITE_ALLOWANCE_DEGREES = 1e-7
 """How far past ``DOMAIN_LIMIT_DEGREES`` a forward may reach when the position
 came out of ANOTHER zone's inverse in the same conversion
 (``PositionOrigin.RECOVERED``, zone to zone). It is the cap on every coordinate
-the program writes: a user-supplied position (``PositionOrigin.SUPPLIED``) is
-held to the limit itself, so nothing the program writes lies more than this
-past it. About 8 mm of longitude in Michigan; it changes nothing in the error
+a zone-to-zone conversion between DIFFERENT zones writes: a user-supplied
+position (``PositionOrigin.SUPPLIED``) is held to the limit itself. It is not a
+cap on a same-zone job (``PositionOrigin.REREAD``), which re-projects whatever
+the inverse accepted - up to ``READ_ALLOWANCE_DEGREES`` - so a coordinate run
+through the same zone again and again can drift outward by the inverse's own
+error each time and eventually refuse (the fourth re-confirmation's R4-3: 261001
+alternated between metres and international feet crosses this allowance at hop
+4 and refuses at hop 226). It refuses; it never writes a wrong number. About 8 mm of longitude in Michigan; it changes nothing in the error
 table above (PROJ, the third re-confirmation: 0.056 mm and 4.57e-9 in scale at
 the limit plus this allowance).
 
@@ -129,9 +134,15 @@ degrees beyond where it was written. So::
 with about a hundredfold margin (54,432 read-backs, 0.001-degree latitude steps,
 both sides of every meridian; worst 9.226e-10 degrees, zone 261015 in metres).
 
-and every coordinate the program writes reads back on every path. A chain of
-conversions cannot creep past the read allowance, because every hop that
-writes into a transverse Mercator zone is capped at the write allowance again.
+and a coordinate written by a zone-to-zone conversion between different zones
+reads back on every path. **Residuals, recorded not fixed (the fourth
+re-confirmation, DESIGN.md #72), each a refusal and never a wrong number:**
+a coordinate within a few 1e-9 degree of the write cap can refuse after a
+further round trip through another zone (R4-1, inherent to any finite cap);
+a GEODETIC position written from a coordinate in the write tier refuses back
+into its own zone, because a supplied position is held to the limit itself
+(R4-2); and a same-zone job is not capped by the write allowance (R4-3,
+above).
 """
 
 READ_ALLOWANCE_DEGREES = 2e-7

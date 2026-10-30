@@ -64,6 +64,7 @@ from michspc.job import (
     run,
 )
 from michspc.spc import projection
+from michspc.spc.tm import TransverseMercatorDomainError
 from michspc.spc.autozone import AutoZoneSystem, zones_choosable
 from michspc.spc.convert import WarningCode
 from michspc.spc.frames import (
@@ -86,7 +87,12 @@ from michspc.spc.zones import (
 from tests.conftest import member_text, record_root_normalised
 from tests.fixtures.htdp_w3_anchors import L5_RECORDS
 from tests.fixtures.utm_anchors import NAD83_2011_ANCHORS, NATRF2022_ANCHORS
-from tests.fixtures.utm_records import NAD83_2011_UTM_RECORD, NATRF2022_UTM_RECORD
+from tests.fixtures.utm_records import (
+    MIXED_SPCS2022_UTM_METHOD,
+    MIXED_SPCS83_UTM_METHOD,
+    NAD83_2011_UTM_RECORD,
+    NATRF2022_UTM_RECORD,
+)
 
 GRID_TOL_M = 0.0006
 ZONE_TO_ZONE_TOL_M = 0.0011
@@ -540,13 +546,38 @@ def _codes(result) -> list:
     return [warning.code for _id, warning in result.warnings]
 
 
-def test_a_state_plane_easting_fed_as_utm_warns(tmp_path):
-    result, _archive = _job(
-        tmp_path, "1,61379.810,6016088.527,,P\n", direction=Direction.ZONE_TO_GEODETIC,
-        source_zone=UTM16, target_zone=None,
-        longitude_convention=LongitudeConvention.NEGATIVE_WEST,
-    )
-    assert WarningCode.EASTING_UNLIKE_SELECTED_ZONE in _codes(result)
+def test_a_state_plane_coordinate_fed_as_utm_refuses(tmp_path):
+    """NCAT's Michigan Central coordinate (61,379.810 / 6,016,088.527 m) read
+    as 16N lands 44 degrees from 16N's meridian. Since the interim gate's
+    MEDIUM 1 the engine refuses there (tm.DOMAIN_LIMIT_DEGREES) - stronger than
+    the easting warning this pinned before - and the refusal names the point,
+    the zone, and, because the position is nowhere near Michigan, tells the
+    surveyor to check the zone and units rather than to pick a UTM zone in the
+    Atlantic."""
+    with pytest.raises(TransverseMercatorDomainError) as refused:
+        _job(
+            tmp_path, "1,61379.810,6016088.527,,P\n", direction=Direction.ZONE_TO_GEODETIC,
+            source_zone=UTM16, target_zone=None,
+            longitude_convention=LongitudeConvention.NEGATIVE_WEST,
+        )
+    message = str(refused.value)
+    assert message.startswith("point 1 (NAD83(2011) / UTM zone 16N): ")
+    assert "44.2618 degrees from the central meridian of zone 16N" in message
+    assert "choose that zone" not in message
+    assert "not a coordinate in this zone" in message
+
+
+def test_a_utm_easting_out_of_range_still_warns_inside_the_domain():
+    """The UTM easting range (500,000 m +/- 400 km) still stands. In a job a
+    coordinate that far off is refused by the engine's domain first - every
+    easting the domain admits at Michigan's latitudes is inside the range - so
+    the range is held here directly."""
+    from michspc.spc.convert import easting_looks_wrong_for_zone
+
+    assert easting_looks_wrong_for_zone(6016088.527, UTM16)
+    assert easting_looks_wrong_for_zone(99999.0, UTM16)
+    assert not easting_looks_wrong_for_zone(100000.0, UTM16)
+    assert not easting_looks_wrong_for_zone(900000.0, UTM16)
 
 
 def test_an_in_band_utm_point_raises_no_warning(tmp_path):
@@ -559,9 +590,13 @@ def test_an_in_band_utm_point_raises_no_warning(tmp_path):
 
 
 def test_16n_stretched_to_82_5_w_warns_on_extent_only(tmp_path):
-    """82.5 W is 4.5 degrees east of 16N's meridian: outside its band, inside its easting range."""
+    """82.5 W is 4.5 degrees east of 16N's meridian: outside its band, inside
+    its easting range, and - at 43.0 N, St. Clair County - inside Michigan, so
+    the outside-Michigan warning does not fire. (The point was 42.5 N until
+    the interim gate's MEDIUM 2 fix: that is Lake St. Clair on the Ontario
+    side, in no Michigan county, and now warns as outside Michigan.)"""
     result, _archive = _job(
-        tmp_path, "1,42.5,-82.5,,P\n", direction=Direction.GEODETIC_TO_ZONE,
+        tmp_path, "1,43.0,-82.5,,P\n", direction=Direction.GEODETIC_TO_ZONE,
         source_zone=None, target_zone=UTM16, geodetic_frame=NAD83_2011,
         longitude_convention=LongitudeConvention.NEGATIVE_WEST,
     )
@@ -738,3 +773,37 @@ def test_the_whole_utm_record_is_pinned_per_frame(tmp_path, frame, zone, anchors
     assert "State Plane" not in record.split("METHOD")[1].split("Geoid model")[0].replace(
         "State Plane Coordinate System of", ""
     )
+
+
+_METHOD_HEAD = "METHOD\n" + "-" * 78 + "\n"
+
+
+def _method_section(archive) -> str:
+    """The record's METHOD section, from its first line to "Geoid model"."""
+    text = _record(archive)
+    start = text.index(_METHOD_HEAD) + len(_METHOD_HEAD)
+    return text[start : text.index("Geoid model        ")]
+
+
+@pytest.mark.parametrize(
+    "source, target, northing, easting, expected",
+    [
+        # NCAT's own Michigan Central coordinate for anchor r3_spcs83_019.
+        ("2112", "16N", "61379.810", "6016088.527", MIXED_SPCS83_UTM_METHOD),
+        # Beta NCAT's own 261008 coordinate at 43.294 N, 85.319 W, frozen at
+        # review/autozone-r0/raw/ncat_probe/spcs2022_000.html.
+        ("261008", "16N-2022", "283508.506", "1396002.569", MIXED_SPCS2022_UTM_METHOD),
+    ],
+    ids=["SPCS83+UTM", "SPCS2022+UTM-2022"],
+)
+def test_the_mixed_records_method_section_is_pinned_whole(
+    tmp_path, source, target, northing, easting, expected
+):
+    """The interim gate's LOW 1. The State Plane era's own verification block,
+    under its subhead, then the UTM arm - each byte of it."""
+    _result, archive = _job(
+        tmp_path, f"1,{northing},{easting},200,P\n",
+        direction=Direction.ZONE_TO_ZONE,
+        source_zone=zone_by_code(source), target_zone=zone_by_code(target),
+    )
+    assert _method_section(archive) == expected

@@ -55,7 +55,136 @@ from michspc.spc.projection import (
     _require_finite_grid,
     _require_valid_geodetic,
 )
-from michspc.spc.zones import TransverseMercatorDef
+from michspc.spc.zones import UTM_SYSTEM, TransverseMercatorDef, zone_by_code
+
+
+DOMAIN_LIMIT_DEGREES = 5.0
+"""How far from its central meridian, in degrees of longitude, a point may be
+for this engine to convert it - in either direction. Beyond it, it refuses.
+
+**The engine's verified domain, not a zone's extent.** The manual's section
+3.23/3.24 series is a power series in L = (lambda_0 - lambda) cos phi (and in
+Q on the inverse); it is exact enough inside any zone it was written for and
+drifts fast outside one, the inverse fastest. Measured against PROJ 9.8.1
+(EPSG 6344-6346, whose Poder/Engsager series is accurate to nanometres at these
+distances) over Michigan's latitudes, 41.6 to 48.4 N, worst forward / inverse
+position error (DESIGN.md #72, the interim gate's MEDIUM 1, reproduced by the
+lead):
+
+    from the meridian   forward     inverse
+        3.0 deg          0.003 mm    0.007 mm
+        4.6 deg          0.043 mm    0.186 mm   (16N over all of Michigan)
+        5.0 deg          0.073 mm    0.364 mm
+        6.0 deg          0.246 mm    1.586 mm
+        8.0 deg          1.97  mm   16.4   mm
+       10.7 deg         18.9   mm  177     mm   (15N used at 82.4 W)
+
+At 5.0 degrees both directions are inside half a millimetre, the precision NCAT
+prints. Past it, the engine would return a coordinate centimetres wrong that
+looks exactly like a right one, so it refuses instead.
+
+This does NOT contradict docs/DESIGN.md amendment #1 ("never a reason to refuse
+a conversion"): that rule is about a zone's EXTENT - a project straddling a
+zone boundary must still convert, and the extent warning says so without
+refusing. This limit is about the ENGINE: no zone's legitimate use comes near
+it. Every UTM zone's own band is 3 degrees either side of its meridian; the
+widest SPCS2022 transverse Mercator zone (261016, Houghton) reaches 1.29
+degrees from its meridian at NGS's published bounds.
+"""
+
+DOMAIN_LIMIT_MEASUREMENT = (
+    "the manual's series drifts beyond it - against PROJ, 0.25 mm forward and "
+    "1.6 mm inverse at 6 degrees, 2 mm and 16 mm at 8 degrees, 19 mm and "
+    "177 mm at 10.7 degrees"
+)
+"""The measured drift, in the words every refusal quotes (DOMAIN_LIMIT_DEGREES)."""
+
+
+class TransverseMercatorDomainError(ValueError):
+    """A point beyond ``DOMAIN_LIMIT_DEGREES`` from its zone's central meridian.
+
+    A ``ValueError``, so every caller that turns a per-point ValueError into a
+    refusal of the job does so here too (the house rule: a horizontal per-row
+    refusal refuses the job). Carries the numbers as data.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        longitude: float,
+        lon_origin: float,
+        zone_code: str | None,
+    ) -> None:
+        super().__init__(message)
+        self.longitude = longitude
+        self.lon_origin = lon_origin
+        self.zone_code = zone_code
+
+
+def _covering_utm_hint(longitude: float, zone_code: str | None) -> str:
+    """For a UTM zone, the sentence naming the UTM zone that covers ``longitude``.
+
+    The zone number is UTM's own rule, floor((lambda + 180) / 6) + 1, so the
+    hint is true anywhere; for Michigan it names 15N (west of 90 W), 16N
+    (90 W to 84 W) or 17N (east of 84 W). A position in no Michigan UTM zone
+    gets "check the zone and the units" instead. Empty for a zone that is not
+    UTM.
+    """
+    if zone_code is None:
+        return ""
+    try:
+        zone = zone_by_code(zone_code)
+    except KeyError:
+        return ""
+    if zone.system != UTM_SYSTEM:
+        return ""
+    number = int(math.floor((longitude + 180.0) / 6.0)) + 1
+    try:
+        zone_by_code(f"{number}N")
+    except KeyError:
+        # Not one of Michigan's UTM zones: the position is nowhere near
+        # Michigan, which is what a coordinate from another grid (an SPCS 83
+        # easting is millions of metres) or in the wrong unit looks like here.
+        # Naming a UTM zone in the Atlantic would be advice, and wrong.
+        return (
+            f" Longitude {longitude:.6f} is far outside Michigan, so this is "
+            f"not a coordinate in this zone: check the zone and the units "
+            f"these coordinates are in."
+        )
+    return (
+        f" Longitude {longitude:.6f} lies in UTM zone {number}N "
+        f"(central meridian {6 * number - 183} degrees); choose that zone."
+    )
+
+
+def _require_within_domain(
+    longitude: float, constants: "TransverseMercatorConstants", what: str
+) -> None:
+    """Refuse a point beyond ``DOMAIN_LIMIT_DEGREES`` from the central meridian.
+
+    ``what`` opens the sentence and names where the longitude came from -
+    "The point is at" on the forward, "Northing ... and easting ... give" on
+    the inverse, whose longitude is the one the series recovered. Stated as a
+    containment test so a NaN is refused too.
+    """
+    distance = abs(longitude - constants.lon_origin)
+    if distance <= DOMAIN_LIMIT_DEGREES:
+        return
+    zone = f"zone {constants.zone_code}" if constants.zone_code else "this zone"
+    raise TransverseMercatorDomainError(
+        f"{what} longitude {longitude:.6f}, {distance:.4f} degrees from the "
+        f"central meridian of {zone} ({constants.lon_origin} degrees). "
+        f"This transverse Mercator converts only within "
+        f"{DOMAIN_LIMIT_DEGREES:.1f} degrees of its central meridian, where it "
+        f"agrees with an independent implementation to half a millimetre; "
+        f"{DOMAIN_LIMIT_MEASUREMENT}. Refused rather than return a coordinate "
+        f"that looks right and is not."
+        f"{_covering_utm_hint(longitude, constants.zone_code)}",
+        longitude=longitude,
+        lon_origin=constants.lon_origin,
+        zone_code=constants.zone_code,
+    )
 
 
 def _require_usable_cos_latitude(cos_lat: float, latitude: float) -> None:
@@ -309,7 +438,26 @@ class TransverseMercatorConstants:
 def forward(
     latitude: float, longitude: float, constants: TransverseMercatorConstants
 ) -> GridPoint:
-    """Geodetic to grid. Manual section 3.23 (PDF pp. 44-45).
+    """Geodetic to grid, refused beyond ``DOMAIN_LIMIT_DEGREES``.
+
+    The public mapping: every caller in the program comes through here. The
+    series itself is ``_forward_series``.
+    """
+    _require_valid_geodetic(latitude, longitude)
+    _require_within_domain(longitude, constants, "The point is at")
+    return _forward_series(latitude, longitude, constants)
+
+
+def _forward_series(
+    latitude: float, longitude: float, constants: TransverseMercatorConstants
+) -> GridPoint:
+    """Geodetic to grid. Manual section 3.23 (PDF pp. 44-45). NO domain limit.
+
+    Kept separate from ``forward`` only so the suite can measure the series'
+    own behaviour beyond the domain - the closure curve and the Jacobian
+    probes at 6 and 7.8 degrees are what make a one-token coefficient typo
+    visible (tests/test_projection_engines.py). Nothing in the program calls
+    it except ``forward``.
 
         L  = (lambda_0 - lambda) cos phi          [see the sign note below]
         R  = k_0 a / W        t = tan phi        eta^2 = e'^2 cos^2 phi
@@ -397,7 +545,25 @@ def forward(
 def inverse(
     northing: float, easting: float, constants: TransverseMercatorConstants
 ) -> GeodeticPoint:
+    """Grid to geodetic, refused when the position recovered lies beyond
+    ``DOMAIN_LIMIT_DEGREES`` from the central meridian.
+
+    The public mapping; the series itself is ``_inverse_series``.
+    """
+    position = _inverse_series(northing, easting, constants)
+    _require_within_domain(
+        position.longitude,
+        constants,
+        f"Northing {northing} m and easting {easting} m give",
+    )
+    return position
+
+
+def _inverse_series(
+    northing: float, easting: float, constants: TransverseMercatorConstants
+) -> GeodeticPoint:
     """Grid to geodetic. Manual section 3.24 (PDF pp. 45-46). No iteration.
+    NO domain limit - see ``_forward_series`` for why it is separate.
 
         omega_f = (N - N_0 + S_0) / (k_0 r)
         phi_f   = footpoint series in omega_f

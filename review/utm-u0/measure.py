@@ -6,7 +6,8 @@ Run from the repository root: py review/utm-u0/measure.py   (needs pyproj)
    that carries a UTM result is reproduced with michspc.spc.tm given UTM's
    defining constants; the worst residual per quantity is printed.
 2. PROJ (EPSG 6344-6346) as a third opinion over Michigan's latitudes, at
-   3.0, 4.6 and 8.5 degrees from each central meridian.
+   3.0, 4.6 and 5.0 degrees from each central meridian (the engine's domain
+   limit), and the refusal just beyond it and at 8.5 degrees.
 3. The EPSG dataset version, and each NAD83(2011) Michigan SPCS 83 CRS run
    against MCX's own zone record.
 """
@@ -54,7 +55,7 @@ print(f"NCAT: {count} responses {zones}; worst dN {worst[0]:.4f} m, dE {worst[1]
 for z, code in ((15, 6344), (16, 6345), (17, 6346)):
     t = Transformer.from_crs("EPSG:6318", f"EPSG:{code}", always_xy=True)
     cm = 6.0 * z - 183.0
-    for band in (3.0, 4.6, 8.5):
+    for band in (3.0, 4.6, tm.DOMAIN_LIMIT_DEGREES):
         w = 0.0
         for i in range(41):
             lat = 41.6 + i * 6.8 / 40
@@ -66,6 +67,16 @@ for z, code in ((15, 6344), (16, 6345), (17, 6346)):
                 g = tm.forward(lat, lon, utm(z))
                 w = max(w, abs(g.northing - n), abs(g.easting - e))
         print(f"PROJ EPSG {code}: within {band} deg of the meridian, worst {w * 1000:.3f} mm")
+    # Beyond the engine's domain (tm.DOMAIN_LIMIT_DEGREES, DESIGN.md #72, the
+    # UTM interim gate's MEDIUM 1) the engine refuses; the 8.5-degree row this
+    # harness printed before the limit (2.9 mm) is now a refusal.
+    for beyond in (tm.DOMAIN_LIMIT_DEGREES + 0.001, 8.5):
+        try:
+            tm.forward(45.0, cm + beyond, utm(z))
+        except tm.TransverseMercatorDomainError:
+            print(f"PROJ EPSG {code}: at {beyond} deg the engine refuses (domain limit)")
+        else:
+            print(f"PROJ EPSG {code}: at {beyond} deg the engine DID NOT refuse")
 
 db = sqlite3.connect(os.path.join(pyproj.datadir.get_data_dir(), "proj.db"))
 print("EPSG", db.execute("select value from metadata where key='EPSG.VERSION'").fetchone()[0],

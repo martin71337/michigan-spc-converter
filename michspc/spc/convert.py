@@ -67,8 +67,9 @@ from michspc.spc.frames import (
     resolve_frame,
 )
 from michspc.spc.projection import forward as project_forward
+from michspc.spc.tm import TransverseMercatorDomainError
 from michspc.spc.projection import inverse as project_inverse
-from michspc.spc.zones import Zone, grid_name
+from michspc.spc.zones import UTM_GRID, Zone, grid_name
 
 class WarningCode(Enum):
     """Machine-readable warning kinds, so the report can group them."""
@@ -161,6 +162,21 @@ class WarningCode(Enum):
     because there the Z is the supplied height passed through unchanged (the
     owner's instruction) and only the factors are lost - which is exactly what
     that older code has always meant.
+    """
+
+    POINT_OUTSIDE_MICHIGAN = "point-outside-michigan"
+    """A UTM job's point lies in no Michigan county, Great Lakes waters
+    included - outside Michigan (DESIGN.md #72, the interim gate's MEDIUM 2).
+
+    Raised by michspc.job, and ONLY on a job with a UTM zone at either end,
+    so no State Plane or geodetic job's outputs move by a byte. The reason it
+    exists: every UTM zone has the same 500,000 m false easting, so a file in
+    one UTM zone declared as its neighbour converts without any easting
+    looking wrong - to an ordinary-looking position six degrees away, in
+    Ontario, Wisconsin or Minnesota. The State Plane zones need no such check:
+    their false eastings were set 2,000 km apart so that a coordinate reveals
+    its own zone (EASTING_UNLIKE_SELECTED_ZONE). A warning, not a refusal: the
+    arithmetic is right for the zone selected; the zone may not be.
     """
 
     REALIZATION_OUTSIDE_PERIOD_OF_USE = "realization-outside-period-of-use"
@@ -760,11 +776,19 @@ def _check_extent(zone: Zone, latitude: float, longitude: float, context: str):
     if not (outside_latitude or outside_longitude):
         return None
 
+    # A UTM zone's extent is not the area the zone covers - UTM runs 0 to 84 N
+    # in a six-degree band - but the part of that band over Michigan
+    # (zones.MICHIGAN_LONGITUDES), so its sentence says so (the interim
+    # gate's LOW 4). The State Plane sentence is unchanged, byte for byte.
+    if grid_name(zone) == UTM_GRID:
+        area = f"the part of {zone.name} over Michigan"
+    else:
+        area = f"the area {zone.name} covers"
     return ConversionWarning(
         code=WarningCode.OUTSIDE_ZONE_EXTENT,
         message=(
-            f"{context}: {latitude:.6f}, {longitude:.6f} lies outside the area "
-            f"{zone.name} covers ({zone.lat_min:.1f} to {zone.lat_max:.1f} N, "
+            f"{context}: {latitude:.6f}, {longitude:.6f} lies outside "
+            f"{area} ({zone.lat_min:.1f} to {zone.lat_max:.1f} N, "
             f"{zone.lon_min:.1f} to {zone.lon_max:.1f} E). The coordinate is "
             f"computed correctly, but distortion grows with distance from the "
             f"zone and another zone may suit this point better."
@@ -804,6 +828,23 @@ def easting_looks_wrong_for_zone(easting: float, zone: Zone) -> bool:
     return not (lowest <= easting <= highest)
 
 
+def _named_domain_refusal(
+    error: TransverseMercatorDomainError, context: str, zone: Zone
+) -> TransverseMercatorDomainError:
+    """The engine's domain refusal, with the point and the zone's name.
+
+    The engine knows the zone's code and the longitude, not the row it came
+    from; every other per-point refusal names the point, so this one does too.
+    Same class, same data, so a caller catching it loses nothing.
+    """
+    return TransverseMercatorDomainError(
+        f"{context} ({zone.name}): {error}",
+        longitude=error.longitude,
+        lon_origin=error.lon_origin,
+        zone_code=error.zone_code,
+    )
+
+
 def to_geodetic(
     northing: float,
     easting: float,
@@ -814,7 +855,10 @@ def to_geodetic(
 
     Returns (latitude, longitude, convergence, scale_factor, warnings).
     """
-    position = project_inverse(northing, easting, zone)
+    try:
+        position = project_inverse(northing, easting, zone)
+    except TransverseMercatorDomainError as error:
+        raise _named_domain_refusal(error, context, zone) from error
 
     return (
         position.latitude,
@@ -835,7 +879,10 @@ def from_geodetic(
 
     Returns (northing, easting, convergence, scale_factor, warnings).
     """
-    point = project_forward(latitude, longitude, zone)
+    try:
+        point = project_forward(latitude, longitude, zone)
+    except TransverseMercatorDomainError as error:
+        raise _named_domain_refusal(error, context, zone) from error
 
     warnings: list[ConversionWarning] = []
     extent_warning = _check_extent(

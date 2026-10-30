@@ -73,8 +73,8 @@ def unplaced(total: int, outside: int) -> AutoZoneUnplacedPointsError:
         (1, 1, "Coordinates out of range: 1 point is outside Michigan."),
         (3, 3, "Coordinates out of range: 3 points are outside Michigan."),
         # Every point claimed by two county polygons: "outside" would be false.
-        (1, 0, "Auto could not choose a zone: 1 point lies where two counties overlap."),
-        (2, 0, "Auto could not choose a zone: 2 points lie where two counties overlap."),
+        (1, 0, "Auto could not choose a zone: 1 point lies where county boundaries overlap."),
+        (2, 0, "Auto could not choose a zone: 2 points lie where county boundaries overlap."),
         # Mixed: a wording true of both kinds of point.
         (
             3,

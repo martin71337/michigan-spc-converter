@@ -60,9 +60,11 @@ from michspc.spc.zones import (
     ObliqueMercatorCenterDef,
     ProjectionKind,
     TransverseMercatorDef,
+    Zone,
     grid_name,
 )
 from michspc.spc.frames import NAD83_2011, NATRF2022
+from michspc.spc.units import METERS
 
 _RULE = "=" * 78
 _THIN = "-" * 78
@@ -88,6 +90,9 @@ _WARNING_HEADINGS = {
     WarningCode.GEOID_SWAP_UNAVAILABLE: (
         "ELEVATION RECORDED, BUT NOT CONVERTIBLE BETWEEN GEOID MODELS"
     ),
+    # Raised only on a job with a UTM zone (DESIGN.md #72), so this heading
+    # changes no State Plane or geodetic record by a byte.
+    WarningCode.POINT_OUTSIDE_MICHIGAN: "POINTS OUTSIDE MICHIGAN",
     # A JOB-level warning (JobResult.job_warnings), raised only on a job in a
     # WGS 84 realization, so this heading changes no pre-existing record.
     WarningCode.REALIZATION_OUTSIDE_PERIOD_OF_USE: (
@@ -138,6 +143,53 @@ def _warning_heading(code) -> str:
     return str(getattr(code, "value", code)).replace("-", " ").replace("_", " ").upper()
 
 
+UTM_UNIT_CITATION = (
+    "UTM is defined in meters (DMA Technical Manual 8358.2, 1989)"
+)
+"""The unit authority a UTM job's meters cite (the interim gate's LOW 3).
+
+The meters record's own citation is the SPCS 83 manual's page, true of a
+State Plane job and offered on a UTM job as the authority for a unit that page
+does not define."""
+
+
+def _unit_citation(unit, side_zone, settings) -> str:
+    """The citation printed under a "Units in" / "Units out" line.
+
+    UTM's own definition when that side's coordinates are UTM, or when it is
+    the geodetic side of a job whose only grid is UTM - and only for meters,
+    the one unit a UTM coordinate is ever in; an elevation-only foot on the
+    geodetic side keeps its own citation. Every State Plane and geodetic job
+    prints ``unit.citation`` as it always has, byte for byte.
+    """
+    if unit is not METERS:
+        return unit.citation
+    zones = [
+        zone
+        for zone in (settings.source_zone, settings.target_zone)
+        if isinstance(zone, Zone)
+    ]
+    if isinstance(side_zone, Zone):
+        utm = grid_name(side_zone) == UTM_GRID
+    else:
+        utm = bool(zones) and all(grid_name(zone) == UTM_GRID for zone in zones)
+    return UTM_UNIT_CITATION if utm else unit.citation
+
+
+def _output_side_zone(settings):
+    """The zone the OUTPUT coordinates are in, or None when they are degrees.
+
+    The target zone on a zone-producing job; on a vertical-only job the output
+    mirrors the input, so the source zone; None on a job that writes latitude
+    and longitude. Auto is never a UTM zone, so it reads as no zone here.
+    """
+    if settings.direction is Direction.VERTICAL_ONLY:
+        return settings.source_zone
+    if settings.direction in (Direction.ZONE_TO_GEODETIC, Direction.GEODETIC_TO_GEODETIC):
+        return None
+    return settings.target_zone if isinstance(settings.target_zone, Zone) else None
+
+
 def _input_format_block(settings) -> list[str]:
     """What the input file's five columns actually held, and in what units.
 
@@ -178,14 +230,14 @@ def _input_format_block(settings) -> list[str]:
             f"Units in           {unit.name} ({unit.code}) - the ELEVATION column only",
             "                   Columns two and three are degrees and carry no",
             "                   linear unit.",
-            f"                   {unit.citation}",
+            f"                   {_unit_citation(unit, None, settings)}",
         ]
     return [
         "Format             PNEZD, no header row",
         "                   point, northing, easting, elevation, description",
         "                   description is everything after the fourth comma",
         f"Units in           {unit.name} ({unit.code}) - northing, easting and elevation",
-        f"                   {unit.citation}",
+        f"                   {_unit_citation(unit, settings.source_zone, settings)}",
     ]
 
 
@@ -1942,6 +1994,18 @@ UTM_NAD83_2011_ANCHOR_WORDS = "Two hundred twelve"
 UTM_NATRF2022_ANCHOR_COUNT = 34
 UTM_NATRF2022_ANCHOR_WORDS = "Thirty-four"
 UTM_ANCHORS_CAPTURED = "2026-10-22"
+UTM_NATRF2022_INVERSE_SCALE_BOUND = 8e-10
+UTM_NATRF2022_INVERSE_SCALE_BOUND_WORDS = "0.0008 ppm"
+"""How close the INVERSE scale factor comes to beta NCAT's printed value on
+the NATRF2022 anchors, as the suite holds it and the record states it (the
+interim gate's LOW 2). Beta NCAT prints the scale factor to nine decimals, so
+its own precision is half a unit, 5e-10; the manual's inverse scale series
+(section 3.24) and its forward series (3.23) differ by up to 2.42e-10 at these
+anchors - a UTM zone is far wider than the zones those series were written
+for - and one anchor's inverse lands 5.4e-10 from the printed value. 5e-10
+plus the measured 3e-10 is the bound: 0.0008 ppm. The NAD83(2011) anchors are
+printed to eight decimals, and all 212 inverse scale factors land within that
+precision, so their sentence makes no such exception."""
 """The UTM verification counts and capture date this record prints.
 
 Literals, as the State Plane arms' "Twenty-seven" and "Sixty-three" are, and
@@ -2011,7 +2075,10 @@ def _utm_verification_paragraphs(frame) -> list[str]:
                 f"results are held in the test suite as fixed reference "
                 f"values. This software reproduces their northing, easting, "
                 f"convergence and scale factor within the precision NCAT "
-                f"prints, converting both to and from the grid."
+                f"prints converting to the grid; converting from it, the "
+                f"position and convergence within that precision, and the "
+                f"scale factor within {UTM_NATRF2022_INVERSE_SCALE_BOUND_WORDS} "
+                f"of the value NCAT prints."
             )
         )
         lines.append("")
@@ -2380,7 +2447,10 @@ def build_report(result: JobResult) -> str:
         add("                   columns unchanged, and only the elevation is")
         add("                   converted, into the vertical datum below.")
     add(f"Units out          {settings.output_unit.name} ({settings.output_unit.code})")
-    add(f"                   {settings.output_unit.citation}")
+    add(
+        f"                   "
+        f"{_unit_citation(settings.output_unit, _output_side_zone(settings), settings)}"
+    )
     if vertical:
         target_datum = settings.target_vertical_datum
         add(f"Vertical datum     {target_datum.name} ({target_datum.code})")

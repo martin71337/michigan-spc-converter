@@ -733,6 +733,38 @@ geodetic record is byte-identical. **Left for the interim gate:** the
 "NOAA Manual NOS NGS 5 publishes SPCS 83 in meters (PDF p. 21)" units line,
 which a UTM or SPCS2022 job prints as it always has.
 
+**Interim gate over U1-U4 and R1: FINDINGS, two MEDIUM, five LOW, no wrong
+number inside any band** (independent Opus reviewer, Codex being unavailable;
+`review/gate-utm-interim/output.txt`). All fixed at the root, pinned at the
+reviewer's inputs, 12 seeds caught; suite 6,759 in both modes.
+
+- **MEDIUM 1, the engine's domain.** The manual's section 3.23/3.24 series
+  drifts beyond about 5 degrees from a meridian, the inverse fastest; the lead
+  reproduced it against PROJ (0.07/0.36 mm forward/inverse at 5.0 degrees,
+  2/16 mm at 8, 19/177 mm at 10.7). **The lead's ruling: `tm.py` refuses any
+  point more than 5.0 degrees from its zone's central meridian, both
+  directions**, naming the UTM zone that does cover it. This is the engine's
+  verified domain, not a zone extent, so it does not contradict #1. 16N used
+  over all of Michigan reaches 4.6 degrees and converts; 17N in the western
+  Upper Peninsula, or 15N east of 88 W, refuses. The widest SPCS2022 TM zone
+  reaches 1.29 degrees. **It changes one existing behaviour:** an SPCS2022 TM
+  job whose points lie more than 5 degrees from the zone's meridian - hundreds
+  of kilometres outside a low-distortion zone, never a real job - used to
+  convert with up to 20 mm of error and now refuses. The Krueger n-series
+  would remove the limit; it is not built, and is the owner's call.
+- **MEDIUM 2, a UTM file declared in the wrong zone.** Every UTM zone shares
+  the 500,000 m false easting, so a 16N file read as 17N landed in Ontario
+  with no warning. A UTM zone's extent is now its band clipped to Michigan's
+  longitudes, and **a UTM job warns on every point in no Michigan county**
+  (`POINT_OUTSIDE_MICHIGAN`, the county set Auto ships). UTM jobs only; State
+  Plane outputs byte-identical.
+- **LOW 1-5:** the mixed-era verification sections pinned whole; the
+  NATRF2022 inverse-scale sentence now states the measured bound (0.0008 ppm);
+  a UTM side's units line cites UTM's definition in metres; the UTM extent
+  warning names "the part of" the zone "over Michigan"; the two-county headline
+  reads "where county boundaries overlap". **Left to the owner:** the one-line
+  Auto refusal dialog no longer says "Nothing was written."
+
 ### #71 — 2026-10-22 — Options menu, Auto zone, the observation date in Options; the release machine's suite
 
 **The owner's instructions (2026-10-22)**, given when asked whether to tag

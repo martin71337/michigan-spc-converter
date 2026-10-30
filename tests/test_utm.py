@@ -26,6 +26,7 @@ from pathlib import Path
 
 import pytest
 
+from michspc.fileio import report
 from michspc.spc import convert, zones as zones_module
 from michspc.spc.ellipsoid import GRS80
 from michspc.spc.frames import NAD83_2011, NATRF2022
@@ -125,7 +126,11 @@ def test_every_utm_record_carries_utms_defining_constants(zone):
     )
     assert zone.allowed_units == (METERS,)
     assert zone.easting_range_m == (100000.0, 900000.0)
-    assert (zone.lon_min, zone.lon_max) == (expected_meridian - 3.0, expected_meridian + 3.0)
+    # The zone's band clipped to Michigan's longitudes, -90.5 to -82.3 (the
+    # interim gate's MEDIUM 2), hand-stated per zone: 15N's band is -96 to
+    # -90, 16N's -90 to -84, 17N's -84 to -78.
+    expected_extent = {15: (-90.5, -90.0), 16: (-90.0, -84.0), 17: (-84.0, -82.3)}[number]
+    assert (zone.lon_min, zone.lon_max) == expected_extent
     assert (zone.lat_min, zone.lat_max) == (41.6, 48.4)
     conversion = {15: "16015", 16: "16016", 17: "16017"}[number]
     assert f"EPSG {conversion} ('UTM zone {number}N')" in zone.citation
@@ -138,12 +143,24 @@ def test_all_zones_is_the_three_tuples_in_order():
     assert len(ALL_ZONES) == 3 + 19 + 6 == 28
 
 
-def test_the_band_check_refuses_a_band_off_its_meridian():
-    """The import-time check, fed a zone whose band belongs to the next zone."""
+@pytest.mark.parametrize(
+    "lon_min, lon_max",
+    [
+        (-84.0, -82.3),  # the next zone's extent
+        (-90.0, -84.0 + 1e-9),  # off by a hair at the east edge
+        (-93.0, -84.0),  # the whole band west, not clipped to Michigan
+        (-90.0, -81.0),  # not clipped east
+    ],
+)
+def test_the_band_check_refuses_an_extent_that_is_not_the_band_over_michigan(
+    lon_min, lon_max
+):
+    """The import-time check, fed 16N with an extent that is not its band over
+    Michigan (-90.0 to -84.0)."""
     import dataclasses
 
-    bad = dataclasses.replace(UTM_ZONES[1], lon_min=-84.0, lon_max=-78.0)
-    with pytest.raises(ZoneRegistryError, match="not the six degrees centred"):
+    bad = dataclasses.replace(UTM_ZONES[1], lon_min=lon_min, lon_max=lon_max)
+    with pytest.raises(ZoneRegistryError, match="over Michigan"):
         zones_module._check_utm_bands_match_their_meridians((bad,))
     zones_module._check_utm_bands_match_their_meridians(UTM_ZONES)
 
@@ -270,9 +287,19 @@ def test_inverse_matches_ncat(anchor):
         float(anchor.latitude), float(anchor.longitude), result.latitude, result.longitude
     )
     assert offset <= INVERSE_TOLERANCE_M
+    # The slack only where it is needed and stated (the interim gate's LOW 2):
+    # the NATRF2022 anchors, whose record sentence names the bound. Every
+    # NAD83(2011) anchor's inverse scale is within NCAT's printed half-unit,
+    # and its sentence claims exactly that.
+    if zone.frame is NATRF2022:
+        scale_bound = report.UTM_NATRF2022_INVERSE_SCALE_BOUND
+        assert scale_bound == pytest.approx(
+            0.5e-9 + INVERSE_SCALE_SERIES_SLACK, abs=1e-15
+        )
+    else:
+        scale_bound = _scale_tolerance(anchor.scale_factor)
     assert result.source_scale_factor == pytest.approx(
-        float(anchor.scale_factor),
-        abs=_scale_tolerance(anchor.scale_factor) + INVERSE_SCALE_SERIES_SLACK,
+        float(anchor.scale_factor), abs=scale_bound
     )
     assert result.source_convergence * 3600.0 == pytest.approx(
         _dms_to_degrees(anchor.convergence) * 3600.0, abs=CONVERGENCE_TOLERANCE_ARCSEC

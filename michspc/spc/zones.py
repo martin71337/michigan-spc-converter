@@ -1086,9 +1086,22 @@ Peninsula reaches 82.4 W, about 382 km. Never a refusal (docs/DESIGN.md
 amendment #1).
 """
 
-_UTM_LATITUDES = (41.6, 48.4)
-"""The latitudes a Michigan UTM zone is used over: Michigan's span, the SPCS 83
-zones' combined extent. A warning aid only - UTM itself runs 0 to 84 N."""
+MICHIGAN_LATITUDES: tuple[float, float] = (
+    min(zone.lat_min for zone in SPCS83_ZONES),
+    max(zone.lat_max for zone in SPCS83_ZONES),
+)
+MICHIGAN_LONGITUDES: tuple[float, float] = (
+    min(zone.lon_min for zone in SPCS83_ZONES),
+    max(zone.lon_max for zone in SPCS83_ZONES),
+)
+"""Michigan's span, (south, north) and (west, east) in degrees: the SPCS 83
+zones' combined extent (41.6 to 48.4 N, -90.5 to -82.3), derived from those
+records rather than typed a second time. The part of each UTM zone this
+program serves is its band clipped to these (DESIGN.md #72, the interim gate's
+MEDIUM 2). A warning aid only - UTM itself runs 0 to 84 N, 180 W to 180 E."""
+
+UTM_HALF_BAND_DEGREES = 3.0
+"""Half the width of every UTM zone's six-degree band (DMA TM 8358.2)."""
 
 _UTM_EPSG_CONVERSIONS = {15: 16015, 16: 16016, 17: 16017}
 """Zone number -> the EPSG conversion that states its constants
@@ -1137,11 +1150,17 @@ def _utm_zone(number: int, frame: ReferenceFrame, code_suffix: str) -> Zone:
             500000.0 - _UTM_EASTING_WINDOW_M,  # false easting from the definition above
             500000.0 + _UTM_EASTING_WINDOW_M,
         ),
-        lat_min=_UTM_LATITUDES[0],
-        lat_max=_UTM_LATITUDES[1],
-        # The zone's own six-degree band.
-        lon_min=lon_origin - 3.0,
-        lon_max=lon_origin + 3.0,
+        # The part of the zone over Michigan: the zone's own six-degree band,
+        # clipped to Michigan's span. NOT the whole band (the interim gate's
+        # MEDIUM 2): every UTM zone shares the 500,000 m false easting, so a
+        # file in one UTM zone declared as its neighbour lands six degrees
+        # away - in Ontario, Wisconsin or Minnesota - inside the neighbour's
+        # band, and only Michigan's edge can notice. 15N -90.5 to -90.0,
+        # 16N -90.0 to -84.0, 17N -84.0 to -82.3.
+        lat_min=MICHIGAN_LATITUDES[0],
+        lat_max=MICHIGAN_LATITUDES[1],
+        lon_min=max(lon_origin - UTM_HALF_BAND_DEGREES, MICHIGAN_LONGITUDES[0]),
+        lon_max=min(lon_origin + UTM_HALF_BAND_DEGREES, MICHIGAN_LONGITUDES[1]),
     )
 
 
@@ -1154,22 +1173,29 @@ NATRF2022, west to east. Order is the order a dropdown offers (plan D6)."""
 
 
 def _check_utm_bands_match_their_meridians(zones: tuple[Zone, ...]) -> None:
-    """Refuse to import a UTM zone whose band is not centred on its meridian.
+    """Refuse to import a UTM zone whose extent is not its band over Michigan.
 
-    The band and the meridian are both derived from the zone number in
-    ``_utm_zone``; this is the check that they still agree after any hand
-    edit, because a band copied onto the wrong zone would warn about every
-    point in the middle of it. if/raise rather than assert, because -O strips
-    asserts.
+    The extent is derived in ``_utm_zone`` from the zone's meridian and
+    Michigan's span; this is the check that it still is, after any hand
+    edit: inside the six-degree band centred on the zone's own meridian,
+    inside Michigan's longitudes, and not empty. A band copied onto the wrong
+    zone would warn about every point in the middle of it. if/raise rather
+    than assert, because -O strips asserts.
     """
     for zone in zones:
-        centre = (zone.lon_min + zone.lon_max) / 2.0
-        if zone.lon_max - zone.lon_min != 6.0 or centre != zone.definition.lon_origin:
+        cm = zone.definition.lon_origin
+        band = (cm - UTM_HALF_BAND_DEGREES, cm + UTM_HALF_BAND_DEGREES)
+        expected = (
+            max(band[0], MICHIGAN_LONGITUDES[0]),
+            min(band[1], MICHIGAN_LONGITUDES[1]),
+        )
+        if (zone.lon_min, zone.lon_max) != expected or not zone.lon_min < zone.lon_max:
             raise ZoneRegistryError(
-                f"{zone.name} ({zone.code}) has the longitude band "
-                f"{zone.lon_min} to {zone.lon_max}, which is not the six "
-                f"degrees centred on its central meridian "
-                f"{zone.definition.lon_origin}."
+                f"{zone.name} ({zone.code}) has the longitude extent "
+                f"{zone.lon_min} to {zone.lon_max}; the part of its six-degree "
+                f"band ({band[0]} to {band[1]}, centred on its central "
+                f"meridian {cm}) over Michigan ({MICHIGAN_LONGITUDES[0]} to "
+                f"{MICHIGAN_LONGITUDES[1]}) is {expected[0]} to {expected[1]}."
             )
 
 

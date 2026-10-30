@@ -1757,8 +1757,9 @@ def refusal_headline(error: BaseException) -> str | None:
     The headline is chosen from the error's DATA, never from its message
     text, and it says only what is true of every point it counts: "outside
     Michigan" when every unplaced point is in no Michigan county
-    (``outside_count``), otherwise a wording that also covers a point two
-    county polygons claim. The full refusal, naming each point, stays one
+    (``outside_count``), otherwise a wording that also covers a point more
+    than one county polygon claims - two, or three at a corner (the interim
+    gate's LOW 5). The full refusal, naming each point, stays one
     click away in the dialog's details and in the status line's tooltip.
     """
     if not isinstance(error, AutoZoneUnplacedPointsError):
@@ -1770,8 +1771,8 @@ def refusal_headline(error: BaseException) -> str | None:
     if error.outside_count == 0:
         verb = "lies" if total == 1 else "lie"
         return (
-            f"Auto could not choose a zone: {_points(total)} {verb} where two "
-            f"counties overlap."
+            f"Auto could not choose a zone: {_points(total)} {verb} where "
+            f"county boundaries overlap."
         )
     return (
         f"Auto could not choose a zone: {_points(total)} could not be placed in "

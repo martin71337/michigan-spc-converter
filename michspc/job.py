@@ -1695,8 +1695,15 @@ def run(settings: JobSettings, source: pnezd.PnezdFile | None = None) -> JobResu
     # The county polygons, read and authenticated once per process, and only
     # for an Auto job: a fixed-zone job never touches the county file, so it
     # converts with the file absent exactly as it always did.
+    # And for a job with a UTM zone at either end (DESIGN.md #72, the interim
+    # gate's MEDIUM 2): every UTM zone shares the 500,000 m false easting, so
+    # the county set is the only thing that can notice a file in one UTM zone
+    # declared as another (_outside_michigan_warning). State Plane and
+    # geodetic jobs still never read the file.
     county_set = (
-        county_file.default_counties() if settings.target_zone is AUTO_ZONE else None
+        county_file.default_counties()
+        if settings.target_zone is AUTO_ZONE or _utm_zones_of(settings)
+        else None
     )
 
     points: list[ConvertedPoint] = []
@@ -3018,6 +3025,57 @@ def _auto_zone_for(
     return assignment, (position.latitude, position.longitude)
 
 
+def _utm_zones_of(settings: JobSettings) -> tuple[Zone, ...]:
+    """The UTM zones at either end of this job, source first; () for none."""
+    return tuple(
+        zone
+        for zone in (settings.source_zone, settings.target_zone)
+        if isinstance(zone, Zone) and zone.system == UTM_SYSTEM
+    )
+
+
+def _outside_michigan_warning(
+    settings: JobSettings,
+    conversion,
+    county_set: CountySet | None,
+    context: str,
+) -> ConversionWarning | None:
+    """POINT_OUTSIDE_MICHIGAN for a UTM job's point in no Michigan county, else None.
+
+    Tested at the point's geodetic pivot - the position every zone and grid
+    reads, in the job's own frame - against the county set Auto uses, Great
+    Lakes waters included. On a NATRF2022 job the pivot is a NATRF2022
+    position and the counties are NAD83 polygons; the 1 to 2 m between the
+    frames is far inside the six degrees this warning exists to catch (the
+    Auto zone build's ruling L4, for the same reason). Only on a job with a
+    UTM zone, so no State Plane or geodetic job's outputs move.
+    """
+    utm_zones = _utm_zones_of(settings)
+    if not utm_zones or county_set is None:
+        return None
+    latitude, longitude = conversion.latitude, conversion.longitude
+    if county_set.containing(longitude, latitude):
+        return None
+    source = settings.source_zone
+    if isinstance(source, Zone) and source.system == UTM_SYSTEM:
+        advice = (
+            f" Every UTM zone has the same 500,000 m false easting, so a "
+            f"coordinate from a different UTM zone than the one selected "
+            f"converts to an ordinary-looking position six degrees away. Check "
+            f"that {source.name} is the zone these coordinates are in."
+        )
+    else:
+        advice = " Check the latitude and longitude."
+    return ConversionWarning(
+        code=WarningCode.POINT_OUTSIDE_MICHIGAN,
+        message=(
+            f"{context}: {latitude:.6f}, {longitude:.6f} lies in no Michigan "
+            f"county ({county_set.source}, Great Lakes waters included) - it "
+            f"is outside Michigan.{advice}"
+        ),
+    )
+
+
 def _convert_row(
     row: pnezd.PnezdRow,
     settings: JobSettings,
@@ -3257,6 +3315,10 @@ def _convert_row(
         raise _point_named_htdp_refusal(
             error, context, settings, frame_path, geodetic_input
         ) from error
+
+    outside = _outside_michigan_warning(settings, conversion, county_set, context)
+    if outside is not None:
+        warnings.append(outside)
 
     # Elevation is orthometric height: it does not change with the horizontal
     # zone. Only its unit changes - and it changes in EVERY direction,

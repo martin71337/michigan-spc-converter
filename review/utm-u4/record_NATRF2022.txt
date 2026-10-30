@@ -20,7 +20,7 @@ Format             Comma separated, no header row - NOT PNEZD
 Units in           meters (m) - the ELEVATION column only
                    Columns two and three are degrees and carry no
                    linear unit.
-                   NOAA Manual NOS NGS 5 publishes SPCS 83 in meters (PDF p. 21)
+                   UTM is defined in meters (DMA Technical Manual 8358.2, 1989)
 
 ------------------------------------------------------------------------------
 OUTPUT
@@ -28,7 +28,7 @@ OUTPUT
 Folder             <ROOT>
 Conversion         geodetic to UTM
 Units out          meters (m)
-                   NOAA Manual NOS NGS 5 publishes SPCS 83 in meters (PDF p. 21)
+                   UTM is defined in meters (DMA Technical Manual 8358.2, 1989)
 Longitude          negative west
 Reference frame    NATRF2022 - North American Terrestrial Reference Frame of 2022
                    The latitudes and longitudes in the input file
@@ -94,7 +94,9 @@ Coordinate Conversion and Transformation Tool (NCAT). Thirty-four positions in
 UTM zone 16 were converted by beta NCAT in NATRF2022 (captured 2026-10-22),
 and those results are held in the test suite as fixed reference values. This
 software reproduces their northing, easting, convergence and scale factor
-within the precision NCAT prints, converting both to and from the grid.
+within the precision NCAT prints converting to the grid; converting from it,
+the position and convergence within that precision, and the scale factor
+within 0.0008 ppm of the value NCAT prints.
 
 The equations do not depend on the frame: a UTM zone on NATRF2022 has exactly
 the constants of the same zone on NAD83(2011), so the two hundred twelve

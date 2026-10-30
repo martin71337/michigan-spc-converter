@@ -20,7 +20,7 @@ Format             Comma separated, no header row - NOT PNEZD
 Units in           meters (m) - the ELEVATION column only
                    Columns two and three are degrees and carry no
                    linear unit.
-                   NOAA Manual NOS NGS 5 publishes SPCS 83 in meters (PDF p. 21)
+                   UTM is defined in meters (DMA Technical Manual 8358.2, 1989)
 
 ------------------------------------------------------------------------------
 OUTPUT
@@ -28,7 +28,7 @@ OUTPUT
 Folder             <ROOT>
 Conversion         geodetic to UTM
 Units out          meters (m)
-                   NOAA Manual NOS NGS 5 publishes SPCS 83 in meters (PDF p. 21)
+                   UTM is defined in meters (DMA Technical Manual 8358.2, 1989)
 Longitude          negative west
 Reference frame    NAD83(2011) - North American Datum of 1983, 2011 realization
                    The latitudes and longitudes in the input file

@@ -940,13 +940,34 @@ JACOBIAN_PROBES = (
 )
 
 
+def _series_forward(latitude, longitude, zone):
+    """The zone's forward mapping, through the transverse Mercator's raw series.
+
+    Since the UTM build's interim gate (DESIGN.md #72, MEDIUM 1) the public
+    ``tm.forward`` refuses beyond ``tm.DOMAIN_LIMIT_DEGREES``; the probes here
+    measure the SERIES out at 6 and 7.8 degrees, because that is where a
+    coefficient typo becomes visible, so a transverse Mercator zone is read
+    through ``tm._forward_series``. Every other engine is unchanged.
+    """
+    if isinstance(zone.definition, TransverseMercatorDef):
+        return tm._forward_series(latitude, longitude, projection.constants_for(zone))
+    return projection.forward(latitude, longitude, zone)
+
+
+def _series_inverse(northing, easting, zone):
+    """The inverse twin of ``_series_forward``."""
+    if isinstance(zone.definition, TransverseMercatorDef):
+        return tm._inverse_series(northing, easting, projection.constants_for(zone))
+    return projection.inverse(northing, easting, zone)
+
+
 def _jacobian_forward(latitude, longitude, zone):
     """[[dN/dphi, dN/dlam], [dE/dphi, dE/dlam]], metres per degree."""
     step = JACOBIAN_FORWARD_STEP_DEG
-    north = projection.forward(latitude + step, longitude, zone)
-    south = projection.forward(latitude - step, longitude, zone)
-    east = projection.forward(latitude, longitude + step, zone)
-    west = projection.forward(latitude, longitude - step, zone)
+    north = _series_forward(latitude + step, longitude, zone)
+    south = _series_forward(latitude - step, longitude, zone)
+    east = _series_forward(latitude, longitude + step, zone)
+    west = _series_forward(latitude, longitude - step, zone)
     return (
         (north.northing - south.northing) / (2.0 * step),
         (east.northing - west.northing) / (2.0 * step),
@@ -958,10 +979,10 @@ def _jacobian_forward(latitude, longitude, zone):
 def _jacobian_inverse(northing, easting, zone):
     """[[dphi/dN, dphi/dE], [dlam/dN, dlam/dE]], degrees per metre."""
     step = JACOBIAN_INVERSE_STEP_M
-    up = projection.inverse(northing + step, easting, zone)
-    down = projection.inverse(northing - step, easting, zone)
-    right = projection.inverse(northing, easting + step, zone)
-    left = projection.inverse(northing, easting - step, zone)
+    up = _series_inverse(northing + step, easting, zone)
+    down = _series_inverse(northing - step, easting, zone)
+    right = _series_inverse(northing, easting + step, zone)
+    left = _series_inverse(northing, easting - step, zone)
     return (
         (up.latitude - down.latitude) / (2.0 * step),
         (right.latitude - left.latitude) / (2.0 * step),
@@ -972,7 +993,7 @@ def _jacobian_inverse(northing, easting, zone):
 
 def _jacobian_product_minus_identity(latitude, longitude, zone):
     """J_inv . J_fwd - I, as four numbers in reading order."""
-    point = projection.forward(latitude, longitude, zone)
+    point = _series_forward(latitude, longitude, zone)
     f11, f12, f21, f22 = _jacobian_forward(latitude, longitude, zone)
     g11, g12, g21, g22 = _jacobian_inverse(point.northing, point.easting, zone)
     return (
@@ -1136,8 +1157,8 @@ def test_the_transverse_mercator_closure_matches_its_measured_curve(
     longitude = zone.definition.lon_origin - offset
     latitude = TM_CLOSURE_PROBE_LATITUDE
 
-    point = projection.forward(latitude, longitude, zone)
-    back = projection.inverse(point.northing, point.easting, zone)
+    point = _series_forward(latitude, longitude, zone)
+    back = _series_inverse(point.northing, point.easting, zone)
 
     assert abs(back.latitude - latitude) == pytest.approx(
         d_latitude, rel=TM_CLOSURE_RELATIVE_BAND, abs=TM_CLOSURE_FLOOR_DEG
@@ -1162,8 +1183,8 @@ def test_the_transverse_mercator_closure_is_symmetric_about_its_meridian():
         residuals = []
         for signed in (offset, -offset):
             longitude = meridian + signed
-            point = projection.forward(latitude, longitude, zone)
-            back = projection.inverse(point.northing, point.easting, zone)
+            point = _series_forward(latitude, longitude, zone)
+            back = _series_inverse(point.northing, point.easting, zone)
             residuals.append(
                 (abs(back.latitude - latitude), abs(back.longitude - longitude))
             )
@@ -1188,8 +1209,8 @@ def test_the_transverse_mercator_closure_degrades_monotonically():
     longitudes: list[float] = []
     for offset, _d_latitude, _d_longitude in TM_CLOSURE_BY_OFFSET:
         longitude = meridian - offset
-        point = projection.forward(latitude, longitude, zone)
-        back = projection.inverse(point.northing, point.easting, zone)
+        point = _series_forward(latitude, longitude, zone)
+        back = _series_inverse(point.northing, point.easting, zone)
         latitudes.append(abs(back.latitude - latitude))
         longitudes.append(abs(back.longitude - longitude))
 
@@ -1197,6 +1218,22 @@ def test_the_transverse_mercator_closure_degrades_monotonically():
     assert longitudes == sorted(longitudes)
     assert latitudes[-1] > latitudes[0] * 1e4
     assert longitudes[-1] > longitudes[0] * 1e4
+
+
+@pytest.mark.parametrize("offset", (6.0, 7.8))
+def test_the_public_transverse_mercator_refuses_where_the_curve_is_measured(offset):
+    """The closure table above measures the SERIES at 6 and 7.8 degrees; the
+    program never returns a coordinate there. Both public directions refuse
+    past tm.DOMAIN_LIMIT_DEGREES (DESIGN.md #72, the UTM interim gate's
+    MEDIUM 1)."""
+    zone = ZONES_BY_CODE["261002"]
+    longitude = zone.definition.lon_origin - offset
+    with pytest.raises(tm.TransverseMercatorDomainError):
+        projection.forward(TM_CLOSURE_PROBE_LATITUDE, longitude, zone)
+    point = _series_forward(TM_CLOSURE_PROBE_LATITUDE, longitude, zone)
+    with pytest.raises(tm.TransverseMercatorDomainError):
+        projection.inverse(point.northing, point.easting, zone)
+
 
 
 @pytest.mark.parametrize("zone", LDP_ZONES)

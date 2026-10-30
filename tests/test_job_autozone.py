@@ -81,8 +81,10 @@ from michspc.spc.zones import (
     MI_SOUTH,
     SPCS83_ZONES,
     SPCS2022_ZONES,
+    TransverseMercatorDef,
     zone_by_code,
 )
+from michspc.spc.tm import DOMAIN_LIMIT_DEGREES
 from tests import autozone_geometry as geo
 from tests.fixtures.autozone_anchors import ANCHORS
 
@@ -107,10 +109,16 @@ def settings(**fields) -> JobSettings:
     return JobSettings(**base)
 
 
-def source(*rows: tuple) -> pnezd.PnezdFile:
-    """A parsed PNEZD file from (id, latitude, longitude, elevation-or-None)."""
+def source(*rows: tuple, blank=frozenset()) -> pnezd.PnezdFile:
+    """A parsed PNEZD file from (id, latitude, longitude, elevation-or-None).
+
+    A point id in ``blank`` becomes a blank line in its place, so the rows
+    after it keep their line numbers."""
     lines = []
     for point_id, lat, lon, z in rows:
+        if point_id in blank:
+            lines.append("\n")
+            continue
         lines.append(f"{point_id},{lat!r},{lon!r},{'' if z is None else repr(z)},D\n")
     return pnezd.parse_lines(lines)
 
@@ -471,14 +479,28 @@ def test_a_mixed_zone_file_takes_ncats_zone_at_every_anchor_and_the_fixed_zone_p
     # The fixed-zone job of each zone, over the SAME file (so every row,
     # line number included, is the same row): each point Auto put in that
     # zone is that job's point.
-    compared = extent_exercised = 0
+    #
+    # A row past the transverse Mercator domain of THAT zone (tm.
+    # DOMAIN_LIMIT_DEGREES, DESIGN.md #72 - the UTM build's interim gate)
+    # would refuse the whole fixed-zone job, so it is blanked rather than
+    # dropped: parse_lines skips a blank line but counts it, so every other
+    # row keeps its line number. Auto never puts a point there - its own
+    # zone is within a degree and a half of every point it holds.
+    compared = extent_exercised = blanked = 0
     for code in sorted(zones_seen):
         zone = zone_by_code(code)
+        beyond = {
+            point_id
+            for point_id, _lat, lon, _ in rows
+            if isinstance(zone.definition, TransverseMercatorDef)
+            and abs(lon - zone.definition.lon_origin) > DOMAIN_LIMIT_DEGREES
+        }
+        blanked += len(beyond)
         fixed = run(
             settings(geodetic_frame=frame, target_zone=zone, auto_frame=None),
-            source(*rows),
+            source(*rows, blank=beyond),
         )
-        assert len(fixed.points) == len(rows)
+        assert len(fixed.points) == len(rows) - len(beyond)
         for fixed_point in fixed.points:
             auto_point = converted[fixed_point.point_id]
             if auto_point.auto_zone.zone is zone:
@@ -489,8 +511,13 @@ def test_a_mixed_zone_file_takes_ncats_zone_at_every_anchor_and_the_fixed_zone_p
         # Five SPCS 83 anchors lie in a county of their zone yet outside the
         # zone's approximate extent box: the fixed job warns, Auto does not.
         assert extent_exercised == 5
+        # No SPCS 83 zone is a transverse Mercator.
+        assert blanked == 0
     else:
         assert extent_exercised == 0
+        # The blanking is real on SPCS2022 (its five TM zones), so the
+        # comparison above did not run over a file with nothing taken out.
+        assert blanked > 0
 
 
 @pytest.mark.parametrize(

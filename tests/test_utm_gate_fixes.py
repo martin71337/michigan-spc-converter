@@ -23,14 +23,17 @@ from pathlib import Path
 import pytest
 
 from michspc.fileio import exports, pnezd
-from michspc.job import Direction, JobSettings, LongitudeConvention, run
-from michspc.spc import projection, tm
+from michspc.job import Direction, JobSettings, LongitudeConvention, VerticalMode, run
+from michspc.spc import convert, projection, tm
+from michspc.spc.projection import GridPoint
 from michspc.spc.convert import WarningCode
-from michspc.spc.frames import NAD83_2011
+from michspc.spc.frames import NAD83_2011, NATRF2022
 from michspc.spc.tm import DOMAIN_LIMIT_DEGREES, TransverseMercatorDomainError
 from michspc.spc.units import INTERNATIONAL_FEET, METERS
+from michspc.spc.vertical import NAVD88, NGVD29
 from michspc.spc.zones import (
     MI_CENTRAL,
+    MI_NORTH,
     MI_SOUTH,
     SPCS2022_ZONES,
     UTM_ZONES,
@@ -181,18 +184,132 @@ def test_a_point_exactly_at_the_limit_reads_back(zone):
             assert back.latitude == pytest.approx(latitude, abs=1e-8)
 
 
-def test_a_file_written_at_the_limit_reads_back_through_the_job(tmp_path):
-    """The reviewer's N5 case moved to the new limit: geodetic 45.0, -85.8 into
-    17N (4.8 degrees west of -81) writes, and the row it wrote reads back as
-    17N to the same position."""
-    _result, archive = _job(tmp_path, "1,45.0,-85.8,200,P\n", **_geodetic_to(UTM17))
+# The second re-confirmation's R2-1: N5 was closed in tm.inverse but not on
+# the program's main read-back path. convert_point re-projects the position
+# its inverse recovered - into the SAME zone on a zone-to-geodetic or
+# vertical-only job - and that forward had no allowance, so a file the program
+# wrote at the limit refused on read-back ("4.800000 degrees ... converts only
+# within 4.8"). The reviewer's case, and its proof that the old pin (latitude
+# 45.0 only) passed with the allowance seeded to 0.
+REVIEWER_LIMIT_ROW = "1,4627612.7742,100559.4963,200.0000,P"
+"""GEODETIC_TO_ZONE 17N "1,41.7,-85.8,200,P" writes exactly this row
+(reconfirm2-output.txt, R2-1); its longitude reads back 9.1e-10 degrees past
+the limit."""
+
+
+def _vertical_only(zone):
+    return dict(
+        direction=Direction.VERTICAL_ONLY,
+        source_zone=zone,
+        target_zone=None,
+        vertical_mode=VerticalMode.VERTICAL,
+        source_vertical_datum=NGVD29,
+        target_vertical_datum=NAVD88,
+        longitude_convention=None,
+    )
+
+
+def test_the_reviewers_row_at_the_limit_is_what_the_program_writes(tmp_path):
+    _result, archive = _job(tmp_path, "1,41.7,-85.8,200,P\n", **_geodetic_to(UTM17))
     clean = member_text(archive, f"{archive.stem}.csv").strip()
-    back_dir = tmp_path / "back"
-    back_dir.mkdir()
-    result, _archive = _job(back_dir, clean + "\n", **_zone_to_geodetic(UTM17))
+    assert clean == REVIEWER_LIMIT_ROW
+
+
+def test_a_file_written_at_the_limit_reads_back_zone_to_geodetic(tmp_path):
+    """Fails with INVERSE_DOMAIN_ALLOWANCE_DEGREES seeded to 0 (R2-1's pin)."""
+    result, _archive = _job(tmp_path, REVIEWER_LIMIT_ROW + "\n", **_zone_to_geodetic(UTM17))
     (point,) = result.points
-    assert point.conversion.latitude == pytest.approx(45.0, abs=1e-8)
+    assert point.conversion.latitude == pytest.approx(41.7, abs=1e-8)
     assert point.conversion.longitude == pytest.approx(-85.8, abs=1e-8)
+
+
+def test_a_file_written_at_the_limit_reads_back_vertical_only(tmp_path):
+    result, _archive = _job(tmp_path, REVIEWER_LIMIT_ROW + "\n", **_vertical_only(UTM17))
+    (point,) = result.points
+    assert point.conversion.longitude == pytest.approx(-85.8, abs=1e-8)
+
+
+# 44.5 N, 82.2 W into 16N at full precision: exactly 4.8 degrees east of 16N's
+# meridian - the position test_utm_16n_to_17n_lands_on_ncats_17n builds from a
+# frozen NCAT anchor, which the reviewer found refused under ZONE_TO_GEODETIC.
+ANCHOR_AT_THE_LIMIT = (44.5, -82.2)
+HALF_MM_IN_DEGREES = 5e-9
+"""Half a millimetre of latitude (1 degree is about 111 km): the bound the
+read-back is held to, the inverse series' own error at the limit being
+0.26 mm (tm.DOMAIN_LIMIT_DEGREES's table)."""
+
+
+@pytest.mark.parametrize(
+    "target",
+    [UTM16, UTM17, MI_SOUTH, MI_CENTRAL],
+    ids=lambda z: z.code,
+)
+def test_the_ncat_anchor_at_the_limit_reads_back_on_every_path(target):
+    position = projection.forward(*ANCHOR_AT_THE_LIMIT, UTM16)
+    result = convert.convert_point(position.northing, position.easting, UTM16, target)
+    assert result.latitude == pytest.approx(ANCHOR_AT_THE_LIMIT[0], abs=HALF_MM_IN_DEGREES)
+    assert result.longitude == pytest.approx(ANCHOR_AT_THE_LIMIT[1], abs=HALF_MM_IN_DEGREES)
+
+
+def test_the_ncat_anchor_at_the_limit_reads_back_through_both_jobs(tmp_path):
+    position = projection.forward(*ANCHOR_AT_THE_LIMIT, UTM16)
+    row = f"1,{position.northing!r},{position.easting!r},200.0,P\n"
+    to_geodetic, _ = _job(tmp_path, row, **_zone_to_geodetic(UTM16))
+    assert to_geodetic.points[0].conversion.longitude == pytest.approx(-82.2, abs=HALF_MM_IN_DEGREES)
+    vertical_dir = tmp_path / "vertical"
+    vertical_dir.mkdir()
+    vertical, _ = _job(vertical_dir, row, **_vertical_only(UTM16))
+    assert vertical.points[0].conversion.longitude == pytest.approx(-82.2, abs=HALF_MM_IN_DEGREES)
+
+
+# A lattice at exactly the limit, both sides of the meridian, on all six UTM
+# zones: forward as the user supplies it, rounded to the 4 decimals the
+# program writes, then read back on every path that re-projects - zone to
+# geodetic (convert_point into the same zone), and zone to zone into a State
+# Plane zone of the same frame and back again.
+LIMIT_LATITUDES = tuple(41.6 + 0.4 * k for k in range(18))
+
+
+def _limit_points(zone):
+    meridian = zone.definition.lon_origin
+    for latitude in LIMIT_LATITUDES:
+        for side in (-1.0, 1.0):
+            yield latitude, meridian + side * DOMAIN_LIMIT_DEGREES
+
+
+def _state_plane_twin(zone):
+    return MI_SOUTH if zone.frame is NAD83_2011 else SPCS2022_ZONES[0]
+
+
+@pytest.mark.parametrize("zone", UTM_ZONES, ids=lambda z: z.code)
+def test_every_point_at_the_limit_reads_back_on_every_path(zone):
+    assert zone.frame in (NAD83_2011, NATRF2022)
+    count = 0
+    for latitude, longitude in _limit_points(zone):
+        written = projection.forward(latitude, longitude, zone)
+        northing, easting = round(written.northing, 4), round(written.easting, 4)
+        same = convert.convert_point(northing, easting, zone, zone)
+        assert same.longitude == pytest.approx(longitude, abs=1e-8)
+        twin = _state_plane_twin(zone)
+        out = convert.convert_point(northing, easting, zone, twin)
+        back = convert.convert_point(out.target_northing, out.target_easting, twin, zone)
+        assert back.target_northing == pytest.approx(northing, abs=1e-3)
+        assert back.target_easting == pytest.approx(easting, abs=1e-3)
+        count += 1
+    assert count == 2 * len(LIMIT_LATITUDES)
+
+
+def test_a_supplied_position_is_not_widened_by_the_allowance():
+    """The allowance is for a position an inverse produced, never a supplied
+    one: a geodetic position just past the limit (by half the allowance)
+    still refuses on the forward, and is accepted on the recovered forward."""
+    meridian = UTM16.definition.lon_origin
+    longitude = meridian + DOMAIN_LIMIT_DEGREES + tm.INVERSE_DOMAIN_ALLOWANCE_DEGREES / 2
+    with pytest.raises(TransverseMercatorDomainError):
+        projection.forward(45.0, longitude, UTM16)
+    with pytest.raises(TransverseMercatorDomainError):
+        convert.project_point(45.0, longitude, NAD83_2011, UTM16)
+    projection.forward(45.0, longitude, UTM16, recovered=True)
 
 
 # --------------------------------------------------------------------------
@@ -579,18 +696,79 @@ def test_a_state_plane_to_utm_point_outside_michigan_names_its_northing_and_east
     assert "latitude and longitude" not in outside[0].message
 
 
+def _run_positive_west(tmp_path, rows, zone):
+    settings = dict(_geodetic_to(zone))
+    base = dict(
+        input_path=tmp_path / "in.csv",
+        output_directory=tmp_path,
+        input_unit=METERS,
+        output_unit=METERS,
+        longitude_convention=LongitudeConvention.POSITIVE_WEST,
+    )
+    base.update(settings)
+    job_settings = JobSettings(**base)
+    job_settings.input_path.write_text(rows, encoding="utf-8")
+    return run(job_settings)
+
+
+SIGN_SENTENCE = (
+    "A file written in the other longitude sign convention lands every point "
+    "on the other side of Greenwich: check that the convention chosen for this "
+    "job is the one this file uses."
+)
+
+
 def test_a_positive_west_file_read_as_negative_west_names_the_sign_convention(tmp_path):
-    """N4, the reviewer's input: geodetic "1,43.0,84.5,200,P" into 16N under
-    the negative-west convention - a positive-west file. The refusal names the
-    longitude sign convention, which is the cause, not only the zone and the
-    units."""
+    """N4, the reviewer's input: "1,43.0,84.5,200,P" into 16N under negative
+    west - a positive-west file. The refusal states the file's value, the
+    convention in force and where that put the point, and presumes nothing."""
     with pytest.raises(TransverseMercatorDomainError) as refused:
         _job(tmp_path, "1,43.0,84.5,200,P\n", **_geodetic_to(UTM16))
+    assert str(refused.value).endswith(
+        "The file gives longitude 84.500000, and this job reads longitudes as "
+        "negative west, which puts the point at 84.500000 - east of Greenwich, "
+        "where no Michigan point is. " + SIGN_SENTENCE
+    )
+
+
+def test_a_negative_west_file_read_as_positive_west_names_the_sign_convention(tmp_path):
+    """R2-2, the mirror and the commoner blunder (the GUI opens on positive
+    west; OPUS, NCAT and GPS files are negative west): "1,43.0,-84.5,200,P"
+    under positive west. The file's own -84.5 is named, not 84.5."""
+    with pytest.raises(TransverseMercatorDomainError) as refused:
+        _run_positive_west(tmp_path, "1,43.0,-84.5,200,P\n", UTM16)
     message = str(refused.value)
     assert message.endswith(
-        "The longitude given, 84.500000, is east of Greenwich, and every "
-        "Michigan longitude is west of it: if this file's longitudes are "
-        "positive west, check the longitude sign convention chosen for this job."
+        "The file gives longitude -84.500000, and this job reads longitudes as "
+        "positive west, which puts the point at 84.500000 - east of Greenwich, "
+        "where no Michigan point is. " + SIGN_SENTENCE
+    )
+    assert "if this file's longitudes are positive west" not in message
+
+
+def test_the_sign_sentence_is_equally_true_on_an_spcs2022_transverse_mercator_job(tmp_path):
+    """The reviewer's third case: zone 261001 (a transverse Mercator
+    low-distortion zone) at 42.3, -83.7 under positive west, on NATRF2022."""
+    zone = zone_by_code("261001")
+    settings = dict(
+        input_path=tmp_path / "in.csv",
+        output_directory=tmp_path,
+        input_unit=METERS,
+        output_unit=METERS,
+        longitude_convention=LongitudeConvention.POSITIVE_WEST,
+        direction=Direction.GEODETIC_TO_ZONE,
+        source_zone=None,
+        target_zone=zone,
+        geodetic_frame=NATRF2022,
+    )
+    job_settings = JobSettings(**settings)
+    job_settings.input_path.write_text("1,42.3,-83.7,200,P\n", encoding="utf-8")
+    with pytest.raises(TransverseMercatorDomainError) as refused:
+        run(job_settings)
+    assert str(refused.value).endswith(
+        "The file gives longitude -83.700000, and this job reads longitudes as "
+        "positive west, which puts the point at 83.700000 - east of Greenwich, "
+        "where no Michigan point is. " + SIGN_SENTENCE
     )
 
 
@@ -600,3 +778,24 @@ def test_a_west_longitude_refusal_does_not_blame_the_sign_convention(tmp_path):
     with pytest.raises(TransverseMercatorDomainError) as refused:
         _job(tmp_path, "1,42.0,-82.5,200,P\n", **_geodetic_to(UTM15))
     assert "sign convention" not in str(refused.value)
+
+
+# --------------------------------------------------------------------------
+# The second re-confirmation's uncaught seed: the closure test rewritten so a
+# NaN miss passes ("not miss > tolerance") went uncaught, because a NaN
+# recovered longitude fails the domain test first. Pinned directly: a NaN
+# re-projection must refuse on the closure test's own containment.
+# --------------------------------------------------------------------------
+
+
+def test_a_nan_closure_refuses_on_its_own(monkeypatch):
+    nan = float("nan")
+    monkeypatch.setattr(
+        tm,
+        "_forward_series",
+        lambda latitude, longitude, constants: GridPoint(
+            northing=nan, easting=nan, convergence=nan, scale_factor=nan
+        ),
+    )
+    with pytest.raises(TransverseMercatorDomainError, match="miss themselves by nan m"):
+        projection.inverse(4980000.0, 500000.0, UTM16)

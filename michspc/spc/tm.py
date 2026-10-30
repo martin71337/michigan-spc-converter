@@ -85,7 +85,10 @@ interim gate's MEDIUM 1 and the re-confirmation's scale measurement):
 **The scale factor sets the limit, not the position.** The job record and the
 audit CSV print the grid scale and combined factors to 8 decimal places, so
 the factor must be within half a unit, 5e-9, everywhere the engine accepts a
-point; that holds to 4.8 degrees and fails by 4.9. At 4.8 degrees the position
+point; that holds to 4.8 degrees and fails by 4.9. Within half a unit is the
+whole claim: it keeps the printed factor within one unit of PROJ's, never
+two, and does not make its 8th decimal equal PROJ's rounding - no nonzero
+error can (DESIGN.md #72). At 4.8 degrees the position
 is inside half a millimetre, the precision NCAT prints, in both directions,
 and the convergence agrees with PROJ to 0.0002 seconds. Past the limit the
 engine would return numbers that look exactly like right ones, so it refuses
@@ -485,6 +488,32 @@ def forward(
     """
     _require_valid_geodetic(latitude, longitude)
     _require_within_domain(longitude, constants, "The point is at")
+    return _forward_series(latitude, longitude, constants)
+
+
+def forward_recovered(
+    latitude: float, longitude: float, constants: TransverseMercatorConstants
+) -> GridPoint:
+    """Geodetic to grid for a position an INVERSE produced, with its allowance.
+
+    The same mapping as ``forward``, with the domain checked against
+    ``DOMAIN_LIMIT_DEGREES + INVERSE_DOMAIN_ALLOWANCE_DEGREES`` - exactly what
+    ``inverse`` accepted. A coordinate the forward wrote at the limit reads
+    back a hair beyond it (at most 9.1e-10 degrees, measured), and a
+    zone-to-geodetic or vertical-only job re-projects that recovered position
+    into the same zone; without the allowance here, the file the program wrote
+    refused on read-back (the second re-confirmation's R2-1). It is never used
+    for a position the user supplied, so what a typed or filed latitude and
+    longitude may reach is unchanged. Reached only through
+    ``projection.forward(..., recovered=True)``.
+    """
+    _require_valid_geodetic(latitude, longitude)
+    _require_within_domain(
+        longitude,
+        constants,
+        "The point is at",
+        allowance=INVERSE_DOMAIN_ALLOWANCE_DEGREES,
+    )
     return _forward_series(latitude, longitude, constants)
 
 

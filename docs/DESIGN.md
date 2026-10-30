@@ -749,7 +749,14 @@ reviewer's inputs, 12 seeds caught; suite 6,759 in both modes.
   (corrected at the narrowing re-confirmation, which first placed it at 5.0):
   the record prints scale and combined factors to 8 decimals, and the forward
   scale series stays within half a unit of PROJ (4.6e-9) to 4.8 degrees and
-  not at 4.9 (5.2e-9); the position is inside 0.06/0.26 mm there. **Where each
+  not at 4.9 (5.2e-9); the position is inside 0.06/0.26 mm there. **What that
+  bound means, stated exactly:** the printed scale factor is within half a
+  unit of its 8th decimal of PROJ's (worst 4.56e-9 at 4.8 degrees) - it is
+  never two units off - NOT that its 8th decimal equals PROJ's rounding: any
+  nonzero error flips the last digit near a rounding boundary, and between
+  4.6 and 4.8 degrees it differs from PROJ's rounding by one unit at about 40%
+  of points (the second re-confirmation, `reconfirm2-output.txt`). The message
+  of commit 6c7bb71, "every printed digit holds", overstated it. **Where each
   zone refuses in Michigan, at 4.8:** 15N (meridian 93 W) east of 88.2 W - all
   of Michigan but the far western Upper Peninsula; 17N (81 W) west of 85.8 W -
   the whole Upper Peninsula west of it and the Lower Peninsula's Lake Michigan

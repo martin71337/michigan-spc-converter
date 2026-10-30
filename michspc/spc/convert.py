@@ -879,13 +879,19 @@ def from_geodetic(
     longitude: float,
     zone: Zone,
     context: str = "point",
+    *,
+    recovered: bool = False,
 ) -> tuple[float, float, float, float, tuple[ConversionWarning, ...]]:
     """Geodetic to grid.
 
     Returns (northing, easting, convergence, scale_factor, warnings).
+
+    ``recovered`` is True when the position came out of an inverse in this
+    same conversion (``convert_point``), False when the user supplied it; see
+    ``projection.forward``.
     """
     try:
-        point = project_forward(latitude, longitude, zone)
+        point = project_forward(latitude, longitude, zone, recovered=recovered)
     except TransverseMercatorDomainError as error:
         raise _named_domain_refusal(error, context, zone) from error
 
@@ -961,7 +967,12 @@ def convert_point(
         target_convergence,
         target_scale,
         warnings_out,
-    ) = from_geodetic(latitude, longitude, target_zone, context)
+    # recovered=True: this position came out of the source zone's inverse, so
+    # the target's forward gets the inverse's own domain allowance - a
+    # coordinate the program wrote at the transverse Mercator's limit must read
+    # back here, on zone to geodetic and vertical-only too, where the target is
+    # the source zone itself (projection.forward; DESIGN.md #72, R2-1).
+    ) = from_geodetic(latitude, longitude, target_zone, context, recovered=True)
 
     return PointConversion(
         source_zone=source_zone,
@@ -1045,31 +1056,19 @@ def project_point(
         path, latitude, longitude, epoch, height
     )
 
-    try:
-        (
-            northing,
-            easting,
-            convergence,
-            scale,
-            warnings,
-        ) = from_geodetic(pivot_latitude, pivot_longitude, target_zone, context)
-    except TransverseMercatorDomainError as error:
-        if not longitude > 0.0:
-            raise
-        # A geodetic input east of Greenwich (the re-confirmation's N4): no
-        # Michigan point is, and the commonest way to produce one is a
-        # positive-west file read as negative-west. The engine's own hint
-        # can only blame the zone and units, so the cause the user can
-        # actually fix is named here, where the input is known to be geodetic.
-        raise TransverseMercatorDomainError(
-            f"{error} The longitude given, {longitude:.6f}, is east of "
-            f"Greenwich, and every Michigan longitude is west of it: if this "
-            f"file's longitudes are positive west, check the longitude sign "
-            f"convention chosen for this job.",
-            longitude=error.longitude,
-            lon_origin=error.lon_origin,
-            zone_code=error.zone_code,
-        ) from error
+    # A position east of Greenwich is refused by the transverse Mercator's
+    # domain limit; the sentence naming the longitude sign convention as the
+    # likely cause is added by job.run, the one layer that knows both the
+    # convention in force and the longitude as the file wrote it (the second
+    # re-confirmation's R2-2: this function sees only the signed value, so
+    # any sentence here had to guess which side of Greenwich the file is on).
+    (
+        northing,
+        easting,
+        convergence,
+        scale,
+        warnings,
+    ) = from_geodetic(pivot_latitude, pivot_longitude, target_zone, context)
 
     return PointConversion(
         source_zone=target_zone,

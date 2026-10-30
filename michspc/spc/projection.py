@@ -175,6 +175,13 @@ class ProjectionEngine(NamedTuple):
 
     forward: Callable[[float, float, "ProjectionConstants"], GridPoint]
     inverse: Callable[[float, float, "ProjectionConstants"], GeodeticPoint]
+    forward_recovered: Callable[[float, float, "ProjectionConstants"], GridPoint]
+    """The forward for a position an INVERSE produced (``forward(...,
+    recovered=True)``). The same function as ``forward`` for every engine with
+    no domain limit; for the transverse Mercator, the forward with the
+    inverse's own allowance (``tm.forward_recovered``), so a coordinate the
+    inverse read back can always be re-projected (DESIGN.md #72, the second
+    re-confirmation's R2-1)."""
 
 
 @lru_cache(maxsize=None)
@@ -199,24 +206,28 @@ def _engines() -> Mapping[type, ProjectionEngine]:
                 constants_from=lambert.LambertConstants.from_two_parallels,
                 forward=lambert.forward,
                 inverse=lambert.inverse,
+                forward_recovered=lambert.forward,
             ),
             LambertOneParallelDef: ProjectionEngine(
                 kind=ProjectionKind.LAMBERT_CONIC_1SP,
                 constants_from=lambert.LambertConstants.from_one_parallel,
                 forward=lambert.forward,
                 inverse=lambert.inverse,
+                forward_recovered=lambert.forward,
             ),
             TransverseMercatorDef: ProjectionEngine(
                 kind=ProjectionKind.TRANSVERSE_MERCATOR,
                 constants_from=tm.TransverseMercatorConstants.from_definition,
                 forward=tm.forward,
                 inverse=tm.inverse,
+                forward_recovered=tm.forward_recovered,
             ),
             ObliqueMercatorCenterDef: ProjectionEngine(
                 kind=ProjectionKind.OBLIQUE_MERCATOR,
                 constants_from=omerc.ObliqueMercatorConstants.from_definition,
                 forward=omerc.forward,
                 inverse=omerc.inverse,
+                forward_recovered=omerc.forward,
             ),
         }
     )
@@ -288,14 +299,26 @@ def constants_for(zone: Zone, ellipsoid: Ellipsoid = GRS80) -> ProjectionConstan
     return replace(constants, zone_code=zone.code)
 
 
-def forward(latitude: float, longitude: float, zone: Zone) -> GridPoint:
+def forward(
+    latitude: float, longitude: float, zone: Zone, *, recovered: bool = False
+) -> GridPoint:
     """Geodetic to grid, in whichever projection this zone is.
 
     Decimal degrees in, meters out; longitude negative west.
+
+    ``recovered`` says where the position came from, and it is the one rule
+    for the transverse Mercator's domain limit (DESIGN.md #72): False - the
+    default - for a position the user supplied, which may reach exactly
+    ``tm.DOMAIN_LIMIT_DEGREES`` and no further; True for a position an inverse
+    produced within the same conversion (zone to zone, zone to geodetic,
+    vertical-only), which gets the inverse's own
+    ``tm.INVERSE_DOMAIN_ALLOWANCE_DEGREES``, because the inverse may land a
+    hair past the limit on a coordinate the forward itself wrote. Every other
+    engine has no domain limit and ignores it.
     """
-    return _engine_for(zone.definition).forward(
-        latitude, longitude, constants_for(zone)
-    )
+    engine = _engine_for(zone.definition)
+    mapping = engine.forward_recovered if recovered else engine.forward
+    return mapping(latitude, longitude, constants_for(zone))
 
 
 def inverse(northing: float, easting: float, zone: Zone) -> GeodeticPoint:

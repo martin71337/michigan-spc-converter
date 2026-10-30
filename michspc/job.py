@@ -61,6 +61,7 @@ from michspc.spc.frames import (
     realization_period_of_use,
     require_frame_path,
 )
+from michspc.spc.tm import TransverseMercatorDomainError
 from michspc.spc.units import LinearUnit
 from michspc.spc.vertical import (
     HeightKind,
@@ -2932,6 +2933,40 @@ def _point_named_htdp_refusal(
     )
 
 
+def _with_sign_convention_hint(
+    error: "TransverseMercatorDomainError",
+    file_longitude: float,
+    signed_longitude: float,
+    settings: JobSettings,
+) -> "TransverseMercatorDomainError":
+    """A transverse Mercator domain refusal, plus the sign-convention sentence when it applies.
+
+    Only for a geodetic position the job put EAST of Greenwich: no Michigan
+    point is, and the commonest way to produce one is a file in the other
+    longitude convention from the one this job reads (the re-confirmation's
+    N4, and R2-2's mirror of it). Built here because only this layer knows
+    both the convention in force and the longitude as the file wrote it; the
+    sentence states both and the signed result, and presumes neither
+    convention is the file's - "positive west" read as negative west and
+    "negative west" read as positive west each land here, and the user is the
+    one who knows which file they have. Any other refusal is returned as is.
+    """
+    if not signed_longitude > 0.0:
+        return error
+    convention = settings.longitude_convention
+    return TransverseMercatorDomainError(
+        f"{error} The file gives longitude {file_longitude:.6f}, and this job "
+        f"reads longitudes as {convention.value}, which puts the point at "
+        f"{signed_longitude:.6f} - east of Greenwich, where no Michigan point "
+        f"is. A file written in the other longitude sign convention lands "
+        f"every point on the other side of Greenwich: check that the "
+        f"convention chosen for this job is the one this file uses.",
+        longitude=error.longitude,
+        lon_origin=error.lon_origin,
+        zone_code=error.zone_code,
+    )
+
+
 def _unplaced_points_refusal(
     unplaced: list[_UnplacedPoint], county_set: CountySet
 ) -> AutoZoneUnplacedPointsError:
@@ -3161,14 +3196,19 @@ def _convert_row(
                     target_zone = auto_assignment.zone
                 else:
                     target_zone = settings.target_zone
-                conversion = project_point(
-                    latitude,
-                    longitude,
-                    settings.geodetic_frame,
-                    target_zone,
-                    context,
-                    **transform_arguments,
-                )
+                try:
+                    conversion = project_point(
+                        latitude,
+                        longitude,
+                        settings.geodetic_frame,
+                        target_zone,
+                        context,
+                        **transform_arguments,
+                    )
+                except TransverseMercatorDomainError as error:
+                    raise _with_sign_convention_hint(
+                        error, row.easting, longitude, settings
+                    ) from error
                 if auto_assignment is not None:
                     # The lead's ruling on Z2 finding 6: no OUTSIDE_ZONE_EXTENT
                     # on an Auto point. Its zone was chosen by the statute's

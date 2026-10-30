@@ -25,7 +25,7 @@ import pytest
 from michspc.fileio import exports, pnezd
 from michspc.job import Direction, JobSettings, LongitudeConvention, VerticalMode, run
 from michspc.spc import convert, projection, tm
-from michspc.spc.projection import GridPoint
+from michspc.spc.projection import GridPoint, PositionOrigin
 from michspc.spc.convert import WarningCode
 from michspc.spc.frames import NAD83_2011, NATRF2022
 from michspc.spc.tm import DOMAIN_LIMIT_DEGREES, TransverseMercatorDomainError
@@ -170,7 +170,7 @@ def test_a_point_exactly_at_the_limit_reads_back(zone):
     A point exactly 4.8 degrees from the meridian, east and west, at Michigan's
     southern and northern latitudes: projected, rounded to the 0.1 mm the
     program writes, and converted back - it converts, and comes back to the
-    point. Without INVERSE_DOMAIN_ALLOWANCE_DEGREES the recovered longitude
+    point. Without tm.READ_ALLOWANCE_DEGREES the recovered longitude
     lands up to 9.1e-10 degrees past the limit and refuses."""
     meridian = zone.definition.lon_origin
     for latitude in (41.6, 45.0, 48.4):
@@ -216,7 +216,7 @@ def test_the_reviewers_row_at_the_limit_is_what_the_program_writes(tmp_path):
 
 
 def test_a_file_written_at_the_limit_reads_back_zone_to_geodetic(tmp_path):
-    """Fails with INVERSE_DOMAIN_ALLOWANCE_DEGREES seeded to 0 (R2-1's pin)."""
+    """Fails with tm.READ_ALLOWANCE_DEGREES seeded to 0 (R2-1's pin)."""
     result, _archive = _job(tmp_path, REVIEWER_LIMIT_ROW + "\n", **_zone_to_geodetic(UTM17))
     (point,) = result.points
     assert point.conversion.latitude == pytest.approx(41.7, abs=1e-8)
@@ -304,12 +304,12 @@ def test_a_supplied_position_is_not_widened_by_the_allowance():
     one: a geodetic position just past the limit (by half the allowance)
     still refuses on the forward, and is accepted on the recovered forward."""
     meridian = UTM16.definition.lon_origin
-    longitude = meridian + DOMAIN_LIMIT_DEGREES + tm.INVERSE_DOMAIN_ALLOWANCE_DEGREES / 2
+    longitude = meridian + DOMAIN_LIMIT_DEGREES + tm.WRITE_ALLOWANCE_DEGREES / 2
     with pytest.raises(TransverseMercatorDomainError):
         projection.forward(45.0, longitude, UTM16)
     with pytest.raises(TransverseMercatorDomainError):
         convert.project_point(45.0, longitude, NAD83_2011, UTM16)
-    projection.forward(45.0, longitude, UTM16, recovered=True)
+    projection.forward(45.0, longitude, UTM16, origin=PositionOrigin.RECOVERED)
 
 
 # --------------------------------------------------------------------------

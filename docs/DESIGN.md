@@ -787,6 +787,30 @@ reviewer's inputs, 12 seeds caught; suite 6,759 in both modes.
   reads "where county boundaries overlap". **Left to the owner:** the one-line
   Auto refusal dialog no longer says "Nothing was written."
 
+**Three narrowing re-confirmations followed** (`reconfirm-output.txt`,
+`reconfirm2-output.txt`, `reconfirm3-output.txt`, each by a fresh Opus
+reviewer), each closing the round before it and finding only LOW items from
+the fixes, none a wrong number. What they settled, in the end state:
+
+- **The limit is 4.8 degrees, not 5.0**, chosen so the printed scale factor
+  stays within half a unit of its 8th decimal (4.56e-9 against PROJ at 4.8,
+  5.16e-9 at 4.9) and positions within 0.26 mm. 16N still converts all of
+  Michigan's land.
+- **The inverse refuses a grid coordinate that does not close on itself**
+  within 1 mm, so absurd input cannot fold back into a plausible position.
+- **Two tiers, so nothing the program writes fails to read back.** A position
+  the user supplies may reach exactly 4.8; a position recovered from another
+  zone's inverse is written up to 4.8 + 1e-7; every read, and a same-zone
+  re-projection of it, accepts up to 4.8 + 2e-7. The import-time invariant:
+  read allowance > write allowance + the measured read-back overshoot
+  (9.2e-10 degree worst over 54,432 read-backs on all eleven TM zones).
+  **Residual, recorded not fixed:** a coordinate the program did NOT write,
+  within about 1e-9 degree of 4.8 + 2e-7, can refuse on a second read after a
+  same-zone job; it refuses, it never writes a wrong number.
+- **The sign hint names its source**: a file, a typed decimal, or a DMS entry
+  (where the convention does not apply and the hemisphere letter is named).
+
+
 ### #71 — 2026-10-22 — Options menu, Auto zone, the observation date in Options; the release machine's suite
 
 **The owner's instructions (2026-10-22)**, given when asked whether to tag

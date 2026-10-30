@@ -2933,37 +2933,93 @@ def _point_named_htdp_refusal(
     )
 
 
+class EastOfGreenwichRefusal(TransverseMercatorDomainError):
+    """A transverse Mercator domain refusal of a geodetic position the job put
+    EAST of Greenwich, with the sentence saying why that is likely.
+
+    No Michigan point is east of Greenwich, and the commonest way to produce
+    one is a longitude in the other sign convention from the one this job
+    reads (the re-confirmations' N4, R2-2 and R3-2). The sentence must be true
+    for where the longitude came from, and this layer knows only part of that:
+
+    * a FILE - "The file gives longitude X ..." - when ``settings.input_path``
+      names one;
+    * a point TYPED in decimal degrees on the Single point tab - "The
+      longitude entered, X, ..." - when it does not (a typed point is the one
+      job with no input file);
+    * a point typed in DEGREES, MINUTES AND SECONDS: the convention does not
+      apply at all there (the hemisphere letter decides), and only the
+      interface knows the entry was DMS. The Single point tab re-words this
+      refusal itself from the parts carried here.
+
+    So the parts are carried as data - ``engine_message`` (the refusal the
+    engine raised, already naming the zone and the point), ``given_longitude``
+    (as the file or the box gave it), ``signed_longitude`` (as this job read
+    it) and ``convention`` - and the message is built from them, never parsed.
+    """
+
+    def __init__(
+        self,
+        error: TransverseMercatorDomainError,
+        *,
+        given_longitude: float,
+        signed_longitude: float,
+        convention: LongitudeConvention,
+        typed: bool,
+    ) -> None:
+        self.engine_message = str(error)
+        self.given_longitude = given_longitude
+        self.signed_longitude = signed_longitude
+        self.convention = convention
+        self.typed = typed
+        if typed:
+            sentence = (
+                f"The longitude entered, {given_longitude:.6f}, read as "
+                f"{convention.value}, puts the point at {signed_longitude:.6f} "
+                f"- east of Greenwich, where no Michigan point is. Entered in "
+                f"the other longitude sign convention, it lands on the other "
+                f"side of Greenwich: check that the convention chosen is the "
+                f"one the longitude was entered in."
+            )
+        else:
+            sentence = (
+                f"The file gives longitude {given_longitude:.6f}, and this job "
+                f"reads longitudes as {convention.value}, which puts the point "
+                f"at {signed_longitude:.6f} - east of Greenwich, where no "
+                f"Michigan point is. A file written in the other longitude sign "
+                f"convention lands every point on the other side of Greenwich: "
+                f"check that the convention chosen for this job is the one this "
+                f"file uses."
+            )
+        super().__init__(
+            f"{self.engine_message} {sentence}",
+            longitude=error.longitude,
+            lon_origin=error.lon_origin,
+            zone_code=error.zone_code,
+        )
+
+
 def _with_sign_convention_hint(
     error: "TransverseMercatorDomainError",
-    file_longitude: float,
+    given_longitude: float,
     signed_longitude: float,
     settings: JobSettings,
 ) -> "TransverseMercatorDomainError":
-    """A transverse Mercator domain refusal, plus the sign-convention sentence when it applies.
+    """A transverse Mercator domain refusal, as ``EastOfGreenwichRefusal`` when it applies.
 
-    Only for a geodetic position the job put EAST of Greenwich: no Michigan
-    point is, and the commonest way to produce one is a file in the other
-    longitude convention from the one this job reads (the re-confirmation's
-    N4, and R2-2's mirror of it). Built here because only this layer knows
-    both the convention in force and the longitude as the file wrote it; the
-    sentence states both and the signed result, and presumes neither
-    convention is the file's - "positive west" read as negative west and
-    "negative west" read as positive west each land here, and the user is the
-    one who knows which file they have. Any other refusal is returned as is.
+    Only for a geodetic position the job put EAST of Greenwich; any other
+    refusal is returned as is. Built here because only this layer knows both
+    the convention in force and the longitude as given; whether it was given by
+    a file or typed is ``settings.input_path``.
     """
     if not signed_longitude > 0.0:
         return error
-    convention = settings.longitude_convention
-    return TransverseMercatorDomainError(
-        f"{error} The file gives longitude {file_longitude:.6f}, and this job "
-        f"reads longitudes as {convention.value}, which puts the point at "
-        f"{signed_longitude:.6f} - east of Greenwich, where no Michigan point "
-        f"is. A file written in the other longitude sign convention lands "
-        f"every point on the other side of Greenwich: check that the "
-        f"convention chosen for this job is the one this file uses.",
-        longitude=error.longitude,
-        lon_origin=error.lon_origin,
-        zone_code=error.zone_code,
+    return EastOfGreenwichRefusal(
+        error,
+        given_longitude=given_longitude,
+        signed_longitude=signed_longitude,
+        convention=settings.longitude_convention,
+        typed=settings.input_path is None,
     )
 
 

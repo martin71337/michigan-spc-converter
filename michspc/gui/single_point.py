@@ -123,6 +123,7 @@ from michspc.job import (
     AUTO_ZONE,
     AutoZoneUnplacedPointsError,
     Direction,
+    EastOfGreenwichRefusal,
     JobResult,
     JobSettings,
     LongitudeConvention,
@@ -131,6 +132,7 @@ from michspc.job import (
     run,
 )
 from michspc.spc import htdp
+from michspc.spc.tm import TransverseMercatorDomainError
 from michspc.spc.vertical import VerticalDatum
 from michspc.spc.zones import Zone
 
@@ -1677,6 +1679,7 @@ class SinglePointTab(QWidget):
         result - if there was one - is already gone by the time this runs, so
         the panel can never show one conversion beside another's refusal.
         """
+        error = self._worded_for_entry(error)
         self.result = None
         self.last_failure = error
         self._render_sections(None)
@@ -1684,6 +1687,35 @@ class SinglePointTab(QWidget):
         self._set_status(refusal_status(error), style=RED)
         self.status_label.setToolTip(message)
         self._show_failure(error)
+
+    def _worded_for_entry(self, error: BaseException) -> BaseException:
+        """An east-of-Greenwich refusal, re-worded for a DEGREES-MINUTES-SECONDS entry.
+
+        The job words that refusal for a file or a typed decimal longitude
+        (``job.EastOfGreenwichRefusal``) - it cannot know the longitude was
+        typed as degrees, minutes and seconds, because ``typed_coordinates``
+        hands it the decimal text on purpose. On the DMS page that wording is
+        false: the sign convention does not apply to an entry with a hemisphere
+        letter (the same entry converts identically under both conventions),
+        and the cause is the letter E. So this tab, which does know, states
+        that instead (DESIGN.md #72, the third re-confirmation's R3-2). The
+        engine's own refusal is kept word for word; every other refusal, and
+        this one on the decimal page, is returned unchanged.
+        """
+        if not (isinstance(error, EastOfGreenwichRefusal) and self.entering_dms()):
+            return error
+        return TransverseMercatorDomainError(
+            f"{error.engine_message} The longitude was entered in degrees, "
+            f"minutes and seconds with the hemisphere letter "
+            f"{self.second_dms.hemisphere_letter()}, which puts the point at "
+            f"{error.signed_longitude:.6f} - east of Greenwich, where no "
+            f"Michigan point is; every Michigan longitude is W. The longitude "
+            f"sign convention does not apply to an entry with a hemisphere "
+            f"letter: choose W.",
+            longitude=error.longitude,
+            lon_origin=error.lon_origin,
+            zone_code=error.zone_code,
+        )
 
     def _set_status(self, text: str, style: str = "") -> None:
         self.status_label.setText(text)

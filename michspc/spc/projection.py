@@ -39,6 +39,7 @@ import math
 from dataclasses import dataclass, replace
 from functools import lru_cache
 from types import MappingProxyType
+from enum import Enum
 from typing import TYPE_CHECKING, Callable, Mapping, NamedTuple
 
 from michspc.spc.ellipsoid import GRS80, Ellipsoid
@@ -161,6 +162,39 @@ def _require_finite_grid(northing: float, easting: float) -> None:
         )
 
 
+class PositionOrigin(Enum):
+    """Where a geodetic position handed to a forward mapping came from.
+
+    It decides how far past the transverse Mercator's domain limit the forward
+    may reach (``tm.allowance_for``; DESIGN.md #72, the third re-confirmation's
+    R3-1). Every other engine has no domain limit and ignores it.
+
+    * ``SUPPLIED`` - the user's own latitude and longitude, typed or filed, or
+      carried to the pivot by HTDP. Held to exactly ``tm.DOMAIN_LIMIT_DEGREES``.
+    * ``RECOVERED`` - a position another zone's inverse produced in this
+      conversion, projected into a DIFFERENT zone (zone to zone). It writes a
+      new coordinate, so it is capped at the WRITE allowance.
+    * ``REREAD`` - a position this zone's own inverse produced, projected back
+      into the SAME zone (zone to geodetic, vertical-only, a same-zone zone to
+      zone). It re-projects a coordinate the inverse already accepted, so it
+      gets the READ allowance the inverse has.
+    """
+
+    SUPPLIED = "supplied"
+    RECOVERED = "recovered"
+    REREAD = "reread"
+
+
+def _ignoring_origin(mapping):
+    """A forward with no domain limit, under the engine table's one signature."""
+
+    def forward_from(latitude, longitude, constants, origin):
+        return mapping(latitude, longitude, constants)
+
+    forward_from.__name__ = f"{mapping.__module__}.{mapping.__name__} (no domain limit)"
+    return forward_from
+
+
 class ProjectionEngine(NamedTuple):
     """Everything one kind of zone definition needs, in one entry.
 
@@ -175,13 +209,14 @@ class ProjectionEngine(NamedTuple):
 
     forward: Callable[[float, float, "ProjectionConstants"], GridPoint]
     inverse: Callable[[float, float, "ProjectionConstants"], GeodeticPoint]
-    forward_recovered: Callable[[float, float, "ProjectionConstants"], GridPoint]
-    """The forward for a position an INVERSE produced (``forward(...,
-    recovered=True)``). The same function as ``forward`` for every engine with
-    no domain limit; for the transverse Mercator, the forward with the
-    inverse's own allowance (``tm.forward_recovered``), so a coordinate the
-    inverse read back can always be re-projected (DESIGN.md #72, the second
-    re-confirmation's R2-1)."""
+    forward_from: Callable[
+        [float, float, "ProjectionConstants", PositionOrigin], GridPoint
+    ]
+    """The forward for a position of a given ``PositionOrigin``
+    (``forward(..., origin=...)``). For every engine with no domain limit it is
+    ``forward`` with the origin ignored; for the transverse Mercator it is
+    ``tm.forward_from``, which applies ``tm.allowance_for(origin)``
+    (DESIGN.md #72, R3-1)."""
 
 
 @lru_cache(maxsize=None)
@@ -206,28 +241,28 @@ def _engines() -> Mapping[type, ProjectionEngine]:
                 constants_from=lambert.LambertConstants.from_two_parallels,
                 forward=lambert.forward,
                 inverse=lambert.inverse,
-                forward_recovered=lambert.forward,
+                forward_from=_ignoring_origin(lambert.forward),
             ),
             LambertOneParallelDef: ProjectionEngine(
                 kind=ProjectionKind.LAMBERT_CONIC_1SP,
                 constants_from=lambert.LambertConstants.from_one_parallel,
                 forward=lambert.forward,
                 inverse=lambert.inverse,
-                forward_recovered=lambert.forward,
+                forward_from=_ignoring_origin(lambert.forward),
             ),
             TransverseMercatorDef: ProjectionEngine(
                 kind=ProjectionKind.TRANSVERSE_MERCATOR,
                 constants_from=tm.TransverseMercatorConstants.from_definition,
                 forward=tm.forward,
                 inverse=tm.inverse,
-                forward_recovered=tm.forward_recovered,
+                forward_from=tm.forward_from,
             ),
             ObliqueMercatorCenterDef: ProjectionEngine(
                 kind=ProjectionKind.OBLIQUE_MERCATOR,
                 constants_from=omerc.ObliqueMercatorConstants.from_definition,
                 forward=omerc.forward,
                 inverse=omerc.inverse,
-                forward_recovered=omerc.forward,
+                forward_from=_ignoring_origin(omerc.forward),
             ),
         }
     )
@@ -300,25 +335,27 @@ def constants_for(zone: Zone, ellipsoid: Ellipsoid = GRS80) -> ProjectionConstan
 
 
 def forward(
-    latitude: float, longitude: float, zone: Zone, *, recovered: bool = False
+    latitude: float,
+    longitude: float,
+    zone: Zone,
+    *,
+    origin: PositionOrigin = PositionOrigin.SUPPLIED,
 ) -> GridPoint:
     """Geodetic to grid, in whichever projection this zone is.
 
     Decimal degrees in, meters out; longitude negative west.
 
-    ``recovered`` says where the position came from, and it is the one rule
-    for the transverse Mercator's domain limit (DESIGN.md #72): False - the
-    default - for a position the user supplied, which may reach exactly
-    ``tm.DOMAIN_LIMIT_DEGREES`` and no further; True for a position an inverse
-    produced within the same conversion (zone to zone, zone to geodetic,
-    vertical-only), which gets the inverse's own
-    ``tm.INVERSE_DOMAIN_ALLOWANCE_DEGREES``, because the inverse may land a
-    hair past the limit on a coordinate the forward itself wrote. Every other
-    engine has no domain limit and ignores it.
+    ``origin`` says where the position came from (``PositionOrigin``), and it
+    is the one rule for the transverse Mercator's domain limit (DESIGN.md
+    #72): ``SUPPLIED`` - the default - may reach exactly
+    ``tm.DOMAIN_LIMIT_DEGREES``; ``RECOVERED`` the write allowance past it;
+    ``REREAD`` the read allowance (``tm.allowance_for``). Every other engine
+    has no domain limit and ignores it.
     """
     engine = _engine_for(zone.definition)
-    mapping = engine.forward_recovered if recovered else engine.forward
-    return mapping(latitude, longitude, constants_for(zone))
+    if origin is PositionOrigin.SUPPLIED:
+        return engine.forward(latitude, longitude, constants_for(zone))
+    return engine.forward_from(latitude, longitude, constants_for(zone), origin)
 
 
 def inverse(northing: float, easting: float, zone: Zone) -> GeodeticPoint:

@@ -66,6 +66,7 @@ from michspc.spc.frames import (
     require_frame_path,
     resolve_frame,
 )
+from michspc.spc.projection import PositionOrigin
 from michspc.spc.projection import forward as project_forward
 from michspc.spc.tm import TransverseMercatorDomainError
 from michspc.spc.projection import inverse as project_inverse
@@ -880,18 +881,18 @@ def from_geodetic(
     zone: Zone,
     context: str = "point",
     *,
-    recovered: bool = False,
+    origin: PositionOrigin = PositionOrigin.SUPPLIED,
 ) -> tuple[float, float, float, float, tuple[ConversionWarning, ...]]:
     """Geodetic to grid.
 
     Returns (northing, easting, convergence, scale_factor, warnings).
 
-    ``recovered`` is True when the position came out of an inverse in this
-    same conversion (``convert_point``), False when the user supplied it; see
-    ``projection.forward``.
+    ``origin`` says where the position came from: ``SUPPLIED`` (the default)
+    when the user gave it, ``RECOVERED`` or ``REREAD`` when ``convert_point``
+    took it out of an inverse; see ``projection.PositionOrigin``.
     """
     try:
-        point = project_forward(latitude, longitude, zone, recovered=recovered)
+        point = project_forward(latitude, longitude, zone, origin=origin)
     except TransverseMercatorDomainError as error:
         raise _named_domain_refusal(error, context, zone) from error
 
@@ -967,12 +968,23 @@ def convert_point(
         target_convergence,
         target_scale,
         warnings_out,
-    # recovered=True: this position came out of the source zone's inverse, so
-    # the target's forward gets the inverse's own domain allowance - a
-    # coordinate the program wrote at the transverse Mercator's limit must read
-    # back here, on zone to geodetic and vertical-only too, where the target is
-    # the source zone itself (projection.forward; DESIGN.md #72, R2-1).
-    ) = from_geodetic(latitude, longitude, target_zone, context, recovered=True)
+    # This position came out of the source zone's inverse. Into the SAME zone
+    # (zone to geodetic, vertical-only, a same-zone zone to zone) it is
+    # re-projecting what the inverse accepted, so it gets the inverse's read
+    # allowance; into ANOTHER zone it writes a new coordinate, capped at the
+    # write allowance - which is what keeps every written coordinate readable
+    # (tm.WRITE_ALLOWANCE_DEGREES; DESIGN.md #72, R2-1 and R3-1).
+    ) = from_geodetic(
+        latitude,
+        longitude,
+        target_zone,
+        context,
+        origin=(
+            PositionOrigin.REREAD
+            if target_zone == source_zone
+            else PositionOrigin.RECOVERED
+        ),
+    )
 
     return PointConversion(
         source_zone=source_zone,

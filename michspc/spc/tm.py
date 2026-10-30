@@ -52,6 +52,7 @@ from michspc.spc.ellipsoid import GRS80, Ellipsoid
 from michspc.spc.projection import (
     GeodeticPoint,
     GridPoint,
+    PositionOrigin,
     _require_finite_grid,
     _require_valid_geodetic,
 )
@@ -103,17 +104,74 @@ degrees (82.41 W); the widest SPCS2022 transverse Mercator zone (261016,
 Houghton) reaches 1.29 degrees from its meridian at NGS's published bounds.
 """
 
-INVERSE_DOMAIN_ALLOWANCE_DEGREES = 1e-7
-"""How far past ``DOMAIN_LIMIT_DEGREES`` the inverse accepts a RECOVERED
-longitude, so that whatever the forward accepted reads back (the
-re-confirmation's N5: a point written at exactly the limit refused on read-back).
+WRITE_ALLOWANCE_DEGREES = 1e-7
+"""How far past ``DOMAIN_LIMIT_DEGREES`` a forward may reach when the position
+came out of ANOTHER zone's inverse in the same conversion
+(``PositionOrigin.RECOVERED``, zone to zone). It is the cap on every coordinate
+the program writes: a user-supplied position (``PositionOrigin.SUPPLIED``) is
+held to the limit itself, so nothing the program writes lies more than this
+past it. About 8 mm of longitude in Michigan; it changes nothing in the error
+table above (PROJ, the third re-confirmation: 0.056 mm and 4.57e-9 in scale at
+the limit plus this allowance).
 
-The inverse recovers the longitude with its own series error, and the written
-coordinate is rounded to 0.1 mm, so a point the forward put exactly on the
-limit comes back a hair beyond it: measured over Michigan's latitudes on all
-three UTM zones, at most 9.1e-10 degrees past the limit. 1e-7 degrees (about
-7 mm of longitude in Michigan) is more than a hundred times that, and changes
-nothing in the error table above."""
+**The two-tier invariant** (the third re-confirmation's R3-1). A coordinate the
+program writes lies at most ``WRITE_ALLOWANCE_DEGREES`` past the limit; writing
+it rounds it to 0.1 mm, and reading it back recovers its longitude with the
+inverse series' own error. Measured over Michigan's latitudes, 41.6 to 48.4 N,
+on all six UTM zones and the five SPCS2022 transverse Mercator zones, at
+exactly the limit plus this allowance, written at 4 decimals in every unit the
+zone allows, the longitude read back lies at most READ_OVERSHOOT_MEASURED
+degrees beyond where it was written. So::
+
+    READ_ALLOWANCE_DEGREES  >  WRITE_ALLOWANCE_DEGREES + READ_OVERSHOOT_MEASURED
+          2e-7              >        1e-7            +       9.3e-10
+
+with about a hundredfold margin (54,432 read-backs, 0.001-degree latitude steps,
+both sides of every meridian; worst 9.226e-10 degrees, zone 261015 in metres).
+
+and every coordinate the program writes reads back on every path. A chain of
+conversions cannot creep past the read allowance, because every hop that
+writes into a transverse Mercator zone is capped at the write allowance again.
+"""
+
+READ_ALLOWANCE_DEGREES = 2e-7
+"""How far past ``DOMAIN_LIMIT_DEGREES`` the inverse accepts a recovered
+longitude, and how far the SAME zone's re-projection of that position
+(``PositionOrigin.REREAD``: zone to geodetic, vertical-only, a same-zone zone
+to zone) may reach. Twice the write allowance: see
+``WRITE_ALLOWANCE_DEGREES`` for the invariant this keeps."""
+
+READ_OVERSHOOT_MEASURED = 9.3e-10
+"""The measured worst overshoot of a written coordinate's read-back longitude
+beyond the longitude it was written at, degrees (``WRITE_ALLOWANCE_DEGREES``'s
+invariant; tests/test_utm_gate_fixes.py re-measures it)."""
+
+
+if not READ_ALLOWANCE_DEGREES > WRITE_ALLOWANCE_DEGREES + READ_OVERSHOOT_MEASURED:
+    # if/raise, not assert: -O strips asserts. The two-tier invariant is what
+    # makes every written coordinate readable; a hand edit that broke it would
+    # bring back the knife edge silently.
+    raise ValueError(
+        f"READ_ALLOWANCE_DEGREES ({READ_ALLOWANCE_DEGREES}) must exceed "
+        f"WRITE_ALLOWANCE_DEGREES ({WRITE_ALLOWANCE_DEGREES}) plus the "
+        f"measured read-back overshoot ({READ_OVERSHOOT_MEASURED}), or a "
+        f"coordinate the program writes at the limit may not read back."
+    )
+
+
+def allowance_for(origin: PositionOrigin) -> float:
+    """How far past ``DOMAIN_LIMIT_DEGREES`` a forward of this origin may reach."""
+    if origin is PositionOrigin.SUPPLIED:
+        return 0.0
+    if origin is PositionOrigin.RECOVERED:
+        return WRITE_ALLOWANCE_DEGREES
+    if origin is PositionOrigin.REREAD:
+        return READ_ALLOWANCE_DEGREES
+    raise TypeError(
+        f"allowance_for needs a PositionOrigin; got {type(origin).__name__} "
+        f"({origin!r})."
+    )
+
 
 INVERSE_CLOSURE_TOLERANCE_M = 0.001
 """How closely the forward series must reproduce a grid coordinate from the
@@ -208,7 +266,7 @@ def _require_within_domain(
     ``what`` opens the sentence and names where the longitude came from -
     "The point is at" on the forward, "Northing ... and easting ... give" on
     the inverse, whose longitude is the one the series recovered, and which
-    passes ``INVERSE_DOMAIN_ALLOWANCE_DEGREES`` as ``allowance``. Stated as a
+    passes ``READ_ALLOWANCE_DEGREES`` as ``allowance``. Stated as a
     containment test so a NaN is refused too.
     """
     distance = abs(longitude - constants.lon_origin)
@@ -491,28 +549,26 @@ def forward(
     return _forward_series(latitude, longitude, constants)
 
 
-def forward_recovered(
-    latitude: float, longitude: float, constants: TransverseMercatorConstants
+def forward_from(
+    latitude: float,
+    longitude: float,
+    constants: TransverseMercatorConstants,
+    origin: PositionOrigin,
 ) -> GridPoint:
-    """Geodetic to grid for a position an INVERSE produced, with its allowance.
+    """Geodetic to grid, refused beyond ``DOMAIN_LIMIT_DEGREES`` plus the
+    allowance this position's ``origin`` earns (``allowance_for``).
 
-    The same mapping as ``forward``, with the domain checked against
-    ``DOMAIN_LIMIT_DEGREES + INVERSE_DOMAIN_ALLOWANCE_DEGREES`` - exactly what
-    ``inverse`` accepted. A coordinate the forward wrote at the limit reads
-    back a hair beyond it (at most 9.1e-10 degrees, measured), and a
-    zone-to-geodetic or vertical-only job re-projects that recovered position
-    into the same zone; without the allowance here, the file the program wrote
-    refused on read-back (the second re-confirmation's R2-1). It is never used
-    for a position the user supplied, so what a typed or filed latitude and
-    longitude may reach is unchanged. Reached only through
-    ``projection.forward(..., recovered=True)``.
+    Reached through ``projection.forward(..., origin=...)``. A ``SUPPLIED``
+    position gets no allowance, exactly as ``forward``; a ``RECOVERED`` one
+    (zone to zone) the write allowance; a ``REREAD`` one (the same zone's own
+    inverse, re-projected) the read allowance (DESIGN.md #72, R3-1).
     """
     _require_valid_geodetic(latitude, longitude)
     _require_within_domain(
         longitude,
         constants,
         "The point is at",
-        allowance=INVERSE_DOMAIN_ALLOWANCE_DEGREES,
+        allowance=allowance_for(origin),
     )
     return _forward_series(latitude, longitude, constants)
 
@@ -615,7 +671,7 @@ def inverse(
     northing: float, easting: float, constants: TransverseMercatorConstants
 ) -> GeodeticPoint:
     """Grid to geodetic, refused when the position recovered lies beyond
-    ``DOMAIN_LIMIT_DEGREES`` (plus ``INVERSE_DOMAIN_ALLOWANCE_DEGREES``) from the
+    ``DOMAIN_LIMIT_DEGREES`` (plus ``READ_ALLOWANCE_DEGREES``) from the
     central meridian, or when it does not reproduce the coordinate
     (``INVERSE_CLOSURE_TOLERANCE_M``).
 
@@ -626,7 +682,7 @@ def inverse(
         position.longitude,
         constants,
         f"Northing {northing} m and easting {easting} m give",
-        allowance=INVERSE_DOMAIN_ALLOWANCE_DEGREES,
+        allowance=READ_ALLOWANCE_DEGREES,
     )
     _require_inverse_closes(northing, easting, position, constants)
     return position

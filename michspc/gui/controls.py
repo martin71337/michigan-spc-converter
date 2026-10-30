@@ -59,7 +59,14 @@ from michspc.spc.vertical import (
     VerticalDatum,
 )
 from michspc.spc.epsg import frame_label_suffix, zone_label_suffix
-from michspc.spc.zones import ALL_ZONES, SPCS2022_ZONES, SPCS83_ZONES, UTM_SYSTEM, Zone
+from michspc.spc.zones import (
+    ALL_ZONES,
+    SPCS2022_ZONES,
+    SPCS83_ZONES,
+    UTM_SYSTEM,
+    UTM_ZONES,
+    Zone,
+)
 
 UNCHOSEN = "unchosen"
 """Sentinel for a dropdown the user has not answered yet.
@@ -221,19 +228,23 @@ def is_geodetic(data) -> bool:
     """
     return isinstance(data, GeodeticChoice)
 
-OFFERED_ZONE_BLOCKS: tuple[tuple[Zone, ...], ...] = (SPCS83_ZONES, SPCS2022_ZONES)
+OFFERED_ZONE_BLOCKS: tuple[tuple[Zone, ...], ...] = (
+    SPCS83_ZONES,
+    SPCS2022_ZONES,
+    UTM_ZONES,
+)
 """The zone blocks every zone dropdown offers, in order, a separator before each.
 
 **THE one statement of which zones reach the interface.** ``zone_combo``
 builds its zone rows from it, and the Options groups (``options.LIST_GROUPS``)
 are derived from it, so a group can never switch rows that no dropdown holds.
 
-**``UTM_ZONES`` is deliberately absent until work package U5**
-(docs/PLAN-utm-epsg.md section 4, DESIGN.md #72): the six UTM records are in
-the registry from U1, but no UTM zone may reach a dropdown before the job
-record can describe a UTM job (U4) - the #41 rule, disclosure before
-reachability, and the H2 precedent of gating the 2022 zones out of the
-dropdowns until H5/H6. A pin in tests/test_gui_tabs.py holds the absence.
+**``UTM_ZONES`` joined at work package U5** (docs/PLAN-utm-epsg.md section 4,
+DESIGN.md #72), last and in a block of its own (plan D6) so a UTM row is never
+read as one of the State Plane zones above it: NAD83(2011) records first, then
+NATRF2022, in registry order. It was held out from U1 until the job record
+could describe a UTM job (U4) and the interim gate over U1-U4 had closed - the
+#41 rule, disclosure before reachability, and the H2 precedent.
 """
 
 OFFERED_ZONES: tuple[Zone, ...] = tuple(zone for block in OFFERED_ZONE_BLOCKS for zone in block)
@@ -514,7 +525,11 @@ def zone_combo(parent, on_change) -> QComboBox:
     8. ``SPCS83_ZONES``, the three zones every Michigan job has used since
        0.1.0 — first, because they are today's work;
     9. a separator;
-    10. ``SPCS2022_ZONES``, the nineteen zones of the modernized design.
+    10. ``SPCS2022_ZONES``, the nineteen zones of the modernized design;
+    11. a separator;
+    12. ``UTM_ZONES``, the three UTM zones over Michigan on NAD83(2011) and
+        the same three on NATRF2022 (DESIGN.md #72, plan D6) - last,
+        because they are not State Plane.
 
     **Every item is always present; the Options HIDE rows** (plan L7/L8,
     ``apply_row_visibility``) rather than rebuilding the list, so every index

@@ -247,12 +247,17 @@ def test_the_qsettings_adapter_round_trips_through_an_ini_file(qapp, tmp_path):
 
 
 def test_the_groups_and_their_labels_are_derived_from_the_registries():
-    """The dialog's nine groups, in the brief's order, each named from its own
-    record (no second copy of a name): the two zone systems by ``Zone.system``,
-    then one latitude/longitude group per offered frame by ``frame.code``."""
+    """The dialog's ten groups, in the brief's order, each named from its own
+    record (no second copy of a name): the zone systems by ``Zone.system``,
+    then one latitude/longitude group per offered frame by ``frame.code``.
+
+    SUPERSEDED COUNT (DESIGN.md #72, work package U5): "UTM zones" joins as
+    the third zone group, because the dropdowns offer the UTM block last
+    (plan D6) and the groups are derived from what they offer."""
     assert [group.label for group in options.LIST_GROUPS] == [
         "SPCS 83 zones",
         "SPCS2022 zones",
+        "UTM zones",
         "NAD83(2011) latitude/longitude",
         "NATRF2022 latitude/longitude",
         "WGS84(G1762) latitude/longitude",
@@ -287,7 +292,9 @@ def test_an_options_value_that_would_empty_a_list_cannot_exist():
         g.key for g in options.LIST_GROUPS if not g.is_zone_group
     )
     zones_only = frozenset(g.key for g in options.LIST_GROUPS if g.is_zone_group)
-    with pytest.raises(options.OptionsError, match="State Plane zones"):
+    # "group of zones", not "State Plane zones", since U5: the UTM group
+    # satisfies the rule too (DESIGN.md #72).
+    with pytest.raises(options.OptionsError, match="at least one group of zones"):
         replaced(options.DEFAULT_OPTIONS, shown=geodetic_only)
     with pytest.raises(options.OptionsError, match="latitude/longitude group"):
         replaced(options.DEFAULT_OPTIONS, shown=zones_only)
@@ -486,16 +493,18 @@ def test_no_two_rules_stand_together_and_none_ends_the_list(qapp, shown_keys):
 def test_the_default_lists_read_as_the_owner_will_see_them(window):
     """The whole visible TO list under the defaults, written out: one rule
     between the positions and Auto, one between Auto and the 1983 zones, one
-    before the 2022 zones. On a FROM list there is no Auto row and one rule
-    between the positions and the zones."""
-    from michspc.spc.zones import SPCS2022_ZONES
+    before the 2022 zones, and (U5, DESIGN.md #72) one before the six UTM
+    zones, on by default (plan D6). On a FROM list there is no Auto row and one
+    rule between the positions and the zones."""
+    from michspc.spc.zones import SPCS2022_ZONES, UTM_ZONES
 
     assert _visible_sequence(window.to_zone) == [
         controls.UNCHOSEN, NAD, NAT, None, AUTO_NAD, None,
-        *SPCS83_ZONES, None, *SPCS2022_ZONES,
+        *SPCS83_ZONES, None, *SPCS2022_ZONES, None, *UTM_ZONES,
     ]
     assert _visible_sequence(window.from_zone) == [
         controls.UNCHOSEN, NAD, NAT, None, *SPCS83_ZONES, None, *SPCS2022_ZONES,
+        None, *UTM_ZONES,
     ]
 
 
@@ -1060,7 +1069,7 @@ def test_the_dialog_refuses_ok_with_an_empty_list_and_says_why(qapp, kind):
         assert dialog.ok_button.isEnabled() is False
         assert not dialog.problem_label.isHidden()
         assert dialog.problem_label.text() == dialog.problem()
-        expected = "State Plane zones" if kind == "zone" else "latitude/longitude"
+        expected = "group of zones" if kind == "zone" else "latitude/longitude"
         assert expected in dialog.problem_label.text()
         dialog.accept()
         assert dialog.result() != OptionsDialog.DialogCode.Accepted

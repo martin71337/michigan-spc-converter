@@ -92,6 +92,15 @@ GLOBAL = tuple(
 )
 """The five WGS 84 and ITRF entries, offered since work package W5."""
 
+NAD_ZONES = tuple(zone for zone in ALL_ZONES if zone.frame is NAD83_2011)
+"""Every offered zone on NAD83(2011): the three SPCS 83 zones and, since work
+package U5, the three UTM zones on that frame (DESIGN.md #72). The graying is
+by FRAME, never by era, so a zone joins its frame's set with no other change."""
+
+NAT_ZONES = tuple(zone for zone in ALL_ZONES if zone.frame is NATRF2022)
+"""Every offered zone on NATRF2022: the nineteen SPCS2022 zones and, since U5,
+the three UTM zones on that frame."""
+
 STATEWIDE_2022 = zone_by_code("260001")
 """Michigan's statewide SPCS2022 zone - the only one covering the whole state,
 so a Michigan position lands inside it whichever anchor is used."""
@@ -814,10 +823,12 @@ def test_choosing_one_frame_grays_every_entry_of_the_other(window, which, end):
     # ADDED for the Options build (DESIGN.md #71): when the other end is a TO
     # combo it shows the Auto entry, and a zone FROM grays it (plan L1).
     auto = {AUTO_NAD} if end == "from" else set()
-    assert set(grayed(other)) == {NAT, *SPCS2022_ZONES, *auto}
+    # SUPERSEDED SET (DESIGN.md #72, U5): the NATRF2022 UTM zones join it -
+    # their frame, not their system, decides (NAT_ZONES).
+    assert set(grayed(other)) == {NAT, *NAT_ZONES, *auto}
     assert item_is_enabled(other, NAD)
     assert item_is_enabled(other, controls.UNCHOSEN)
-    for zone in SPCS83_ZONES:
+    for zone in NAD_ZONES:
         assert item_is_enabled(other, zone)
     for choice in GLOBAL:
         assert item_is_enabled(other, choice)
@@ -827,10 +838,11 @@ def test_choosing_one_frame_grays_every_entry_of_the_other(window, which, end):
     # the five WGS 84 / ITRF entries, which have no path to NATRF2022 (plan
     # decision D3) and were not in any dropdown when H6 wrote {NAD, SPCS 83}.
     choose(chooser, STATEWIDE_2022)
-    assert set(grayed(other)) == {NAD, *SPCS83_ZONES, *GLOBAL, *auto}
+    # SUPERSEDED SET (U5): and the NAD83(2011) UTM zones (NAD_ZONES).
+    assert set(grayed(other)) == {NAD, *NAD_ZONES, *GLOBAL, *auto}
     assert item_is_enabled(other, NAT)
     assert item_is_enabled(other, controls.UNCHOSEN)
-    for zone in SPCS2022_ZONES:
+    for zone in NAT_ZONES:
         assert item_is_enabled(other, zone)
 
 
@@ -846,7 +858,8 @@ def test_a_geodetic_entry_grays_the_other_frames_entries_too(window, which):
     page = pages(window)[which]
     choose(page.from_zone, NAD)
 
-    assert set(grayed(page.to_zone)) == {NAT, *SPCS2022_ZONES}
+    # SUPERSEDED SET (U5): every NATRF2022 zone, UTM included.
+    assert set(grayed(page.to_zone)) == {NAT, *NAT_ZONES}
     assert item_is_enabled(page.to_zone, NAD)
 
     # SUPERSEDED SET (DESIGN.md #70, plan W5): as above, the five WGS 84 /
@@ -854,7 +867,7 @@ def test_a_geodetic_entry_grays_the_other_frames_entries_too(window, which):
     choose(page.from_zone, NAT)
     # ADDED for the Options build (DESIGN.md #71): Auto on NAD83(2011) joins
     # the mirror set - its frame has no path from NATRF2022 (plan L2).
-    assert set(grayed(page.to_zone)) == {NAD, *SPCS83_ZONES, *GLOBAL, AUTO_NAD}
+    assert set(grayed(page.to_zone)) == {NAD, *NAD_ZONES, *GLOBAL, AUTO_NAD}
     assert item_is_enabled(page.to_zone, NAT)
 
 
@@ -953,7 +966,8 @@ def test_the_graying_lifts_when_a_transformation_is_registered(
     choose(page.from_zone, MI_SOUTH)
     # The Auto entry is grayed too, and for a reason no bridge changes: a
     # zone FROM can never feed Auto (plan L1, DESIGN.md #71).
-    assert set(grayed(page.to_zone)) == {NAT, *SPCS2022_ZONES, AUTO_NAD}
+    # SUPERSEDED SET (U5): every NATRF2022 zone, UTM included.
+    assert set(grayed(page.to_zone)) == {NAT, *NAT_ZONES, AUTO_NAD}
 
     bridged = dict(frames._TRANSFORMATIONS_BY_CODE)
     identity = bridged[("NAD83(2011)", "NAD83(2011)")]
@@ -972,7 +986,7 @@ def test_the_graying_lifts_when_a_transformation_is_registered(
         AUTO_NAD, MI_SOUTH, candidate_is_source=False
     ) == controls.AUTO_RESET_STATUS
     assert item_is_enabled(page.to_zone, NAT)
-    for zone in SPCS2022_ZONES:
+    for zone in NAT_ZONES:
         assert item_is_enabled(page.to_zone, zone)
 
 
@@ -1064,8 +1078,8 @@ def test_each_zone_offers_exactly_the_units_it_publishes(window, which):
     the job would accept.
     """
     page = pages(window)[which]
-    # The zones the dropdowns OFFER (controls.OFFERED_ZONES): UTM joins at U5
-    # (DESIGN.md #72), and choosing a zone the combo does not hold tests nothing.
+    # The zones the dropdowns OFFER (controls.OFFERED_ZONES): every registered
+    # zone since U5 (DESIGN.md #72), the six UTM zones meters-only among them.
     for zone in controls.OFFERED_ZONES:
         choose(page.from_zone, zone)
         assert offered_units(page.input_unit) == list(zone.allowed_units)

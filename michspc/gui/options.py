@@ -140,9 +140,12 @@ def options_problem(shown) -> str | None:
     """
     groups = [_GROUPS_BY_KEY[key] for key in shown if key in _GROUPS_BY_KEY]
     if not any(group.is_zone_group for group in groups):
+        # "zones", not "State Plane zones": since work package U5 the UTM
+        # group satisfies this rule too (DESIGN.md #72), so naming one kind
+        # would tell the user a UTM-only list is refused when it is accepted.
         return (
-            "Switch on at least one group of State Plane zones: with none, the "
-            "system lists would hold no zone to choose."
+            "Switch on at least one group of zones: with none, the system "
+            "lists would hold no zone to choose."
         )
     if not any(not group.is_zone_group for group in groups):
         return (

@@ -833,6 +833,15 @@ and a fifth tier would only move it:
 **Interim gate CLOSED**, the lead's judgement on four re-confirmations, with
 those residuals recorded.
 
+**U5 accepted (lead's review, 2026-10-30).** The six UTM zones reach every
+zone dropdown on both tabs, last, after a separator, NAD83(2011) then
+NATRF2022; one Options group, "UTM zones", on by default; a UTM side offers
+metres only, the EPSG labels follow, the #64 frame graying applies; Convert on
+both tabs matches NCAT within 0.5 mm. The Options error "at least one group of
+State Plane zones" became false once a UTM-only list satisfied it and now
+reads "at least one group of zones". Previews for the owner in
+`review/utm-u5/`. Five seeds caught; suite 6,862 in both modes.
+
 
 ### #71 — 2026-10-22 — Options menu, Auto zone, the observation date in Options; the release machine's suite
 

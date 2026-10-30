@@ -48,6 +48,7 @@ from michspc.spc.zones import (  # noqa: E402
     ALL_ZONES,
     SPCS2022_ZONES,
     SPCS83_ZONES,
+    UTM_ZONES,
 )
 
 GEODETIC = controls.geodetic_choice(NAD83_2011)
@@ -223,13 +224,13 @@ def test_the_window_asks_controls_for_the_direction_in_every_combination(window)
     # carries the two Auto entries (controls.AUTO_CHOICES, one per Auto
     # frame), so 1 + 7 + 2 + 22 = 32. The sweep covers them on BOTH ends -
     # an Auto FROM, hidden in the interface, must still answer no job.
-    # INTERIM (DESIGN.md #72, plan section 4): the six UTM records are in the
-    # registry from U1 but reach no dropdown until U5, so the zones counted are
-    # the ones the dropdowns offer (controls.OFFERED_ZONES), still 22.
+    # SUPERSEDED (DESIGN.md #72, work package U5): the six UTM zones are
+    # offered, so the zones counted (controls.OFFERED_ZONES, now every zone in
+    # the registry) are 28: 1 + 7 + 2 + 28 = 38. The interim count was 32.
     assert len(choices) == (
         1 + len(GEODETIC_CHOICES) + len(controls.AUTO_CHOICES) + len(controls.OFFERED_ZONES)
     )
-    assert len(choices) == 32
+    assert len(choices) == 38
 
     checked = 0
     window.from_zone.blockSignals(True)
@@ -256,7 +257,7 @@ def test_the_window_asks_controls_for_the_direction_in_every_combination(window)
         window.from_zone.blockSignals(False)
         window.to_zone.blockSignals(False)
 
-    assert checked == 1024  # 32 x 32, superseding W5's 30 x 30 = 900
+    assert checked == 1444  # 38 x 38 (U5), superseding #71's 32 x 32 = 1024
 
     # The two cases the rule singles out, stated outright rather than left
     # implicit in the sweep. A zone to itself is a real job (the units are
@@ -326,6 +327,10 @@ def test_every_registered_zone_is_offered_in_all_four_zone_dropdowns(window):
         # 19 = 36. Every item is always present - the Options HIDE rows
         # (tests/test_gui_options.py) - so these positions hold whatever is
         # switched on.
+        #
+        # SUPERSEDED LAYOUT AGAIN (DESIGN.md #72, work package U5): the six
+        # UTM zones close the list in a block of their own below a fifth
+        # zone-section separator (plan D6): 36 + 1 + 6 = 43.
         plate_fixed, time_dependent = controls.geodetic_choice_groups()
         assert combo.count() == (
             1
@@ -338,8 +343,10 @@ def test_every_registered_zone_is_offered_in_all_four_zone_dropdowns(window):
             + len(SPCS83_ZONES)
             + 1
             + len(SPCS2022_ZONES)
+            + 1
+            + len(UTM_ZONES)
         )
-        assert combo.count() == 36
+        assert combo.count() == 43
 
         assert offered[0] == UNCHOSEN
         first_separator = 1 + len(plate_fixed)
@@ -369,10 +376,20 @@ def test_every_registered_zone_is_offered_in_all_four_zone_dropdowns(window):
         # separator and not a selection.
         assert offered[second_separator] is None
         assert combo.itemText(second_separator) == ""
-        assert offered[second_separator + 1:] == list(SPCS2022_ZONES)
+        first_2022 = second_separator + 1
+        utm_separator = first_2022 + len(SPCS2022_ZONES)
+        assert offered[first_2022:utm_separator] == list(SPCS2022_ZONES)
+        assert offered[utm_separator] is None
+        assert combo.itemText(utm_separator) == ""
+        # NAD83(2011) UTM first, then NATRF2022 - registry order (plan D6).
+        assert offered[utm_separator + 1:] == list(UTM_ZONES)
+        assert [zone.frame.code for zone in offered[utm_separator + 1:]] == (
+            ["NAD83(2011)"] * 3 + ["NATRF2022"] * 3
+        )
 
-        # And every zone is findable by its own record, in both eras.
-        for zone in (*SPCS83_ZONES, *SPCS2022_ZONES):
+        # And every zone in the registry is findable by its own record.
+        assert len(ALL_ZONES) == 28
+        for zone in ALL_ZONES:
             position = combo.findData(zone)
             assert position >= 0, f"{zone.name} is not selectable"
             # With the side's unit's EPSG code since DESIGN.md #72; both
@@ -442,10 +459,12 @@ def test_the_dropdown_pin_has_something_to_find():
     """
     assert len(SPCS2022_ZONES) == 19
     assert len(SPCS83_ZONES) == 3
-    # The registry holds 28 since U1 (DESIGN.md #72); the dropdowns offer the
-    # 22 State Plane zones until U5 (the pin below).
+    # The registry holds 28 since U1 (DESIGN.md #72), and since U5 the
+    # dropdowns offer every one of them, in registry order: OFFERED_ZONES is
+    # ALL_ZONES, as a tuple and not merely as a set.
     assert len(ALL_ZONES) == 28
-    assert controls.OFFERED_ZONES == SPCS83_ZONES + SPCS2022_ZONES
+    assert controls.OFFERED_ZONES == ALL_ZONES
+    assert controls.OFFERED_ZONES == SPCS83_ZONES + SPCS2022_ZONES + UTM_ZONES
 
     # Seven of the declared frames are offered. The bare WGS 84 label is
     # declared and NOT usable, and its absence from the dropdown is the whole
@@ -467,22 +486,22 @@ def test_the_dropdown_pin_has_something_to_find():
     ]
 
 
-def test_no_utm_zone_reaches_a_dropdown_or_an_options_group_before_u5(window):
-    """INTERIM PIN, retired by work package U5 (docs/PLAN-utm-epsg.md section 4).
+def test_every_utm_zone_reaches_all_four_dropdowns_and_one_options_group(window):
+    """SUCCESSOR of the interim pin ``test_no_utm_zone_reaches_a_dropdown_or_an
+    _options_group_before_u5``, retired by work package U5 (docs/PLAN-utm-epsg.md
+    section 4, DESIGN.md #72).
 
-    The six UTM records are in the registry from U1, but no UTM zone may be
-    selectable before the job record can describe a UTM job (U4): the #41
-    rule, disclosure before reachability, and the H2 precedent, which gated
-    the 2022 zones out of the dropdowns the same way until H5/H6. Checked on
-    all four combos and on the Options groups, which derive from the same
-    ``controls.OFFERED_ZONES`` - so a "UTM zones" toggle that switches nothing
-    cannot appear either.
+    The six UTM records were held out of the interface from U1 until the job
+    record could describe a UTM job (U4) and the interim gate closed. Since U5
+    every one is selectable on all four combos, and switched by exactly one
+    Options group - "UTM zones", on by default (plan D6) - whose rows are
+    exactly the six.
     """
     from michspc.gui import options
-    from michspc.spc.zones import UTM_SYSTEM, UTM_ZONES
+    from michspc.spc.zones import UTM_SYSTEM
 
     assert len(UTM_ZONES) == 6
-    assert not set(UTM_ZONES) & set(controls.OFFERED_ZONES)
+    assert set(UTM_ZONES) <= set(controls.OFFERED_ZONES)
     for combo in (
         window.from_zone,
         window.to_zone,
@@ -490,5 +509,13 @@ def test_no_utm_zone_reaches_a_dropdown_or_an_options_group_before_u5(window):
         window.single_point.to_zone,
     ):
         for zone in UTM_ZONES:
-            assert combo.findData(zone) == -1, zone.name
-    assert UTM_SYSTEM not in {group.system for group in options.LIST_GROUPS}
+            assert combo.findData(zone) >= 0, zone.name
+    groups = [group for group in options.LIST_GROUPS if group.system == UTM_SYSTEM]
+    assert len(groups) == 1
+    (group,) = groups
+    assert group.label == "UTM zones"
+    assert group.key == "lists/zones/UTM"
+    assert group.default_shown is True
+    assert [zone for zone in controls.OFFERED_ZONES if group.holds(zone)] == list(
+        UTM_ZONES
+    )

@@ -1,0 +1,296 @@
+MCX 0.9.0 CLOSING GATE (UTM zones, EPSG labels, the TM domain limit, the
+outside-Michigan warning, the UTM job record, R1, self-test checks 15/16)
+Range: 3a3bdb6 (0.8.0) .. ed217d5 (HEAD) on claude/epsg-codes-system-labels-2a945a
+Reviewer: independent Opus reviewer (did not write the code; Codex unavailable)
+Date: 2026-10-30
+
+Suite, run unpiped in the checkout, exit codes read directly:
+  pytest     6870 passed, 1 skipped, 5 failed (exit 1)
+  python -O  6870 passed, 1 skipped, 5 failed (exit 1)
+The 5 are exactly the container baseline (test_fileio's three test_r3_3_*,
+test_geodetic_dms_export's half-way point,
+test_every_captured_value_is_in_the_page_ngs_served).
+`launch.py --selftest`: SELF-TEST PASSED - 16 checks (exit 0).
+
+Oracles: the frozen production NCAT JSON in review/autozone-r0/raw/ncat_probe/
+parsed by my own script (not the fixture generator's parser); the beta NCAT
+fixture rows (the interim gate already matched them to the raw pages);
+pyproj 3.8.0 / PROJ 9.8.1 / EPSG v12.029 in /root/venv314. 0.8.0 tree from
+`git archive 3a3bdb6`. Seeds ran in a scratchpad COPY of the checkout and were
+restored from in-memory snapshots (byte-compared after each); the copy was
+diffed against the checkout afterwards and is identical. Nothing in the
+repository was modified except this file.
+
+==============================================================================
+FINDINGS (no CRITICAL, no HIGH, no MEDIUM; every one below is a sentence or a
+pin, none a wrong number written or shown)
+==============================================================================
+
+LOW 1 - "it used to convert with up to 20 mm of error" is false.
+  docs/RELEASE-NOTES-0.9.0.md:135-136 ("Changed") and docs/DESIGN.md:777-779
+  (#72, interim MEDIUM 1: "never a real job - used to convert with up to
+  20 mm of error and now refuses").
+  Measured in the 0.8.0 tree against PROJ (+proj=tmerc from each zone's own
+  record), forward only:
+    261015 at 46.0 N, 75.0 W (12.6 deg from its meridian): 69 mm
+    261016 at 46.0 N, 75.0 W (13.4 deg):                  113 mm
+    261015 at 46.0 N, +87.6 (a positive longitude, the
+      change the caller names):                          83,983 km
+    261001, 261016 at +87.6:                          73,303 / 86,599 km
+  and the inverse was worse: a real 261001 file in international feet read as
+  metres (N 327,981.07, E 1,277,097.32 "m") converted in 0.8.0 to
+  43.708335, -72.985026 (with only the easting warning) and now refuses
+  ("give longitude -72.985026, 11.1 degrees ..."); 261016 the same way to
+  -51.84 (36 deg). So the old error was unbounded, and "never a real job" is
+  not true of the wrong-unit file, a real mistake that 0.8.0 wrote and 0.9.0
+  refuses. The behaviour change is an improvement and fails closed; the
+  sentence describing it is false.
+  Fix: "used to convert with an error that grew without bound - centimetres
+  at 10 to 13 degrees, a coordinate nowhere near Michigan for a positive
+  longitude or a feet file read as metres - and now refuses", in both files.
+
+LOW 2 - Two documents still say MCX does not do UTM.
+  README.md:13 "Not supported: UTM, NAD 83 to NATRF2022 transformation, ..."
+  (the page the GitHub Release links users to) and CLAUDE.md:27 "It
+  deliberately does **not** do UTM, ..." (the working summary's "What it
+  is", above the 0.9.0 block, which itself says UTM is built). DESIGN.md §2
+  and §10 were corrected in U6; these two were not.
+  Fix: drop UTM from both lists and add the three UTM zones (both frames,
+  metres only) to README's list of what it converts between.
+
+LOW 3 - Release notes draft: two sentences that read false.
+  (a) docs/RELEASE-NOTES-0.9.0.md:167-168: "Every finding is fixed and pinned
+      at the reviewer's own input, except three edge cases recorded below."
+      The interim gate's LOW 5 (the one-line Auto dialog no longer says
+      "Nothing was written.") was left to the owner (DESIGN.md #72, CLAUDE.md
+      "Open for the owner") and is unchanged: fill_failure_dialog still sets
+      informativeText "" (michspc/gui/controls.py, the headline branch).
+      Confirmed on the Single point tab: 49.0 N, 86.0 W into Auto ->
+      dialog text "Coordinates out of range: 1 point is outside Michigan.",
+      informative ''. Fix: "... except three edge cases recorded below, and
+      one wording question left to the owner (whether the one-line Auto
+      dialog should say 'Nothing was written.')".
+  (b) :185 "## Not included - **Any UTM zone anywhere in Michigan.**" reads,
+      under a "Not included" heading, as "UTM is not included". Fix:
+      "**One UTM zone used across all of Michigan** (17N at Muskegon, 15N
+      east of 88.2 W): the 4.8-degree limit ...".
+  Nit in the same files: Port Huron is "82.42 W, 4.58 degrees" in the notes
+  (:66) and "82.41 W ... 4.59 degrees" in DESIGN.md #72; pick one.
+
+LOW 4 - Two interim-gate fixes have halves no test holds: the NATRF2022 half
+  of the outside-Michigan warning (interim MEDIUM 2), and the vertical-only
+  half of the UTM units citation (interim LOW 3).
+  michspc/job.py:3128 _outside_michigan_warning. Seed S38: restrict
+  _utm_zones_of to non-NATRF2022 zones inside the warning (so no NATRF2022
+  UTM job ever warns) -> the FULL suite passes (6870 passed, only the 5
+  baseline failures). Today the code is frame-agnostic and correct: a beta
+  anchor's 16N-2022 coordinate (N 5,280,145.826, E 412,260.423) declared
+  15N-2022 lands at -94.16875 and warns point-outside-michigan; declared
+  17N-2022 lands at -82.16875 (inside 17N's extent, so the outside-Michigan
+  warning is the ONLY warning) and warns. Nothing holds that.
+  Fix: pin the 16N-2022-declared-17N-2022 case above through job.run (the
+  extent warning cannot mask it there), on the NATRF2022 frame.
+
+  Same class, seed S30: michspc/fileio/report.py _output_side_zone returning
+  None for VERTICAL_ONLY makes every vertical-only UTM record print, under
+  "Units out", "NOAA Manual NOS NGS 5 publishes SPCS 83 in meters (PDF
+  p. 21)" - exactly the sentence the interim gate's LOW 3 removed - and the
+  FULL suite passes (only the 5 baseline failures). The Units in line of the
+  same record is pinned; the Units out line is not. Fix: pin a 16N
+  vertical-only record's two units lines (or the whole record, as the two
+  geodetic-to-UTM records are).
+
+LOW 5 - Self-test check 15's scale-factor comparison is unpinned.
+  michspc/selftest.py:1730. Seed S12: `if scale is None or abs(scale -
+  expected_scale) > scale_tolerance:` -> `if scale is None:` -> the FULL
+  suite passes (only the 5 baseline failures).
+  test_check_15_fails_when_the_bundle_projects_elsewhere
+  falsifies only the northing. The check's own docstring says "A coordinate
+  can be right while the factor a surveyor scales a distance by is wrong."
+  Fix: a second falsification that shifts UTM_NAD83_ANCHOR_SCALE_FACTOR (or
+  the NATRF2022 one) by 1e-8 and expects SelfTestError.
+  Also weak (seed S36): check 16 catching ANY exception as "refused" is not
+  caught (FULL suite passes); a bundle whose projection raised, say, ImportError
+  would pass check 16 (check 15 would fail in that case, so jointly it holds).
+
+LOW 6 - The WARNINGS preamble asserts the written coordinate is correct
+  directly above a warning that exists because it probably is not.
+  michspc/fileio/report.py:3001-3002, "A warning is not an error. Every point
+  below was converted, and the coordinate written for it is correct." A
+  16N coordinate (N 4,853,603.367, E 676,069.946) declared 17N, UTM ->
+  NAD83(2011) geodetic: the record prints that preamble, then the extent
+  warning "The coordinate is computed correctly", then POINTS OUTSIDE
+  MICHIGAN ("converts to an ordinary-looking position six degrees away.
+  Check that ... 17N is the zone"), and the export holds 43.81453453,
+  -78.81073631 (Ontario). The arithmetic is right for the zone selected;
+  the coordinate is not the point's. Inherited wording (the SPCS 83
+  easting-unlike-zone warning had the same preamble), but POINT_OUTSIDE_
+  MICHIGAN is the first warning whose whole purpose is "the zone is
+  probably wrong", and it is new in this range.
+  Fix: when POINT_OUTSIDE_MICHIGAN (or EASTING_UNLIKE_SELECTED_ZONE) is
+  present, say "computed correctly FOR THE ZONE SELECTED" in the preamble.
+
+LOW 7 - docs/REFREEZE-NSRS.md's report.py row does not name the NATRF2022 UTM
+  verification paragraph.
+  report.py now carries beta-derived prose of its own beyond the SPCS2022
+  arm: UTM_NATRF2022_ANCHOR_COUNT (34), the 2026-10-22 capture date and the
+  0.0008 ppm inverse-scale bound measured against beta NCAT
+  (_utm_verification_paragraphs). The row at REFREEZE-NSRS.md:99 lists the
+  SPCS2022 METHOD prose and the Auto TO block only; the new utm_records.py
+  row says the fixture "change[s] whenever report.py's beta-derived text
+  does" but the row for report.py itself does not tell a re-freezer to
+  re-measure the 34 / 0.0008 ppm. Fix: one sentence in that row.
+
+Nits (no fix needed unless convenient):
+  - A geodetic-to-UTM record's "Units in ... the ELEVATION column only"
+    line cites "UTM is defined in meters (DMA Technical Manual 8358.2,
+    1989)" as the authority for the elevation's metre; the elevation is not a
+    UTM coordinate. (The SPCS 83 job prints the SPCS 83 manual there, equally
+    beside the point; not a regression.)
+  - michspc.gui.status_label is new and statically imported, not in
+    LAZY_IMPORTS; epsg was added "on the same precedent". Harmless.
+  - Outside Michigan's latitudes the 4.8-degree limit does not hold the
+    scale factor to half a unit: 16N at 0.5 N, 4.79 deg from the meridian is
+    3.05e-8 from PROJ (10 N: 2.6e-8; 20 N: 1.4e-8); positions stay inside
+    0.22 mm. Every such point is warned twice (POINT_OUTSIDE_MICHIGAN and
+    the extent warning, which says "computed correctly"). The docs scope the
+    claim to Michigan's latitudes; the refusal text does not mention scale.
+
+==============================================================================
+NEGATIVES ESTABLISHED
+==============================================================================
+
+1. Numbers (no wrong number found in any accepted configuration)
+
+- Production NCAT, parsed here from the raw JSON (212 responses with a UTM
+  block: 181 zone 16, 31 zone 17), through job.run AND the written ZIP:
+    geodetic -> 16N/17N: N, E worst 0.500 mm (export 4 dp vs NCAT 3 dp);
+      grid scale factor and convergence printed IDENTICAL to NCAT's digits
+      on all 212.
+    16N/17N -> geodetic (NCAT's N/E in): lat 0, lon <= 1e-8 deg vs NCAT;
+      source scale factor printed identical.
+    SPCS 83 (2111/2112/2113) in m, ift and usft -> 16N/17N, 204 positions,
+      all six pairings: worst 1.0 mm (tolerance 1.1 mm, two NCAT roundings).
+    16N/17N -> SPCS 83 in m, ift, usft: worst 0.9 mm (0.61 mm in feet
+      units); SPC scale factor and convergence printed identical to NCAT.
+- Beta NCAT, NATRF2022, 34 anchors, 16N-2022 through job.run: N 0.488 mm,
+  E 0.495 mm, k 4.9e-10, conv 0.0049"; inverse lat 4.4e-9, lon 6.6e-9 deg,
+  k 5.36e-10 (inside the record's stated 0.0008 ppm), conv 0.0049".
+- PROJ (EPSG 6344-6346), 20,000 points per zone on all SIX zones over
+  41.6-48.4 N to the limit (20% within 1e-6 of it): forward 0.0560 mm,
+  inverse 0.2616 mm, scale 4.575e-9, convergence 0.00014"; 0 inverse
+  refusals inside the domain. Matches the release notes' "0.26 mm and
+  4.6e-9" exactly.
+- UTM -> UTM (16N -> 17N, 400 points 82.45-85.75 W) written vs PROJ:
+  0.19 mm. 16N -> 2112 ift vs PROJ: 0.00055 ft.
+- HTDP into UTM: WGS84 (G1762, G2139, G2296), ITRF2014, ITRF2020 at two
+  dates into 15N/16N/17N, 5,000 points: the pivot is identical to a
+  GEODETIC_TO_GEODETIC job's output (0 deg difference) and the UTM coordinate
+  is within 0.046 mm of PROJ projecting that pivot. Reverse: 16N ->
+  WGS84(G2296) and -> ITRF2014 dated agree with 16N -> NAD83 geodetic ->
+  frame to 5e-11 deg (the input rounding).
+- Both tabs (offscreen, real widgets): geodetic -> 16N, 16N -> 2113 ift,
+  WGS84 dated -> 16N, 16N vertical-only, 16N-2022 H+V -> 261008: values
+  match the job path; the panel's Zone rows name the code of the unit used
+  ("NAD83(2011) / UTM zone 16N (EPSG 6345 m)", "Michigan South 2113 -
+  NAD83(2011) (EPSG 6499 ift)"); no "State Plane" on a UTM result.
+
+2. Refusals
+- 17N and 17N-2022 at 86.0 W refuse (5.0 deg) naming "UTM zone 16N"; 15N at
+  42.0, -82.5 refuses naming 17N; a far-off point names no zone ("check the
+  zone and the units"). Every UTM side refuses feet (interim negatives
+  re-confirmed by seed S18: 29 tests fail if feet are allowed).
+- Cross-frame UTM selections: the GUI's "settings are incomplete" for a
+  grayed pairing is byte-identical to 0.8.0's behaviour for 2113 -> 261008
+  (pre-existing, not reachable by mouse); job.run refuses by name.
+- No silent pass-through: every UTM end on NATRF2022 against NAD83(2011) or
+  a WGS 84/ITRF frame refuses (interim list; HTDP has no NATRF2022).
+
+3. Byte identity versus 0.8.0
+- 40 configurations (98 members/refusals) run in the 0.8.0 tree and at HEAD,
+  normalised only for Generated/Software and the folder: SPCS 83 zone to
+  zone in all units, SPCS2022 TM/LC1/OMERC zone to zone, geodetic both
+  frames and positive west, WGS84/ITRF dated both ways, geodetic to
+  geodetic, vertical only (zone, geodetic, SPCS2022 TM), H+V, ellipsoid
+  heights, Auto on both frames, the Auto outside refusal, and 14 refusals
+  whose wording this range touched (grid_name, grid_names_phrase, the Auto
+  target reason, the stray date/frame/convention texts).
+  92 of 98 identical. The 6 differences are exactly the recorded change:
+  NATRF2022 -> 261015 at 80.0 W (7.6 deg) and at +87.6 now refuse; 0.8.0
+  wrote them. A positive longitude into Lambert (2111) is unchanged.
+- No digest pin was edited in the range (no 64-hex literal removed from
+  tests/); tests/test_same_frame_outputs_unchanged.py and
+  test_orthometric_regression.py are untouched and pass.
+
+4. EPSG
+- Every code re-read from EPSG v12.029 by name, type and unit: 6493/6495/
+  6498 metre and 6494/6496/6499 foot 0.3048, all LCC 2SP (Central 6493
+  before North 6495, as recorded); 6344-6346 projected TM metre; 6318,
+  10968, 9057, 9755, 10606, 9000, 9990 Geographic 2D of the named
+  realization. A query of the dataset finds no NAD83(2011) Michigan usft CRS
+  and no NATRF2022 Michigan or UTM CRS.
+- Labels in every state driven: initial (ift: "(EPSG 6496 ift)" etc.; UTM
+  rows "(EPSG 634x m)" whatever the unit; NATRF2022 UTM and SPCS2022 rows no
+  code); after a UTM FROM snaps the side to metres every SPCS 83 row reads
+  "(EPSG 649x m)", consistent with the rebuild keeping metres when an SPC
+  zone is then chosen. No handler reads item text; setItemText fires no
+  index signal.
+
+5. Packaging
+- michspc.spec unchanged; the county file (needed by the outside-Michigan
+  warning) has shipped since 0.8.0 via SHIPPED_DATA_SOURCES and check 14
+  authenticates it in the bundle; michspc.fileio.counties is imported at
+  module level by job.py and is in LAZY_IMPORTS; michspc.spc.epsg added.
+- Self-test 16/16. Check 15 converts through convert.project_point on both
+  frames (a NATRF2022 record carrying the NAD83 frame would refuse at the
+  frame gate); check 16 fails when the limit is widened (suite falsifies it).
+
+6. R1
+- Auto refusal at 49.0 N, 86.0 W on the Single point tab: status "Refused:
+  Coordinates out of range: 1 point is outside Michigan.", tooltip the full
+  refusal, window minimumSizeHint 831 px before and after.
+
+7. Seeds (40, each restored byte-for-byte; targeted subset of 1,466 tests,
+   then the full suite for any survivor)
+  Caught (33): outside warning source-only; EPSG North/Central swap; 2113
+  m/ift swap; NATRF2022 frame code 10967; limit 4.9; closure check off;
+  easting window 4,000 km; k0 0.99960001; multi-tab TO labels unconnected;
+  single-tab TO labels from the input unit; UTM frame order; self-test
+  linear tolerance 5 m; UTM unit citation removed; UTM extent wording
+  reverted; outside warning never; covering-zone hint off by one; feet
+  allowed on UTM; unit dropped from the label suffix; Conversion line
+  reverted; UTM latitude extent +1 deg; REREAD treated as RECOVERED;
+  self-test domain point moved inside 16N; outside advice wrong branch;
+  status line without headline; label without the unit prediction; extent
+  longitudes to 1 dp; hint names the wrong zone number; vertical-only
+  record names State Plane; UTM Options group off by default.
+  Survived the FULL suite (6870 passed, only the 5 baseline failures):
+    S38 outside-Michigan warning off on NATRF2022       -> LOW 4
+    S30 vertical-only UTM "Units out" cites SPCS 83     -> LOW 4
+    S12 check 15 scale comparison removed               -> LOW 5
+    S36 check 16 accepts any exception as a refusal     -> LOW 5
+  Survived, judged equivalent (no observable behaviour, not findings):
+    S20 preferred_unit without the ift branch (every zone that offers ift
+        lists it first, so units[0] is ift whenever ift is offered);
+    S27 StatusLabel.sizeHint returning QLabel's (the policy is Ignored and
+        minimumSizeHint still asks for no width; window stays 831 px);
+    S35 domain test `<=` -> `<` (a float distance equal to exactly 4.8 +
+        allowance does not arise from a subtraction of real inputs).
+
+==============================================================================
+SUMMARY
+==============================================================================
+
+No CRITICAL, HIGH or MEDIUM. No wrong number in any accepted configuration I
+could construct, on either frame, in any unit, direction, vertical mode,
+HTDP path or tab; no refusal bypassed; no silent cross-frame pass-through;
+State Plane, SPCS2022, geodetic and vertical outputs byte-identical to 0.8.0
+except the recorded TM refusals. Seven LOW: two false sentences about the
+recorded behaviour change and the gate history (LOW 1, LOW 3), two stale
+"no UTM" statements (LOW 2), two interim fixes and the self-test's scale
+half with no pin (LOW 4, LOW 5), the WARNINGS preamble's "correct" above
+the wrong-zone warning (LOW 6), and one REFREEZE row (LOW 7). All are text or
+test edits; none needs a code change to a computation.
+
+VERDICT: FINDINGS
+

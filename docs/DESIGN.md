@@ -783,7 +783,9 @@ reviewer's inputs, 12 seeds caught; suite 6,759 in both modes.
   nowhere near the point: a positive longitude (73,000 to 87,000 km from PROJ
   on 261001, 261015, 261016, where the series no longer means anything), and
   a 261001 file in international feet read as metres, which 0.8.0 converted
-  to 43.708335, -72.985026 (Vermont) with only the easting warning. 0.9.0 refuses all of them. The Krueger n-series would remove the limit; it is
+  to 43.708335, -72.985026 (Vermont) with two warnings, the easting one and an
+  extent warning that said the coordinate was computed correctly. 0.9.0
+  refuses all of them. The Krueger n-series would remove the limit; it is
   not built, and is the owner's call. The re-confirmation also closed a
   second door to the same false sentence: far beyond any zone the inverse
   series turns over and recovers a longitude back inside the limit (16N's
@@ -857,6 +859,28 @@ both tabs matches NCAT within 0.5 mm. The Options error "at least one group of
 State Plane zones" became false once a UTM-only list satisfied it and now
 reads "at least one group of zones". Previews for the owner in
 `review/utm-u5/`. Five seeds caught; suite 6,862 in both modes.
+
+**Closing gate over 3a3bdb6..ed217d5: FINDINGS, seven LOW, no wrong number
+written or shown** (independent Opus reviewer; `review/gate-utm-closing/`).
+It re-ran 212 production NCAT positions through job.run and the written ZIP
+(0.5 mm, scale and convergence printed identical to NCAT), all 34 beta
+anchors, PROJ to the limit on six zones, and HTDP into UTM (0.046 mm); 92 of
+98 output members identical to 0.8.0, the six others the recorded TM
+refusals. All seven were sentences or missing pins and are fixed: the TM
+bullet above corrected with the reviewer's measured 0.8.0 figures; README and
+CLAUDE.md no longer say "no UTM"; release-notes wording; four behaviours
+pinned (the NATRF2022 outside-Michigan warning, the vertical-only UTM
+citation, self-test checks 15 and 16); a REFREEZE row; and **the WARNINGS
+preamble beside an outside-Michigan point**, which said "the coordinate
+written for it is correct" above a warning that the input was probably
+declared wrongly. **Its narrowing re-confirmation** (`reconfirm-output.txt`)
+re-measured every 0.8.0 figure and closed five; the lead fixed the rest as
+text: the 0.8.0 job wrote two warnings, not "only the easting warning"; and
+the preamble now names the cause that can apply - **grid input: the zone or
+unit it was declared in; geodetic input: the latitude and longitude
+themselves**, because no unit applies to them and a wrong longitude sign
+refuses at the TM limit before any record exists. Every other record keeps
+its sentence byte for byte.
 
 
 ### #71 — 2026-10-22 — Options menu, Auto zone, the observation date in Options; the release machine's suite

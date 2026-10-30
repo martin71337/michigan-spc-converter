@@ -27,7 +27,7 @@ with NATRF2022 geodetic in and out — any-to-any **within** each datum.
 Since the 0.9.0 build it also converts on the **three UTM zones over Michigan**
 (15N/16N/17N) on both NAD83(2011) and NATRF2022, metres only, within 4.8
 degrees of each zone's central meridian (DESIGN.md #72), and every system in
-the dropdowns names its EPSG code.
+the dropdowns names its EPSG code where EPSG publishes one.
 
 It deliberately does **not** do the **NAD 83 ↔ NATRF2022 transformation**
 (held on measured evidence, `docs/DEFERRED-NATRF2022-BRIDGE.md`), **NAPGD2022 /
@@ -56,7 +56,7 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.9.0 in flight - EPSG labels, UTM, the refusal round; U0-U6 done, closing gate next (2026-10-30)
+## Current state: 0.9.0 in flight - EPSG labels, UTM, the refusal round; U0-U6 and the closing gate done (2026-10-30)
 
 **Read `docs/PLAN-utm-epsg.md` and DESIGN.md #72 and #73 before touching this
 work.** Branch `claude/epsg-codes-system-labels-2a945a`. The owner's three
@@ -84,11 +84,14 @@ read from the EPSG dataset v12.029 via pyproj. **Process:** the lead began
 inline, stopped when the owner asked about method (#72 records it); from then
 the standing method. Interim gate FINDINGS (2 MEDIUM, 5 LOW), four narrowing
 re-confirmations, closed by the lead's ruling with residuals recorded.
-Suite **6,870** in both modes here, plus the five container failures; self-test
-**16** checks. **Next:** the closing gate over `3a3bdb6..HEAD`, then the
-owner's screen review (`review/utm-u2/`, `review/utm-u5/`,
-`review/refusal-r1/`), then the release build on his machine. **Open for the
-owner:** whether the one-line Auto refusal should say "Nothing was written."
+Suite **6,879** in both modes here, plus the five container failures; self-test
+**16** checks. **The closing gate is done** (`review/gate-utm-closing/`):
+seven LOW, no wrong number, all fixed; its narrowing re-confirmation closed
+five and the lead fixed the last two as text. **Next:** the owner's screen
+review (`review/utm-u2/`, `review/utm-u5/`, `review/refusal-r1/`), then the
+release build on his machine (drop `-dev`, `py tools/build_release.py
+--acknowledge-ngs-beta`, tag, GitHub Release). **Open for the owner:**
+whether the one-line Auto refusal should say "Nothing was written."
 
 **This container:** Python 3.14 venv at `/root/venv314` (PySide6, pytest,
 pyproj); the two `review/nsrs-n0/raw/*.json` files were converted to CRLF

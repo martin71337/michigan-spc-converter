@@ -484,10 +484,31 @@ def test_the_warnings_preamble_qualifies_correct_beside_an_outside_point(tmp_pat
     assert (
         "A warning is not an error. Every point below was converted, and the\n"
         "coordinate written for it is computed correctly for the input as declared.\n"
-        "A point outside Michigan most likely means the input was declared wrongly -\n"
-        "a different zone, unit or longitude sign - and is worth checking before use.\n"
+        "A point outside Michigan most likely means the coordinates were declared\n"
+        "in the wrong zone or unit; check that before using the result.\n"
     ) in record
     assert "coordinate written for it is correct. A warning means" not in record
+
+
+def test_the_preamble_on_geodetic_input_names_the_position_not_a_zone(tmp_path):
+    """The closing gate re-confirmation's LOW 6: on geodetic input neither a
+    zone nor a unit can be wrong, and a wrong longitude sign refuses at the
+    transverse Mercator limit before any record exists, so the preamble says
+    the latitude and longitude lie outside Michigan. Toledo, Ohio (41.65 N,
+    83.55 W) into NAD83(2011) 17N: 2.55 degrees from the meridian, inside the
+    domain, in no Michigan county."""
+    result, archive = _job(
+        tmp_path, "1,41.65,-83.55,,P\n", **_geodetic_to(zone_by_code("17N"))
+    )
+    record = member_text(archive, "_README.txt")
+    assert "POINTS OUTSIDE MICHIGAN" in record
+    assert (
+        "coordinate written for it is computed correctly for the input as declared.\n"
+        "A point outside Michigan means the latitude and longitude given lie\n"
+        "outside Michigan; check them before using the result.\n"
+    ) in record
+    assert "declared in the wrong zone or unit" not in record
+    assert "longitude sign" not in record.split("WARNINGS")[1].split("POINTS OUTSIDE")[0]
 
 
 def test_a_utm_job_with_other_warnings_keeps_the_old_preamble(tmp_path):

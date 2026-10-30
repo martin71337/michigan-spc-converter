@@ -1,8 +1,8 @@
 # MCX 0.9.0
 
-**DRAFT. Not released. The closing gate has not yet run, and the numbers below
-are re-checked against the code and DESIGN.md #72 and #73 before the release
-build.**
+**DRAFT. Not released. The closing gate has run (seven LOW, no wrong number;
+all fixed); the numbers below are re-checked against the code and DESIGN.md
+#72 and #73 before the release build.**
 
 ---
 
@@ -138,7 +138,8 @@ its width.
   with the wrong sign (tens of thousands of kilometres off, where the
   equations no longer mean anything), and a file in international feet read
   as metres (a zone 261001 file read that way landed at 43.708 N, 72.985 W,
-  in Vermont, with only an easting warning). 0.9.0 refuses all of them. No point
+  in Vermont, with an easting warning and an extent warning that called the
+  coordinate correct). 0.9.0 refuses all of them. No point
   inside a zone's published bounds is affected: the widest SPCS2022
   transverse Mercator zone reaches 1.29 degrees from its meridian.
 - The Options error that asked for "at least one group of State Plane zones"
@@ -172,7 +173,9 @@ its width.
   before it. Every finding is fixed and pinned at the reviewer's own input,
   except three edge cases recorded below and one wording question left to
   the owner: whether the one-line Auto refusal dialog should also say
-  "Nothing was written." **The closing gate is still to run.**
+  "Nothing was written." **The closing gate** then returned seven LOW
+  findings, every one a sentence or a missing test and none a wrong number,
+  and all are fixed.
 
 ## Recorded, not fixed
 

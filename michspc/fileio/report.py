@@ -3002,17 +3002,25 @@ def build_report(result: JobResult) -> str:
             warning.code is WarningCode.POINT_OUTSIDE_MICHIGAN
             for _point_id, warning in all_warnings
         ):
-            # The closing gate's LOW 6 (DESIGN.md #72): this warning exists
-            # because the input was probably declared wrongly - a different
-            # zone on a grid-input job, a longitude sign on a geodetic one -
-            # so "the coordinate written for it is correct" would sit directly
-            # above the warning that says the input probably is not.
-            # UTM jobs only - the only jobs that raise it - so every other
-            # record keeps the sentence below byte for byte.
+            # The closing gate's LOW 6 and its re-confirmation (DESIGN.md
+            # #72): "the coordinate written for it is correct" would sit
+            # directly above a warning that says the input is probably not
+            # what it was declared to be. The likely cause depends on the
+            # input. Grid input: the zone or the unit it was declared in.
+            # Geodetic input: neither applies, and a wrong longitude SIGN
+            # never reaches a record - it refuses at the transverse Mercator
+            # domain limit - so the latitude and longitude themselves lie
+            # outside Michigan. UTM jobs only (the only jobs that raise this
+            # warning), so every other record keeps the sentence below byte
+            # for byte.
             add("A warning is not an error. Every point below was converted, and the")
             add("coordinate written for it is computed correctly for the input as declared.")
-            add("A point outside Michigan most likely means the input was declared wrongly -")
-            add("a different zone, unit or longitude sign - and is worth checking before use.")
+            if settings.source_zone is not None:
+                add("A point outside Michigan most likely means the coordinates were declared")
+                add("in the wrong zone or unit; check that before using the result.")
+            else:
+                add("A point outside Michigan means the latitude and longitude given lie")
+                add("outside Michigan; check them before using the result.")
         else:
             add("A warning is not an error. Every point below was converted, and the")
             add("coordinate written for it is correct. A warning means something about")

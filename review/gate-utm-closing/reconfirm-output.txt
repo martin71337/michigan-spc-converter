@@ -1,0 +1,207 @@
+MCX 0.9.0 CLOSING GATE - NARROWING RE-CONFIRMATION
+Range: 5240c95..b03eba1 (fix commits 80e663e CLAUDE.md, b03eba1 the seven LOW)
+Branch: claude/epsg-codes-system-labels-2a945a, HEAD b03eba1
+Reviewer: independent Opus reviewer (did not write the code; Codex unavailable)
+Date: 2026-10-30
+
+Environment and baseline, run unpiped, exit codes read directly:
+  pytest     6878 passed, 1 skipped, 5 failed (exit 1)
+  python -O  6878 passed, 1 skipped, 5 failed (exit 1)
+  The 5 are exactly the container baseline (test_fileio's three
+  test_r3_3_*, test_geodetic_dms_export half-way point,
+  test_projection_engines::test_every_captured_value_is_in_the_page_ngs_served).
+  launch.py --selftest: SELF-TEST PASSED - 16 checks (exit 0).
+0.8.0 tree: `git archive 3a3bdb6` into a scratch directory; PROJ 9.8.1 via
+pyproj in /root/venv314. Seeds ran in a scratch COPY of the checkout,
+restored from byte snapshots; the copy was diffed against the checkout
+afterwards and is identical. Nothing in the repository was modified except
+this file.
+
+==============================================================================
+THE SEVEN LOW
+==============================================================================
+
+LOW 1 - NOT CLOSED (one clause of the new text is false)
+  Every figure re-measured in the 0.8.0 tree (convert.from_geodetic, then
+  PROJ +proj=tmerc built from each zone's own record, GRS80):
+    261015 at 46.0 N, 75.0 W (12.60 deg): 0.0690 m          -> "69 mm"   TRUE
+    261016 at 46.0 N, 75.0 W (13.40 deg): 0.1127 m          -> "113 mm"  TRUE
+    +87.6 into 261001 / 261015 / 261016: 73,303 / 83,983 / 86,599 km
+                                     -> "73,000 to 87,000 km"            TRUE
+    261001 file in ift read as metres (1,327981.07,1277097.32 declared m,
+      NATRF2022 geodetic out): written 43.70833536, -72.98502594
+                                     -> 43.708 N, 72.985 W (Vermont)     TRUE
+    (The same row declared ift converts to 42.200000, -84.000000.)
+  At HEAD all five refuse (TransverseMercatorDomainError naming the distance)
+  -> "0.9.0 refuses all of them" TRUE. "No point inside a zone's published
+  bounds is affected" unchanged and true.
+  FALSE: docs/DESIGN.md:786 "with only the easting warning" and
+  docs/RELEASE-NOTES-0.9.0.md:141 "with only an easting warning". 0.8.0 wrote
+  TWO warnings on that job; its record reads "2 warning(s) across 1 points",
+  COORDINATES MAY NOT BE IN THE SELECTED SOURCE ZONE (the easting) AND POINTS
+  OUTSIDE THE TARGET ZONE'S AREA ("43.708335, -72.985026 lies outside the
+  area Michigan Ann Arbor covers ... The coordinate is computed correctly,
+  but distortion grows ..."). The clause came from the closing gate's own
+  narration, which was wrong on this point; the fix copied it.
+  Fix: "with an easting warning and an extent warning that called the
+  coordinate computed correctly" (or drop the clause), in both files.
+
+LOW 2 - CLOSED
+  README.md:7 lists the three UTM zones on both frames, meters only; :14 "Not
+  supported: UTM more than 4.8 degrees from a zone's central meridian ...".
+  CLAUDE.md "What it is" no longer says it does not do UTM. Both true
+  (geodetic -> 16N/17N, 16N -> 2113 and the NATRF2022 16N jobs below all
+  convert and write; beyond 4.8 degrees refuses).
+
+LOW 3 - CLOSED
+  (a) notes :172-175 now name the open owner question; still true at HEAD:
+      michspc/gui/controls.py fill_failure_dialog's headline branch still
+      sets informativeText "" (controls.py:1844).
+  (b) "Not included" now reads "UTM beyond 4.8 degrees of a zone's central
+      meridian"; 17N at Muskegon and 15N east of 88.2 W are 93-4.8 and
+      81+4.8, true.
+  Nit: Port Huron is now 82.41 W / 4.59 degrees in both the notes (:66) and
+  DESIGN.md #72 (:774); 87 - 82.41 = 4.59.
+
+LOW 4 - CLOSED
+  S38 (outside-Michigan warning restricted to non-NATRF2022 zones in
+  job._outside_michigan_warning) is now caught:
+  test_a_natrf2022_utm_file_declared_in_the_wrong_zone_warns fails.
+  S30 (_output_side_zone returns None for VERTICAL_ONLY), re-run exactly as
+  the gate names it: the targeted file passes - and so does the record,
+  because S30 is behaviour-equivalent at this code: with no side zone,
+  report._unit_citation falls back to "every zone of the job is UTM", which
+  a vertical-only UTM job satisfies, so the record still cites UTM on both
+  units lines. The gate's statement that S30 makes the record cite the SPCS 83
+  manual does not reproduce (report.py's citation code is unchanged in the
+  range, so it did not reproduce at 5240c95 either). The new pin holds the
+  observable outcome: a two-route seed (S30 plus the fallback turned off for
+  VERTICAL_ONLY, S30b) makes the record cite SPCS 83 and
+  test_a_vertical_only_utm_record_cites_utm_on_both_units_lines fails. The
+  pin can fail; it holds the property.
+
+LOW 5 - CLOSED
+  S12 (check 15's scale comparison removed): both parametrisations of
+  test_check_15_fails_when_the_bundle_scales_distances_wrong fail.
+  S36 (check 16 accepts any Exception as the refusal):
+  test_check_16_fails_when_the_projection_raises_something_else fails. The
+  monkeypatch reaches the check because check_utm_domain_refusal imports
+  project_point at call time.
+
+LOW 6 - NOT CLOSED (true for grid input; not true for geodetic input)
+  The new preamble (michspc/fileio/report.py:3001-3019) prints only when a
+  point carries POINT_OUTSIDE_MICHIGAN, and that warning arises only on a job
+  with a UTM end (job._utm_zones_of). Driven at HEAD, written archives:
+  - Grid input in the wrong zone (the gate's 16N coordinate declared 17N,
+    UTM -> geodetic; and the same row as a 17N vertical-only job): preamble
+    printed, "computed correctly for the input as declared" and "a different
+    zone" are both true. CORRECT.
+  - Geodetic input with a wrong longitude sign: NEVER reaches the record.
+    44.0, 85.0 into 16N (negative-west convention) and -83.0 under positive
+    west into 17N both refuse (EastOfGreenwichRefusal, 172 and 164 degrees
+    from the meridian): an east longitude is at least 165 degrees from 15N,
+    16N and 17N's meridians, far past the 4.8-degree limit. So the case the
+    code comment (report.py:3005-3007, "a longitude sign on a geodetic one")
+    and the commit message give as the geodetic justification cannot occur.
+  - A genuinely outside-Michigan geodetic point (41.65, -83.55, Toledo, into
+    17N; 0.5, -82.21 into 16N): preamble printed, saying the point "most
+    likely means the input was declared wrongly - a different zone, unit or
+    longitude sign". A geodetic-input job declares no zone and no linear
+    unit for its positions, and a sign error is refused before it can be
+    written, so none of the three listed causes is possible on any
+    geodetic-input record that prints this sentence. The per-point warning
+    beneath it says "Check the latitude and longitude." - the preamble and
+    the advice it introduces disagree.
+  Fix: word the second sentence by the input kind, e.g. grid input "... a
+  different zone or unit ..."; geodetic input "a point outside Michigan is
+  a mistyped latitude or longitude, or a point this Michigan tool was not
+  meant for" (no zone, unit or sign). Pin both wordings.
+  Absent elsewhere: confirmed. A UTM job whose only warning is the extent
+  one keeps the old preamble (pinned; seeds "condition always true" and
+  "condition also on OUTSIDE_ZONE_EXTENT" both caught by
+  test_a_utm_job_with_other_warnings_keeps_the_old_preamble; "condition
+  never" caught by test_the_warnings_preamble_qualifies_correct_beside_an_
+  outside_point). Byte identity against 3a3bdb6 on 7 non-UTM configurations,
+  23 written members (2113 ift to geodetic with the easting warning, geodetic
+  to 2111 with the extent warning, geodetic to 2113 ift clean, 2112 to 2113
+  usft with the extent warning, positive-west geodetic to 261001 with the
+  extent warning, 261008 to geodetic, geodetic vertical-only NGVD 29 to
+  NAVD 88), normalised only for the Generated/Software lines and the folder:
+  23 of 23 identical, 4 of them records carrying the old preamble.
+  Carried nit (the gate's): "computed correctly for the input as declared"
+  holds for position everywhere, but at 0.5 N, 82.21 W into 16N the record
+  prints grid scale factor 1.00312682 where PROJ gives 1.0031268549
+  (1.00312685): three units in the 8th decimal, outside Michigan's latitudes
+  only. Not a regression; the old preamble said "correct".
+
+LOW 7 - CLOSED
+  docs/REFREEZE-NSRS.md:99 now names _utm_verification_paragraphs,
+  UTM_NATRF2022_ANCHOR_COUNT (34) and UTM_NATRF2022_INVERSE_SCALE_BOUND
+  (0.0008 ppm); all three exist under those names (report.py:1994-1998,
+  2053). The inventory test passes. Nit: the row's capture-script and pin
+  columns still name only the SPCS2022 and Auto sources, not
+  review/autozone-r0/probe3_ncat.py or tests/test_utm.py.
+
+==============================================================================
+NEW FINDINGS IN 5240c95..b03eba1
+==============================================================================
+
+LOW A - "the closing gate has not yet run", three places, at a HEAD whose
+  previous commit records it.
+  docs/RELEASE-NOTES-0.9.0.md:3 "The closing gate has not yet run" and :175
+  "**The closing gate is still to run.**" (b03eba1 edited the paragraph that
+  holds :175 and kept the sentence); CLAUDE.md 0.9.0 block heading "U0-U6
+  done, closing gate next" and "Suite 6,870 ... Next: the closing gate over
+  3a3bdb6..HEAD" (80e663e edited CLAUDE.md and left the block). The closing
+  gate ran (5240c95, FINDINGS, seven LOW) and the suite is now 6,878. The
+  notes are a marked DRAFT, so this misleads no surveyor today, but it is the
+  sentence LOW 3 asked to be made true. Fix when the re-confirmation
+  closes: state the closing gate, its seven LOW and the re-confirmation.
+
+Nits (no fix needed unless convenient):
+  - CLAUDE.md:30 (80e663e) "every system in the dropdowns names its EPSG
+    code" - not true of the 19 SPCS2022 zones, the three NATRF2022 UTM zones
+    or any zone in US survey feet, which carry none by design (the block
+    below says so). "names its EPSG code where EPSG defines one". The notes'
+    headline (:9-10, :90) has the same overstatement, from ed217d5, corrected
+    in its own list at :104.
+  - report.py:3001 comment cites "DESIGN.md #72" for the LOW 6 ruling; #72
+    records the LOW 1 correction from this gate but not LOW 2-7 or the new
+    preamble. A record-text change to UTM job records belongs in the
+    amendment log.
+  - Notes :191-193: "so one UTM zone cannot be used across all of Michigan
+    ... (16N is the exception and covers all of Michigan's land)" reads as
+    self-contradictory; the distinction is land versus Michigan's Lake Huron
+    waters. "No UTM zone covers all of Michigan: ..." would say it.
+
+No output change in the range other than the LOW 6 preamble on UTM jobs that
+carry POINT_OUTSIDE_MICHIGAN (the only production-code diff is report.py's
+WARNINGS preamble; tests and docs otherwise). No digest pin edited.
+
+==============================================================================
+NEGATIVES
+==============================================================================
+- Every LOW 1 figure reproduced to the stated digit in the 0.8.0 tree, and
+  every case refuses at HEAD.
+- The four new pins (NATRF2022 outside warning, vertical-only citation,
+  check 15 scale, check 16 exception class) each fail under a seed that
+  removes the property; the two LOW 6 pins fail under all three preamble
+  seeds. Seeds: S38, S30, S30b, S12, S36, preamble never/always/on-extent;
+  8 run, 7 caught, S30 judged equivalent with evidence (above).
+- Non-UTM records byte-identical to 0.8.0 on the sample; the old preamble
+  unchanged where printed.
+- Suite and -O exactly at the container baseline; self-test 16/16.
+
+==============================================================================
+SUMMARY
+==============================================================================
+Closed: LOW 2, 3, 4, 5, 7. Not closed: LOW 1 (one false clause, "with only
+an easting warning" - 0.8.0 wrote an easting AND an extent warning) and LOW 6
+(the preamble's "a different zone, unit or longitude sign" is true for grid
+input but names three impossible causes on every geodetic-input record that
+prints it, because a wrong sign is refused before writing). One new LOW:
+"the closing gate has not yet run / is next" in the DRAFT notes and in
+CLAUDE.md's 0.9.0 block. All text; no wrong number, no output change outside
+the intended preamble.
+
+VERDICT: FINDINGS

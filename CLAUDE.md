@@ -56,7 +56,23 @@ and the suite stayed green because Python accepts a BOM. Caught by reading the
 diff stat, not by a test. TOOLING.md's warning applies to throwaway seeding
 commands too, where the diff usually goes unread.
 
-## Current state: 0.9.0 in flight - EPSG labels, UTM, the refusal round; U0-U6 and the closing gate done (2026-10-30)
+## Current state: 0.9.0 RELEASED (2026-11-01)
+
+**0.9.0 is built, gated, tagged and published** (DESIGN.md #72-#74): the
+cloud session's EPSG labels, UTM 15N/16N/17N on both frames and the
+one-line Auto refusal, merged onto `main` as a linear history. All nine
+gates, beta acknowledgement; suite 6,883 + 3 skips in both modes; frozen
+self-test 16 of 16 (UTM 16N within 0.0001 m of NCAT on both frames);
+`mcx-0.9.0-setup.exe` + `SHA256SUMS.txt` on the GitHub Release, tagged
+`v0.9.0`. The owner had seen the screens and kept the refusal line as
+built. **The release machine found three test failures the container
+could not** (#74): two CRLF test inputs, and the panel's wrap cap (48 EMs)
+outgrown by the 51-character EPSG labels under the offscreen M-wide
+fallback font; the cap is 64 and pinned against every registry label.
+**Still human:** one real UTM job against a known coordinate, one real
+WGS 84 / PPP dataset, and the clean-profile install proof (METHOD.md §6).
+
+## Superseded status: 0.9.0 in flight - EPSG labels, UTM, the refusal round; U0-U6 and the closing gate done (2026-10-30)
 
 **Read `docs/PLAN-utm-epsg.md` and DESIGN.md #72 and #73 before touching this
 work.** Branch `claude/epsg-codes-system-labels-2a945a`. The owner's three

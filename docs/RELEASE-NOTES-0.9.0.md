@@ -1,11 +1,5 @@
 # MCX 0.9.0
 
-**DRAFT. Not released. The closing gate has run (seven LOW, no wrong number;
-all fixed); the numbers below are re-checked against the code and DESIGN.md
-#72 and #73 before the release build.**
-
----
-
 **MCX now converts to and from UTM, and every coordinate system in its lists
 names its EPSG code.** It moves survey coordinates between Michigan's three
 State Plane zones, the 19 SPCS2022 zones and now the three UTM zones that cover
@@ -175,7 +169,18 @@ its width.
   the owner: whether the one-line Auto refusal dialog should also say
   "Nothing was written." **The closing gate** then returned seven LOW
   findings, every one a sentence or a missing test and none a wrong number,
-  and all are fixed.
+  and all are fixed. The owner chose to keep the one-line refusal as it is.
+- **On the owner's Windows machine before the build**, the suite found three
+  failures the Linux container could not see, none in a number. Two were
+  tests writing their input file with Windows line endings, so the input's
+  fingerprint in the job record differed. The third was real in the test
+  window only: the Single point panel caps a value's width at 48 widths of
+  the letter M, and the new EPSG labels reach 51 characters ("Michigan
+  Central 2112 - NAD83(2011) (EPSG 6494 ift)"). On a real screen that label
+  is about 290 pixels against a 517-pixel cap, but the test window on
+  Windows uses a font in which every letter is as wide as an M, so the label
+  broke onto two lines there. The cap is now 64, and a test fails if any
+  zone label ever reaches it.
 
 ## Recorded, not fixed
 
@@ -203,8 +208,5 @@ in principle convert. **Each is a refusal, never a wrong number**:
 
 ## Still to do, by the owner
 
-- Before the release build: look at the UTM entries, the EPSG labels, the
-  Options group and the one-line refusal on a real screen (previews in
-  `review/utm-u2/`, `review/utm-u5/` and `review/refusal-r1/`).
 - Run one real UTM job end to end against a known UTM coordinate.
 - The clean-profile install proof (METHOD.md section 6).

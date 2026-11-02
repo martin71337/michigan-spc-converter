@@ -74,7 +74,7 @@ for, and `tests/test_copy_icon.py` still resolves the two sheets at this size.
 NAME_COLUMN = 0
 VALUE_COLUMN = 1
 
-WRAP_COLUMNS = 48
+WRAP_COLUMNS = 64
 """How wide a value is allowed to get before it is asked to wrap, in EMs.
 
 Every value here is a coordinate, a factor, a unit name or a zone name, and
@@ -94,8 +94,17 @@ offscreen test platform reports different metrics from the real Windows plugin
 for the same font, so a number tuned under one is not a number under the other.
 
 Measured in EMs of the label's own font instead, it is a statement about text
-rather than about pixels: 48 of the widest character the font has, against a
-longest value of 40 mixed-case characters, which no font can render wider.
+rather than about pixels: a count of the widest character the font has, which
+holds against any value with fewer characters than the count, in any font.
+
+**It was 48 until 0.9.0, and the EPSG labels outgrew it** (DESIGN.md #74):
+"Michigan Central 2112 - NAD83(2011) (EPSG 6494 ift)" is 51 characters. In a
+proportional font that is about 290 px against a 517 px cap (Segoe UI 9 pt),
+but the offscreen platform on Windows falls back to a font in which every
+character is as wide as an M, so the value wrapped there. 64 holds every label
+the registry can build with room for growth; the suite pins that every zone
+label is shorter than this count, so the next label that outgrows it fails a
+test instead of a screen.
 """
 
 

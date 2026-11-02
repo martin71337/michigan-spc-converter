@@ -1455,6 +1455,28 @@ def test_no_panel_value_wraps_at_all(window, tab):
     assert len(tab.warnings_label.text()) > 80
 
 
+def test_every_zone_label_is_shorter_than_the_wrap_cap():
+    """The cap is WRAP_COLUMNS of the font's widest character, so a value with
+    fewer characters fits in ANY font - including the offscreen platform's
+    Windows fallback, where every character is as wide as an M. The EPSG
+    labels outgrew the old 48 (DESIGN.md #74); this fails before a screen
+    does when a label outgrows the cap again. Every zone in the registry,
+    in every unit it allows."""
+    from michspc.gui.controls import zone_label
+    from michspc.gui.result_panel import WRAP_COLUMNS
+    from michspc.spc import zones as zones_module
+
+    labels = {
+        zone_label(zone, unit)
+        for zone in zones_module.ALL_ZONES
+        for unit in zone.allowed_units
+    }
+    longest = max(labels, key=len)
+    # The one the cap was raised for, so the sweep cannot pass by missing it.
+    assert "Michigan Central 2112 - NAD83(2011) (EPSG 6494 ift)" in labels
+    assert len(longest) < WRAP_COLUMNS, longest
+
+
 # --------------------------------------------------------------------------
 # Degrees / minutes / seconds entry
 # --------------------------------------------------------------------------

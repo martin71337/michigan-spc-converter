@@ -123,7 +123,10 @@ def _job(tmp_path: Path, rows: str, name: str = "job", **fields) -> tuple:
     )
     base.update(fields)
     settings = JobSettings(**base)
-    settings.input_path.write_text(rows, encoding="utf-8")
+    # newline="\n": the record certifies the input file's SHA-256 and the
+    # whole-record pins below were frozen from an LF file; Windows text mode
+    # would write CRLF and move the digest without the program changing.
+    settings.input_path.write_text(rows, encoding="utf-8", newline="\n")
     result = run(settings)
     return result, exports.write_all(result)["archive"]
 

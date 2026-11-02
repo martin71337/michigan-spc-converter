@@ -621,6 +621,31 @@ gateless cadence does not apply here). The horizontal work packages H1–H6
 proceed per the plan; the first code lands only after this amendment, which
 is the H0 exit condition.
 
+### #74 — 2026-11-01 — 0.9.0 on the release machine: the panel's wrap cap, two LF inputs
+
+**The owner's instruction:** cut the release for the cloud session's #72/#73
+build. He had seen the screens and kept the one-line Auto refusal as built
+(no "Nothing was written."). On his Windows machine the suite had three
+failures the container could not see, none in a number:
+
+- `test_the_whole_utm_record_is_pinned_per_frame` (both frames): the helper
+  wrote its input in Windows text mode, so the record's input SHA-256 moved.
+  The input is now written LF, as #71 did for the same class; no digest
+  re-frozen.
+- `test_no_panel_value_wraps_at_all`: `result_panel.WRAP_COLUMNS` was 48 EMs,
+  justified by "a longest value of 40 characters, which no font can render
+  wider". #72's EPSG suffix made the longest zone label 51 characters. In
+  Segoe UI 9 pt (measured on the real Windows platform) it is 276 px against
+  a 517 px cap, so no real screen wrapped; the offscreen platform on Windows
+  falls back to a font whose every character is as wide as an M, so 51 > 48
+  wrapped there. The invariant the docstring states was broken by #72, so it
+  is restored at the root: WRAP_COLUMNS is 64, and a new pin
+  (`test_every_zone_label_is_shorter_than_the_wrap_cap`) requires every
+  registry zone label, in every allowed unit, to be shorter than the count.
+  Falsified: at 48 both tests fail.
+
+Lead-applied (three small edits; no builder), suite then green in both modes.
+
 ### #73 — 2026-10-29 — Owner: the Auto refusal reads as one line, and a refusal no longer widens the window
 
 **The owner's instructions (2026-10-29)**, from his screen, on the Single
